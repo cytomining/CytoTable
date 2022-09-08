@@ -1,6 +1,6 @@
 # pycytominer-transform
 
-```mermaid
+```{mermaid}
     flowchart LR
 
         images[(Cell Images)]
@@ -42,3 +42,10 @@ The parquet files will have a unified and documented data model, including refer
 - [DeepProfiler](https://github.com/cytomining/DeepProfiler)
 - [CellProfiler](https://github.com/CellProfiler/CellProfiler)
 - [cytominer-eval](https://github.com/cytomining/cytominer-eval)
+
+```{toctree}
+:caption: 'Contents:'
+:maxdepth: 2
+
+development
+```

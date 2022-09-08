@@ -1,0 +1,39 @@
+---
+# referenced from Tomás Farías Santana via
+# https://tomasfarias.dev/posts/sphinx-docs-with-poetry-and-github-pages/
+name: publish docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: install poetry
+        uses: abatilo/actions-poetry@v2.1.3
+        with:
+          poetry-version: "1.2.0"
+      - name: poetry deps
+        run: poetry install
+      - name: Build documentation
+        run: |
+          mkdir pages
+          touch pages/.nojekyll
+          cd docs
+          poetry run sphinx-build -b html source _build
+          cp -r _build/* ../pages/
+      - name: Deploy documentation
+        uses: JamesIves/github-pages-deploy-action@4.1.4
+        with:
+          branch: pages
+          folder: pages
