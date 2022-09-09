@@ -44,8 +44,9 @@ The parquet files will have a unified and documented data model, including refer
 - [cytominer-eval](https://github.com/cytomining/cytominer-eval)
 
 ```{toctree}
-:caption: 'Contents:'
-:maxdepth: 2
-
+---
+caption: 'Contents:'
+maxdepth: 2
+---
 development
 ```
