@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# dagger
+cue.mod/pkg
+cue.mod/dagger*
