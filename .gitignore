@@ -131,3 +131,7 @@ dmypy.json
 # dagger
 cue.mod/pkg
 cue.mod/dagger*
+
+# raw data
+*.csv
+*.png

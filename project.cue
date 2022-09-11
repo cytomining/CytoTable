@@ -4,7 +4,7 @@ package main
 import (
 	"dagger.io/dagger"
 	"universe.dagger.io/docker"
-    "universe.dagger.io/bash"
+	"universe.dagger.io/bash"
 )
 
 // python build for linting, testing, building, etc.
@@ -123,9 +123,9 @@ dagger.#Plan & {
 
 	client: {
 		filesystem: {
-			"./": read: contents:              dagger.#FS
-			"./project.cue": write: contents:  actions.clean.cue.export.files."/workdir/project.cue"
-            "./tests": write: contents: actions.test.cellprofiler_out.export.directories."/usr/local/src/output"
+			"./": read: contents:             dagger.#FS
+			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
+			"./tests/data": write: contents:  actions.test.cellprofiler_out.export.directories."/usr/local/src/output"
 		}
 	}
 	python_version: string | *"3.9"
@@ -143,9 +143,9 @@ dagger.#Plan & {
 			filesystem: client.filesystem."./".read.contents
 		}
 
-        cellprofiler_build: docker.#Pull & {
-				source: "cellprofiler/cellprofiler"
-        },
+		cellprofiler_build: docker.#Pull & {
+			source: "cellprofiler/cellprofiler"
+		}
 
 		// applied code and/or file formatting
 		clean: {
@@ -165,25 +165,26 @@ dagger.#Plan & {
 
 		// linting to check for formatting and best practices
 		test: {
-            cellprofiler_out: bash.#Run & {
-                input: cellprofiler_build.output
-                script: contents: """
-                # get example from https://cellprofiler.org/examples
-                wget https://cellprofiler-examples.s3.amazonaws.com/ExampleHuman.zip -O ExampleHuman.zip
-                
-                # unzip
-                jar xvf ExampleHuman.zip
-                
-                # make output dir
-                mkdir output
-                
-                # run cellprofiler against example pipeline
-                cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output -i ExampleHuman/images
-                """
-                export: {
-					directories: {"/usr/local/src/output": _ }
+			cellprofiler_out: bash.#Run & {
+				input: cellprofiler_build.output
+				script: contents: """
+					# get example from https://cellprofiler.org/examples
+					wget https://cellprofiler-examples.s3.amazonaws.com/ExampleHuman.zip -O ExampleHuman.zip
+
+					# unzip
+					jar xvf ExampleHuman.zip
+
+					# make output dir
+					mkdir output
+
+					# run cellprofiler against example pipeline
+					# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
+					cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output -i ExampleHuman/images
+					"""
+				export: {
+					directories: {"/usr/local/src/output": _}
 				}
-            }
+			}
 
 		}
 	}
