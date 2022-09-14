@@ -59,7 +59,7 @@ import (
 				workdir: "/workdir"
 				command: {
 					name: "poetry"
-					args: ["install", "--no-interaction", "--no-ansi"]
+					args: ["install", "--no-root", "--no-interaction", "--no-ansi"]
 				}
 			},
 		]
@@ -125,7 +125,7 @@ dagger.#Plan & {
 		filesystem: {
 			"./": read: contents:             dagger.#FS
 			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
-			"./tests/data": write: contents:  actions.test.cellprofiler_out.export.directories."/usr/local/src/output"
+			"./tests/data": write: contents:  actions._cellprofiler_build.output.export.directories."/usr/local/src/output"
 		}
 	}
 	python_version: string | *"3.9"
@@ -133,25 +133,55 @@ dagger.#Plan & {
 
 	actions: {
 
-		python_build: #PythonBuild & {
+		_python_build: #PythonBuild & {
 			filesystem: client.filesystem."./".read.contents
 			python_ver: python_version
 			poetry_ver: poetry_version
 		}
 
-		cue_build: #CueBuild & {
+		_cue_build: #CueBuild & {
 			filesystem: client.filesystem."./".read.contents
 		}
 
-		cellprofiler_build: docker.#Pull & {
-			source: "cellprofiler/cellprofiler"
+		_cellprofiler_build: {
+			build: docker.#Build & {
+
+				steps: [
+					docker.#Pull & {
+						source: "cellprofiler/cellprofiler"
+					},
+					bash.#Run & {
+						script: contents: """
+							# get example from https://cellprofiler.org/examples
+							wget https://cellprofiler-examples.s3.amazonaws.com/ExampleHuman.zip -O ExampleHuman.zip
+
+							# unzip
+							jar xvf ExampleHuman.zip
+
+							# make output dir
+							mkdir output
+
+							# run cellprofiler against example pipeline
+							# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
+							cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output -i ExampleHuman/images
+							"""
+					},
+
+				]
+			}
+			output: docker.#Run & {
+				input: build.output
+				export: {
+					directories: {"/usr/local/src/output": _}
+				}
+			}
 		}
 
 		// applied code and/or file formatting
 		clean: {
 			// code formatting for cuelang
 			cue: docker.#Run & {
-				input:   cue_build.output
+				input:   _cue_build.output
 				workdir: "/workdir"
 				command: {
 					name: "cue"
@@ -163,27 +193,31 @@ dagger.#Plan & {
 			}
 		}
 
-		// linting to check for formatting and best practices
-		test: {
-			cellprofiler_out: bash.#Run & {
-				input: cellprofiler_build.output
-				script: contents: """
-					# get example from https://cellprofiler.org/examples
-					wget https://cellprofiler-examples.s3.amazonaws.com/ExampleHuman.zip -O ExampleHuman.zip
-
-					# unzip
-					jar xvf ExampleHuman.zip
-
-					# make output dir
-					mkdir output
-
-					# run cellprofiler against example pipeline
-					# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
-					cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output -i ExampleHuman/images
-					"""
-				export: {
-					directories: {"/usr/local/src/output": _}
+		// lint for issues
+		lint: {
+			pre_commit: docker.#Run & {
+				input:   _python_build.output
+				workdir: "/workdir"
+				command: {
+					name: "poetry"
+					args: ["run", "pre-commit", "run", "--all-files"]
 				}
+			}
+		}
+
+		// testing content
+		test: {
+
+			pytest: docker.#Run & {
+				input:   _python_build.output
+				workdir: "/workdir"
+				command: {
+					name: "poetry"
+					args: ["run", "pytest"]
+				}
+				// a hack for sequential and unrelated task chaining
+				// ref: https://docs.dagger.io/1232/chain-actions
+				env: HACK: "\(_cellprofiler_build.output.success)"
 			}
 
 		}
