@@ -125,7 +125,7 @@ dagger.#Plan & {
 		filesystem: {
 			"./": read: contents:             dagger.#FS
 			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
-			"./tests/data": write: contents:  actions._cellprofiler_build.output.export.directories."/usr/local/src/output"
+			"./tests/data/cellprofiler": write: contents:  actions.cellprofiler_build.output.export.directories."/usr/local/src/output"
 		}
 	}
 	python_version: string | *"3.9"
@@ -143,7 +143,7 @@ dagger.#Plan & {
 			filesystem: client.filesystem."./".read.contents
 		}
 
-		_cellprofiler_build: {
+		cellprofiler_build: {
 			build: docker.#Build & {
 
 				steps: [
@@ -158,12 +158,18 @@ dagger.#Plan & {
 							# unzip
 							jar xvf ExampleHuman.zip
 
-							# make output dir
-							mkdir output
+							# make output dirs
+							mkdir -p output/csv_single
+							mkdir -p output/csv_multi/a
+							mkdir -p output/csv_multi/b
 
 							# run cellprofiler against example pipeline
 							# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
-							cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output -i ExampleHuman/images
+							cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output/csv_single -i ExampleHuman/images
+
+							# simulate multi-dir csv output
+							cp output/csv_single/* output/csv_multi/a
+							cp output/csv_single/* output/csv_multi/b
 							"""
 					},
 
@@ -212,7 +218,7 @@ dagger.#Plan & {
 				}
 				// a hack for sequential and output-unrelated task chaining
 				// ref: https://docs.dagger.io/1232/chain-actions
-				env: HACK: "\(_cellprofiler_build.output.success)"
+				env: HACK: "\(cellprofiler_build.output.success)"
 			}
 
 		}
