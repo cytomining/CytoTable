@@ -208,6 +208,9 @@ dagger.#Plan & {
 					name: "poetry"
 					args: ["run", "pre-commit", "run", "--all-files"]
 				}
+				// a hack for sequential and output-unrelated task chaining
+				// ref: https://docs.dagger.io/1232/chain-actions
+				env: HACK: "\(cellprofiler_build.output.success)"
 			}
 			pytest: docker.#Run & {
 				input:   pre_commit.output
@@ -216,11 +219,7 @@ dagger.#Plan & {
 					name: "poetry"
 					args: ["run", "pytest"]
 				}
-				// a hack for sequential and output-unrelated task chaining
-				// ref: https://docs.dagger.io/1232/chain-actions
-				env: HACK: "\(cellprofiler_build.output.success)"
 			}
-
 		}
 	}
 }
