@@ -13,7 +13,6 @@ repos:
     rev: '1.2.0rc1'
     hooks:
       - id: poetry-check
-      - id: poetry-lock
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.1
     hooks:

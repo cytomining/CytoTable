@@ -193,8 +193,8 @@ dagger.#Plan & {
 			}
 		}
 
-		// lint for issues
-		lint: {
+		// testing content
+		test: {
 			pre_commit: docker.#Run & {
 				input:   _python_build.output
 				workdir: "/workdir"
@@ -203,19 +203,14 @@ dagger.#Plan & {
 					args: ["run", "pre-commit", "run", "--all-files"]
 				}
 			}
-		}
-
-		// testing content
-		test: {
-
 			pytest: docker.#Run & {
-				input:   _python_build.output
+				input:   pre_commit.output
 				workdir: "/workdir"
 				command: {
 					name: "poetry"
 					args: ["run", "pytest"]
 				}
-				// a hack for sequential and unrelated task chaining
+				// a hack for sequential and output-unrelated task chaining
 				// ref: https://docs.dagger.io/1232/chain-actions
 				env: HACK: "\(_cellprofiler_build.output.success)"
 			}

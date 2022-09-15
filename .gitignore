@@ -133,5 +133,6 @@ cue.mod/pkg
 cue.mod/dagger*
 
 # raw data
+*.parquet
 *.csv
 *.png
