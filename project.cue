@@ -123,9 +123,9 @@ dagger.#Plan & {
 
 	client: {
 		filesystem: {
-			"./": read: contents:             dagger.#FS
-			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
-			"./tests/data/cellprofiler": write: contents:  actions.cellprofiler_build.output.export.directories."/usr/local/src/output"
+			"./": read: contents:                         dagger.#FS
+			"./project.cue": write: contents:             actions.clean.cue.export.files."/workdir/project.cue"
+			"./tests/data/cellprofiler": write: contents: actions.gather_data.cellprofiler.export.export.directories."/usr/local/src/output"
 		}
 	}
 	python_version: string | *"3.9"
@@ -133,52 +133,57 @@ dagger.#Plan & {
 
 	actions: {
 
+		// an internal python build for use with other actions
 		_python_build: #PythonBuild & {
 			filesystem: client.filesystem."./".read.contents
 			python_ver: python_version
 			poetry_ver: poetry_version
 		}
 
+		// an internal cue build for formatting/cleanliness
 		_cue_build: #CueBuild & {
 			filesystem: client.filesystem."./".read.contents
 		}
 
-		cellprofiler_build: {
-			build: docker.#Build & {
+		// gather data related to testing
+		gather_data: {
+			cellprofiler: {
+				build: docker.#Build & {
+					steps: [
+						docker.#Pull & {
+							source: "cellprofiler/cellprofiler"
+						},
+						bash.#Run & {
+							script: contents: """
+								# get example from https://cellprofiler.org/examples
+								wget https://cellprofiler-examples.s3.amazonaws.com/ExampleHuman.zip -O ExampleHuman.zip
 
-				steps: [
-					docker.#Pull & {
-						source: "cellprofiler/cellprofiler"
-					},
-					bash.#Run & {
-						script: contents: """
-							# get example from https://cellprofiler.org/examples
-							wget https://cellprofiler-examples.s3.amazonaws.com/ExampleHuman.zip -O ExampleHuman.zip
+								# unzip
+								jar xvf ExampleHuman.zip
 
-							# unzip
-							jar xvf ExampleHuman.zip
+								# make output dirs
+								mkdir -p output/csv_single
+								mkdir -p output/csv_multi/a
+								mkdir -p output/csv_multi/b
 
-							# make output dirs
-							mkdir -p output/csv_single
-							mkdir -p output/csv_multi/a
-							mkdir -p output/csv_multi/b
+								# run cellprofiler against example pipeline
+								# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
+								cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output/csv_single -i ExampleHuman/images
 
-							# run cellprofiler against example pipeline
-							# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
-							cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output/csv_single -i ExampleHuman/images
+								# simulate multi-dir csv output
+								cp output/csv_single/* output/csv_multi/a
+								cp output/csv_single/* output/csv_multi/b
+								"""
+						},
 
-							# simulate multi-dir csv output
-							cp output/csv_single/* output/csv_multi/a
-							cp output/csv_single/* output/csv_multi/b
-							"""
-					},
-
-				]
-			}
-			output: docker.#Run & {
-				input: build.output
-				export: {
-					directories: {"/usr/local/src/output": _}
+					]
+				}
+				export: bash.#Run & {
+					input: build.output
+					script: contents: ""
+					export: {
+						directories: {"/usr/local/src/output": _}
+					}
 				}
 			}
 		}
@@ -210,7 +215,7 @@ dagger.#Plan & {
 				}
 				// a hack for sequential and output-unrelated task chaining
 				// ref: https://docs.dagger.io/1232/chain-actions
-				env: HACK: "\(cellprofiler_build.output.success)"
+				env: HACK: "\(gather_data.cellprofiler.export.success)"
 			}
 			pytest: docker.#Run & {
 				input:   pre_commit.output

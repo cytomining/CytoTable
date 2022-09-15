@@ -18,4 +18,5 @@ jobs:
         with:
           cmds: |
             project update
+            do gather_data
             do test
