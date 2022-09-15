@@ -6,8 +6,8 @@ by use with pyctyominer.
 import pathlib
 from typing import Dict, List, Optional
 
+from prefect import flow, get_run_logger, task
 from pyarrow import csv, parquet
-from prefect import flow, task, get_run_logger
 
 
 @task
@@ -26,12 +26,12 @@ def get_source_filepaths(path: str, targets: List[str]) -> list[Dict]:
 
     records = []
     for file in pathlib.Path(path).glob("**/*"):
-        if file.is_file and str(file.stem).lower() in targets:
+        if file.is_file and (str(file.stem).lower() in targets or targets is None):
             records.append({"source_path": file})
 
     if len(records) < 1:
         raise Exception(
-            "No input data to process at path: %s" % str(pathlib.Path(path).resolve())
+            f"No input data to process at path: {str(pathlib.Path(path).resolve())}"
         )
 
     return records
@@ -87,44 +87,44 @@ def infer_source_datatype(records: List[Dict]) -> str:
     """
 
     suffixes = list(
-        set([(str(record["source_path"].suffix)).lower() for record in records])
+        set((str(record["source_path"].suffix)).lower() for record in records)
     )
 
     if len(suffixes) > 1:
         raise Exception(
-            "Detected more than one inferred datatypes from source path: %s" % suffixes
+            f"Detected more than one inferred datatypes from source path: {suffixes}"
         )
-    else:
-        return suffixes[0]
+
+    return suffixes[0]
 
 
 @flow
 def to_arrow(
     path: str,
     source_datatype: Optional[str] = None,
-    targets: List[str] = ["image", "cells", "nuclei", "cytoplasm"],
+    targets: Optional[List[str]] = None,
 ):
     """
 
     Args:
       path: str:
       source_datatype: Optional[str]:  (Default value = None)
-      targets: List[str]:  (Default value = ["image")
-      "cells":
-      "nuclei":
-      "cytoplasm"]:
+      targets: List[str]:  (Default value = None:
 
     Returns:
 
     """
 
-    paths = get_source_filepaths(path=path, targets=targets)
+    if targets is None:
+        targets = ["image", "cells", "nuclei", "cytoplasm"]
+
+    records = get_source_filepaths(path=path, targets=targets)
 
     if source_datatype is None:
-        source_datatype = infer_source_datatype(paths=paths)
+        source_datatype = infer_source_datatype(records=records)
 
     if source_datatype == "csv":
-        tables = read_csv.map(record=paths)
+        tables = read_csv.map(record=records)
 
     result = [table.wait().result() for table in tables]
 
@@ -153,7 +153,7 @@ def convert(
     path: str,
     source_datatype: str,
     dest_datatype: str,
-    targets: List[str] = ["image", "cells", "nuclei", "cytoplasm"],
+    targets: Optional[List[str]] = None,
 ):
     """
 
@@ -161,14 +161,13 @@ def convert(
       path: str:
       source_datatype: str:
       dest_datatype: str:
-      targets: List[str]:  (Default value = ["image")
-      "cells":
-      "nuclei":
-      "cytoplasm"]:
+      targets: List[str]:  (Default value = None):
 
     Returns:
 
     """
+    if targets is None:
+        targets = ["image", "cells", "nuclei", "cytoplasm"]
 
     records = to_arrow(path=path, source_datatype=source_datatype, targets=targets)
 

@@ -25,7 +25,7 @@ repos:
         additional_dependencies:
           - mdformat-myst
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.27.1
+    rev: v1.28.0
     hooks:
       - id: yamllint
   - repo: https://github.com/psf/black
@@ -56,3 +56,13 @@ repos:
     rev: v2.15.2
     hooks:
       - id: pylint
+        name: pylint
+        entry: pylint
+        language: python
+        types: [python]
+        # note: we install additional dependencies for
+        # pylint due to it's dynamic analysis capabilities
+        # and the way pre-commit references virtual environments.
+        additional_dependencies:
+          - "pyarrow>=9.0.0"
+          - "prefect>=2.3.2"
