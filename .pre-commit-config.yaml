@@ -65,3 +65,4 @@ repos:
         additional_dependencies:
           - "pyarrow>=9.0.0"
           - "prefect>=2.3.2"
+          - "pytest>=7.1.3"
