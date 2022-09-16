@@ -4,14 +4,15 @@ by use with pyctyominer.
 """
 
 import pathlib
-from typing import Dict, List, Optional
+from typing import Dict, List, Literal, Optional
 
-from prefect import flow, get_run_logger, task
+import pyarrow as pa
+from prefect import flow, task
 from pyarrow import csv, parquet
 
 
 @task
-def get_source_filepaths(path: str, targets: List[str]) -> list[Dict]:
+def get_source_filepaths(path: str, targets: List[str]) -> Dict[str, List[Dict]]:
     """
 
     Args:
@@ -21,8 +22,6 @@ def get_source_filepaths(path: str, targets: List[str]) -> list[Dict]:
     Returns:
 
     """
-
-    get_run_logger().info("INFO level log message from a task.")
 
     records = []
     for file in pathlib.Path(path).glob("**/*"):
@@ -34,7 +33,13 @@ def get_source_filepaths(path: str, targets: List[str]) -> list[Dict]:
             f"No input data to process at path: {str(pathlib.Path(path).resolve())}"
         )
 
-    return records
+    grouped_records = {}
+    for unique_source in set(source["source_path"].name for source in records):
+        grouped_records[unique_source] = [
+            source for source in records if source["source_path"].name == unique_source
+        ]
+
+    return grouped_records
 
 
 @task
@@ -55,19 +60,50 @@ def read_csv(record: Dict) -> Dict:
 
 
 @task
-def write_parquet(record: Dict) -> Dict:
+def concat_tables(records: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
     """
 
     Args:
-      record: Dict:
+      records: List[Dict[str, Any]]:
 
     Returns:
 
     """
 
-    destination_path = str(record["source_path"].stem) + ".parquet"
+    for group in records:
+        if len(records[group]) < 2:
+            continue
+        records[group] = [
+            {
+                "source_path": records[group][0]["source_path"].parent,
+                "table": pa.concat_tables(
+                    [record["table"] for record in records[group]]
+                ),
+            }
+        ]
 
-    get_run_logger().info(destination_path)
+    return records
+
+
+@task
+def write_parquet(record: Dict, dest_path: str = "", unique_name: bool = False) -> Dict:
+    """
+
+    Args:
+      record: Dict:
+      unique_name: bool:
+
+    Returns:
+
+    """
+
+    destination_path = f"{dest_path}/{str(record['source_path'].stem)}.parquet"
+
+    if unique_name:
+        destination_path = (
+            f"{str(record['source_path'].parent.name)}.{destination_path}"
+        )
+
     parquet.write_table(table=record["table"], where=destination_path)
 
     record["destination_path"] = destination_path
@@ -76,7 +112,7 @@ def write_parquet(record: Dict) -> Dict:
 
 
 @task
-def infer_source_datatype(records: List[Dict]) -> str:
+def infer_source_datatype(records: Dict[str, List[Dict]]) -> str:
     """
 
     Args:
@@ -86,9 +122,7 @@ def infer_source_datatype(records: List[Dict]) -> str:
 
     """
 
-    suffixes = list(
-        set((str(record["source_path"].suffix)).lower() for record in records)
-    )
+    suffixes = list(set(group.split(".")[-1] for group in records))
 
     if len(suffixes) > 1:
         raise Exception(
@@ -103,13 +137,15 @@ def to_arrow(
     path: str,
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
+    concat: bool = True,
 ):
     """
 
     Args:
       path: str:
       source_datatype: Optional[str]:  (Default value = None)
-      targets: List[str]:  (Default value = None:
+      targets: List[str]:  (Default value = None)
+      concat: bool: (Default value = True)
 
     Returns:
 
@@ -123,16 +159,19 @@ def to_arrow(
     if source_datatype is None:
         source_datatype = infer_source_datatype(records=records)
 
-    if source_datatype == "csv":
-        tables = read_csv.map(record=records)
+    for group in records:  # pylint: disable=consider-using-dict-items
+        if source_datatype == "csv":
+            tables_map = read_csv.map(record=records[group])
+        records[group] = [table.wait().result() for table in tables_map]
 
-    result = [table.wait().result() for table in tables]
+    if concat:
+        records = concat_tables(records=records)
 
-    return result
+    return records
 
 
 @flow
-def to_parquet(records: List[Dict]):
+def to_parquet(records: Dict[str, List[Dict]], dest_path: str = ""):
     """
 
     Args:
@@ -142,17 +181,26 @@ def to_parquet(records: List[Dict]):
 
     """
 
-    destinations = write_parquet.map(record=records)
+    for group in records:
+        if len(records[group]) > 2:
+            destinations = write_parquet.map(
+                record=records[group], dest_path=dest_path, unique_name=True
+            )
+        else:
+            destinations = write_parquet.map(
+                record=records[group], dest_path=dest_path, unique_name=False
+            )
 
-    result = [destination.wait().result() for destination in destinations]
+        records[group] = [destination.wait().result() for destination in destinations]
 
-    return result
+    return records
 
 
 def convert(
-    path: str,
-    source_datatype: str,
-    dest_datatype: str,
+    source_path: str,
+    dest_path: str,
+    dest_datatype: Literal["parquet"],
+    source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
 ):
     """
@@ -169,9 +217,11 @@ def convert(
     if targets is None:
         targets = ["image", "cells", "nuclei", "cytoplasm"]
 
-    records = to_arrow(path=path, source_datatype=source_datatype, targets=targets)
+    records = to_arrow(
+        path=source_path, source_datatype=source_datatype, targets=targets
+    )
 
     if dest_datatype == "parquet":
-        output = to_parquet(records=records)
+        output = to_parquet(records=records, dest_path=dest_path)
 
     return output
