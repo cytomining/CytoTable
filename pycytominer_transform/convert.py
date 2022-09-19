@@ -202,7 +202,8 @@ def convert(
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
-):
+    concat: bool = True,
+):  # pylint: disable=too-many-arguments
     """
 
     Args:
@@ -218,7 +219,10 @@ def convert(
         targets = ["image", "cells", "nuclei", "cytoplasm"]
 
     records = to_arrow(
-        path=source_path, source_datatype=source_datatype, targets=targets
+        path=source_path,
+        source_datatype=source_datatype,
+        targets=targets,
+        concat=concat,
     )
 
     if dest_datatype == "parquet":

@@ -35,3 +35,6 @@ log_cli_format = "%(message)s"
 
 [tool.isort]
 profile = "black"
+
+[tool.bandit]
+exclude_dirs = ["tests"]

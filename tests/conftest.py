@@ -1,6 +1,7 @@
 """
 conftest.py for pytest
 """
+import os
 import tempfile
 
 import pytest
@@ -14,3 +15,12 @@ def fixture_get_tempdir() -> str:
     """
 
     return tempfile.gettempdir()
+
+
+@pytest.fixture()
+def data_dir_cellprofiler() -> str:
+    """
+    Provide a data directory for cellprofiler
+    """
+
+    return f"{os.path.dirname(__file__)}/data/cellprofiler"
