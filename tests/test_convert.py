@@ -4,15 +4,20 @@ Tests for cyctominer_transform/convert.py
 import io
 import itertools
 import pathlib
+from typing import Any, Dict, List
 
 import pyarrow as pa
+import pytest
 from pyarrow import csv, parquet
 
 from pycytominer_transform import (
+    DEFAULT_TARGETS,
     concat_tables,
     convert,
     get_source_filepaths,
+    infer_source_datatype,
     read_csv,
+    to_arrow,
     write_parquet,
 )
 
@@ -70,65 +75,21 @@ def test_read_csv(get_tempdir: str):
     assert result["table"].shape == table.shape
 
 
-def test_concat_tables(get_tempdir: str):
+def test_concat_tables(
+    get_tempdir: str, example_records: Dict[str, List[Dict[str, Any]]]
+):
     """
     Tests concat_tables
     """
 
-    table_a = pa.Table.from_pydict(
-        {
-            "n_legs": pa.array(
-                [
-                    2,
-                    4,
-                ]
-            ),
-            "animals": pa.array(
-                [
-                    "Flamingo",
-                    "Horse",
-                ]
-            ),
-        }
-    )
-    table_b = pa.Table.from_pydict(
-        {
-            "n_legs": pa.array([5, 100]),
-            "animals": pa.array(["Brittle stars", "Centipede"]),
-        }
-    )
-    table_c = pa.Table.from_pydict(
-        {
-            "color": pa.array(["blue", "red", "green", "orange"]),
-        }
+    concat_table = pa.concat_tables(
+        [
+            example_records["animal_legs.csv"][0]["table"],
+            example_records["animal_legs.csv"][1]["table"],
+        ]
     )
 
-    result = concat_tables.fn(
-        records={
-            "animal_legs.csv": [
-                {
-                    "source_path": pathlib.Path(
-                        f"{get_tempdir}/animals/a/animal_legs.csv"
-                    ),
-                    "table": table_a,
-                },
-                {
-                    "source_path": pathlib.Path(
-                        f"{get_tempdir}/animals/b/animal_legs.csv"
-                    ),
-                    "table": table_b,
-                },
-            ],
-            "colors.csv": [
-                {
-                    "source_path": pathlib.Path(f"{get_tempdir}/animals/c/colors.csv"),
-                    "table": table_c,
-                }
-            ],
-        }
-    )
-
-    concat_table = pa.concat_tables([table_a, table_b])
+    result = concat_tables.fn(records=example_records)
 
     assert len(result["animal_legs.csv"]) == 1
     assert (
@@ -142,8 +103,14 @@ def test_concat_tables(get_tempdir: str):
         pathlib.Path(f"{get_tempdir}/animals/c/colors.csv")
         == result["colors.csv"][0]["source_path"]
     )
-    assert result["colors.csv"][0]["table"].schema == table_c.schema
-    assert result["colors.csv"][0]["table"].shape == table_c.shape
+    assert (
+        result["colors.csv"][0]["table"].schema
+        == example_records["colors.csv"][0]["table"].schema
+    )
+    assert (
+        result["colors.csv"][0]["table"].shape
+        == example_records["colors.csv"][0]["table"].shape
+    )
 
 
 def test_write_parquet(get_tempdir: str):
@@ -173,6 +140,82 @@ def test_write_parquet(get_tempdir: str):
         record=data, dest_path=f"{get_tempdir}/new_path", unique_name=True
     )
     assert result["destination_path"].stem != data["source_path"].stem
+
+
+def test_infer_source_datatype():
+    """
+    Tests infer_source_datatype
+    """
+
+    data = {
+        "sample_1.csv": [{"source_path": "stub"}],
+        "sample_2.CSV": [{"source_path": "stub"}],
+    }
+    assert infer_source_datatype.fn(records=data) == "csv"
+    with pytest.raises(Exception):
+        infer_source_datatype.fn(records=data, target_datatype="parquet")
+
+    data["sample_3.parquet"] = [{"source_path": "stub"}]
+    assert (
+        infer_source_datatype.fn(records=data, target_datatype="parquet") == "parquet"
+    )
+    with pytest.raises(Exception):
+        infer_source_datatype.fn(records=data)
+
+
+def test_to_arrow(data_dir_cellprofiler: str):
+    """
+    Tests to_arrow
+    """
+
+    single_dir_result = to_arrow(
+        path=f"{data_dir_cellprofiler}/csv_single", targets=DEFAULT_TARGETS
+    )
+    multi_dir_nonconcat_result = to_arrow(
+        path=f"{data_dir_cellprofiler}/csv_multi",
+        targets=DEFAULT_TARGETS,
+        concat=False,
+    )
+
+    assert sorted([key.lower() for key in list(single_dir_result.keys())]) == sorted(
+        [f"{target.lower()}.csv" for target in DEFAULT_TARGETS]
+    )
+    assert sorted(
+        [key.lower() for key in list(multi_dir_nonconcat_result.keys())]
+    ) == sorted([f"{target.lower()}.csv" for target in DEFAULT_TARGETS])
+
+    for result in itertools.chain(
+        *(list(single_dir_result.values()) + list(multi_dir_nonconcat_result.values()))
+    ):
+        csv_source = csv.read_csv(input_file=result["source_path"])
+        assert result["table"].schema.equals(csv_source.schema)
+        assert result["table"].shape == csv_source.shape
+
+    multi_dir_concat_result = to_arrow(
+        path=f"{data_dir_cellprofiler}/csv_multi", targets=DEFAULT_TARGETS, concat=True
+    )
+
+    # loop through the results to ensure data matches what we expect
+    # note: these are flattened and unique to each of the sets above.
+    for result in itertools.chain(*list(multi_dir_concat_result.values())):
+        csv_source = pa.concat_tables(
+            [
+                csv.read_csv(file)
+                for file in pathlib.Path(result["source_path"].parent).glob(
+                    f"**/{result['source_path'].stem}.csv"
+                )
+            ]
+        )
+
+        assert result["table"].schema.equals(csv_source.schema)
+        assert result["table"].shape == csv_source.shape
+
+
+def test_to_parquet():
+    """
+    Tests to_parquet
+    """
+    return
 
 
 def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):

@@ -10,9 +10,13 @@ import pyarrow as pa
 from prefect import flow, task
 from pyarrow import csv, parquet
 
+DEFAULT_TARGETS = ["image", "cells", "nuclei", "cytoplasm"]
+
 
 @task
-def get_source_filepaths(path: str, targets: List[str]) -> Dict[str, List[Dict]]:
+def get_source_filepaths(
+    path: str, targets: List[str]
+) -> Dict[str, List[Dict[str, Any]]]:
     """
 
     Args:
@@ -60,7 +64,9 @@ def read_csv(record: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @task
-def concat_tables(records: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
+def concat_tables(
+    records: Dict[str, List[Dict[str, Any]]]
+) -> Dict[str, List[Dict[str, Any]]]:
     """
 
     Args:
@@ -124,7 +130,9 @@ def write_parquet(record: Dict, dest_path: str = "", unique_name: bool = False) 
 
 
 @task
-def infer_source_datatype(records: Dict[str, List[Dict]]) -> str:
+def infer_source_datatype(
+    records: Dict[str, List[Dict[str, Any]]], target_datatype: Optional[str] = None
+) -> str:
     """
 
     Args:
@@ -134,14 +142,25 @@ def infer_source_datatype(records: Dict[str, List[Dict]]) -> str:
 
     """
 
-    suffixes = list(set(group.split(".")[-1] for group in records))
+    suffixes = list(set((group.split(".")[-1]).lower() for group in records))
 
-    if len(suffixes) > 1:
+    if target_datatype is None and len(suffixes) > 1:
         raise Exception(
             f"Detected more than one inferred datatypes from source path: {suffixes}"
         )
 
-    return suffixes[0]
+    if target_datatype is not None and target_datatype not in suffixes:
+        raise Exception(
+            (
+                f"Unable to find targeted datatype {target_datatype} "
+                "within files. Detected datatypes: {suffixes}"
+            )
+        )
+
+    if target_datatype is None:
+        target_datatype = suffixes[0]
+
+    return target_datatype
 
 
 @flow
@@ -164,12 +183,13 @@ def to_arrow(
     """
 
     if targets is None:
-        targets = ["image", "cells", "nuclei", "cytoplasm"]
+        targets = DEFAULT_TARGETS
 
     records = get_source_filepaths(path=path, targets=targets)
 
-    if source_datatype is None:
-        source_datatype = infer_source_datatype(records=records)
+    source_datatype = infer_source_datatype(
+        records=records, target_datatype=source_datatype
+    )
 
     for group in records:  # pylint: disable=consider-using-dict-items
         if source_datatype == "csv":
@@ -183,7 +203,7 @@ def to_arrow(
 
 
 @flow
-def to_parquet(records: Dict[str, List[Dict]], dest_path: str = ""):
+def to_parquet(records: Dict[str, List[Dict[str, Any]]], dest_path: str = ""):
     """
 
     Args:

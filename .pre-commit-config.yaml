@@ -57,6 +57,7 @@ repos:
         entry: pylint
         language: python
         types: [python]
+        exclude: __init__.py
         # note: we install additional dependencies for
         # pylint due to it's dynamic analysis capabilities
         # and the way pre-commit references virtual environments.

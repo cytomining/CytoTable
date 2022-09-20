@@ -3,6 +3,7 @@ __init__.py for pycytominer_convert
 """
 
 from .convert import (
+    DEFAULT_TARGETS,
     concat_tables,
     convert,
     get_source_filepaths,
