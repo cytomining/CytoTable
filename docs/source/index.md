@@ -3,16 +3,17 @@
 ```{mermaid}
     flowchart LR
 
-        images[(Cell Images)]
+        images[(Images)]
         CellProfiler
-        csv[(CSV Files)]
+        csv[(CSV)]
         DeepProfiler
-        npz[(NPZ Files)]
+        npz[(NPZ)]
         cytominer-database
-        sqlite[(SQLite File)]
-        cp_sqlite[(SQLite File)]
+        sqlite[(SQLite)]
+        cp_sqlite[(SQLite)]
         pycytominer
         pycytominer-transform
+        parquet[(Parquet)]
 
         images --> CellProfiler
         images --> DeepProfiler
@@ -25,7 +26,8 @@
         npz --> pycytominer-transform
         sqlite --> pycytominer-transform
         cp_sqlite --> pycytominer-transform
-        pycytominer-transform --> pycytominer
+        pycytominer-transform --> parquet
+        parquet --> pycytominer
 ```
 
 _Diagram showing data flow relative to this project._

@@ -4,7 +4,7 @@ by use with pyctyominer.
 """
 
 import pathlib
-from typing import Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import pyarrow as pa
 from prefect import flow, task
@@ -25,7 +25,7 @@ def get_source_filepaths(path: str, targets: List[str]) -> Dict[str, List[Dict]]
 
     records = []
     for file in pathlib.Path(path).glob("**/*"):
-        if file.is_file and (str(file.stem).lower() in targets or targets is None):
+        if file.is_file() and (str(file.stem).lower() in targets or targets is None):
             records.append({"source_path": file})
 
     if len(records) < 1:
@@ -43,7 +43,7 @@ def get_source_filepaths(path: str, targets: List[str]) -> Dict[str, List[Dict]]
 
 
 @task
-def read_csv(record: Dict) -> Dict:
+def read_csv(record: Dict[str, Any]) -> Dict[str, Any]:
     """
 
     Args:
@@ -75,7 +75,12 @@ def concat_tables(records: Dict[str, List[Dict]]) -> Dict[str, List[Dict]]:
             continue
         records[group] = [
             {
-                "source_path": records[group][0]["source_path"].parent,
+                "source_path": pathlib.Path(
+                    (
+                        f"{records[group][0]['source_path'].parent.parent}"
+                        f"/{records[group][0]['source_path'].name}"
+                    )
+                ),
                 "table": pa.concat_tables(
                     [record["table"] for record in records[group]]
                 ),
@@ -97,11 +102,18 @@ def write_parquet(record: Dict, dest_path: str = "", unique_name: bool = False) 
 
     """
 
-    destination_path = f"{dest_path}/{str(record['source_path'].stem)}.parquet"
+    pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
+
+    destination_path = pathlib.Path(
+        f"{dest_path}/{str(record['source_path'].stem)}.parquet"
+    )
 
     if unique_name:
-        destination_path = (
-            f"{str(record['source_path'].parent.name)}.{destination_path}"
+        destination_path = pathlib.Path(
+            (
+                f"{dest_path}/{str(record['source_path'].parent.name)}"
+                f".{str(record['source_path'].stem)}.parquet"
+            )
         )
 
     parquet.write_table(table=record["table"], where=destination_path)
