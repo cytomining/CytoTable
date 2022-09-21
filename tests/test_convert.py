@@ -8,6 +8,7 @@ from typing import Any, Dict, List
 
 import pyarrow as pa
 import pytest
+from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
 from pycytominer_transform import (
@@ -18,6 +19,7 @@ from pycytominer_transform import (
     infer_source_datatype,
     read_csv,
     to_arrow,
+    to_parquet,
     write_parquet,
 )
 
@@ -211,16 +213,25 @@ def test_to_arrow(data_dir_cellprofiler: str):
         assert result["table"].shape == csv_source.shape
 
 
-def test_to_parquet():
+def test_to_parquet(get_tempdir: str, example_records: Dict[str, List[Dict[str, Any]]]):
     """
     Tests to_parquet
     """
-    return
+
+    result = to_parquet(records=example_records, dest_path=get_tempdir)
+
+    for result in itertools.chain(*list(result.values())):
+        parquet_result = parquet.read_table(source=result["destination_path"])
+        assert parquet_result.schema.equals(result["table"].schema)
+        assert parquet_result.shape == result["table"].shape
 
 
 def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
     """
     Tests convert
+
+    Note: uses default prefect task_runner from convert
+    Dedicated tests for prefect-dask runner elsewhere.
     """
 
     single_dir_result = convert(
@@ -266,5 +277,29 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         )
 
         parquet_result = parquet.read_table(source=result["destination_path"])
+        assert parquet_result.schema.equals(csv_source.schema)
+        assert parquet_result.shape == csv_source.shape
+
+
+def test_convert_dask_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
+    """
+    Tests convert
+
+    Note: dedicated test for prefect-dask runner.
+    """
+
+    multi_dir_nonconcat_result = convert(
+        source_path=f"{data_dir_cellprofiler}/csv_multi",
+        dest_path=f"{get_tempdir}/csv_multi_nonconcat",
+        dest_datatype="parquet",
+        concat=False,
+        task_runner=DaskTaskRunner,
+    )
+
+    # loop through the results to ensure data matches what we expect
+    # note: these are flattened and unique to each of the sets above.
+    for result in itertools.chain(*list(multi_dir_nonconcat_result.values())):
+        parquet_result = parquet.read_table(source=result["destination_path"])
+        csv_source = csv.read_csv(input_file=result["source_path"])
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape

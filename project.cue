@@ -147,12 +147,14 @@ dagger.#Plan & {
 
 		// gather data related to testing
 		gather_data: {
+			// gather cellprofiler related data
 			cellprofiler: {
 				build: docker.#Build & {
 					steps: [
 						docker.#Pull & {
 							source: "cellprofiler/cellprofiler"
 						},
+						// gets, unzips, and exports results of example cellprofiler data
 						bash.#Run & {
 							script: contents: """
 								# get example from https://cellprofiler.org/examples
@@ -206,6 +208,7 @@ dagger.#Plan & {
 
 		// testing content
 		test: {
+			// run pre-commit checks
 			pre_commit: docker.#Run & {
 				input:   _python_build.output
 				workdir: "/workdir"
@@ -217,6 +220,7 @@ dagger.#Plan & {
 				// ref: https://docs.dagger.io/1232/chain-actions
 				env: HACK: "\(gather_data.cellprofiler.export.success)"
 			}
+			// run pytest
 			pytest: docker.#Run & {
 				input:   pre_commit.output
 				workdir: "/workdir"
