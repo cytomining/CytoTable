@@ -1,6 +1,5 @@
 """
-pycytominer-transform: convert - transforming CellProfiler data for
-by use with pyctyominer.
+pycytominer-transform: convert - transforming data for use with pyctyominer.
 """
 
 import pathlib
