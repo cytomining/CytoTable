@@ -38,7 +38,7 @@ Local development may be enabled using roughly the following steps.
 Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) (managed by this repo's poetry environment) via [Github Actions](https://docs.github.com/en/actions).
 Pre-commit may be configured to work alongside your local [git with hooks](https://pre-commit.com/index.html#3-install-the-git-hook-scripts) or you can use the following command to check your work via the Poetry environment:
 
-```{shell}
+```sh
 % poetry run pre-commit run --all-files
 ```
 
@@ -49,7 +49,7 @@ The Dagger test action performs [pytest](https://pytest.org/en/latest/contents.h
 Automated tests are run using Dagger actions through Github actions.
 Similar Dagger-based manual testing may be performed using the following:
 
-```{shell}
+```sh
 # update the dagger project
 % dagger project update
 
@@ -64,6 +64,6 @@ It's also possible to test locally using Poetry.
 Testing in this way without Dagger does not guarantee a successful automated test as environmental differences could exist.
 See below for an example of testing without Dagger:
 
-```{shell}
+```sh
 % poetry run pytest
 ```

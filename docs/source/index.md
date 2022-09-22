@@ -48,7 +48,8 @@ The parquet files will have a unified and documented data model, including refer
 ```{toctree}
 ---
 caption: 'Contents:'
-maxdepth: 2
+maxdepth: 3
 ---
 development
+python-api
 ```
