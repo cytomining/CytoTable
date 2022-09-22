@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 import pyarrow as pa
 from prefect import flow, task
+from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
 
@@ -78,9 +79,9 @@ def read_csv(record: Dict[str, Any]) -> Dict[str, Any]:
     return record
 
 
-@task
-def concat_tables(
-    records: Dict[str, List[Dict[str, Any]]]
+@flow
+def concat_records(
+    records: Dict[str, List[Dict[str, Any]]], dest_path: Optional[str] = None
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Concatenate similar tables together as unified dataset.
@@ -88,10 +89,12 @@ def concat_tables(
     Args:
       records: Dict[str, List[Dict[str, Any]]]:
         Data structure containing potentially grouped data for concatenation.
+      dest_path: Optional[str] (Default value = None)
+        Optional destination path for concatenated records.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
-        Updated dictionary with CSV data in-memory
+        Updated dictionary containing concatted records (where they existed)
     """
 
     for group in records:
@@ -100,28 +103,103 @@ def concat_tables(
             continue
 
         # build a new record group
-        records[group] = [
-            {
-                # source path becomes parent's parent dir with the same filename
-                "source_path": pathlib.Path(
-                    (
-                        f"{records[group][0]['source_path'].parent.parent}"
-                        f"/{records[group][0]['source_path'].name}"
-                    )
-                ),
-                # table becomes the result of concatted tables
-                "table": pa.concat_tables(
-                    [record["table"] for record in records[group]]
-                ),
-            }
-        ]
+        records[group] = concat_record_group.submit(
+            record_group=records[group], dest_path=dest_path
+        )
 
-    return records
+    # wait for futures processing from submit to complete
+    results = {
+        key: value.result() if isinstance(value, PrefectFuture) else value
+        for key, value in records.items()
+    }
+
+    return results
+
+
+@task
+def concat_record_group(
+    record_group: List[Dict[str, Any]], dest_path: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """
+    Concatenate group of records together as unified dataset.
+
+    Args:
+      records: List[Dict[str, Any]]:
+        Data structure containing grouped data for concatenation.
+      dest_path: Optional[str] (Default value = None)
+        Optional destination path for concatenated records.
+
+    Returns:
+      List[Dict[str, Any]]
+        Updated dictionary containing concatted records
+    """
+
+    concatted = [
+        {
+            # source path becomes parent's parent dir with the same filename
+            "source_path": pathlib.Path(
+                (
+                    f"{record_group[0]['source_path'].parent.parent}"
+                    f"/{record_group[0]['source_path'].stem}"
+                )
+            )
+        }
+    ]
+
+    # for concatting arrow tables
+    if "table" in record_group[0]:
+        # table becomes the result of concatted tables
+        concatted[0]["table"] = pa.concat_tables(
+            [record["table"] for record in record_group]
+        )
+
+    # for concatting parquet files
+    elif "destination_path" in record_group[0]:
+        # make the new source path dir if it doesn't already exist
+
+        destination_path = pathlib.Path(
+            (
+                f"{dest_path}"
+                f"/{record_group[0]['source_path'].parent.parent.name}"
+                f".{record_group[0]['source_path'].stem}"
+                ".parquet"
+            )
+        )
+
+        # if there's already a file remove it
+        if destination_path.exists():
+            destination_path.unlink()
+
+        # read first file for basis of schema and column order for all others
+        writer_basis = parquet.read_table(record_group[0]["destination_path"])
+
+        # build a parquet file writer which will be used to append files
+        # as a single concatted parquet file, referencing the first file's schema
+        # (all must be the same schema)
+        writer = parquet.ParquetWriter(str(destination_path), writer_basis.schema)
+
+        for table in [record["destination_path"] for record in record_group]:
+            # read the file from the list and write to the concatted parquet file
+            # note: we pass column order based on the first chunk file to help ensure schema
+            # compatibility for the writer
+            writer.write_table(
+                parquet.read_table(table, columns=writer_basis.column_names)
+            )
+            # remove the file which was written in the concatted parquet file (we no longer need it)
+            pathlib.Path(table).unlink()
+
+        # close the single concatted parquet file writer
+        writer.close()
+
+        # return the concatted parquet filename
+        concatted[0]["destination_path"] = destination_path
+
+    return concatted
 
 
 @task
 def write_parquet(
-    record: Dict[str, Any], dest_path: str = ".", unique_name: bool = False
+    record: Dict[str, Any], dest_path: str, unique_name: bool = False
 ) -> Dict[str, Any]:
     """
     Write parquet data using in-memory data.
@@ -129,7 +207,7 @@ def write_parquet(
     Args:
       record: Dict:
         Dictionary including in-memory data which will be written to parquet.
-      dest_path: str:  (Default value = ".")
+      dest_path: str:
         Destination path to write the parquet file to.
       unique_name: bool:  (Default value = False)
         Determines whether a unique name is necessary for the file.
@@ -138,7 +216,6 @@ def write_parquet(
       Dict[str, Any]
         Updated dictionary containing the destination path where parquet file
         was written.
-
     """
 
     # make the dest_path dir if it doesn't already exist
@@ -160,6 +237,9 @@ def write_parquet(
 
     # write the table to destination path output
     parquet.write_table(table=record["table"], where=destination_path)
+
+    # unset table
+    del record["table"]
 
     # update the record to include the destination path
     record["destination_path"] = destination_path
@@ -214,15 +294,40 @@ def infer_source_datatype(
     return target_datatype
 
 
+@task
+def filter_source_filepaths(
+    records: Dict[str, List[Dict[str, Any]]], target_datatype: str
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Filter source filepaths based on provided target_datatype
+
+    Args:
+      records: Dict[str, List[Dict[str, Any]]]
+        Grouped datasets of files which will be used by other functions.
+      target_datatype: str
+        Target datatype to use for filtering the dataset.
+
+    Returns:
+      Dict[str, List[Dict[str, Any]]]
+        Data structure which groups related files based on the targets.
+    """
+
+    return {
+        key: val
+        for key, val in records.items()
+        if pathlib.Path(key).suffix == f".{target_datatype}"
+    }
+
+
 @flow
-def to_arrow(
+def gather_records(
     path: str,
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
-    concat: bool = True,
 ) -> Dict[str, List[Dict[str, Any]]]:
+
     """
-    Gather Arrow tables from file-based datasets provided by path.
+    Flow for gathering records for conversion
 
     Args:
       path: str:
@@ -231,14 +336,10 @@ def to_arrow(
         The source datatype (extension) to use for reading the tables.
       targets: Optional[List[str]]:  (Default value = None)
         The source file names to target within the provided path.
-      concat: bool:  (Default value = True)
-        Whether to concatenate similar files together as unified
-        datasets.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
-        Grouped records which include metadata and table data related
-        to files which were read.
+        Data structure which groups related files based on the targets.
     """
 
     # if we have no targets, set the defaults
@@ -253,24 +354,76 @@ def to_arrow(
         records=records, target_datatype=source_datatype
     )
 
-    for group in records:  # pylint: disable=consider-using-dict-items
-        # if the source datatype is csv, read it as mapped records
-        if source_datatype == "csv":
-            tables_map = read_csv.map(record=records[group])
+    # filter source filepaths to inferred or targeted datatype
+    records = filter_source_filepaths(records=records, target_datatype=source_datatype)
 
-        # recollect the group of mapped read records
-        records[group] = [table.wait().result() for table in tables_map]
+    return records
+
+
+@flow
+def read_files(
+    record_group_name: str, record_group: List[Dict[str, Any]]
+) -> List[Dict[str, Any]]:
+    """
+    Read files based on their suffix (extension)
+
+    Args:
+      record_group_name: str
+        Name of the file including extension for the group
+      record_group: List[Dict[str, Any]]
+        List of dictionaries containing data related to the files
+
+    Returns:
+      List[Dict[str, Any]]
+        Updated list of dictionaries containing data related to the files
+    """
+
+    if pathlib.Path(record_group_name).suffix == ".csv":
+        tables_map = read_csv.map(record=record_group)
+
+    # recollect the group of mapped read records
+    return [table.result() for table in tables_map]
+
+
+@flow
+def to_arrow(
+    records: Dict[str, List[Dict[str, Any]]],
+    concat: bool = True,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Gather Arrow tables from file-based datasets provided by path.
+
+    Args:
+      path: str:
+        Where to gather file-based data from.
+      concat: bool:  (Default value = True)
+        Whether to concatenate similar files together as unified
+        datasets.
+
+    Returns:
+      Dict[str, List[Dict[str, Any]]]
+        Grouped records which include metadata and table data related
+        to files which were read.
+    """
+
+    for record_group_name, record_group in records.items():
+        # if the source datatype is csv, read it as mapped records
+        records[record_group_name] = read_files(
+            record_group_name=record_group_name, record_group=record_group
+        )
 
     if concat:
         # concat grouped records
-        records = concat_tables(records=records)
+        records = concat_records(records=records)
 
     return records
 
 
 @flow
 def to_parquet(
-    records: Dict[str, List[Dict[str, Any]]], dest_path: str = "."
+    records: Dict[str, List[Dict[str, Any]]],
+    dest_path: str,
+    concat: bool = True,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Export Arrow data to parquet from dataset groups.
@@ -279,8 +432,10 @@ def to_parquet(
       records: Dict[str, List[Dict[str, Any]]]:
         Grouped records which include metadata and table data related
         to files which were read.
-      dest_path: str:  (Default value = ".")
+      dest_path: str:
         Destination where parquet files will be written.
+      concat: bool (Default value = True)
+        Whether to concatenate similar records together as one.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
@@ -289,28 +444,42 @@ def to_parquet(
     """
 
     # for each group of records, map writing parquet per file
-    for group in records:
-        # if the record group has more than one file we will require a unique name
-        # for each file so it's not overwritten.
-        if len(records[group]) > 2:
-            destinations = write_parquet.map(
-                record=records[group], dest_path=dest_path, unique_name=True
+    for record_group_name, record_group in records.items():
+        # check whether we already have tables or if we need a read for records
+        if len(
+            [key for record in record_group for key in record.keys() if key == "table"]
+        ) != len(record_group):
+            # read csv's if we have them
+            record_group = read_files(
+                record_group_name=record_group_name, record_group=record_group
             )
-        else:
-            destinations = write_parquet.map(
-                record=records[group], dest_path=dest_path, unique_name=False
-            )
+
+        unique_name = False
+        if len(record_group) >= 2:
+            unique_name = True
+
+        destinations = write_parquet.map(
+            record=record_group, dest_path=dest_path, unique_name=unique_name
+        )
 
         # recollect the group of mapped written records
-        records[group] = [destination.wait().result() for destination in destinations]
+        records[record_group_name] = [
+            destination.result() for destination in destinations
+        ]
 
-    return records
+    if concat:
+        records = concat_records(records=records, dest_path=dest_path)
+
+    return {
+        key: value.result() if isinstance(value, PrefectFuture) else value
+        for key, value in records.items()
+    }
 
 
 def convert(  # pylint: disable=too-many-arguments
     source_path: str,
     dest_path: str,
-    dest_datatype: Literal["parquet"],
+    dest_datatype: Literal["arrow", "parquet"],
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
     concat: bool = True,
@@ -345,18 +514,24 @@ def convert(  # pylint: disable=too-many-arguments
     if targets is None:
         targets = DEFAULT_TARGETS
 
-    # collect arrow data from source path
-    records = to_arrow.with_options(task_runner=task_runner)(
+    # gather records to be processed
+    records = gather_records.with_options(task_runner=task_runner)(
         path=source_path,
         source_datatype=source_datatype,
         targets=targets,
-        concat=concat,
     )
 
     # send records to be written to parquet if selected
-    if dest_datatype == "parquet":
+    if dest_datatype == "arrow":
+        output = to_arrow.with_options(task_runner=task_runner)(
+            records=records,
+            concat=concat,
+        )
+
+    # send records to be written to parquet if selected
+    elif dest_datatype == "parquet":
         output = to_parquet.with_options(task_runner=task_runner)(
-            records=records, dest_path=dest_path
+            records=records, concat=concat, dest_path=dest_path
         )
 
     return output

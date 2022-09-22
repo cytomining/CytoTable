@@ -13,8 +13,10 @@ from pyarrow import csv, parquet
 
 from pycytominer_transform import (
     DEFAULT_TARGETS,
-    concat_tables,
+    concat_record_group,
+    concat_records,
     convert,
+    gather_records,
     get_source_filepaths,
     infer_source_datatype,
     read_csv,
@@ -24,10 +26,19 @@ from pycytominer_transform import (
 )
 
 
-def test_get_source_filepaths(data_dir_cellprofiler: str):
+def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     """
     Tests get_source_filepaths
     """
+
+    # test that no records raises an exception
+    empty_dir = pathlib.Path(f"{get_tempdir}/temp")
+    empty_dir.mkdir(parents=True, exist_ok=True)
+    with pytest.raises(Exception):
+        single_dir_result = get_source_filepaths.fn(
+            path=empty_dir,
+            targets=["image", "cells", "nuclei", "cytoplasm"],
+        )
 
     single_dir_result = get_source_filepaths.fn(
         path=f"{data_dir_cellprofiler}/csv_single",
@@ -77,7 +88,25 @@ def test_read_csv(get_tempdir: str):
     assert result["table"].shape == table.shape
 
 
-def test_concat_tables(
+def test_concat_record_group(example_records: Dict[str, List[Dict[str, Any]]]):
+    """
+    Tests concat_record_group
+    """
+
+    concat_table = pa.concat_tables(
+        [
+            example_records["animal_legs.csv"][0]["table"],
+            example_records["animal_legs.csv"][1]["table"],
+        ]
+    )
+
+    result = concat_record_group.fn(record_group=example_records["animal_legs.csv"])
+    assert len(result) == 1
+    assert result[0]["table"].schema == concat_table.schema
+    assert result[0]["table"].shape == concat_table.shape
+
+
+def test_concat_records(
     get_tempdir: str, example_records: Dict[str, List[Dict[str, Any]]]
 ):
     """
@@ -91,13 +120,13 @@ def test_concat_tables(
         ]
     )
 
-    result = concat_tables.fn(records=example_records)
+    result = concat_records(records=example_records, dest_path=get_tempdir)
 
     assert len(result["animal_legs.csv"]) == 1
-    assert (
-        pathlib.Path(f"{get_tempdir}/animals/animal_legs.csv")
-        == result["animal_legs.csv"][0]["source_path"]
+    assert pathlib.Path(f"{get_tempdir}/animals/animal_legs") == pathlib.Path(
+        result["animal_legs.csv"][0]["source_path"]
     )
+
     assert result["animal_legs.csv"][0]["table"].schema == concat_table.schema
     assert result["animal_legs.csv"][0]["table"].shape == concat_table.shape
     assert len(result["colors.csv"]) == 1
@@ -123,25 +152,32 @@ def test_write_parquet(get_tempdir: str):
     table = pa.Table.from_pydict(
         {"color": pa.array(["blue", "red", "green", "orange"])}
     )
-    data = {
-        "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
-        "table": table,
-    }
 
     result = write_parquet.fn(
-        record=data, dest_path=f"{get_tempdir}/new_path", unique_name=False
+        record={
+            "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
+            "table": table,
+        },
+        dest_path=f"{get_tempdir}/new_path",
+        unique_name=False,
     )
     result_table = parquet.read_table(result["destination_path"])
 
-    assert sorted(list(result.keys())) == sorted(
-        ["destination_path", "source_path", "table"]
-    )
+    assert sorted(list(result.keys())) == sorted(["destination_path", "source_path"])
     assert result_table.schema == table.schema
     assert result_table.shape == table.shape
     result = write_parquet.fn(
-        record=data, dest_path=f"{get_tempdir}/new_path", unique_name=True
+        record={
+            "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
+            "table": table,
+        },
+        dest_path=f"{get_tempdir}/new_path",
+        unique_name=True,
     )
-    assert result["destination_path"].stem != data["source_path"].stem
+    assert (
+        result["destination_path"].stem
+        != pathlib.Path(f"{get_tempdir}/example/colors.csv").stem
+    )
 
 
 def test_infer_source_datatype():
@@ -171,11 +207,12 @@ def test_to_arrow(data_dir_cellprofiler: str):
     """
 
     single_dir_result = to_arrow(
-        path=f"{data_dir_cellprofiler}/csv_single", targets=DEFAULT_TARGETS
+        records=gather_records(path=f"{data_dir_cellprofiler}/csv_single", targets=None)
     )
     multi_dir_nonconcat_result = to_arrow(
-        path=f"{data_dir_cellprofiler}/csv_multi",
-        targets=DEFAULT_TARGETS,
+        records=gather_records(
+            path=f"{data_dir_cellprofiler}/csv_multi", targets=DEFAULT_TARGETS
+        ),
         concat=False,
     )
 
@@ -194,7 +231,10 @@ def test_to_arrow(data_dir_cellprofiler: str):
         assert result["table"].shape == csv_source.shape
 
     multi_dir_concat_result = to_arrow(
-        path=f"{data_dir_cellprofiler}/csv_multi", targets=DEFAULT_TARGETS, concat=True
+        records=gather_records(
+            path=f"{data_dir_cellprofiler}/csv_multi", targets=DEFAULT_TARGETS
+        ),
+        concat=True,
     )
 
     # loop through the results to ensure data matches what we expect
@@ -218,12 +258,17 @@ def test_to_parquet(get_tempdir: str, example_records: Dict[str, List[Dict[str, 
     Tests to_parquet
     """
 
-    result = to_parquet(records=example_records, dest_path=get_tempdir)
+    flattened_example_records = list(itertools.chain(*list(example_records.values())))
 
-    for result in itertools.chain(*list(result.values())):
-        parquet_result = parquet.read_table(source=result["destination_path"])
-        assert parquet_result.schema.equals(result["table"].schema)
-        assert parquet_result.shape == result["table"].shape
+    result = to_parquet(records=example_records, dest_path=get_tempdir, concat=False)
+
+    flattened_results = list(itertools.chain(*list(result.values())))
+    for i, flattened_result in enumerate(flattened_results):
+        parquet_result = parquet.read_table(source=flattened_result["destination_path"])
+        assert parquet_result.schema.equals(
+            flattened_example_records[i]["table"].schema
+        )
+        assert parquet_result.shape == flattened_example_records[i]["table"].shape
 
 
 def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
@@ -233,6 +278,18 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
     Note: uses default prefect task_runner from convert
     Dedicated tests for prefect-dask runner elsewhere.
     """
+
+    single_dir_result = convert(
+        source_path=f"{data_dir_cellprofiler}/csv_single",
+        dest_path=f"{get_tempdir}/csv_single",
+        dest_datatype="arrow",
+    )
+    # loop through the results to ensure data matches what we expect
+    # note: these are flattened and unique to each of the sets above.
+    for result in itertools.chain(*(list(single_dir_result.values()))):
+        csv_source = csv.read_csv(input_file=result["source_path"])
+        assert result["table"].schema.equals(csv_source.schema)
+        assert result["table"].shape == csv_source.shape
 
     single_dir_result = convert(
         source_path=f"{data_dir_cellprofiler}/csv_single",

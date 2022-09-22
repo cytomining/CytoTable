@@ -226,7 +226,7 @@ dagger.#Plan & {
 				workdir: "/workdir"
 				command: {
 					name: "poetry"
-					args: ["run", "pytest"]
+					args: ["run", "pytest", "--cov=pycytominer_transform", "tests/"]
 				}
 			}
 		}

@@ -6,7 +6,9 @@
    :undoc-members:
    :show-inheritance:
 
-.. autofunction:: concat_tables
+.. autofunction:: concat_records
+.. autofunction:: concat_record_group
+.. autofunction:: gather_records
 .. autofunction:: get_source_filepaths
 .. autofunction:: infer_source_datatype
 .. autofunction:: read_csv
