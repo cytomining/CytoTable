@@ -10,6 +10,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      DAGGER_CACHE_FROM: type=gha,scope=pycytominer_transform
+      DAGGER_CACHE_TO: type=gha,mode=max,scope=pycytominer_transform
     steps:
       - name: Checkout
         uses: actions/checkout@v3

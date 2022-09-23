@@ -6,7 +6,7 @@ import pathlib
 from typing import Any, Dict, List, Literal, Optional
 
 import pyarrow as pa
-from prefect import flow, task
+from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
@@ -454,12 +454,16 @@ def to_parquet(
                 record_group_name=record_group_name, record_group=record_group
             )
 
+        # if the record group has more than one record, we will need a unique name
         unique_name = False
         if len(record_group) >= 2:
             unique_name = True
 
+        # map for writing parquet files with list of files via records
         destinations = write_parquet.map(
-            record=record_group, dest_path=dest_path, unique_name=unique_name
+            record=record_group,
+            dest_path=unmapped(dest_path),
+            unique_name=unmapped(unique_name),
         )
 
         # recollect the group of mapped written records
@@ -467,6 +471,7 @@ def to_parquet(
             destination.result() for destination in destinations
         ]
 
+    # optionally concatenate similar records together
     if concat:
         records = concat_records(records=records, dest_path=dest_path)
 

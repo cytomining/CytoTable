@@ -33,6 +33,15 @@ import (
 					args: ["/workdir"]
 				}
 			},
+			docker.#Set & {
+				config: {
+					workdir: "/workdir"
+					env: {
+						POETRY_VIRTUALENVS_CREATE: "false"
+						PRE_COMMIT_HOME: "/workdir/.cache/pre-commit"
+					}
+				}
+			},
 			docker.#Copy & {
 				contents: filesystem
 				source:   "./pyproject.toml"
@@ -43,25 +52,36 @@ import (
 				source:   "./poetry.lock"
 				dest:     "/workdir/poetry.lock"
 			},
+			docker.#Copy & {
+				contents: filesystem
+				source:   "./.pre-commit-config.yaml"
+				dest:     "/workdir/.pre-commit-config.yaml"
+			},
 			docker.#Run & {
-				workdir: "/workdir"
 				command: {
 					name: "pip"
 					args: ["install", "--no-cache-dir", "poetry==" + poetry_ver]
 				}
 			},
-			docker.#Set & {
-				config: {
-					env: ["POETRY_VIRTUALENVS_CREATE"]: "false"
-				}
-			},
 			docker.#Run & {
-				workdir: "/workdir"
 				command: {
 					name: "poetry"
 					args: ["install", "--no-root", "--no-interaction", "--no-ansi"]
 				}
 			},
+			// init for pre-commit install
+			docker.#Run & {
+				command: {
+					name: "git"
+					args: ["init"]
+				}
+			},
+			docker.#Run & {
+				command: {
+					name: "poetry"
+					args: ["run", "pre-commit", "install-hooks"]
+				}
+			}
 		]
 	}
 	// python build with likely changes
@@ -72,7 +92,7 @@ import (
 				contents: filesystem
 				source:   "./"
 				dest:     "/workdir"
-			},
+			}
 		]
 	}
 }
