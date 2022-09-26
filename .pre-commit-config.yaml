@@ -31,10 +31,6 @@ repos:
     rev: v1.12.1
     hooks:
       - id: blacken-docs
-  - repo: https://github.com/hadialqattan/pycln
-    rev: "v2.1.1"
-    hooks:
-      - id: pycln
   - repo: https://github.com/PyCQA/bandit
     rev: 1.7.4
     hooks:

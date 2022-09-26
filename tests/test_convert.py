@@ -14,7 +14,6 @@ from pyarrow import csv, parquet
 from pycytominer_transform import (
     DEFAULT_TARGETS,
     concat_record_group,
-    concat_records,
     convert,
     gather_records,
     get_source_filepaths,
@@ -104,44 +103,6 @@ def test_concat_record_group(example_records: Dict[str, List[Dict[str, Any]]]):
     assert len(result) == 1
     assert result[0]["table"].schema == concat_table.schema
     assert result[0]["table"].shape == concat_table.shape
-
-
-def test_concat_records(
-    get_tempdir: str, example_records: Dict[str, List[Dict[str, Any]]]
-):
-    """
-    Tests concat_tables
-    """
-
-    concat_table = pa.concat_tables(
-        [
-            example_records["animal_legs.csv"][0]["table"],
-            example_records["animal_legs.csv"][1]["table"],
-        ]
-    )
-
-    result = concat_records(records=example_records, dest_path=get_tempdir)
-
-    assert len(result["animal_legs.csv"]) == 1
-    assert pathlib.Path(f"{get_tempdir}/animals/animal_legs") == pathlib.Path(
-        result["animal_legs.csv"][0]["source_path"]
-    )
-
-    assert result["animal_legs.csv"][0]["table"].schema == concat_table.schema
-    assert result["animal_legs.csv"][0]["table"].shape == concat_table.shape
-    assert len(result["colors.csv"]) == 1
-    assert (
-        pathlib.Path(f"{get_tempdir}/animals/c/colors.csv")
-        == result["colors.csv"][0]["source_path"]
-    )
-    assert (
-        result["colors.csv"][0]["table"].schema
-        == example_records["colors.csv"][0]["table"].schema
-    )
-    assert (
-        result["colors.csv"][0]["table"].shape
-        == example_records["colors.csv"][0]["table"].shape
-    )
 
 
 def test_write_parquet(get_tempdir: str):
@@ -240,6 +201,7 @@ def test_to_arrow(data_dir_cellprofiler: str):
     # loop through the results to ensure data matches what we expect
     # note: these are flattened and unique to each of the sets above.
     for result in itertools.chain(*list(multi_dir_concat_result.values())):
+        print(type(result["source_path"]))
         csv_source = pa.concat_tables(
             [
                 csv.read_csv(file)
