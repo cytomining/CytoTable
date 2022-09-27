@@ -73,6 +73,7 @@ def test_read_csv(get_tempdir: str):
     Tests read_csv
     """
 
+    # valid csv data (last row invalid rowcount)
     data = io.BytesIO("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False".encode())
     table = csv.read_csv(input_file=data)
     destination = f"{get_tempdir}/sample.csv"
@@ -86,8 +87,18 @@ def test_read_csv(get_tempdir: str):
     assert result["table"].schema.equals(table.schema)
     assert result["table"].shape == table.shape
 
+    # cover invalid number of rows read ignores
+    destination_err = f"{get_tempdir}/sample.csv"
+    with open(destination_err, "w", encoding="utf-8") as wfile:
+        wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
 
-def test_concat_record_group(example_records: Dict[str, List[Dict[str, Any]]]):
+    assert isinstance(read_csv.fn(record={"source_path": destination_err}), Dict)
+
+
+def test_concat_record_group(
+    get_tempdir: str,
+    example_records: Dict[str, List[Dict[str, Any]]],
+):
     """
     Tests concat_record_group
     """
@@ -103,6 +114,21 @@ def test_concat_record_group(example_records: Dict[str, List[Dict[str, Any]]]):
     assert len(result) == 1
     assert result[0]["table"].schema == concat_table.schema
     assert result[0]["table"].shape == concat_table.shape
+
+    # add a mismatching record to animal_legs.csv group
+    example_records["animal_legs.csv"].append(
+        {
+            "source_path": pathlib.Path(f"{get_tempdir}/animals/b/animal_legs.csv"),
+            "table": pa.Table.from_pydict(
+                {
+                    "color": pa.array(["blue", "red", "green", "orange"]),
+                }
+            ),
+        }
+    )
+
+    with pytest.raises(Exception):
+        concat_record_group.fn(record_group=example_records["animal_legs.csv"])
 
 
 def test_write_parquet(get_tempdir: str):
@@ -168,11 +194,15 @@ def test_to_arrow(data_dir_cellprofiler: str):
     """
 
     single_dir_result = to_arrow(
-        records=gather_records(path=f"{data_dir_cellprofiler}/csv_single", targets=None)
+        records=gather_records(
+            path=f"{data_dir_cellprofiler}/csv_single",
+            targets=DEFAULT_TARGETS,
+        )
     )
     multi_dir_nonconcat_result = to_arrow(
         records=gather_records(
-            path=f"{data_dir_cellprofiler}/csv_multi", targets=DEFAULT_TARGETS
+            path=f"{data_dir_cellprofiler}/csv_multi",
+            targets=DEFAULT_TARGETS,
         ),
         concat=False,
     )
@@ -201,7 +231,6 @@ def test_to_arrow(data_dir_cellprofiler: str):
     # loop through the results to ensure data matches what we expect
     # note: these are flattened and unique to each of the sets above.
     for result in itertools.chain(*list(multi_dir_concat_result.values())):
-        print(type(result["source_path"]))
         csv_source = pa.concat_tables(
             [
                 csv.read_csv(file)
@@ -241,10 +270,22 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
     Dedicated tests for prefect-dask runner elsewhere.
     """
 
+    with pytest.raises(Exception):
+        single_dir_result = convert(
+            source_path=f"{data_dir_cellprofiler}/csv_single",
+            dest_path=f"{get_tempdir}/csv_single",
+            dest_datatype="arrow",
+            default_targets=True,
+            targets=[],
+            source_datatype="csv",
+        )
+
     single_dir_result = convert(
         source_path=f"{data_dir_cellprofiler}/csv_single",
         dest_path=f"{get_tempdir}/csv_single",
         dest_datatype="arrow",
+        default_targets=True,
+        source_datatype="csv",
     )
     # loop through the results to ensure data matches what we expect
     # note: these are flattened and unique to each of the sets above.
@@ -257,6 +298,8 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         source_path=f"{data_dir_cellprofiler}/csv_single",
         dest_path=f"{get_tempdir}/csv_single",
         dest_datatype="parquet",
+        default_targets=True,
+        source_datatype="csv",
     )
 
     multi_dir_nonconcat_result = convert(
@@ -264,6 +307,8 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         dest_path=f"{get_tempdir}/csv_multi_nonconcat",
         dest_datatype="parquet",
         concat=False,
+        default_targets=True,
+        source_datatype="csv",
     )
 
     # loop through the results to ensure data matches what we expect
@@ -281,6 +326,8 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         dest_path=f"{get_tempdir}/csv_multi_concat",
         dest_datatype="parquet",
         concat=True,
+        default_targets=True,
+        source_datatype="csv",
     )
 
     # loop through the results to ensure data matches what we expect
@@ -312,6 +359,7 @@ def test_convert_dask_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: 
         dest_path=f"{get_tempdir}/csv_multi_nonconcat",
         dest_datatype="parquet",
         concat=False,
+        targets=DEFAULT_TARGETS,
         task_runner=DaskTaskRunner,
     )
 

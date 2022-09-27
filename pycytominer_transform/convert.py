@@ -16,7 +16,7 @@ DEFAULT_TARGETS = ["image", "cells", "nuclei", "cytoplasm"]
 
 @task
 def get_source_filepaths(
-    path: str, targets: List[str]
+    path: str, targets: Optional[List[str]] = None
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -36,7 +36,10 @@ def get_source_filepaths(
 
     # gathers files from provided path using targets as a filter
     for file in pathlib.Path(path).glob("**/*"):
-        if file.is_file() and (str(file.stem).lower() in targets or targets is None):
+        if file.is_file() and (
+            targets is None
+            or str(file.stem).lower() in [target.lower() for target in targets]
+        ):
             records.append({"source_path": file})
 
     # if we collected no files above, raise exception
@@ -122,9 +125,18 @@ def filter_source_filepaths(
     """
 
     return {
-        key: val
-        for key, val in records.items()
-        if pathlib.Path(key).suffix == f".{target_datatype}"
+        filegroup: [
+            file
+            for file in files
+            # ensure the filesize is greater than 0
+            if pathlib.Path(file["source_path"]).stat().st_size > 0
+        ]
+        for filegroup, files in records.items()
+        if (
+            # ensure the datatype matches the target datatype
+            pathlib.Path(filegroup).suffix
+            == f".{target_datatype}"
+        )
     }
 
 
@@ -150,10 +162,6 @@ def gather_records(
       Dict[str, List[Dict[str, Any]]]
         Data structure which groups related files based on the targets.
     """
-
-    # if we have no targets, set the defaults
-    if targets is None:
-        targets = DEFAULT_TARGETS
 
     # gather filepaths which will be used as the basis for this work
     records = get_source_filepaths(path=path, targets=targets)
@@ -183,8 +191,22 @@ def read_csv(record: Dict[str, Any]) -> Dict[str, Any]:
         Updated dictionary with CSV data in-memory
     """
 
+    # define invalid row handler for rows which may be
+    # somehow erroneous. See below for more details:
+    # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
+    def skip_erroneous_colcount(row):
+        if row.actual_columns != row.expected_columns:
+            return "skip"
+        return "error"
+
+    # setup parse options
+    parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
+
     # read csv using pyarrow lib and attach table data to record
-    record["table"] = csv.read_csv(input_file=record["source_path"])
+    record["table"] = csv.read_csv(
+        input_file=record["source_path"],
+        parse_options=parse_options,
+    )
 
     return record
 
@@ -294,6 +316,16 @@ def concat_record_group(
         writer = parquet.ParquetWriter(str(destination_path), writer_basis.schema)
 
         for table in [record["destination_path"] for record in record_group]:
+
+            # check that our file matches the expected schema, otherwise raise an error
+            if not writer_basis.schema.equals(parquet.read_table(table).schema):
+                raise Exception(
+                    (
+                        f"Detected mismatching schema for target concatenation group members:"
+                        f" {str(record_group[0]['destination_path'])} and {str(table)}"
+                    )
+                )
+
             # read the file from the list and write to the concatted parquet file
             # note: we pass column order based on the first chunk file to help ensure schema
             # compatibility for the writer
@@ -391,16 +423,12 @@ def to_arrow(
         )
 
         if concat:
-
-            # build a new record group
             results[record_group_name] = concat_record_group.submit(
                 record_group=read_record_group,
                 dest_path=None,
             )
         else:
             results[record_group_name] = read_record_group
-
-    print(results)
 
     return {
         key: value.result()
@@ -482,6 +510,7 @@ def convert(  # pylint: disable=too-many-arguments
     dest_datatype: Literal["arrow", "parquet"],
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
+    default_targets: bool = False,
     concat: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -499,6 +528,8 @@ def convert(  # pylint: disable=too-many-arguments
         Source datatype to focus on during conversion.
       targets: Optional[List[str]]:  (Default value = None)
         Target filenames to use for conversion.
+      default_targets: bool: (Default value = False)
+        Whether to use DEFAULT_TARGETS as a reference for targets
       concat: bool:  (Default value = True)
         Whether to concatenate similar files together.
       task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
@@ -510,8 +541,12 @@ def convert(  # pylint: disable=too-many-arguments
         where parquet file was written.
     """
 
-    # if we have no targets, set the defaults
-    if targets is None:
+    # raise an alert if we have default_targets set and have tried to set targets
+    if default_targets and targets is not None:
+        raise Exception("Default targets set to True and targets provided.")
+
+    # set the defaults
+    if default_targets:
         targets = DEFAULT_TARGETS
 
     # gather records to be processed
