@@ -10,7 +10,6 @@ from .convert import (
     get_source_filepaths,
     infer_source_datatype,
     read_csv,
-    to_arrow,
     to_parquet,
     write_parquet,
 )

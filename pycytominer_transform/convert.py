@@ -243,7 +243,9 @@ def read_files(
 
 @task
 def concat_record_group(
-    record_group: List[Dict[str, Any]], dest_path: Optional[str] = None
+    record_group: List[Dict[str, Any]],
+    dest_path: Optional[str] = None,
+    infer_common_schema: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     Concatenate group of records together as unified dataset.
@@ -253,6 +255,8 @@ def concat_record_group(
         Data structure containing grouped data for concatenation.
       dest_path: Optional[str] (Default value = None)
         Optional destination path for concatenated records.
+      infer_common_schema: bool (Default value = True)
+        Whether to infer a common schema when concatenating records.
 
     Returns:
       List[Dict[str, Any]]
@@ -262,9 +266,6 @@ def concat_record_group(
     # if we have nothing to concat, return the record group
     if len(record_group) < 2:
         return record_group
-
-    if isinstance(record_group[0], PrefectFuture):
-        record_group[0] = record_group[0].result()
 
     concatted = [
         {
@@ -278,69 +279,90 @@ def concat_record_group(
         }
     ]
 
-    # for concatting arrow tables
-    if "table" in record_group[0]:
-        # table becomes the result of concatted tables
-        concatted[0]["table"] = pa.concat_tables(
-            [
-                record.result()["table"]
-                if isinstance(record, PrefectFuture)
-                else record["table"]
-                for record in record_group
-            ]
+    destination_path = pathlib.Path(
+        (
+            f"{dest_path}"
+            f"/{record_group[0]['source_path'].parent.parent.name}"
+            f".{record_group[0]['source_path'].stem}"
+            ".parquet"
         )
+    )
 
-    # for concatting parquet files
-    elif "destination_path" in record_group[0]:
-        # make the new source path dir if it doesn't already exist
+    # if there's already a file remove it
+    destination_path.unlink(missing_ok=True)
 
-        destination_path = pathlib.Path(
-            (
-                f"{dest_path}"
-                f"/{record_group[0]['source_path'].parent.parent.name}"
-                f".{record_group[0]['source_path'].stem}"
-                ".parquet"
-            )
-        )
+    # read first file for basis of schema and column order for all others
+    writer_basis_schema = parquet.read_schema(record_group[0]["destination_path"])
 
-        # if there's already a file remove it
-        if destination_path.exists():
-            destination_path.unlink()
+    if infer_common_schema:
+        # infer common basis of schema and column order for all others
+        for schema in [
+            parquet.read_schema(record["destination_path"]) for record in record_group
+        ]:
 
-        # read first file for basis of schema and column order for all others
-        writer_basis = parquet.read_table(record_group[0]["destination_path"])
+            # account for completely equal schema
+            if schema.equals(writer_basis_schema):
+                continue
 
-        # build a parquet file writer which will be used to append files
-        # as a single concatted parquet file, referencing the first file's schema
-        # (all must be the same schema)
-        writer = parquet.ParquetWriter(str(destination_path), writer_basis.schema)
+            # gather field names from schema
+            schema_field_names = [item.name for item in schema]
 
-        for table in [record["destination_path"] for record in record_group]:
+            # reversed enumeration because removing indexes ascendingly changes schema field order
+            for index, field in reversed(list(enumerate(writer_basis_schema))):
 
-            # check that our file matches the expected schema, otherwise raise an error
-            if not writer_basis.schema.equals(parquet.read_table(table).schema):
-                raise Exception(
-                    (
-                        f"Detected mismatching schema for target concatenation group members:"
-                        f" {str(record_group[0]['destination_path'])} and {str(table)}"
+                # check whether field name is contained within writer basis, remove if not
+                # note: because this only checks for naming, we defer to initially detected type
+                if field.name not in schema_field_names:
+
+                    writer_basis_schema = writer_basis_schema.remove(index)
+
+                # check if we have an integer to float challenge and enable later casting
+                elif pa.types.is_integer(field.type) and pa.types.is_floating(
+                    schema.field(field.name).type
+                ):
+                    writer_basis_schema = writer_basis_schema.set(
+                        index, field.with_type(pa.float64())
                     )
-                )
 
-            # read the file from the list and write to the concatted parquet file
-            # note: we pass column order based on the first chunk file to help ensure schema
-            # compatibility for the writer
-            writer.write_table(
-                parquet.read_table(table, columns=writer_basis.column_names)
+    if len(list(writer_basis_schema.names)) == 0:
+        raise Exception(
+            (
+                "No common schema basis to perform concatenation for record group."
+                " All columns mismatch one another within the group."
             )
-            # remove the file which was written in the concatted parquet file (we no longer need it)
-            pathlib.Path(table).unlink()
+        )
 
-        # close the single concatted parquet file writer
-        writer.close()
+    # build a parquet file writer which will be used to append files
+    # as a single concatted parquet file, referencing the first file's schema
+    # (all must be the same schema)
+    writer = parquet.ParquetWriter(str(destination_path), writer_basis_schema)
 
-        # return the concatted parquet filename
-        concatted[0]["destination_path"] = destination_path
+    for table in [record["destination_path"] for record in record_group]:
 
+        # if we haven't inferred the common schema
+        # check that our file matches the expected schema, otherwise raise an error
+        if not infer_common_schema and not writer_basis_schema.equals(
+            parquet.read_schema(table)
+        ):
+            raise Exception(
+                (
+                    f"Detected mismatching schema for target concatenation group members:"
+                    f" {str(record_group[0]['destination_path'])} and {str(table)}"
+                )
+            )
+
+        # read the file from the list and write to the concatted parquet file
+        # note: we pass column order based on the first chunk file to help ensure schema
+        # compatibility for the writer
+        writer.write_table(parquet.read_table(table, schema=writer_basis_schema))
+        # remove the file which was written in the concatted parquet file (we no longer need it)
+        pathlib.Path(table).unlink()
+
+    # close the single concatted parquet file writer
+    writer.close()
+
+    # return the concatted parquet filename
+    concatted[0]["destination_path"] = destination_path
     return concatted
 
 
@@ -395,56 +417,11 @@ def write_parquet(
 
 
 @flow
-def to_arrow(
-    records: Dict[str, List[Dict[str, Any]]],
-    concat: bool = True,
-) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Gather Arrow tables from file-based datasets provided by path.
-
-    Args:
-      path: str:
-        Where to gather file-based data from.
-      concat: bool:  (Default value = True)
-        Whether to concatenate similar files together as unified
-        datasets.
-
-    Returns:
-      Dict[str, List[Dict[str, Any]]]
-        Grouped records which include metadata and table data related
-        to files which were read.
-    """
-
-    results = {}
-    for record_group_name, record_group in records.items():
-        # if the source datatype is csv, read it as mapped records
-        read_record_group = read_files(
-            record_group_name=record_group_name, record_group=record_group
-        )
-
-        if concat:
-            results[record_group_name] = concat_record_group.submit(
-                record_group=read_record_group,
-                dest_path=None,
-            )
-        else:
-            results[record_group_name] = read_record_group
-
-    return {
-        key: value.result()
-        if isinstance(value, PrefectFuture)
-        else [inner_result.result() for inner_result in value]
-        if not isinstance(value, Dict)
-        else value
-        for key, value in results.items()
-    }
-
-
-@flow
 def to_parquet(
     records: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     concat: bool = True,
+    infer_common_schema: bool = True,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Export Arrow data to parquet from dataset groups.
@@ -457,6 +434,8 @@ def to_parquet(
         Destination where parquet files will be written.
       concat: bool (Default value = True)
         Whether to concatenate similar records together as one.
+      infer_common_schema: bool (Default value = True)
+        Whether to infer a common schema when concatenating records.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
@@ -490,6 +469,7 @@ def to_parquet(
             results[record_group_name] = concat_record_group.submit(
                 record_group=destinations,
                 dest_path=dest_path,
+                infer_common_schema=infer_common_schema,
             )
         else:
             results[record_group_name] = destinations
@@ -507,11 +487,12 @@ def to_parquet(
 def convert(  # pylint: disable=too-many-arguments
     source_path: str,
     dest_path: str,
-    dest_datatype: Literal["arrow", "parquet"],
+    dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
     default_targets: bool = False,
     concat: bool = True,
+    infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -532,6 +513,8 @@ def convert(  # pylint: disable=too-many-arguments
         Whether to use DEFAULT_TARGETS as a reference for targets
       concat: bool:  (Default value = True)
         Whether to concatenate similar files together.
+      infer_common_schema: bool (Default value = True)
+        Whether to infer a common schema when concatenating records.
       task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
         Prefect task runner to use with flows.
 
@@ -557,16 +540,12 @@ def convert(  # pylint: disable=too-many-arguments
     )
 
     # send records to be written to parquet if selected
-    if dest_datatype == "arrow":
-        output = to_arrow.with_options(task_runner=task_runner)(
+    if dest_datatype == "parquet":
+        output = to_parquet.with_options(task_runner=task_runner)(
             records=records,
             concat=concat,
-        )
-
-    # send records to be written to parquet if selected
-    elif dest_datatype == "parquet":
-        output = to_parquet.with_options(task_runner=task_runner)(
-            records=records, concat=concat, dest_path=dest_path
+            dest_path=dest_path,
+            infer_common_schema=infer_common_schema,
         )
 
     return output

@@ -38,7 +38,7 @@ import (
 					workdir: "/workdir"
 					env: {
 						POETRY_VIRTUALENVS_CREATE: "false"
-						PRE_COMMIT_HOME: "/workdir/.cache/pre-commit"
+						PRE_COMMIT_HOME:           "/workdir/.cache/pre-commit"
 					}
 				}
 			},
@@ -81,7 +81,7 @@ import (
 					name: "poetry"
 					args: ["run", "pre-commit", "install-hooks"]
 				}
-			}
+			},
 		]
 	}
 	// python build with likely changes
@@ -92,7 +92,7 @@ import (
 				contents: filesystem
 				source:   "./"
 				dest:     "/workdir"
-			}
+			},
 		]
 	}
 }
@@ -145,6 +145,7 @@ dagger.#Plan & {
 		filesystem: {
 			"./": read: contents:                         dagger.#FS
 			"./project.cue": write: contents:             actions.clean.cue.export.files."/workdir/project.cue"
+			"./htmlcov": write: contents:                 actions.coverage.coverage.export.directories."/workdir/htmlcov"
 			"./tests/data/cellprofiler": write: contents: actions.gather_data.cellprofiler.export.export.directories."/usr/local/src/output"
 		}
 	}
@@ -226,7 +227,29 @@ dagger.#Plan & {
 			}
 		}
 
-		// testing content
+		// export testing coverage details
+		coverage: {
+			pytest: docker.#Run & {
+				input:   _python_build.output
+				workdir: "/workdir"
+				command: {
+					name: "poetry"
+					args: ["run", "pytest", "--cov=pycytominer_transform", "tests/"]
+				}
+			}
+			coverage: docker.#Run & {
+				input:   pytest.output
+				workdir: "/workdir"
+				command: {
+					name: "poetry"
+					args: ["run", "coverage", "html"]
+				}
+				export: {
+					directories: "/workdir/htmlcov": _
+				}
+			}
+		}
+		// various tests for this repo
 		test: {
 			// run pre-commit checks
 			pre_commit: docker.#Run & {
