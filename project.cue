@@ -1,11 +1,11 @@
 // project cuefile for Dagger CI and other development tooling related to this project.
 package main
 
-import (
-	"dagger.io/dagger"
-	"universe.dagger.io/docker"
-	"universe.dagger.io/bash"
-)
+import "dagger.io/dagger"
+
+import "universe.dagger.io/bash"
+
+import "universe.dagger.io/docker"
 
 // python build for linting, testing, building, etc.
 #PythonBuild: {
@@ -38,7 +38,6 @@ import (
 					workdir: "/workdir"
 					env: {
 						POETRY_VIRTUALENVS_CREATE: "false"
-						PRE_COMMIT_HOME:           "/workdir/.cache/pre-commit"
 					}
 				}
 			},
@@ -143,9 +142,10 @@ dagger.#Plan & {
 
 	client: {
 		filesystem: {
-			"./": read: contents:                         dagger.#FS
-			"./project.cue": write: contents:             actions.clean.cue.export.files."/workdir/project.cue"
-			"./htmlcov": write: contents:                 actions.coverage.coverage.export.directories."/workdir/htmlcov"
+			"./": read: contents:             dagger.#FS
+			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
+			"./htmlcov": write: contents:     actions.coverage.coverage.export.directories."/workdir/htmlcov"
+
 			"./tests/data/cellprofiler": write: contents: actions.gather_data.cellprofiler.export.export.directories."/usr/local/src/output"
 		}
 	}
@@ -230,16 +230,14 @@ dagger.#Plan & {
 		// export testing coverage details
 		coverage: {
 			pytest: docker.#Run & {
-				input:   _python_build.output
-				workdir: "/workdir"
+				input: _python_build.output
 				command: {
 					name: "poetry"
 					args: ["run", "pytest", "--cov=pycytominer_transform", "tests/"]
 				}
 			}
 			coverage: docker.#Run & {
-				input:   pytest.output
-				workdir: "/workdir"
+				input: pytest.output
 				command: {
 					name: "poetry"
 					args: ["run", "coverage", "html"]
@@ -249,27 +247,23 @@ dagger.#Plan & {
 				}
 			}
 		}
+
 		// various tests for this repo
 		test: {
 			// run pre-commit checks
 			pre_commit: docker.#Run & {
-				input:   _python_build.output
-				workdir: "/workdir"
+				input: _python_build.output
 				command: {
 					name: "poetry"
 					args: ["run", "pre-commit", "run", "--all-files"]
 				}
-				// a hack for sequential and output-unrelated task chaining
-				// ref: https://docs.dagger.io/1232/chain-actions
-				env: HACK: "\(gather_data.cellprofiler.export.success)"
 			}
 			// run pytest
 			pytest: docker.#Run & {
-				input:   pre_commit.output
-				workdir: "/workdir"
+				input: pre_commit.output
 				command: {
 					name: "poetry"
-					args: ["run", "pytest", "--cov=pycytominer_transform", "tests/"]
+					args: ["run", "pytest"]
 				}
 			}
 		}
