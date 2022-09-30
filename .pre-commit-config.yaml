@@ -62,6 +62,7 @@ repos:
         # pylint due to it's dynamic analysis capabilities
         # and the way pre-commit references virtual environments.
         additional_dependencies:
+          - "cloudpathlib[all]>=0.10.0"
           - "pyarrow>=9.0.0"
           - "prefect>=2.3.2"
           - "prefect-dask>=0.2.0.post1"

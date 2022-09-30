@@ -3,9 +3,10 @@ pycytominer-transform: convert - transforming data for use with pyctyominer.
 """
 
 import pathlib
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
 import pyarrow as pa
+from cloudpathlib import AnyPath, CloudPath, S3Client
 from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
@@ -15,14 +16,34 @@ DEFAULT_TARGETS = ["image", "cells", "nuclei", "cytoplasm"]
 
 
 @task
+def build_path(
+    path: Union[str, pathlib.Path, AnyPath], **kwargs
+) -> Union[pathlib.Path, Any]:
+    """
+    Build a path client
+    """
+
+    processed_path = AnyPath(path)
+
+    # set the client for a CloudPath
+    if isinstance(processed_path, CloudPath):
+        client = S3Client(**kwargs)
+
+        # set the client on the path
+        processed_path.client = client
+
+    return processed_path
+
+
+@task
 def get_source_filepaths(
-    path: str, targets: Optional[List[str]] = None
+    path: Union[pathlib.Path, AnyPath], targets: Optional[List[str]] = None
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
 
     Args:
-      path: str:
+      path: Union[pathlib.Path, Any]:
         Path to seek filepaths within.
       targets: List[str]:
         Target filenames to seek within the provided path.
@@ -35,7 +56,8 @@ def get_source_filepaths(
     records = []
 
     # gathers files from provided path using targets as a filter
-    for file in pathlib.Path(path).glob("**/*"):
+    for file in path.glob("**/*"):
+
         if file.is_file() and (
             targets is None
             or str(file.stem).lower() in [target.lower() for target in targets]
@@ -44,9 +66,7 @@ def get_source_filepaths(
 
     # if we collected no files above, raise exception
     if len(records) < 1:
-        raise Exception(
-            f"No input data to process at path: {str(pathlib.Path(path).resolve())}"
-        )
+        raise Exception(f"No input data to process at path: {str(path)}")
 
     grouped_records = {}
 
@@ -129,29 +149,27 @@ def filter_source_filepaths(
             file
             for file in files
             # ensure the filesize is greater than 0
-            if pathlib.Path(file["source_path"]).stat().st_size > 0
+            if file["source_path"].stat().st_size > 0
+            # ensure the datatype matches the target datatype
+            and file["source_path"].suffix == f".{target_datatype}"
         ]
         for filegroup, files in records.items()
-        if (
-            # ensure the datatype matches the target datatype
-            pathlib.Path(filegroup).suffix
-            == f".{target_datatype}"
-        )
     }
 
 
 @flow
 def gather_records(
-    path: str,
+    source_path: str,
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
+    **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
 
     """
     Flow for gathering records for conversion
 
     Args:
-      path: str:
+      source_path: str:
         Where to gather file-based data from.
       source_datatype: Optional[str]:  (Default value = None)
         The source datatype (extension) to use for reading the tables.
@@ -163,8 +181,10 @@ def gather_records(
         Data structure which groups related files based on the targets.
     """
 
+    source_path = build_path(path=source_path, **kwargs)
+
     # gather filepaths which will be used as the basis for this work
-    records = get_source_filepaths(path=path, targets=targets)
+    records = get_source_filepaths(path=source_path, targets=targets)
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = infer_source_datatype(
@@ -178,7 +198,7 @@ def gather_records(
 
 
 @task
-def read_csv(record: Dict[str, Any]) -> Dict[str, Any]:
+def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
     """
     Read csv file from record.
 
@@ -191,54 +211,25 @@ def read_csv(record: Dict[str, Any]) -> Dict[str, Any]:
         Updated dictionary with CSV data in-memory
     """
 
-    # define invalid row handler for rows which may be
-    # somehow erroneous. See below for more details:
-    # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
-    def skip_erroneous_colcount(row):
-        if row.actual_columns != row.expected_columns:
-            return "skip"
-        return "error"
+    if AnyPath(record["source_path"]).suffix == ".csv":  # pylint: disable=no-member
+        # define invalid row handler for rows which may be
+        # somehow erroneous. See below for more details:
+        # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
+        def skip_erroneous_colcount(row):
+            if row.actual_columns != row.expected_columns:
+                return "skip"
+            return "error"
 
-    # setup parse options
-    parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
+        # setup parse options
+        parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
 
-    # read csv using pyarrow lib and attach table data to record
-    record["table"] = csv.read_csv(
-        input_file=record["source_path"],
-        parse_options=parse_options,
-    )
+        # read csv using pyarrow lib and attach table data to record
+        record["table"] = csv.read_csv(
+            input_file=record["source_path"],
+            parse_options=parse_options,
+        )
 
     return record
-
-
-@flow
-def read_files(
-    record_group_name: str, record_group: List[Dict[str, Any]]
-) -> List[Dict[str, Any]]:
-    """
-    Read files based on their suffix (extension)
-
-    Args:
-      record_group_name: str
-        Name of the file including extension for the group
-      record_group: List[Dict[str, Any]]
-        List of dictionaries containing data related to the files
-
-    Returns:
-      List[Dict[str, Any]]
-        Updated list of dictionaries containing data related to the files
-    """
-
-    # check whether we already have tables or if we need a read for records
-    if len(
-        [key for record in record_group for key in record.keys() if key == "table"]
-    ) != len(record_group):
-
-        if pathlib.Path(record_group_name).suffix == ".csv":
-            record_group = read_csv.map(record=record_group)
-
-    # recollect the group of mapped read records
-    return record_group
 
 
 @task
@@ -417,11 +408,14 @@ def write_parquet(
 
 
 @flow
-def to_parquet(
-    records: Dict[str, List[Dict[str, Any]]],
+def to_parquet(  # pylint: disable=too-many-arguments
+    source_path: Union[str, pathlib.Path, Any],
     dest_path: str,
+    source_datatype: Optional[str] = None,
+    targets: Optional[List[str]] = None,
     concat: bool = True,
     infer_common_schema: bool = True,
+    **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Export Arrow data to parquet from dataset groups.
@@ -443,23 +437,32 @@ def to_parquet(
         where parquet file was written.
     """
 
+    # gather records to be processed
+    records = gather_records(
+        source_path=source_path,
+        source_datatype=source_datatype,
+        targets=targets,
+        **kwargs,
+    )
+
+    if not isinstance(records, Dict):
+        records = records.result()
+
     results = {}
     # for each group of records, map writing parquet per file
     for record_group_name, record_group in records.items():
 
-        # read csv's if we have them
-        read_record_group = read_files(
-            record_group_name=record_group_name, record_group=record_group
-        )
+        # read files
+        record_group = read_file.map(record=record_group)
 
         # if the record group has more than one record, we will need a unique name
         unique_name = False
-        if len(read_record_group) >= 2:
+        if len(record_group) >= 2:
             unique_name = True
 
         # map for writing parquet files with list of files via records
         destinations = write_parquet.map(
-            record=read_record_group,
+            record=record_group,
             dest_path=unmapped(dest_path),
             unique_name=unmapped(unique_name),
         )
@@ -494,13 +497,16 @@ def convert(  # pylint: disable=too-many-arguments
     concat: bool = True,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
+    **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Convert file-based data from various sources to Pycytominer-compatible standards.
 
+    Note: source paths may be object-storage locations using common "s3://..." or similar.
+
     Args:
-      source_path: str:
-        Path to read source files from.
+      source_path: Union[str, pathlib.Path, AnyPath]:
+        str or Path-like reference to read source files from.
       dest_path: str:
         Path to write files to.
       dest_datatype: Literal["parquet"]:
@@ -522,6 +528,33 @@ def convert(  # pylint: disable=too-many-arguments
       Dict[str, List[Dict[str, Any]]]
         Grouped records which include metadata about destination filepath
         where parquet file was written.
+
+
+    Example:
+
+      .. code-block:: python
+
+        from pycytominer_transform import convert
+
+        # using an local path with no signature for client
+        convert(
+            source_path="./tests/data/cellprofiler/csv_single",
+            source_datatype="csv",
+            dest_path=".",
+            default_targets=True,
+            dest_datatype="parquet",
+        )
+
+        # using an s3-compatible path with no signature for client
+        convert(
+            source_path="s3://s3path",
+            source_datatype="csv",
+            dest_path=".",
+            dest_datatype="parquet",
+            concat=True,
+            default_targets=True,
+            no_sign_request=True,
+        )
     """
 
     # raise an alert if we have default_targets set and have tried to set targets
@@ -532,20 +565,16 @@ def convert(  # pylint: disable=too-many-arguments
     if default_targets:
         targets = DEFAULT_TARGETS
 
-    # gather records to be processed
-    records = gather_records.with_options(task_runner=task_runner)(
-        path=source_path,
-        source_datatype=source_datatype,
-        targets=targets,
-    )
-
     # send records to be written to parquet if selected
     if dest_datatype == "parquet":
         output = to_parquet.with_options(task_runner=task_runner)(
-            records=records,
+            source_path=source_path,
+            source_datatype=source_datatype,
+            targets=targets,
             concat=concat,
             dest_path=dest_path,
             infer_common_schema=infer_common_schema,
+            **kwargs,
         )
 
     return output

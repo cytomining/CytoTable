@@ -9,7 +9,7 @@ from .convert import (
     gather_records,
     get_source_filepaths,
     infer_source_datatype,
-    read_csv,
+    read_file,
     to_parquet,
     write_parquet,
 )

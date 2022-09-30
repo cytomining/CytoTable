@@ -19,7 +19,15 @@ Pcytominer-transform is primarily written in Python with related environments ma
 Documentation is provided through [MyST (or Markedly Structured Text)](https://myst-parser.readthedocs.io/en/latest/index.html) markdown documents are transformed into docsite content using Sphinx.
 Documentation content assumes a "one sentence per line" style.
 Diagrams may be added using the [Sphinx extension for Mermaid](https://github.com/mgaitan/sphinxcontrib-mermaid#markdown-support).
-Documentation is automatically published to a docsite via [Github Actions](https://docs.github.com/en/actions).
+
+- Content is checked for errors via Dagger actions using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
+- Documentation is automatically published to a docsite via [Github Actions](https://docs.github.com/en/actions).
+
+To check your documentation updates before pushing, use the following to trigger a related `sphinx-build` (content made available at `./docs/build/index.html`):
+
+```sh
+% dagger do docs
+```
 
 ## Getting started
 
@@ -66,4 +74,13 @@ See below for an example of testing without Dagger:
 
 ```sh
 % poetry run pytest
+```
+
+### Test Coverage
+
+Test coverage is provided via [coverage](https://github.com/nedbat/coveragepy) and [pytest-cov](https://github.com/pytest-dev/pytest-cov).
+Use the following command to generate HTML coverage reports (reports made available at `./htmlcov/index.html`):
+
+```sh
+% poetry run pytest --cov=pycytominer_transform tests/
 ```

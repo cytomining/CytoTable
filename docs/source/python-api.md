@@ -6,11 +6,34 @@
    :undoc-members:
    :show-inheritance:
 
-.. autofunction:: concat_record_group
+|
+
 .. autofunction:: gather_records
+
+|
+
 .. autofunction:: get_source_filepaths
+
+|
+
 .. autofunction:: infer_source_datatype
-.. autofunction:: read_csv
+
+|
+
+.. autofunction:: read_file
+
+|
+
 .. autofunction:: to_parquet
+
+|
+
 .. autofunction:: write_parquet
+
+|
+
+.. autofunction:: concat_record_group
+
+|
+
 ```

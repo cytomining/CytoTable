@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Tuple
 
 import pyarrow as pa
 import pytest
+from cloudpathlib import AnyPath
 from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
@@ -17,7 +18,7 @@ from pycytominer_transform import (
     convert,
     get_source_filepaths,
     infer_source_datatype,
-    read_csv,
+    read_file,
     to_parquet,
     write_parquet,
 )
@@ -38,14 +39,14 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
         )
 
     single_dir_result = get_source_filepaths.fn(
-        path=f"{data_dir_cellprofiler}/csv_single",
+        path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
 
     multi_dir_result = get_source_filepaths.fn(
-        path=f"{data_dir_cellprofiler}/csv_multi",
+        path=pathlib.Path(f"{data_dir_cellprofiler}/csv_multi"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that a multi-file dataset has more than one value under group
@@ -66,7 +67,7 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     ) == ["source_path"]
 
 
-def test_read_csv(get_tempdir: str):
+def test_read_file(get_tempdir: str):
     """
     Tests read_csv
     """
@@ -78,7 +79,7 @@ def test_read_csv(get_tempdir: str):
 
     csv.write_csv(data=table, output_file=destination)
 
-    result = read_csv.fn(record={"source_path": destination})
+    result = read_file.fn(record={"source_path": destination})
 
     assert isinstance(result, dict)
     assert sorted(list(result.keys())) == sorted(["source_path", "table"])
@@ -90,7 +91,7 @@ def test_read_csv(get_tempdir: str):
     with open(destination_err, "w", encoding="utf-8") as wfile:
         wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
 
-    assert isinstance(read_csv.fn(record={"source_path": destination_err}), Dict)
+    assert isinstance(read_file.fn(record={"source_path": destination_err}), Dict)
 
 
 def test_concat_record_group(
@@ -156,7 +157,7 @@ def test_write_parquet(get_tempdir: str):
 
     result = write_parquet.fn(
         record={
-            "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
+            "source_path": AnyPath(f"{get_tempdir}/example/colors.csv"),
             "table": table,
         },
         dest_path=f"{get_tempdir}/new_path",
@@ -209,7 +210,12 @@ def test_to_parquet(get_tempdir: str, example_records: Dict[str, List[Dict[str, 
 
     flattened_example_records = list(itertools.chain(*list(example_records.values())))
 
-    result = to_parquet(records=example_records, dest_path=get_tempdir, concat=False)
+    result = to_parquet(
+        source_path=str(example_records["animal_legs.csv"][0]["source_path"].parent),
+        ecords=example_records,
+        dest_path=get_tempdir,
+        concat=False,
+    )
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
