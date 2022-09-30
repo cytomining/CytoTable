@@ -136,3 +136,6 @@ cue.mod/dagger*
 *.parquet
 *.csv
 *.png
+
+# dask
+dask-worker-space
