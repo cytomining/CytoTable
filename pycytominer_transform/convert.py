@@ -27,7 +27,9 @@ def build_path(
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
-        client = S3Client(**kwargs)
+        # set client args for S3Client
+        if isinstance(processed_path.client, S3Client):
+            client = S3Client(**kwargs)
 
         # set the client on the path
         processed_path.client = client
@@ -536,7 +538,7 @@ def convert(  # pylint: disable=too-many-arguments
 
         from pycytominer_transform import convert
 
-        # using an local path with no signature for client
+        # using an local path
         convert(
             source_path="./tests/data/cellprofiler/csv_single",
             source_datatype="csv",

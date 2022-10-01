@@ -50,6 +50,7 @@ The parquet files will have a unified and documented data model, including refer
 caption: 'Contents:'
 maxdepth: 3
 ---
+tutorial
 development
 python-api
 ```
