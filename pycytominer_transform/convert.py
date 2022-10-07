@@ -55,16 +55,15 @@ def get_source_filepaths(
         Data structure which groups related files based on the targets.
     """
 
-    records = []
-
     # gathers files from provided path using targets as a filter
-    for file in path.glob("**/*"):
-
+    records = [
+        {"source_path": file}
+        for file in path.glob("**/*")
         if file.is_file() and (
             targets is None
             or str(file.stem).lower() in [target.lower() for target in targets]
-        ):
-            records.append({"source_path": file})
+        )
+    ]
 
     # if we collected no files above, raise exception
     if len(records) < 1:
