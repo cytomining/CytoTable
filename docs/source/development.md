@@ -11,12 +11,12 @@ flowchart LR
     python --> |running within| containers
 ```
 
-Pcytominer-transform is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
-[Dagger](https://docs.dagger.io/) is used to help create consistent testing locally and with automated tests via containers.
+Pycytominer-transform is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
+We use [Dagger](https://docs.dagger.io/) for consistent local testing and for automated tests via containers.
 
 ## Getting started
 
-Local development may be enabled using roughly the following steps.
+To enable local development, perform the following steps.
 
 1. [Install Python](https://www.python.org/downloads/)
 1. [Install Poetry](https://python-poetry.org/docs/#installation)
