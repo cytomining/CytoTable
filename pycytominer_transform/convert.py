@@ -237,7 +237,7 @@ def concat_record_group(
     Concatenate group of records together as unified dataset.
 
     Args:
-      records: List[Dict[str, Any]]:
+      record_group: List[Dict[str, Any]]:
         Data structure containing grouped data for concatenation.
       dest_path: Optional[str] (Default value = None)
         Optional destination path for concatenated records.
