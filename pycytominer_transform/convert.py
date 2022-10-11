@@ -230,7 +230,7 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
 @task
 def concat_record_group(
     record_group: List[Dict[str, Any]],
-    dest_path: Optional[str] = None,
+    dest_path: str = ".",
     infer_common_schema: bool = True,
 ) -> List[Dict[str, Any]]:
     """
