@@ -189,9 +189,7 @@ def gather_records(
     )
 
     # filter source filepaths to inferred or targeted datatype
-    records = filter_source_filepaths(records=records, target_datatype=source_datatype)
-
-    return records
+    return filter_source_filepaths(records=records, target_datatype=source_datatype)
 
 
 @task
