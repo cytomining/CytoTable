@@ -321,31 +321,27 @@ def concat_record_group(
     # build a parquet file writer which will be used to append files
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
-    writer = parquet.ParquetWriter(str(destination_path), writer_basis_schema)
+    with parquet.ParquetWriter(str(destination_path), writer_basis_schema) as writer:
 
-    for table in [record["destination_path"] for record in record_group]:
-
-        # if we haven't inferred the common schema
-        # check that our file matches the expected schema, otherwise raise an error
-        if not infer_common_schema and not writer_basis_schema.equals(
-            parquet.read_schema(table)
-        ):
-            raise Exception(
-                (
-                    f"Detected mismatching schema for target concatenation group members:"
-                    f" {str(record_group[0]['destination_path'])} and {str(table)}"
+        for table in [record["destination_path"] for record in record_group]:
+            # if we haven't inferred the common schema
+            # check that our file matches the expected schema, otherwise raise an error
+            if not infer_common_schema and not writer_basis_schema.equals(
+                parquet.read_schema(table)
+            ):
+                raise Exception(
+                    (
+                        f"Detected mismatching schema for target concatenation group members:"
+                        f" {str(record_group[0]['destination_path'])} and {str(table)}"
+                    )
                 )
-            )
 
-        # read the file from the list and write to the concatted parquet file
-        # note: we pass column order based on the first chunk file to help ensure schema
-        # compatibility for the writer
-        writer.write_table(parquet.read_table(table, schema=writer_basis_schema))
-        # remove the file which was written in the concatted parquet file (we no longer need it)
-        pathlib.Path(table).unlink()
-
-    # close the single concatted parquet file writer
-    writer.close()
+            # read the file from the list and write to the concatted parquet file
+            # note: we pass column order based on the first chunk file to help ensure schema
+            # compatibility for the writer
+            writer.write_table(parquet.read_table(table, schema=writer_basis_schema))
+            # remove the file which was written in the concatted parquet file (we no longer need it)
+            pathlib.Path(table).unlink()
 
     # return the concatted parquet filename
     concatted[0]["destination_path"] = destination_path
