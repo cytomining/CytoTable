@@ -202,8 +202,8 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
         Data containing filepath to csv file
 
     Returns:
-      Dict[str, Any]
-        Updated dictionary with CSV data in-memory
+      record: Dict[str, Any]
+        Updated record (Dict[str, Any]) with CSV data in-memory
     """
 
     if AnyPath(record["source_path"]).suffix == ".csv":  # pylint: disable=no-member
