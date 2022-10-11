@@ -6,7 +6,7 @@ import pathlib
 from typing import Any, Dict, List, Literal, Optional, Union
 
 import pyarrow as pa
-from cloudpathlib import AnyPath, CloudPath, S3Client
+from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
@@ -27,12 +27,7 @@ def build_path(
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
-        # set client args for S3Client
-        if isinstance(processed_path.client, S3Client):
-            client = S3Client(**kwargs)
-
-        # set the client on the path
-        processed_path.client = client
+        processed_path.client = processed_path.client.__class__(**kwargs)
 
     return processed_path
 
@@ -59,7 +54,8 @@ def get_source_filepaths(
     records = [
         {"source_path": file}
         for file in path.glob("**/*")
-        if file.is_file() and (
+        if file.is_file()
+        and (
             targets is None
             or str(file.stem).lower() in [target.lower() for target in targets]
         )

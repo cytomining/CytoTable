@@ -79,11 +79,16 @@ def example_records(
     """
     Provide an example record
     """
+
+    # gather example tables
     table_a, table_b, table_c = example_tables
 
+    # build paths for output to land
     pathlib.Path(f"{get_tempdir}/animals/a").mkdir(parents=True, exist_ok=True)
     pathlib.Path(f"{get_tempdir}/animals/b").mkdir(parents=True, exist_ok=True)
     pathlib.Path(f"{get_tempdir}/animals/c").mkdir(parents=True, exist_ok=True)
+
+    # write output
     csv.write_csv(table_a, f"{get_tempdir}/animals/a/animal_legs.csv")
     csv.write_csv(table_b, f"{get_tempdir}/animals/b/animal_legs.csv")
     csv.write_csv(table_c, f"{get_tempdir}/animals/c/colors.csv")
