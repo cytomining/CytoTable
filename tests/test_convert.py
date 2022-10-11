@@ -13,7 +13,6 @@ from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
 from pycytominer_transform import (
-    DEFAULT_TARGETS,
     concat_record_group,
     convert,
     get_source_filepaths,
@@ -238,7 +237,6 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
             source_path=f"{data_dir_cellprofiler}/csv_single",
             dest_path=f"{get_tempdir}/csv_single",
             dest_datatype="parquet",
-            default_targets=True,
             targets=[],
             source_datatype="csv",
         )
@@ -247,7 +245,6 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         source_path=f"{data_dir_cellprofiler}/csv_single",
         dest_path=f"{get_tempdir}/csv_single",
         dest_datatype="parquet",
-        default_targets=True,
         source_datatype="csv",
     )
 
@@ -256,7 +253,6 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         dest_path=f"{get_tempdir}/csv_multi_nonconcat",
         dest_datatype="parquet",
         concat=False,
-        default_targets=True,
         source_datatype="csv",
     )
 
@@ -275,7 +271,6 @@ def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
         dest_path=f"{get_tempdir}/csv_multi_concat",
         dest_datatype="parquet",
         concat=True,
-        default_targets=True,
         source_datatype="csv",
     )
 
@@ -308,7 +303,6 @@ def test_convert_dask_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: 
         dest_path=f"{get_tempdir}/csv_multi_nonconcat",
         dest_datatype="parquet",
         concat=False,
-        targets=DEFAULT_TARGETS,
         task_runner=DaskTaskRunner,
     )
 

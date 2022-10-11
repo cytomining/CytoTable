@@ -32,7 +32,6 @@ convert(
     source_path="./local/file/path",
     source_datatype="csv",
     dest_path=".",
-    default_targets=True,
     dest_datatype="parquet",
 )
 
@@ -43,7 +42,6 @@ convert(
     dest_path=".",
     dest_datatype="parquet",
     concat=True,
-    default_targets=True,
     no_sign_request=True,
 )
 ```

@@ -3,7 +3,7 @@ pycytominer-transform: convert - transforming data for use with pyctyominer.
 """
 
 import pathlib
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
@@ -12,7 +12,7 @@ from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
 
-DEFAULT_TARGETS = ["image", "cells", "nuclei", "cytoplasm"]
+DEFAULT_TARGETS = ("image", "cells", "nuclei", "cytoplasm")
 
 
 @task
@@ -483,8 +483,7 @@ def convert(  # pylint: disable=too-many-arguments
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    targets: Optional[List[str]] = None,
-    default_targets: bool = False,
+    targets: Union[List[str], Tuple[str, str, str, str]] = DEFAULT_TARGETS,
     concat: bool = True,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
@@ -504,10 +503,8 @@ def convert(  # pylint: disable=too-many-arguments
         Destination datatype to write to.
       source_datatype: Optional[str]:  (Default value = None)
         Source datatype to focus on during conversion.
-      targets: Optional[List[str]]:  (Default value = None)
+      targets: Union[List[str], Tuple[str, str, str, str]]:  (Default value = None)
         Target filenames to use for conversion.
-      default_targets: bool: (Default value = False)
-        Whether to use DEFAULT_TARGETS as a reference for targets
       concat: bool:  (Default value = True)
         Whether to concatenate similar files together.
       infer_common_schema: bool (Default value = True)
@@ -532,7 +529,6 @@ def convert(  # pylint: disable=too-many-arguments
             source_path="./tests/data/cellprofiler/csv_single",
             source_datatype="csv",
             dest_path=".",
-            default_targets=True,
             dest_datatype="parquet",
         )
 
@@ -543,18 +539,9 @@ def convert(  # pylint: disable=too-many-arguments
             dest_path=".",
             dest_datatype="parquet",
             concat=True,
-            default_targets=True,
             no_sign_request=True,
         )
     """
-
-    # raise an alert if we have default_targets set and have tried to set targets
-    if default_targets and targets is not None:
-        raise Exception("Default targets set to True and targets provided.")
-
-    # set the defaults
-    if default_targets:
-        targets = DEFAULT_TARGETS
 
     # send records to be written to parquet if selected
     if dest_datatype == "parquet":
