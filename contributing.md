@@ -1,6 +1,10 @@
-# Development
+# Contributing
 
-```{mermaid}
+## Development
+
+### Overview
+
+```mermaid
 flowchart LR
     subgraph Dagger
         containers["Container(s)"]
@@ -14,7 +18,7 @@ flowchart LR
 Pycytominer-transform is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
 We use [Dagger](https://docs.dagger.io/) for consistent local testing and for automated tests via containers.
 
-## Getting started
+### Getting started
 
 To enable local development, perform the following steps.
 
@@ -26,7 +30,7 @@ To enable local development, perform the following steps.
 1. Initialize Dagger Project: `dagger project update`
 1. Use the IDE of your choice to add or edit related content.
 
-## Linting
+### Linting
 
 Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) (managed by this repo's poetry environment) via [Github Actions](https://docs.github.com/en/actions).
 Pre-commit may be configured to work alongside your local [git with hooks](https://pre-commit.com/index.html#3-install-the-git-hook-scripts) or you can use the following command to check your work via the Poetry environment:
@@ -35,7 +39,7 @@ Pre-commit may be configured to work alongside your local [git with hooks](https
 % poetry run pre-commit run --all-files
 ```
 
-## Testing
+### Testing
 
 Automated or manual testing for this repo may be performed using Dagger actions.
 The Dagger test action performs [pytest](https://pytest.org/en/latest/contents.html) testing and also pre-commit checks mentioned above.
@@ -65,7 +69,7 @@ See below for an example of testing without Dagger:
 % poetry run pytest
 ```
 
-### Test Coverage
+#### Test Coverage
 
 Test coverage is provided via [coverage](https://github.com/nedbat/coveragepy) and [pytest-cov](https://github.com/pytest-dev/pytest-cov).
 Use the following command to generate HTML coverage reports (reports made available at `./htmlcov/index.html`):
@@ -74,7 +78,7 @@ Use the following command to generate HTML coverage reports (reports made availa
 % poetry run pytest --cov=pycytominer_transform tests/
 ```
 
-## Documentation
+### Documentation
 
 Documentation is provided through [MyST (or Markedly Structured Text)](https://myst-parser.readthedocs.io/en/latest/index.html) markdown documents are transformed into docsite content using Sphinx.
 Documentation content assumes a "one sentence per line" style.

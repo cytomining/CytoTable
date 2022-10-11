@@ -37,6 +37,10 @@ _Diagram showing data flow relative to this project._
 Pycytominer Transform will take inputs in the form of CSV's, SQLite, or NPZ, converting to [Pycytominer](https://github.com/cytomining/pycytominer) relevant output in Parquet format.
 The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).
 
+## Contributing and Development
+
+Please see [contributing.md](contributing.md) for more details.
+
 ## References
 
 - [pycytominer](https://github.com/cytomining/pycytominer)

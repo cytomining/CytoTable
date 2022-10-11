@@ -51,6 +51,6 @@ caption: 'Contents:'
 maxdepth: 3
 ---
 tutorial
-development
+contributing
 python-api
 ```
