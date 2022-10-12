@@ -4,7 +4,7 @@
 
 ### Overview
 
-```mermaid
+```{mermaid}
 flowchart LR
     subgraph Dagger
         containers["Container(s)"]
