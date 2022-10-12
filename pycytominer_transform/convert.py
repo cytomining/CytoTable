@@ -211,9 +211,7 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
         # somehow erroneous. See below for more details:
         # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
         def skip_erroneous_colcount(row):
-            if row.actual_columns != row.expected_columns:
-                return "skip"
-            return "error"
+            return "skip" if row.actual_columns != row.expected_columns else "error"
 
         # setup parse options
         parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
