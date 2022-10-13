@@ -22,6 +22,7 @@ sphinxcontrib-mermaid = "^0.7.1"
 pre-commit = "^2.20.0"
 prefect-dask = "^0.2.0.post1"
 bokeh = "^2.4.3"
+moto = {extras = ["s3", "server"], version = "^4.0.7"}
 
 [build-system]
 requires = ["poetry-core"]

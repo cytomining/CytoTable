@@ -96,7 +96,7 @@ def test_read_file(get_tempdir: str):
 def test_concat_record_group(
     get_tempdir: str,
     example_tables: Tuple[pa.Table, pa.Table, pa.Table],
-    example_records: Dict[str, List[Dict[str, Any]]],
+    example_local_records: Dict[str, List[Dict[str, Any]]],
 ):
     """
     Tests concat_record_group
@@ -110,7 +110,7 @@ def test_concat_record_group(
     )
 
     result = concat_record_group.fn(
-        record_group=example_records["animal_legs.csv"],
+        record_group=example_local_records["animal_legs.csv"],
         dest_path=get_tempdir,
     )
     assert len(result) == 1
@@ -129,7 +129,7 @@ def test_concat_record_group(
     pathlib.Path(f"{get_tempdir}/animals/e").mkdir(parents=True, exist_ok=True)
     csv.write_csv(table_e, f"{get_tempdir}/animals/e/animal_legs.csv")
     parquet.write_table(table_e, f"{get_tempdir}/animals/e.animal_legs.parquet")
-    example_records["animal_legs.csv"].append(
+    example_local_records["animal_legs.csv"].append(
         {
             "source_path": pathlib.Path(f"{get_tempdir}/animals/e/animal_legs.csv"),
             "destination_path": pathlib.Path(
@@ -140,7 +140,7 @@ def test_concat_record_group(
 
     with pytest.raises(Exception):
         concat_record_group.fn(
-            record_group=example_records["animal_legs.csv"],
+            record_group=example_local_records["animal_legs.csv"],
             dest_path=get_tempdir,
         )
 
@@ -202,16 +202,21 @@ def test_infer_source_datatype():
         infer_source_datatype.fn(records=data)
 
 
-def test_to_parquet(get_tempdir: str, example_records: Dict[str, List[Dict[str, Any]]]):
+def test_to_parquet(
+    get_tempdir: str, example_local_records: Dict[str, List[Dict[str, Any]]]
+):
     """
     Tests to_parquet
     """
 
-    flattened_example_records = list(itertools.chain(*list(example_records.values())))
+    flattened_example_records = list(
+        itertools.chain(*list(example_local_records.values()))
+    )
 
     result = to_parquet(
-        source_path=str(example_records["animal_legs.csv"][0]["source_path"].parent),
-        ecords=example_records,
+        source_path=str(
+            example_local_records["animal_legs.csv"][0]["source_path"].parent
+        ),
         dest_path=get_tempdir,
         concat=False,
     )
@@ -224,7 +229,54 @@ def test_to_parquet(get_tempdir: str, example_records: Dict[str, List[Dict[str, 
         assert parquet_result.shape == csv_source.shape
 
 
-def test_convert_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
+def test_convert_s3_path(
+    get_tempdir: str,
+    example_local_records: Dict[str, List[Dict[str, Any]]],
+    example_s3_endpoint: str,
+):
+    """
+    Tests convert with mocked s3 object storage endpoint
+    """
+
+    multi_dir_nonconcat_s3_result = convert(
+        source_path="s3://example/",
+        dest_path=f"{get_tempdir}/s3_test",
+        dest_datatype="parquet",
+        concat=False,
+        source_datatype="csv",
+        # override default targets for those which were uploaded to mock instance
+        targets=["animal_legs", "colors"],
+        # endpoint_url here will be used with cloudpathlib client(**kwargs)
+        endpoint_url=example_s3_endpoint,
+    )
+
+    # gather destination paths used from source files for testing
+    destination_paths = {
+        pathlib.Path(record["destination_path"]).name: record["destination_path"]
+        for group in example_local_records.values()
+        for record in group
+    }
+
+    # compare each of the results using files from the source
+    for destination_path in [
+        record["destination_path"]
+        for group in multi_dir_nonconcat_s3_result.values()
+        for record in group
+    ]:
+        parquet_control = parquet.read_table(
+            destination_paths[pathlib.Path(destination_path).name]
+        )
+        parquet_result = parquet.read_table(
+            destination_path, schema=parquet_control.schema
+        )
+        assert parquet_result.schema.equals(parquet_control.schema)
+        assert parquet_result.shape == parquet_control.shape
+
+
+def test_convert_cellprofiler_csv(
+    get_tempdir: str,
+    data_dir_cellprofiler: str,
+):
     """
     Tests convert
 
