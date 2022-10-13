@@ -481,7 +481,7 @@ def convert(  # pylint: disable=too-many-arguments
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    targets: Union[List[str], Tuple[str, str, str, str]] = DEFAULT_TARGETS,
+    targets: Union[List[str], Tuple[str, ...]] = DEFAULT_TARGETS,
     concat: bool = True,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
