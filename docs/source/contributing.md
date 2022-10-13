@@ -80,15 +80,20 @@ Use the following command to generate HTML coverage reports (reports made availa
 
 ### Documentation
 
-Documentation is provided through [MyST (or Markedly Structured Text)](https://myst-parser.readthedocs.io/en/latest/index.html) markdown documents are transformed into docsite content using Sphinx.
+Documentation is provided through [MyST (or Markedly Structured Text)](https://myst-parser.readthedocs.io/en/latest/index.html) markdown documents which are transformed into docsite content using [Sphinx](https://www.sphinx-doc.org/).
 Documentation content assumes a "one sentence per line" style.
 Diagrams may be added using the [Sphinx extension for Mermaid](https://github.com/mgaitan/sphinxcontrib-mermaid#markdown-support).
 
-- Content is checked for errors via Dagger actions using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
-- Documentation is automatically published to a docsite via [Github Actions](https://docs.github.com/en/actions).
+#### Documentation Linting
 
+Content is checked for errors via Dagger actions using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
 To check your documentation updates before pushing, use the following to trigger a related `sphinx-build` (content made available at `./docs/build/index.html`):
 
 ```sh
 % dagger do docs
 ```
+
+#### Documentation Builds
+
+Documentation builds presume HTML as the primary export, e.g. `sphinx-build -b html ...`.
+Documentation is automatically published to a docsite via [Github Actions](https://docs.github.com/en/actions).
