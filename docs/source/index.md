@@ -1,7 +1,10 @@
 <!-- include contents from the root readme -->
+
 ```{include} ../../readme.md
-:relative-docs: docs/source/
-:relative-images:
+---
+relative-docs: docs/source/
+relative-images:
+---
 ```
 
 ```{toctree}
