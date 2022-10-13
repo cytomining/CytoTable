@@ -4,9 +4,12 @@ This page covers a brief tutorial on how to use pycytominer-transform.
 
 ## Data Sources
 
-Data sources may be provided to pycytominer-transform using local filepaths or object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage). We use [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/) under the hood to reference files in a unified way, whether they're local or remote.
-Object storage paths which are public-facing and do not require authentication may be enabled using `convert(..., no_sign_request=True)`.
-Object storage paths which require configuration may be enabled using [cloudpathlib authentication options](https://cloudpathlib.drivendata.org/~latest/authentication/) and `convert(..., **kwargs)`.
+```{eval-rst}
+Data sources may be provided to pycytominer-transform using local filepaths or object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
+We use `cloudpathlib <https://cloudpathlib.drivendata.org/~latest/>`_  under the hood to reference files in a unified way, whether they're local or remote.
+Object storage paths which are public-facing and do not require authentication may be enabled using :code:`convert(..., no_sign_request=True)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+Object storage paths which require configuration may be enabled using `cloudpathlib authentication options <https://cloudpathlib.drivendata.org/~latest/authentication/>`_ and :code:`convert(..., **kwargs)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+```
 
 ## Data Conversion Types
 
