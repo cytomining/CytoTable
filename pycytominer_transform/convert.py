@@ -12,6 +12,12 @@ from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
 
+from pycytominer_transform.exceptions import (
+    DatatypeException,
+    NoInputDataException,
+    SchemaException,
+)
+
 DEFAULT_TARGETS = ("image", "cells", "nuclei", "cytoplasm")
 
 
@@ -63,7 +69,7 @@ def get_source_filepaths(
 
     # if we collected no files above, raise exception
     if len(records) < 1:
-        raise Exception(f"No input data to process at path: {str(path)}")
+        raise NoInputDataException(f"No input data to process at path: {str(path)}")
 
     grouped_records = {}
 
@@ -101,14 +107,14 @@ def infer_source_datatype(
     # if we don't have a target datatype and have more than one suffix
     # we can't infer which file type to read.
     if target_datatype is None and len(suffixes) > 1:
-        raise Exception(
+        raise DatatypeException(
             f"Detected more than one inferred datatypes from source path: {suffixes}"
         )
 
     # if we have a target datatype and the target isn't within the detected suffixes
     # we will have no files to process.
     if target_datatype is not None and target_datatype not in suffixes:
-        raise Exception(
+        raise DatatypeException(
             (
                 f"Unable to find targeted datatype {target_datatype} "
                 "within files. Detected datatypes: {suffixes}"
@@ -309,7 +315,7 @@ def concat_record_group(
                     )
 
     if len(list(writer_basis_schema.names)) == 0:
-        raise Exception(
+        raise SchemaException(
             (
                 "No common schema basis to perform concatenation for record group."
                 " All columns mismatch one another within the group."
@@ -327,7 +333,7 @@ def concat_record_group(
             if not infer_common_schema and not writer_basis_schema.equals(
                 parquet.read_schema(table)
             ):
-                raise Exception(
+                raise SchemaException(
                     (
                         f"Detected mismatching schema for target concatenation group members:"
                         f" {str(record_group[0]['destination_path'])} and {str(table)}"
