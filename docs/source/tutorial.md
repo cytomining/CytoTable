@@ -1,14 +1,15 @@
 # Tutorial
 
-This page covers a brief tutorial on how to use pycytominer-transform.
+This page covers brief tutorials on how to use pycytominer-transform.
 
 ## Data Sources
 
 ```{eval-rst}
-Data sources may be provided to pycytominer-transform using local filepaths or object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
+Data sources may be provided to pycytominer-transform using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
 We use `cloudpathlib <https://cloudpathlib.drivendata.org/~latest/>`_  under the hood to reference files in a unified way, whether they're local or remote.
-Object storage paths which are public-facing and do not require authentication may be enabled using :code:`convert(..., no_sign_request=True)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
-Object storage paths which require configuration may be enabled using `cloudpathlib authentication options <https://cloudpathlib.drivendata.org/~latest/authentication/>`_ and :code:`convert(..., **kwargs)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+
+Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (`S3Client <https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/>`_, `AzureBlobClient <https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/>`_, `GSClient <https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/>`_) and :code:`convert(..., **kwargs)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, :code:`aws s3 ... --no-sign-request`) may be used via :code:`convert(..., no_sign_request=True)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
 ```
 
 ## Data Conversion Types
