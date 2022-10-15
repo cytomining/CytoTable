@@ -14,5 +14,6 @@ maxdepth: 3
 ---
 tutorial
 contributing
+Code of Conduct <code_of_conduct>
 python-api
 ```
