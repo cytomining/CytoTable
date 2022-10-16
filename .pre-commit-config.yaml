@@ -19,6 +19,7 @@ repos:
       - id: mdformat
         additional_dependencies:
           - mdformat-myst
+          - mdformat-gfm
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.28.0
     hooks:
