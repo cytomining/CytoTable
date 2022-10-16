@@ -14,17 +14,15 @@ For example, remote AWS S3 paths which are public-facing and do not require auth
 
 ## Data Conversion Types
 
-Source data may be converted to the following type(s):
-
 - __Apache Parquet__: "Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval. It provides efficient data compression and encoding schemes with enhanced performance to handle complex data in bulk." ([reference](https://parquet.apache.org/))
 
 ## CellProfiler CSV Output to Parquet
 
 CellProfiler pipelines or projects may produce various CSV-based component output (for example, "Cells.csv", "Cytoplasm.csv", etc.).
-This data may be converted to Parquet using local or object-storage based sources.
+Pycytominer-transform converts this data to Parquet from local or object-storage based locations.
 
-By default data with common names nested within sub-folders will be concatenated (appended to the end of each data file) together and used to create a single Parquet file per data target.
-For example: if we have `folder/subfolder_a/cells.csv` and `folder/subfolder_b/cells.csv`, when using `convert(source_path="folder", ...)` files will by default be combined into `folder.cells.parquet` within the destination path (unless `concat=False`).
+Files with similar names nested within sub-folders will be concatenated by default (appended to the end of each data file) together and used to create a single Parquet file per data target.
+For example: if we have `folder/subfolder_a/cells.csv` and `folder/subfolder_b/cells.csv`, using `convert(source_path="folder", ...)` will result in `folder.cells.parquet` (unless `concat=False`).
 
 For example, see below:
 

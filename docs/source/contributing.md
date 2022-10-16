@@ -8,7 +8,7 @@ If you are stuck, please feel free to ask any questions or ask for help.
 
 ## Code of conduct
 
-This project and everyone participating in it is governed by our [code of conduct](code_of_conduct.md).
+This project is governed by our [code of conduct](code_of_conduct.md).
 By participating, you are expected to uphold this code.
 Please report unacceptable behavior to cytodata.info@gmail.com.
 
@@ -26,7 +26,7 @@ We love hearing about use-cases when our software does not work.
 This provides us an opportunity to improve.
 However, in order for us to fix a bug, you need to tell us exactly what went wrong.
 
-When you report a bug, please be prepared to tell us as much pertinent information as possible.
+When you report a bug, please tell us as much pertinent information as possible.
 This information includes:
 
 - The pycytominer-transform version you’re using
@@ -67,7 +67,7 @@ Plus, it’s possible your contribution belongs in a different code base, and we
 
 ### Pull requests
 
-After you’ve decided to contribute code and have written it up, now it is time to file a pull request.
+After you’ve decided to contribute code and have written it up, please file a pull request.
 We specifically follow a [forked pull request model](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork).
 Please create a fork of the pycytominer-transform repository, clone the fork, and then create a new, feature-specific branch.
 Once you make the necessary changes on this branch, you should file a pull request to incorporate your changes into the main pycytominer-transform repository.
@@ -76,10 +76,10 @@ The content and description of your pull request are directly related to the spe
 To ensure an efficient review process please perform the following steps:
 
 1. Follow all instructions in the [pull request template](https://github.com/cytomining/pycytominer-transform/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
-1. Triple check that your pull request is only adding _one_ specific feature. Small, bite-sized pull requests move so much faster than large pull requests.
+1. Triple check that your pull request is adding _one_ specific feature. Small, bite-sized pull requests move so much faster than large pull requests.
 1. After submitting your pull request, ensure that your contribution passes all status checks (e.g. passes all tests)
 
-All pull requests must be reviewed and approved by at least one project maintainer in order to be merged.
+Pull request review and approval is required by at least one project maintainer to merge.
 We will do our best to review the code addition in a timely fashion.
 Ensuring that you follow all steps above will increase our speed and ability to review.
 We will check for accuracy, style, code coverage, and scope.
@@ -123,7 +123,7 @@ To enable local development, perform the following steps.
 ### Code style
 
 For general Python code style, we use [black](https://github.com/psf/black).
-For Python import order we additionally use [isort](https://github.com/PyCQA/isort).
+For Python import order, we use [isort](https://github.com/PyCQA/isort).
 Please use black and isort before committing any code.
 We will not accept code contributions that do not use black and isort.
 We use the [Google Style Python Docstrings](https://www.sphinx-doc.org/en/master/usage/extensions/example_google.html).
@@ -131,7 +131,8 @@ We use the [Google Style Python Docstrings](https://www.sphinx-doc.org/en/master
 ### Linting
 
 Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) (managed by this repo's poetry environment) via [Github Actions](https://docs.github.com/en/actions).
-Pre-commit may be configured to work alongside your local [git with hooks](https://pre-commit.com/index.html#3-install-the-git-hook-scripts) or you can use the following command to check your work via the Poetry environment:
+Pre-commit can work alongside your local [git with hooks](https://pre-commit.com/index.html#3-install-the-git-hook-scripts)
+The following command also can perform the same checks:
 
 ```sh
 % poetry run pre-commit run --all-files
@@ -141,12 +142,13 @@ Pre-commit may be configured to work alongside your local [git with hooks](https
 
 Automated or manual testing for this repo may be performed using Dagger actions.
 The Dagger test action performs [pytest](https://pytest.org/en/latest/contents.html) testing and also pre-commit checks mentioned above.
-Automated tests are run using Dagger actions through Github actions.
+Dagger actions provide testing through Github actions.
 
-In order to ensure testing takes place using real-world data, an example is created directly from [CellProfiler](https://github.com/CellProfiler/CellProfiler) and converted during testing.
+Example source data is sourced from [CellProfiler Examples](https://cellprofiler.org/examples) by processing it with [CellProfiler](https://github.com/CellProfiler/CellProfiler) with Dagger.
+This example data is used during testing to ensure expected functionality.
 See below for an example of how to create this testing data (Dagger action `gather_data`).
 
-Dagger-based manual testing may be performed using the following:
+Dagger-based manual testing is performed using the following:
 
 ```sh
 # update the dagger project
@@ -160,7 +162,7 @@ Dagger-based manual testing may be performed using the following:
 ```
 
 It's also possible to test locally using Poetry.
-Testing in this way without Dagger does not guarantee a successful automated test as environmental differences could exist.
+Testing without Dagger does not guarantee a successful automated test as environmental differences could exist.
 See below for an example of testing without Dagger:
 
 ```sh
@@ -178,13 +180,14 @@ Use the following command to generate HTML coverage reports (reports made availa
 
 ## Documentation
 
-Documentation is generally provided through [MyST (or Markedly Structured Text)](https://myst-parser.readthedocs.io/en/latest/index.html) markdown documents which are transformed into docsite content using [Sphinx](https://www.sphinx-doc.org/).
+Documentation is generally provided through [MyST (or Markedly Structured Text)](https://myst-parser.readthedocs.io/en/latest/index.html) markdown documents.
+Markdown content is transformed into docsite content using [Sphinx](https://www.sphinx-doc.org/).
 Documentation content assumes a "one sentence per line" style.
 Diagrams may be added using the [Sphinx extension for Mermaid](https://github.com/mgaitan/sphinxcontrib-mermaid#markdown-support).
 
 ### Documentation Linting
 
-Content is checked for errors via Dagger actions using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
+Content is tested via Dagger actions using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
 To check your documentation updates before pushing, use the following to trigger a related `sphinx-build` (content made available at `./docs/build/index.html`):
 
 ```sh
