@@ -496,13 +496,16 @@ def convert(  # pylint: disable=too-many-arguments
     """
     Convert file-based data from various sources to Pycytominer-compatible standards.
 
-    Note: source paths may be object-storage locations using common "s3://..." or similar.
+    Note: source paths may be local or remote object-storage location
+    using convention "s3://..." or similar.
 
     Args:
-      source_path: Union[str, pathlib.Path, AnyPath]:
-        str or Path-like reference to read source files from.
+      source_path: str:
+        str reference to read source files from.
+        Note: may be local or remote object-storage location using convention "s3://..." or similar.
       dest_path: str:
         Path to write files to.
+        Note: this may only be a local path.
       dest_datatype: Literal["parquet"]:
         Destination datatype to write to.
       source_datatype: Optional[str]:  (Default value = None)
