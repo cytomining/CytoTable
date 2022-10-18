@@ -29,7 +29,7 @@ For example, see below:
 ```python
 from pycytominer_transform import convert
 
-# using an local path
+# using a local path
 convert(
     source_path="./local/file/path",
     source_datatype="csv",
