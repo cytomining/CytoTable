@@ -12,7 +12,7 @@ from cloudpathlib import AnyPath
 from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
-from pycytominer_transform import (
+from pycytominer_transform import (  # pylint: disable=R0801
     concat_record_group,
     convert,
     get_source_filepaths,

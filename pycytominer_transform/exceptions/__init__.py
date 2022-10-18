@@ -2,21 +2,27 @@
 Provide hierarchy of exceptions for pycytominer-transform
 """
 
-# a root exception for custom hierarchy of exceptions
+
 class CytominerException(Exception):
-    pass
+    """
+    Root exception for custom hierarchy of exceptions
+    with pycytominer-transform
+    """
 
 
-# exception for no input data
 class NoInputDataException(CytominerException):
-    pass
+    """
+    Exception for no input data
+    """
 
 
-# exception for datatype challenges
 class DatatypeException(CytominerException):
-    pass
+    """
+    Exception for datatype challenges
+    """
 
 
-# exception for schema challenges
 class SchemaException(CytominerException):
-    pass
+    """
+    Exception for schema challenges
+    """
