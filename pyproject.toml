@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "pycytominer-transform"
+version = "0.0.1"
+description = "Transform data for processing image-based profiling readouts with Pycytominer."
+authors = ["Cytomining Community"]
+license = "BSD-3-Clause license"
+packages = [{include = "pycytominer_transform"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pyarrow = "^9.0.0"
+prefect = "^2.3.2"
+griffe = "0.21.0"
+cloudpathlib = {extras = ["all"], version = "^0.10.0"}
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.1.3"
+pytest-cov = "^3.0.0"
+Sphinx = "^5.1.1"
+myst-parser = "^0.18.0"
+sphinxcontrib-mermaid = "^0.7.1"
+pre-commit = "^2.20.0"
+prefect-dask = "^0.2.0.post1"
+bokeh = "^2.4.3"
+moto = {extras = ["s3", "server"], version = "^4.0.7"}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.vulture]
+min_confidence = 80
+paths = ["pycytominer_transform"]
+sort_by_size = true
+verbose = true
+
+[tool.isort]
+profile = "black"
+
+[tool.bandit]
+exclude_dirs = ["tests"]

@@ -1,0 +1,25 @@
+---
+name: run tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DAGGER_CACHE_FROM: type=gha,scope=pycytominer_transform
+      DAGGER_CACHE_TO: type=gha,mode=max,scope=pycytominer_transform
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Dagger
+        uses: dagger/dagger-for-github@v3
+        with:
+          cmds: |
+            project update
+            do gather_data
+            do test

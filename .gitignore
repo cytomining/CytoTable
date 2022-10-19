@@ -127,3 +127,15 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# dagger
+cue.mod/pkg
+cue.mod/dagger*
+
+# raw data
+*.parquet
+*.csv
+*.png
+
+# dask
+dask-worker-space
