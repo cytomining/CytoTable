@@ -1,0 +1,216 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>pycytominer-transform &#8212; pycytominer-transform v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <!-- include contents from the root readme -->
+<section id="pycytominer-transform">
+<h1>pycytominer-transform<a class="headerlink" href="#pycytominer-transform" title="Permalink to this heading">¶</a></h1>
+<p><img alt="dataflow" src="_images/dataflow.svg" />
+<em>Diagram showing data flow relative to this project.</em></p>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this heading">¶</a></h2>
+<p>pycytominer-transform takes input data from CSV’s, SQLite, or NPZ, for conversion to <a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a> relevant output in Parquet format.
+The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).</p>
+</section>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<p>Install pycytominer-transform with the following command:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/cytomining/pycytominer-transform.git
+</pre></div>
+</div>
+</section>
+<section id="contributing-development-and-testing">
+<h2>Contributing, Development, and Testing<a class="headerlink" href="#contributing-development-and-testing" title="Permalink to this heading">¶</a></h2>
+<p>Please see <a class="reference internal" href="contributing.html"><span class="doc std std-doc">contributing.md</span></a> for more details on contributions, development, and testing.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/cytomining/pycytominer">pycytominer</a></p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/cytominer-database">cytominer-database</a></p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/DeepProfiler">DeepProfiler</a></p></li>
+<li><p><a class="reference external" href="https://github.com/CellProfiler/CellProfiler">CellProfiler</a></p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/cytominer-eval">cytominer-eval</a></p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#data-sources">Data Sources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-source-locations">Data Source Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-source-types">Data Source Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#data-destinations">Data Destinations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-destination-locations">Data Destination Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-destination-types">Data Destination Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#cellprofiler-csv-output-to-parquet">CellProfiler CSV Output to Parquet</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#code-of-conduct">Code of conduct</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#quick-links">Quick links</a></li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#process">Process</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#bug-reporting">Bug reporting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#suggesting-enhancements">Suggesting enhancements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#your-first-code-contribution">Your first code contribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#pull-requests">Pull requests</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#git-commit-messages">Git commit messages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#development">Development</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#overview">Overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#getting-started">Getting started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#code-style">Code style</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#linting">Linting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#testing">Testing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#documentation">Documentation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#documentation-linting">Documentation Linting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="contributing.html#documentation-builds">Documentation Builds</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="contributing.html#attribution">Attribution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#our-pledge">Our Pledge</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#our-standards">Our Standards</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#enforcement-responsibilities">Enforcement Responsibilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#scope">Scope</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#enforcement">Enforcement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#enforcement-guidelines">Enforcement Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="code_of_conduct.html#correction">1. Correction</a></li>
+<li class="toctree-l3"><a class="reference internal" href="code_of_conduct.html#warning">2. Warning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="code_of_conduct.html#temporary-ban">3. Temporary Ban</a></li>
+<li class="toctree-l3"><a class="reference internal" href="code_of_conduct.html#permanent-ban">4. Permanent Ban</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#attribution">Attribution</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.gather_records"><code class="docutils literal notranslate"><span class="pre">gather_records()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.get_source_filepaths"><code class="docutils literal notranslate"><span class="pre">get_source_filepaths()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.infer_source_datatype"><code class="docutils literal notranslate"><span class="pre">infer_source_datatype()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.read_file"><code class="docutils literal notranslate"><span class="pre">read_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.to_parquet"><code class="docutils literal notranslate"><span class="pre">to_parquet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.write_parquet"><code class="docutils literal notranslate"><span class="pre">write_parquet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.concat_record_group"><code class="docutils literal notranslate"><span class="pre">concat_record_group()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">pycytominer-transform</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="tutorial.html" title="next chapter">Tutorial</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
