@@ -3,7 +3,7 @@ __init__.py for pycytominer_convert
 """
 
 from .convert import (
-    DEFAULT_TARGETS,
+    DEFAULT_COMPARTMENTS,
     concat_record_group,
     convert,
     gather_records,

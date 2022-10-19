@@ -34,19 +34,19 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     with pytest.raises(Exception):
         single_dir_result = get_source_filepaths.fn(
             path=empty_dir,
-            targets=["image", "cells", "nuclei", "cytoplasm"],
+            compartments=["image", "cells", "nuclei", "cytoplasm"],
         )
 
     single_dir_result = get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
-        targets=["image", "cells", "nuclei", "cytoplasm"],
+        compartments=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
 
     multi_dir_result = get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/csv_multi"),
-        targets=["image", "cells", "nuclei", "cytoplasm"],
+        compartments=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that a multi-file dataset has more than one value under group
     assert len(list(multi_dir_result.values())[0]) == 2
@@ -192,11 +192,11 @@ def test_infer_source_datatype():
     }
     assert infer_source_datatype.fn(records=data) == "csv"
     with pytest.raises(Exception):
-        infer_source_datatype.fn(records=data, target_datatype="parquet")
+        infer_source_datatype.fn(records=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
     assert (
-        infer_source_datatype.fn(records=data, target_datatype="parquet") == "parquet"
+        infer_source_datatype.fn(records=data, source_datatype="parquet") == "parquet"
     )
     with pytest.raises(Exception):
         infer_source_datatype.fn(records=data)
@@ -244,8 +244,8 @@ def test_convert_s3_path(
         dest_datatype="parquet",
         concat=False,
         source_datatype="csv",
-        # override default targets for those which were uploaded to mock instance
-        targets=["animal_legs", "colors"],
+        # override default compartments for those which were uploaded to mock instance
+        compartments=["animal_legs", "colors"],
         # endpoint_url here will be used with cloudpathlib client(**kwargs)
         endpoint_url=example_s3_endpoint,
     )
@@ -289,7 +289,7 @@ def test_convert_cellprofiler_csv(
             source_path=f"{data_dir_cellprofiler}/csv_single",
             dest_path=f"{get_tempdir}/csv_single",
             dest_datatype="parquet",
-            targets=[],
+            compartments=[],
             source_datatype="csv",
         )
 

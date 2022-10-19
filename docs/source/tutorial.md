@@ -46,7 +46,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 [CellProfiler](https://cellprofiler.org/) pipelines or projects may produce various CSV-based compartment output (for example, "Cells.csv", "Cytoplasm.csv", etc.).
 Pycytominer-transform converts this data to Parquet from local or object-storage based locations.
 
-Files with similar names nested within sub-folders will be concatenated by default (appended to the end of each data file) together and used to create a single Parquet file per data target.
+Files with similar names nested within sub-folders will be concatenated by default (appended to the end of each data file) together and used to create a single Parquet file per compartment.
 For example: if we have `folder/subfolder_a/cells.csv` and `folder/subfolder_b/cells.csv`, using `convert(source_path="folder", ...)` will result in `folder.cells.parquet` (unless `concat=False`).
 
 For example, see below:

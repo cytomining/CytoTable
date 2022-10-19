@@ -18,7 +18,7 @@ from pycytominer_transform.exceptions import (
     SchemaException,
 )
 
-DEFAULT_TARGETS = ("image", "cells", "nuclei", "cytoplasm")
+DEFAULT_COMPARTMENTS = ("image", "cells", "nuclei", "cytoplasm")
 
 
 @task
@@ -40,7 +40,7 @@ def build_path(
 
 @task
 def get_source_filepaths(
-    path: Union[pathlib.Path, AnyPath], targets: Optional[List[str]] = None
+    path: Union[pathlib.Path, AnyPath], compartments: Optional[List[str]] = None
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -48,22 +48,23 @@ def get_source_filepaths(
     Args:
       path: Union[pathlib.Path, Any]:
         Path to seek filepaths within.
-      targets: List[str]:
-        Target filenames to seek within the provided path.
+      compartments: List[str]:
+        Compartment filenames to seek within the provided path.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
-        Data structure which groups related files based on the targets.
+        Data structure which groups related files based on the compartments.
     """
 
-    # gathers files from provided path using targets as a filter
+    # gathers files from provided path using compartments as a filter
     records = [
         {"source_path": file}
         for file in path.glob("**/*")
         if file.is_file()
         and (
-            targets is None
-            or str(file.stem).lower() in [target.lower() for target in targets]
+            compartments is None
+            or str(file.stem).lower()
+            in [compartment.lower() for compartment in compartments]
         )
     ]
 
@@ -84,7 +85,7 @@ def get_source_filepaths(
 
 @task
 def infer_source_datatype(
-    records: Dict[str, List[Dict[str, Any]]], target_datatype: Optional[str] = None
+    records: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
 ) -> str:
     """
     Infers and optionally validates datatype (extension) of files.
@@ -92,59 +93,59 @@ def infer_source_datatype(
     Args:
       records: Dict[str, List[Dict[str, Any]]]:
         Grouped datasets of files which will be used by other functions.
-      target_datatype: Optional[str]:  (Default value = None)
-        Optional target datatype to validate within the context of
+      source_datatype: Optional[str]:  (Default value = None)
+        Optional source datatype to validate within the context of
         detected datatypes.
 
     Returns:
       str
-        A string of the datatype detected or validated target_datatype.
+        A string of the datatype detected or validated source_datatype.
     """
 
     # gather file extension suffixes
     suffixes = list(set((group.split(".")[-1]).lower() for group in records))
 
-    # if we don't have a target datatype and have more than one suffix
+    # if we don't have a source datatype and have more than one suffix
     # we can't infer which file type to read.
-    if target_datatype is None and len(suffixes) > 1:
+    if source_datatype is None and len(suffixes) > 1:
         raise DatatypeException(
             f"Detected more than one inferred datatypes from source path: {suffixes}"
         )
 
-    # if we have a target datatype and the target isn't within the detected suffixes
+    # if we have a source datatype and it isn't within the detected suffixes
     # we will have no files to process.
-    if target_datatype is not None and target_datatype not in suffixes:
+    if source_datatype is not None and source_datatype not in suffixes:
         raise DatatypeException(
             (
-                f"Unable to find targeted datatype {target_datatype} "
+                f"Unable to find source datatype {source_datatype} "
                 "within files. Detected datatypes: {suffixes}"
             )
         )
 
-    # if we haven't set a target datatype and need to rely on the inferred one
+    # if we haven't set a source datatype and need to rely on the inferred one
     # set it so it may be returned
-    if target_datatype is None:
-        target_datatype = suffixes[0]
+    if source_datatype is None:
+        source_datatype = suffixes[0]
 
-    return target_datatype
+    return source_datatype
 
 
 @task
 def filter_source_filepaths(
-    records: Dict[str, List[Dict[str, Any]]], target_datatype: str
+    records: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Filter source filepaths based on provided target_datatype
+    Filter source filepaths based on provided source_datatype
 
     Args:
       records: Dict[str, List[Dict[str, Any]]]
         Grouped datasets of files which will be used by other functions.
-      target_datatype: str
-        Target datatype to use for filtering the dataset.
+      source_datatype: str
+        Source datatype to use for filtering the dataset.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
-        Data structure which groups related files based on the targets.
+        Data structure which groups related files based on the datatype.
     """
 
     return {
@@ -153,8 +154,8 @@ def filter_source_filepaths(
             for file in files
             # ensure the filesize is greater than 0
             if file["source_path"].stat().st_size > 0
-            # ensure the datatype matches the target datatype
-            and file["source_path"].suffix == f".{target_datatype}"
+            # ensure the datatype matches the source datatype
+            and file["source_path"].suffix == f".{source_datatype}"
         ]
         for filegroup, files in records.items()
     }
@@ -164,7 +165,7 @@ def filter_source_filepaths(
 def gather_records(
     source_path: str,
     source_datatype: Optional[str] = None,
-    targets: Optional[List[str]] = None,
+    compartments: Optional[List[str]] = None,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
 
@@ -176,26 +177,26 @@ def gather_records(
         Where to gather file-based data from.
       source_datatype: Optional[str]:  (Default value = None)
         The source datatype (extension) to use for reading the tables.
-      targets: Optional[List[str]]:  (Default value = None)
+      compartments: Optional[List[str]]:  (Default value = None)
         The source file names to target within the provided path.
 
     Returns:
       Dict[str, List[Dict[str, Any]]]
-        Data structure which groups related files based on the targets.
+        Data structure which groups related files based on the compartments.
     """
 
     source_path = build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
-    records = get_source_filepaths(path=source_path, targets=targets)
+    records = get_source_filepaths(path=source_path, compartments=compartments)
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = infer_source_datatype(
-        records=records, target_datatype=source_datatype
+        records=records, source_datatype=source_datatype
     )
 
-    # filter source filepaths to inferred or targeted datatype
-    return filter_source_filepaths(records=records, target_datatype=source_datatype)
+    # filter source filepaths to inferred or source datatype
+    return filter_source_filepaths(records=records, source_datatype=source_datatype)
 
 
 @task
@@ -404,30 +405,35 @@ def write_parquet(
 
 @flow
 def to_parquet(  # pylint: disable=too-many-arguments
-    source_path: Union[str, pathlib.Path, Any],
+    source_path: str,
     dest_path: str,
     source_datatype: Optional[str] = None,
-    targets: Optional[List[str]] = None,
+    compartments: Optional[List[str]] = None,
     concat: bool = True,
     infer_common_schema: bool = True,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Export Arrow data to parquet from dataset groups.
+    Export data to parquet.
 
     Args:
-      records: Dict[str, List[Dict[str, Any]]]:
-        Grouped records which include metadata and table data related
-        to files which were read.
+      source_path: str:
+        str reference to read source files from.
+        Note: may be local or remote object-storage location using convention "s3://..." or similar.
       dest_path: str:
-        Destination where parquet files will be written.
-      concat: bool (Default value = True)
-        Whether to concatenate similar records together as one.
-      infer_common_schema: bool (Default value = True)
+        Path to write files to.
+        Note: this may only be a local path.
+      source_datatype: Optional[str]: (Default value = None)
+        Source datatype to focus on during conversion.
+      compartments: Optional[List[str]]: (Default value = None)
+        Compartment names to use for conversion.
+      concat: bool:  (Default value = True)
+        Whether to concatenate similar files together.
+      infer_common_schema: bool:  (Default value = True)
         Whether to infer a common schema when concatenating records.
 
     Returns:
-      Dict[str, List[Dict[str, Any]]]
+      Dict[str, List[Dict[str, Any]]]:
         Grouped records which include metadata about destination filepath
         where parquet file was written.
     """
@@ -436,7 +442,7 @@ def to_parquet(  # pylint: disable=too-many-arguments
     records = gather_records(
         source_path=source_path,
         source_datatype=source_datatype,
-        targets=targets,
+        compartments=compartments,
         **kwargs,
     )
 
@@ -487,7 +493,7 @@ def convert(  # pylint: disable=too-many-arguments
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    targets: Union[List[str], Tuple[str, ...]] = DEFAULT_TARGETS,
+    compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_COMPARTMENTS,
     concat: bool = True,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
@@ -510,8 +516,9 @@ def convert(  # pylint: disable=too-many-arguments
         Destination datatype to write to.
       source_datatype: Optional[str]:  (Default value = None)
         Source datatype to focus on during conversion.
-      targets: Union[List[str], Tuple[str, str, str, str]]:  (Default value = None)
-        Target filenames to use for conversion.
+      compartments: Union[List[str], Tuple[str, str, str, str]]:
+        (Default value = DEFAULT_COMPARTMENTS)
+        Compartment names to use for conversion.
       concat: bool:  (Default value = True)
         Whether to concatenate similar files together.
       infer_common_schema: bool (Default value = True)
@@ -531,7 +538,7 @@ def convert(  # pylint: disable=too-many-arguments
 
         from pycytominer_transform import convert
 
-        # using an local path
+        # using a local path
         convert(
             source_path="./tests/data/cellprofiler/csv_single",
             source_datatype="csv",
@@ -555,7 +562,7 @@ def convert(  # pylint: disable=too-many-arguments
         output = to_parquet.with_options(task_runner=task_runner)(
             source_path=source_path,
             source_datatype=source_datatype,
-            targets=targets,
+            compartments=compartments,
             concat=concat,
             dest_path=dest_path,
             infer_common_schema=infer_common_schema,
