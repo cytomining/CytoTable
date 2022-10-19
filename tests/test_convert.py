@@ -39,6 +39,13 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
 
     single_dir_result = get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
+        compartments=["cells"],
+    )
+    # test that the single dir structure includes 1 unique key (for cells)
+    assert len(set(single_dir_result.keys())) == 1
+
+    single_dir_result = get_source_filepaths.fn(
+        path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
         compartments=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that the single dir structure includes 4 unique keys
