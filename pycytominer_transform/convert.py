@@ -2,7 +2,9 @@
 pycytominer-transform: convert - transforming data for use with pyctyominer.
 """
 
+import itertools
 import pathlib
+import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
 import pyarrow as pa
@@ -437,6 +439,77 @@ def get_merge_chunks(
     ]
 
 
+@task
+def merge_records(
+    records: Dict[str, List[Dict[str, Any]]],
+    dest_path: str,
+    merge_columns: Union[List[str], Tuple[str, ...]],
+    merge_group: List[Dict[str, Any]],
+) -> str:
+    """
+    Merge records based on merge group keys (group of specific merge column values)
+    """
+
+    # form filters variable for use in pyarrow.parquet.read_table
+    # see the following for more details on the filters argument expectations:
+    # https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html
+    filters = [
+        [
+            # create groups of merge column filters where values always
+            # are expected to equal those within the merge_group together
+            [merge_column, "=", merge_column_value]
+            for merge_column, merge_column_value in chunk.items()
+        ]
+        for chunk in merge_group
+    ]
+
+    # variable to hold result
+    records_flat = list(
+        itertools.chain(
+            *list(
+                value.result() if isinstance(value, PrefectFuture) else value
+                for value in records.values()
+            )
+        )
+    )
+
+    # spur the result using the first record bas a basis for the loop below
+    result = parquet.read_table(
+        source=records_flat[0]["destination_path"], filters=filters
+    )
+
+    # begin looping through the other records after the first
+    for record in records_flat[1:]:
+        # join the record to the result
+        result.join(
+            right_table=parquet.read_table(
+                source=record["destination_path"], filters=filters
+            ),
+            keys=merge_columns,
+            # use right outer join to expand the dataset as needed
+            join_type="right outer",
+        )
+
+    result_file_path = (
+        # store the result in the parent of the dest_path
+        f"{str(pathlib.Path(dest_path).parent)}/"
+        # use the dest_path stem in the name
+        f"{str(pathlib.Path(dest_path).stem)}-"
+        # give the merge chunk result a unique to arbitrarily
+        # differentiate from other chunk groups which are mapped
+        # and before they are brought together as one dataset
+        f"{str(uuid.uuid4().hex)}.parquet"
+    )
+
+    # write the result
+    parquet.write_table(
+        table=result,
+        where=result_file_path,
+    )
+
+    return result_file_path
+
+
 @flow
 def to_parquet(  # pylint: disable=too-many-arguments
     source_path: str,
@@ -526,6 +599,7 @@ def to_parquet(  # pylint: disable=too-many-arguments
         # fetch the first concat result as the basis for merge groups
         first_result = next(iter(results.values()))
 
+        # get merging chunks by merge columns
         merge_groups = get_merge_chunks(
             # gather the workflow result if it's not yet returned
             basis=(
@@ -535,6 +609,11 @@ def to_parquet(  # pylint: disable=too-many-arguments
             ),
             merge_columns=merge_columns,
             merge_chunk_size=merge_chunk_size,
+        )
+
+        # map merged results based on the merge groups gathered above
+        merge_records_result = merge_records.map(
+            merge_group=merge_groups, records=unmapped(results)
         )
 
     return {

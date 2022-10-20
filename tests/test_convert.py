@@ -18,6 +18,7 @@ from pycytominer_transform import (  # pylint: disable=R0801
     get_merge_chunks,
     get_source_filepaths,
     infer_source_datatype,
+    merge_records,
     read_file,
     to_parquet,
     write_parquet,
@@ -188,6 +189,65 @@ def test_get_merge_chunks(get_tempdir: str):
             *[list(chunk_item.keys()) for chunk in result for chunk_item in chunk]
         )
     ) == {"id1", "id2"}
+
+
+def test_merge_records(get_tempdir: str):
+    """
+    Tests get_merge_chunks
+    """
+
+    # form test path a
+    test_path_a = f"{get_tempdir}/merge_chunks_test_a.parquet"
+    # form test path b
+    test_path_b = f"{get_tempdir}/merge_chunks_test_b.parquet"
+
+    # write test data to file
+    parquet.write_table(
+        table=pa.Table.from_pydict(
+            {
+                "id1": [1, 2, 3, 1, 2, 3],
+                "id2": ["a", "a", "a", "b", "b", "b"],
+                "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+            }
+        ),
+        where=test_path_a,
+    )
+    # write test data to file
+    parquet.write_table(
+        table=pa.Table.from_pydict(
+            {
+                "id1": [1, 2, 3, 1, 2, 3],
+                "id2": ["a", "a", "a", "b", "b", "b"],
+                "field2": [True, False, True, True, False, True],
+            }
+        ),
+        where=test_path_b,
+    )
+
+    result = merge_records.fn(
+        records={
+            "example_a": [{"destination_path": test_path_a}],
+            "example_b": [{"destination_path": test_path_b}],
+        },
+        dest_path=f"{get_tempdir}/destination.parquet",
+        merge_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
+        merge_columns=["id1", "id2"],
+    )
+
+    assert isinstance(result, str)
+    result_table = parquet.read_table(source=result)
+    assert result_table.equals(
+        other=pa.Table.from_pydict(
+            {
+                "id1": [1, 2],
+                "id2": ["a", "a"],
+                "field1": ["foo", "bar"],
+                "field2": [True, False],
+            },
+            # use schema from result as a reference for col order
+            schema=result_table.schema,
+        )
+    )
 
 
 def test_write_parquet(get_tempdir: str):
