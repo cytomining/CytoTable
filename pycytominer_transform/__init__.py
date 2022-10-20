@@ -4,6 +4,8 @@ __init__.py for pycytominer_convert
 
 from .convert import (
     DEFAULT_COMPARTMENTS,
+    DEFAULT_MERGE_CHUNK_SIZE,
+    DEFAULT_MERGE_COLUMNS,
     concat_record_group,
     convert,
     gather_records,

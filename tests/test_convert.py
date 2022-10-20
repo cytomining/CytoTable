@@ -225,7 +225,13 @@ def test_to_parquet(
             example_local_records["animal_legs.csv"][0]["source_path"].parent
         ),
         dest_path=get_tempdir,
+        source_datatype=None,
+        compartments=["animal_legs", "colors"],
         concat=False,
+        merge=False,
+        merge_columns=None,
+        merge_chunk_size=None,
+        infer_common_schema=False,
     )
 
     flattened_results = list(itertools.chain(*list(result.values())))
@@ -250,6 +256,7 @@ def test_convert_s3_path(
         dest_path=f"{get_tempdir}/s3_test",
         dest_datatype="parquet",
         concat=False,
+        merge=False,
         source_datatype="csv",
         # override default compartments for those which were uploaded to mock instance
         compartments=["animal_legs", "colors"],
@@ -312,6 +319,7 @@ def test_convert_cellprofiler_csv(
         dest_path=f"{get_tempdir}/csv_multi_nonconcat",
         dest_datatype="parquet",
         concat=False,
+        merge=False,
         source_datatype="csv",
     )
 
@@ -362,6 +370,7 @@ def test_convert_dask_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: 
         dest_path=f"{get_tempdir}/csv_multi_nonconcat",
         dest_datatype="parquet",
         concat=False,
+        merge=False,
         task_runner=DaskTaskRunner,
     )
 

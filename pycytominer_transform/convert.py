@@ -19,6 +19,8 @@ from pycytominer_transform.exceptions import (
 )
 
 DEFAULT_COMPARTMENTS = ("image", "cells", "nuclei", "cytoplasm")
+DEFAULT_MERGE_COLUMNS = ("imagenumber", "objectnumber")
+DEFAULT_MERGE_CHUNK_SIZE = 1000
 
 
 @task
@@ -407,10 +409,13 @@ def write_parquet(
 def to_parquet(  # pylint: disable=too-many-arguments
     source_path: str,
     dest_path: str,
-    source_datatype: Optional[str] = None,
-    compartments: Optional[List[str]] = None,
-    concat: bool = True,
-    infer_common_schema: bool = True,
+    source_datatype: Optional[str],
+    compartments: Union[List[str], Tuple[str, ...]],
+    concat: bool,
+    merge: bool,
+    merge_columns: Optional[Union[List[str], Tuple[str, ...]]],
+    merge_chunk_size: Optional[int],
+    infer_common_schema: bool,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -425,10 +430,16 @@ def to_parquet(  # pylint: disable=too-many-arguments
         Note: this may only be a local path.
       source_datatype: Optional[str]: (Default value = None)
         Source datatype to focus on during conversion.
-      compartments: Optional[List[str]]: (Default value = None)
+      compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
         Compartment names to use for conversion.
-      concat: bool:  (Default value = True)
+      concat: bool:
         Whether to concatenate similar files together.
+      merge: bool:
+        Whether to merge the compartment data together into one dataset
+      merge_columns: Optional[Union[List[str], Tuple[str, ...]]],
+        Column names which appear in all compartments to use when performing merge
+      merge_chunk_size: Optional[int],
+        Size of merge chunks which is used to limit data size during merge ops
       infer_common_schema: bool:  (Default value = True)
         Whether to infer a common schema when concatenating records.
 
@@ -462,21 +473,21 @@ def to_parquet(  # pylint: disable=too-many-arguments
             unique_name = True
 
         # map for writing parquet files with list of files via records
-        destinations = write_parquet.map(
+        results[record_group_name] = write_parquet.map(
             record=record_group,
             dest_path=unmapped(dest_path),
             unique_name=unmapped(unique_name),
         )
 
-        if concat:
-            # build a new record group
+        # if concat or merge, concat the record groups
+        # note: merge implies a concat, but concat does not imply a merge
+        if concat or merge:
+            # build a new concatenated record group
             results[record_group_name] = concat_record_group.submit(
-                record_group=destinations,
+                record_group=results[record_group_name],
                 dest_path=dest_path,
                 infer_common_schema=infer_common_schema,
             )
-        else:
-            results[record_group_name] = destinations
 
     return {
         key: value.result()
@@ -495,6 +506,9 @@ def convert(  # pylint: disable=too-many-arguments
     source_datatype: Optional[str] = None,
     compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_COMPARTMENTS,
     concat: bool = True,
+    merge: bool = True,
+    merge_columns: Optional[Union[List[str], Tuple[str, ...]]] = DEFAULT_MERGE_COLUMNS,
+    merge_chunk_size: Optional[int] = DEFAULT_MERGE_CHUNK_SIZE,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
     **kwargs,
@@ -521,6 +535,13 @@ def convert(  # pylint: disable=too-many-arguments
         Compartment names to use for conversion.
       concat: bool:  (Default value = True)
         Whether to concatenate similar files together.
+      merge: bool:  (Default value = True)
+        Whether to merge the compartment data together into one dataset
+      merge_columns: Optional[Union[List[str], Tuple[str, ...]]]
+        (Default value = DEFAULT_MERGE_COLUMNS)
+        Column names which appear in all compartments to use when performing merge
+      merge_chunk_size: Optional[int] (Default value = DEFAULT_MERGE_CHUNK_SIZE)
+        Size of merge chunks which is used to limit data size during merge ops
       infer_common_schema: bool (Default value = True)
         Whether to infer a common schema when concatenating records.
       task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
@@ -561,10 +582,13 @@ def convert(  # pylint: disable=too-many-arguments
     if dest_datatype == "parquet":
         output = to_parquet.with_options(task_runner=task_runner)(
             source_path=source_path,
+            dest_path=dest_path,
             source_datatype=source_datatype,
             compartments=compartments,
             concat=concat,
-            dest_path=dest_path,
+            merge=merge,
+            merge_columns=merge_columns,
+            merge_chunk_size=merge_chunk_size,
             infer_common_schema=infer_common_schema,
             **kwargs,
         )
