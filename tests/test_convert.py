@@ -15,6 +15,7 @@ from pyarrow import csv, parquet
 from pycytominer_transform import (  # pylint: disable=R0801
     concat_record_group,
     convert,
+    get_merge_chunks,
     get_source_filepaths,
     infer_source_datatype,
     read_file,
@@ -150,6 +151,43 @@ def test_concat_record_group(
             record_group=example_local_records["animal_legs.csv"],
             dest_path=get_tempdir,
         )
+
+
+def test_get_merge_chunks(get_tempdir: str):
+    """
+    Tests get_merge_chunks
+    """
+
+    # form test path
+    test_path = f"{get_tempdir}/merge_chunks_test.parquet"
+
+    # write test data to file
+    parquet.write_table(
+        table=pa.Table.from_pydict(
+            {
+                "id1": [1, 2, 3, 1, 2, 3],
+                "id2": ["a", "a", "a", "b", "b", "b"],
+                "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+                "field2": [True, False, True, True, False, True],
+            }
+        ),
+        where=test_path,
+    )
+
+    result = get_merge_chunks.fn(
+        basis={"destination_path": test_path},
+        merge_columns=["id1", "id2"],
+        merge_chunk_size=2,
+    )
+
+    # test that we have 3 chunks of merge columns
+    assert len(result) == 3
+    # test that we have only the columns we specified
+    assert set(
+        itertools.chain(
+            *[list(chunk_item.keys()) for chunk in result for chunk_item in chunk]
+        )
+    ) == {"id1", "id2"}
 
 
 def test_write_parquet(get_tempdir: str):
@@ -312,6 +350,7 @@ def test_convert_cellprofiler_csv(
         dest_path=f"{get_tempdir}/csv_single",
         dest_datatype="parquet",
         source_datatype="csv",
+        merge=False,
     )
 
     multi_dir_nonconcat_result = convert(
@@ -338,6 +377,7 @@ def test_convert_cellprofiler_csv(
         dest_path=f"{get_tempdir}/csv_multi_concat",
         dest_datatype="parquet",
         concat=True,
+        merge=False,
         source_datatype="csv",
     )
 

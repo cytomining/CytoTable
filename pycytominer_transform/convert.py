@@ -405,6 +405,38 @@ def write_parquet(
     return record
 
 
+@task
+def get_merge_chunks(
+    basis: Dict[str, Any],
+    merge_columns: Union[List[str], Tuple[str, ...]],
+    merge_chunk_size: int,
+) -> List[List[Dict[str, Any]]]:
+    """
+    Reads basis record as reference for building merge chunks by merge_columns
+
+    basis: Dict[str, Any]:
+      A dictionary containing various metadata, including a parquet data path
+    merge_columns: Union[List[str], Tuple[str, ...]]:
+      Columns to use to form merge chunk result
+    merge_chunk_size: int:
+      Size of chunks to use for merge chunk result
+
+    Returns:
+      List[List[Dict[str, Any]]]]:
+        A list of lists with at most chunk size length that contain merge keys
+    """
+
+    merge_column_rows = parquet.read_table(
+        source=basis["destination_path"], columns=merge_columns
+    ).to_pylist()
+
+    # build and return the chunked merge column rows
+    return [
+        merge_column_rows[i : i + merge_chunk_size]
+        for i in range(0, len(merge_column_rows), merge_chunk_size)
+    ]
+
+
 @flow
 def to_parquet(  # pylint: disable=too-many-arguments
     source_path: str,
@@ -488,6 +520,22 @@ def to_parquet(  # pylint: disable=too-many-arguments
                 dest_path=dest_path,
                 infer_common_schema=infer_common_schema,
             )
+
+    if merge:
+
+        # fetch the first concat result as the basis for merge groups
+        first_result = next(iter(results.values()))
+
+        merge_groups = get_merge_chunks(
+            # gather the workflow result if it's not yet returned
+            basis=(
+                first_result.result()
+                if isinstance(first_result, PrefectFuture)
+                else first_result
+            ),
+            merge_columns=merge_columns,
+            merge_chunk_size=merge_chunk_size,
+        )
 
     return {
         key: value.result()
