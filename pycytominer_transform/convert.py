@@ -21,9 +21,9 @@ from pycytominer_transform.exceptions import (
 )
 
 DEFAULT_NAMES_COMPARTMENTS = ("cells", "nuclei", "cytoplasm")
-DEFAULT_NAMES_METADATA = "image"
+DEFAULT_NAMES_METADATA = ("image",)
 DEFAULT_MERGE_COLUMNS_COMPARTMENTS = ("ImageNumber", "ObjectNumber")
-DEFAULT_MERGE_COLUMNS_METADATA = "ImageNumber"
+DEFAULT_MERGE_COLUMNS_METADATA = ("ImageNumber",)
 DEFAULT_MERGE_CHUNK_SIZE = 1000
 
 
@@ -46,7 +46,7 @@ def build_path(
 
 @task
 def get_source_filepaths(
-    path: Union[pathlib.Path, AnyPath], compartments: Optional[List[str]] = None
+    path: Union[pathlib.Path, AnyPath], targets: Optional[List[str]] = None
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -68,9 +68,9 @@ def get_source_filepaths(
         for file in path.glob("**/*")
         if file.is_file()
         and (
-            compartments is None
+            targets is None
             or str(file.stem).lower()
-            in [compartment.lower() for compartment in compartments]
+            in [compartment.lower() for compartment in targets]
         )
     ]
 
@@ -171,7 +171,7 @@ def filter_source_filepaths(
 def gather_records(
     source_path: str,
     source_datatype: Optional[str] = None,
-    compartments: Optional[List[str]] = None,
+    targets: Optional[List[str]] = None,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
 
@@ -194,7 +194,7 @@ def gather_records(
     source_path = build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
-    records = get_source_filepaths(path=source_path, compartments=compartments)
+    records = get_source_filepaths(path=source_path, targets=targets)
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = infer_source_datatype(
@@ -234,6 +234,28 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
             input_file=record["source_path"],
             parse_options=parse_options,
         )
+
+    return record
+
+
+@task
+def prepend_column_name(
+    record: Dict[str, Any],
+    record_group_name: str,
+    merge_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
+) -> Dict[str, Any]:
+    """
+    Rename columns using the record group name
+    """
+
+    record["table"] = record["table"].rename_columns(
+        [
+            f"{str(pathlib.Path(record_group_name).stem)}_{column_name}"
+            if merge_columns and column_name not in merge_columns
+            else column_name
+            for column_name in record["table"].column_names
+        ]
+    )
 
     return record
 
@@ -420,7 +442,7 @@ def write_parquet(
 @task
 def get_merge_chunks(
     records: Dict[str, List[Dict[str, Any]]],
-    merge_columns: Union[List[str], Tuple[str, ...]],
+    merge_columns_compartments: Union[List[str], Tuple[str, ...]],
     merge_chunk_size: int,
 ) -> List[List[Dict[str, Any]]]:
     """
@@ -450,7 +472,7 @@ def get_merge_chunks(
 
     # read only the table's merge_columns
     merge_column_rows = parquet.read_table(
-        source=basis[0]["destination_path"], columns=merge_columns
+        source=basis[0]["destination_path"], columns=merge_columns_compartments
     ).to_pylist()
 
     # build and return the chunked merge column rows
@@ -571,9 +593,11 @@ def to_parquet(  # pylint: disable=too-many-arguments
     dest_path: str,
     source_datatype: Optional[str],
     compartments: Union[List[str], Tuple[str, ...]],
+    metadata: Union[List[str], Tuple[str, ...]],
     concat: bool,
     merge: bool,
-    merge_columns: Optional[Union[List[str], Tuple[str, ...]]],
+    merge_columns_compartments: Optional[Union[List[str], Tuple[str, ...]]],
+    merge_columns_metadata: Optional[Union[List[str], Tuple[str, ...]]],
     merge_chunk_size: Optional[int],
     infer_common_schema: bool,
     **kwargs,
@@ -608,12 +632,11 @@ def to_parquet(  # pylint: disable=too-many-arguments
         Grouped records which include metadata about destination filepath
         where parquet file was written.
     """
-
     # gather records to be processed
     records = gather_records(
         source_path=source_path,
         source_datatype=source_datatype,
-        compartments=compartments,
+        targets=list(compartments) + list(metadata),
         **kwargs,
     )
 
@@ -627,13 +650,26 @@ def to_parquet(  # pylint: disable=too-many-arguments
         # read files
         record_group = read_file.map(record=record_group)
 
+        # rename cols to include compartment or meta names
+        renamed_record_group = prepend_column_name.map(
+            record=record_group,
+            record_group_name=unmapped(record_group_name),
+            merge_columns=unmapped(
+                list(merge_columns_compartments)
+                if merge_columns_compartments is not None
+                else [] + list(merge_columns_metadata)
+                if merge_columns_metadata is not None
+                else []
+            ),
+        )
+
         # map for writing parquet files with list of files via records
         results[record_group_name] = write_parquet.map(
-            record=record_group,
+            record=renamed_record_group,
             dest_path=unmapped(dest_path),
             # if the record group has more than one record, we will need a unique name
             # arg set to true or false based on evaluation of len(record_group)
-            unique_name=unmapped(len(record_group) >= 2),
+            unique_name=unmapped(len(renamed_record_group) >= 2),
         )
 
         # if concat or merge, concat the record groups
@@ -662,11 +698,11 @@ def to_parquet(  # pylint: disable=too-many-arguments
                 }
             ),
             dest_path=unmapped(dest_path),
-            merge_columns=unmapped(merge_columns),
+            merge_columns_compartments=unmapped(merge_columns_compartments),
             # get merging chunks by merge columns
             merge_group=get_merge_chunks(
                 records=results,
-                merge_columns=merge_columns,
+                merge_columns_compartments=merge_columns_compartments,
                 merge_chunk_size=merge_chunk_size,
             ),
         )
@@ -705,11 +741,15 @@ def convert(  # pylint: disable=too-many-arguments
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
     compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_COMPARTMENTS,
+    metadata: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_METADATA,
     concat: bool = True,
     merge: bool = True,
-    merge_columns: Optional[
+    merge_columns_compartments: Optional[
         Union[List[str], Tuple[str, ...]]
     ] = DEFAULT_MERGE_COLUMNS_COMPARTMENTS,
+    merge_columns_metadata: Optional[
+        Union[List[str], Tuple[str, ...]]
+    ] = DEFAULT_MERGE_COLUMNS_METADATA,
     merge_chunk_size: Optional[int] = DEFAULT_MERGE_CHUNK_SIZE,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
@@ -787,9 +827,11 @@ def convert(  # pylint: disable=too-many-arguments
             dest_path=dest_path,
             source_datatype=source_datatype,
             compartments=compartments,
+            metadata=metadata,
             concat=concat,
             merge=merge,
-            merge_columns=merge_columns,
+            merge_columns_compartments=merge_columns_compartments,
+            merge_columns_metadata=merge_columns_metadata,
             merge_chunk_size=merge_chunk_size,
             infer_common_schema=infer_common_schema,
             **kwargs,

@@ -21,6 +21,7 @@ from pycytominer_transform import (  # pylint: disable=R0801
     get_source_filepaths,
     infer_source_datatype,
     merge_record_chunk,
+    prepend_column_name,
     read_file,
     to_parquet,
     write_parquet,
@@ -38,26 +39,26 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     with pytest.raises(Exception):
         single_dir_result = get_source_filepaths.fn(
             path=empty_dir,
-            compartments=["image", "cells", "nuclei", "cytoplasm"],
+            targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
     single_dir_result = get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
-        compartments=["cells"],
+        targets=["cells"],
     )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
 
     single_dir_result = get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
-        compartments=["image", "cells", "nuclei", "cytoplasm"],
+        targets=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
 
     multi_dir_result = get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/csv_multi"),
-        compartments=["image", "cells", "nuclei", "cytoplasm"],
+        targets=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that a multi-file dataset has more than one value under group
     assert len(list(multi_dir_result.values())[0]) == 2
@@ -102,6 +103,35 @@ def test_read_file(get_tempdir: str):
         wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
 
     assert isinstance(read_file.fn(record={"source_path": destination_err}), Dict)
+
+
+def test_prepend_column_name():
+    """
+    Tests prepend_column_name
+    """
+
+    # write test data to file
+    test_table = pa.Table.from_pydict(
+        {
+            "id1": [1, 2, 3, 1, 2, 3],
+            "id2": ["a", "a", "a", "b", "b", "b"],
+            "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+            "field2": [True, False, True, True, False, True],
+        }
+    )
+
+    result = prepend_column_name.fn(
+        record={"table": test_table},
+        record_group_name="Compartment.csv",
+        merge_columns=["id1", "id2"],
+    )
+
+    assert result["table"].column_names == [
+        "id1",
+        "id2",
+        "Compartment_field1",
+        "Compartment_field2",
+    ]
 
 
 def test_concat_record_group(
@@ -409,9 +439,11 @@ def test_to_parquet(
         dest_path=get_tempdir,
         source_datatype=None,
         compartments=["animal_legs", "colors"],
+        metadata=[],
         concat=False,
         merge=False,
-        merge_columns=None,
+        merge_columns_compartments=None,
+        merge_columns_metadata=None,
         merge_chunk_size=None,
         infer_common_schema=False,
     )
@@ -494,7 +526,9 @@ def test_convert_cellprofiler_csv(
         dest_path=f"{get_tempdir}/csv_single",
         dest_datatype="parquet",
         source_datatype="csv",
+        concat=False,
         merge=False,
+        merge_columns=None,
     )
 
     multi_dir_nonconcat_result = convert(
