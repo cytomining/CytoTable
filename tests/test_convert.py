@@ -13,12 +13,13 @@ from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
 from pycytominer_transform import (  # pylint: disable=R0801
+    concat_merge_records,
     concat_record_group,
     convert,
     get_merge_chunks,
     get_source_filepaths,
     infer_source_datatype,
-    merge_records,
+    merge_record_chunk,
     read_file,
     to_parquet,
     write_parquet,
@@ -176,7 +177,7 @@ def test_get_merge_chunks(get_tempdir: str):
     )
 
     result = get_merge_chunks.fn(
-        basis={"destination_path": test_path},
+        records={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
         merge_columns=["id1", "id2"],
         merge_chunk_size=2,
     )
@@ -191,7 +192,7 @@ def test_get_merge_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test_merge_records(get_tempdir: str):
+def test_merge_record_chunk(get_tempdir: str):
     """
     Tests get_merge_chunks
     """
@@ -224,7 +225,7 @@ def test_merge_records(get_tempdir: str):
         where=test_path_b,
     )
 
-    result = merge_records.fn(
+    result = merge_record_chunk.fn(
         records={
             "example_a": [{"destination_path": test_path_a}],
             "example_b": [{"destination_path": test_path_b}],
@@ -247,6 +248,79 @@ def test_merge_records(get_tempdir: str):
             # use schema from result as a reference for col order
             schema=result_table.schema,
         )
+    )
+
+
+def test_concat_merge_records(get_tempdir: str):
+    """
+    Tests concat_merge_records
+    """
+
+    # form test paths
+    test_path_a = f"{get_tempdir}/merge_chunks_test_a.parquet"
+    test_path_b = f"{get_tempdir}/merge_chunks_test_b.parquet"
+
+    # form test data
+    test_table_a = pa.Table.from_pydict(
+        {
+            "id1": [
+                1,
+                2,
+                3,
+            ],
+            "id2": [
+                "a",
+                "a",
+                "a",
+            ],
+            "field1": [
+                "foo",
+                "bar",
+                "baz",
+            ],
+            "field2": [
+                True,
+                False,
+                True,
+            ],
+        }
+    )
+    test_table_b = pa.Table.from_pydict(
+        {
+            "id1": [1, 2, 3],
+            "id2": ["b", "b", "b"],
+            "field1": ["foo", "bar", "baz"],
+            "field2": [True, False, True],
+        }
+    )
+
+    # write test data to file
+    parquet.write_table(
+        table=test_table_a,
+        where=test_path_a,
+    )
+    parquet.write_table(
+        table=test_table_b,
+        where=test_path_b,
+    )
+
+    result = concat_merge_records.fn(
+        dest_path=f"{get_tempdir}/example_concat_merge.parquet",
+        merge_records=[test_path_a, test_path_b],
+        records={
+            "merge_chunks_test_a.parquet": [{"destination_path": test_path_a}],
+            "merge_chunks_test_b.parquet": [{"destination_path": test_path_b}],
+        },
+    )
+
+    # ensure the concatted result is what we expect
+    assert parquet.read_table(
+        source=result["example_concat_merge.parquet"][0]["destination_path"]
+    ).equals(pa.concat_tables(tables=[test_table_a, test_table_b]))
+
+    # ensure the test paths provided via records were removed (unlinked)
+    assert (pathlib.Path(test_path_a).exists() is False) and (
+        pathlib.Path(test_path_a).exists() is False
     )
 
 

@@ -409,15 +409,15 @@ def write_parquet(
 
 @task
 def get_merge_chunks(
-    basis: Dict[str, Any],
+    records: Dict[str, List[Dict[str, Any]]],
     merge_columns: Union[List[str], Tuple[str, ...]],
     merge_chunk_size: int,
 ) -> List[List[Dict[str, Any]]]:
     """
-    Reads basis record as reference for building merge chunks by merge_columns
+    Reads first record as reference for building merge chunks by merge_columns
 
-    basis: Dict[str, Any]:
-      A dictionary containing various metadata, including a parquet data path
+    records: Dict[List[Dict[str, Any]]]:
+      Grouped datasets of files which will be used by other functions.
     merge_columns: Union[List[str], Tuple[str, ...]]:
       Columns to use to form merge chunk result
     merge_chunk_size: int:
@@ -428,8 +428,19 @@ def get_merge_chunks(
         A list of lists with at most chunk size length that contain merge keys
     """
 
+    # fetch the first concat result as the basis for merge groups
+    first_result = next(iter(records.values()))
+
+    # gather the workflow result for basis if it's not yet returned
+    basis = (
+        first_result.result()
+        if isinstance(first_result, PrefectFuture)
+        else first_result
+    )
+
+    # read only the table's merge_columns
     merge_column_rows = parquet.read_table(
-        source=basis["destination_path"], columns=merge_columns
+        source=basis[0]["destination_path"], columns=merge_columns
     ).to_pylist()
 
     # build and return the chunked merge column rows
@@ -440,7 +451,7 @@ def get_merge_chunks(
 
 
 @task
-def merge_records(
+def merge_record_chunk(
     records: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     merge_columns: Union[List[str], Tuple[str, ...]],
@@ -464,14 +475,7 @@ def merge_records(
     ]
 
     # variable to hold result
-    records_flat = list(
-        itertools.chain(
-            *list(
-                value.result() if isinstance(value, PrefectFuture) else value
-                for value in records.values()
-            )
-        )
-    )
+    records_flat = list(itertools.chain(*list(records.values())))
 
     # spur the result using the first record bas a basis for the loop below
     result = parquet.read_table(
@@ -508,6 +512,35 @@ def merge_records(
     )
 
     return result_file_path
+
+
+@task
+def concat_merge_records(
+    dest_path: str, merge_records: List[str], records: Dict[str, List[Dict[str, Any]]]
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Concatenate merge records from parquet-based chunks.
+    """
+
+    # write the concatted result as a parquet file
+    parquet.write_table(
+        table=pa.concat_tables(
+            tables=[parquet.read_table(table_path) for table_path in merge_records]
+        ),
+        where=dest_path,
+    )
+
+    # remove the unmerged concatted compartments (we now have a merged result)
+    flattened_records = list(itertools.chain(*list(records.values())))
+    for record in flattened_records:
+        pathlib.Path(record["destination_path"]).unlink()
+
+    # return modified records format to indicate the final result
+    # and retain the other record data for reference as needed
+    return {
+        pathlib.Path(dest_path).name: [{"destination_path": dest_path}],
+        "sources": flattened_records,
+    }
 
 
 @flow
@@ -572,16 +605,13 @@ def to_parquet(  # pylint: disable=too-many-arguments
         # read files
         record_group = read_file.map(record=record_group)
 
-        # if the record group has more than one record, we will need a unique name
-        unique_name = False
-        if len(record_group) >= 2:
-            unique_name = True
-
         # map for writing parquet files with list of files via records
         results[record_group_name] = write_parquet.map(
             record=record_group,
             dest_path=unmapped(dest_path),
-            unique_name=unmapped(unique_name),
+            # if the record group has more than one record, we will need a unique name
+            # arg set to true or false based on evaluation of len(record_group)
+            unique_name=unmapped(len(record_group) >= 2),
         )
 
         # if concat or merge, concat the record groups
@@ -594,26 +624,38 @@ def to_parquet(  # pylint: disable=too-many-arguments
                 infer_common_schema=infer_common_schema,
             )
 
+    # conditional section for merging
+    # note: merge implies a concat, but concat does not imply a merge
     if merge:
-
-        # fetch the first concat result as the basis for merge groups
-        first_result = next(iter(results.values()))
-
-        # get merging chunks by merge columns
-        merge_groups = get_merge_chunks(
-            # gather the workflow result if it's not yet returned
-            basis=(
-                first_result.result()
-                if isinstance(first_result, PrefectFuture)
-                else first_result
+        # map merged results based on the merge groups gathered above
+        # note: after mapping we end up with a list of strings (task returns str)
+        merge_records_result = merge_record_chunk.map(
+            # gather the result of concatted records prior to
+            # merge group merging as each mapped task run will need
+            # full concat results
+            records=unmapped(
+                {
+                    key: value.result() if isinstance(value, PrefectFuture) else value
+                    for key, value in results.items()
+                }
             ),
-            merge_columns=merge_columns,
-            merge_chunk_size=merge_chunk_size,
+            dest_path=unmapped(dest_path),
+            merge_columns=unmapped(merge_columns),
+            # get merging chunks by merge columns
+            merge_group=get_merge_chunks(
+                records=results,
+                merge_columns=merge_columns,
+                merge_chunk_size=merge_chunk_size,
+            ),
         )
 
-        # map merged results based on the merge groups gathered above
-        merge_records_result = merge_records.map(
-            merge_group=merge_groups, records=unmapped(results)
+        # concat our merge chunks together as one cohesive dataset
+        # return results in common format which includes metadata
+        # for lineage and debugging
+        results = concat_merge_records(
+            dest_path=dest_path,
+            merge_records=merge_records_result.result(),
+            records=results,
         )
 
     return {
