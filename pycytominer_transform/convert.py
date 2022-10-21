@@ -20,8 +20,10 @@ from pycytominer_transform.exceptions import (
     SchemaException,
 )
 
-DEFAULT_COMPARTMENTS = ("image", "cells", "nuclei", "cytoplasm")
-DEFAULT_MERGE_COLUMNS = ("imagenumber", "objectnumber")
+DEFAULT_NAMES_COMPARTMENTS = ("cells", "nuclei", "cytoplasm")
+DEFAULT_NAMES_METADATA = "image"
+DEFAULT_MERGE_COLUMNS_COMPARTMENTS = ("ImageNumber", "ObjectNumber")
+DEFAULT_MERGE_COLUMNS_METADATA = "ImageNumber"
 DEFAULT_MERGE_CHUNK_SIZE = 1000
 
 
@@ -262,6 +264,10 @@ def concat_record_group(
     if len(record_group) < 2:
         return record_group
 
+    # check whether we already have a file as dest_path
+    if pathlib.Path(dest_path).is_file():
+        pathlib.Path(dest_path).unlink(missing_ok=True)
+
     concatted = [
         {
             # source path becomes parent's parent dir with the same filename
@@ -377,6 +383,10 @@ def write_parquet(
         Updated dictionary containing the destination path where parquet file
         was written.
     """
+
+    # unlink the file if it exists
+    if pathlib.Path(dest_path).is_file():
+        pathlib.Path(dest_path).unlink()
 
     # make the dest_path dir if it doesn't already exist
     pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
@@ -522,6 +532,19 @@ def concat_merge_records(
     Concatenate merge records from parquet-based chunks.
     """
 
+    # remove the unmerged concatted compartments to prepare final dest_path usage
+    # (we now have merged results)
+    flattened_records = list(itertools.chain(*list(records.values())))
+    for record in flattened_records:
+        pathlib.Path(record["destination_path"]).unlink(missing_ok=True)
+
+    # remove dir if we have it
+    if pathlib.Path(dest_path).is_dir():
+        pathlib.Path(dest_path).rmdir()
+
+    # also remove any pre-existing files which may already be at file destination
+    pathlib.Path(dest_path).unlink(missing_ok=True)
+
     # write the concatted result as a parquet file
     parquet.write_table(
         table=pa.concat_tables(
@@ -530,10 +553,9 @@ def concat_merge_records(
         where=dest_path,
     )
 
-    # remove the unmerged concatted compartments (we now have a merged result)
-    flattened_records = list(itertools.chain(*list(records.values())))
-    for record in flattened_records:
-        pathlib.Path(record["destination_path"]).unlink()
+    # remove merge chunks as we have the final result
+    for table_path in merge_records:
+        pathlib.Path(table_path).unlink()
 
     # return modified records format to indicate the final result
     # and retain the other record data for reference as needed
@@ -654,14 +676,23 @@ def to_parquet(  # pylint: disable=too-many-arguments
         # for lineage and debugging
         results = concat_merge_records(
             dest_path=dest_path,
-            merge_records=merge_records_result.result(),
+            merge_records=(
+                merge_records_result.result()
+                if isinstance(merge_records_result, PrefectFuture)
+                else merge_records_result
+            ),
             records=results,
         )
 
     return {
         key: value.result()
         if isinstance(value, PrefectFuture)
-        else [inner_result.result() for inner_result in value]
+        else [
+            inner_result.result()
+            if isinstance(inner_result, PrefectFuture)
+            else inner_result
+            for inner_result in value
+        ]
         if not isinstance(value, Dict)
         else value
         for key, value in results.items()
@@ -673,10 +704,12 @@ def convert(  # pylint: disable=too-many-arguments
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_COMPARTMENTS,
+    compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_COMPARTMENTS,
     concat: bool = True,
     merge: bool = True,
-    merge_columns: Optional[Union[List[str], Tuple[str, ...]]] = DEFAULT_MERGE_COLUMNS,
+    merge_columns: Optional[
+        Union[List[str], Tuple[str, ...]]
+    ] = DEFAULT_MERGE_COLUMNS_COMPARTMENTS,
     merge_chunk_size: Optional[int] = DEFAULT_MERGE_CHUNK_SIZE,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,

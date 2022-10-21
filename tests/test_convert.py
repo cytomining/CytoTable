@@ -4,6 +4,7 @@ Tests for cyctominer_transform/convert.py
 import io
 import itertools
 import pathlib
+from shutil import copy
 from typing import Any, Dict, List, Tuple
 
 import pyarrow as pa
@@ -256,9 +257,14 @@ def test_concat_merge_records(get_tempdir: str):
     Tests concat_merge_records
     """
 
+    # create a test dir
+    pathlib.Path(f"{get_tempdir}/concat_merge/").mkdir(exist_ok=True)
+
     # form test paths
-    test_path_a = f"{get_tempdir}/merge_chunks_test_a.parquet"
-    test_path_b = f"{get_tempdir}/merge_chunks_test_b.parquet"
+    test_path_a = f"{get_tempdir}/concat_merge/merge_chunks_test_a.parquet"
+    test_path_b = f"{get_tempdir}/concat_merge/merge_chunks_test_b.parquet"
+    test_path_a_merge_chunk = f"{get_tempdir}/merge_chunks_test_a.parquet"
+    test_path_b_merge_chunk = f"{get_tempdir}/merge_chunks_test_b.parquet"
 
     # form test data
     test_table_a = pa.Table.from_pydict(
@@ -304,9 +310,13 @@ def test_concat_merge_records(get_tempdir: str):
         where=test_path_b,
     )
 
+    # copy the files for testing purposes
+    copy(test_path_a, test_path_a_merge_chunk)
+    copy(test_path_b, test_path_b_merge_chunk)
+
     result = concat_merge_records.fn(
         dest_path=f"{get_tempdir}/example_concat_merge.parquet",
-        merge_records=[test_path_a, test_path_b],
+        merge_records=[test_path_a_merge_chunk, test_path_b_merge_chunk],
         records={
             "merge_chunks_test_a.parquet": [{"destination_path": test_path_a}],
             "merge_chunks_test_b.parquet": [{"destination_path": test_path_b}],

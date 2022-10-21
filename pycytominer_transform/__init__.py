@@ -3,9 +3,11 @@ __init__.py for pycytominer_convert
 """
 
 from .convert import (
-    DEFAULT_COMPARTMENTS,
     DEFAULT_MERGE_CHUNK_SIZE,
-    DEFAULT_MERGE_COLUMNS,
+    DEFAULT_MERGE_COLUMNS_COMPARTMENTS,
+    DEFAULT_MERGE_COLUMNS_METADATA,
+    DEFAULT_NAMES_COMPARTMENTS,
+    DEFAULT_NAMES_METADATA,
     concat_merge_records,
     concat_record_group,
     convert,
