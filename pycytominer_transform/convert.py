@@ -264,7 +264,7 @@ def prepend_column_name(
 def concat_record_group(
     record_group: List[Dict[str, Any]],
     dest_path: str = ".",
-    infer_common_schema: bool = True,
+    common_schema: List[Tuple[str, str]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Concatenate group of records together as unified dataset.
@@ -314,56 +314,18 @@ def concat_record_group(
     # if there's already a file remove it
     destination_path.unlink(missing_ok=True)
 
-    # read first file for basis of schema and column order for all others
-    writer_basis_schema = parquet.read_schema(record_group[0]["destination_path"])
-
-    if infer_common_schema:
-        # infer common basis of schema and column order for all others
-        for schema in [
-            parquet.read_schema(record["destination_path"]) for record in record_group
-        ]:
-
-            # account for completely equal schema
-            if schema.equals(writer_basis_schema):
-                continue
-
-            # gather field names from schema
-            schema_field_names = [item.name for item in schema]
-
-            # reversed enumeration because removing indexes ascendingly changes schema field order
-            for index, field in reversed(list(enumerate(writer_basis_schema))):
-
-                # check whether field name is contained within writer basis, remove if not
-                # note: because this only checks for naming, we defer to initially detected type
-                if field.name not in schema_field_names:
-
-                    writer_basis_schema = writer_basis_schema.remove(index)
-
-                # check if we have an integer to float challenge and enable later casting
-                elif pa.types.is_integer(field.type) and pa.types.is_floating(
-                    schema.field(field.name).type
-                ):
-                    writer_basis_schema = writer_basis_schema.set(
-                        index, field.with_type(pa.float64())
-                    )
-
-    if len(list(writer_basis_schema.names)) == 0:
-        raise SchemaException(
-            (
-                "No common schema basis to perform concatenation for record group."
-                " All columns mismatch one another within the group."
-            )
-        )
+    if common_schema is not None:
+        writer_schema = pa.schema(common_schema)
 
     # build a parquet file writer which will be used to append files
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
-    with parquet.ParquetWriter(str(destination_path), writer_basis_schema) as writer:
+    with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
 
         for table in [record["destination_path"] for record in record_group]:
             # if we haven't inferred the common schema
             # check that our file matches the expected schema, otherwise raise an error
-            if not infer_common_schema and not writer_basis_schema.equals(
+            if common_schema is None and not writer_schema.equals(
                 parquet.read_schema(table)
             ):
                 raise SchemaException(
@@ -376,7 +338,7 @@ def concat_record_group(
             # read the file from the list and write to the concatted parquet file
             # note: we pass column order based on the first chunk file to help ensure schema
             # compatibility for the writer
-            writer.write_table(parquet.read_table(table, schema=writer_basis_schema))
+            writer.write_table(parquet.read_table(table, schema=writer_schema))
             # remove the file which was written in the concatted parquet file (we no longer need it)
             pathlib.Path(table).unlink()
 
@@ -587,6 +549,59 @@ def concat_merge_records(
     }
 
 
+@task
+def infer_record_group_common_schema(record_group: List[Dict[str, Any]]):
+    """
+    Infers a common schema for record group
+    """
+
+    # read first file for basis of schema and column order for all others
+    common_schema = parquet.read_schema(record_group[0]["destination_path"])
+
+    # infer common basis of schema and column order for all others
+    for schema in [
+        parquet.read_schema(record["destination_path"]) for record in record_group
+    ]:
+
+        # account for completely equal schema
+        if schema.equals(common_schema):
+            continue
+
+        # gather field names from schema
+        schema_field_names = [item.name for item in schema]
+
+        # reversed enumeration because removing indexes ascendingly changes schema field order
+        for index, field in reversed(list(enumerate(common_schema))):
+
+            # check whether field name is contained within writer basis, remove if not
+            # note: because this only checks for naming, we defer to initially detected type
+            if field.name not in schema_field_names:
+
+                common_schema = common_schema.remove(index)
+
+            # check if we have an integer to float challenge and enable later casting
+            elif pa.types.is_integer(field.type) and pa.types.is_floating(
+                schema.field(field.name).type
+            ):
+                common_schema = common_schema.set(index, field.with_type(pa.float64()))
+
+    if len(list(common_schema.names)) == 0:
+        raise SchemaException(
+            (
+                "No common schema basis to perform concatenation for record group."
+                " All columns mismatch one another within the group."
+            )
+        )
+
+    # return a python-native list of tuples with column names and str types
+    return list(
+        zip(
+            common_schema.names,
+            [str(schema_type) for schema_type in common_schema.types],
+        )
+    )
+
+
 @flow
 def to_parquet(  # pylint: disable=too-many-arguments
     source_path: str,
@@ -672,14 +687,17 @@ def to_parquet(  # pylint: disable=too-many-arguments
             unique_name=unmapped(len(renamed_record_group) >= 2),
         )
 
+        if (concat or merge) and infer_common_schema:
+            common_schema = infer_record_group_common_schema(record_group=record_group)
+
         # if concat or merge, concat the record groups
         # note: merge implies a concat, but concat does not imply a merge
-        if concat or merge:
+        if concat:
             # build a new concatenated record group
             results[record_group_name] = concat_record_group.submit(
                 record_group=results[record_group_name],
                 dest_path=dest_path,
-                infer_common_schema=infer_common_schema,
+                common_schema=common_schema,
             )
 
     # conditional section for merging

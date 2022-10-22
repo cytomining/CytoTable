@@ -19,6 +19,7 @@ from pycytominer_transform import (  # pylint: disable=R0801
     convert,
     get_merge_chunks,
     get_source_filepaths,
+    infer_record_group_common_schema,
     infer_source_datatype,
     merge_record_chunk,
     prepend_column_name,
@@ -153,6 +154,7 @@ def test_concat_record_group(
     result = concat_record_group.fn(
         record_group=example_local_records["animal_legs.csv"],
         dest_path=get_tempdir,
+        common_schema=table_b.schema,
     )
     assert len(result) == 1
     assert parquet.read_schema(result[0]["destination_path"]) == concat_table.schema
@@ -209,7 +211,7 @@ def test_get_merge_chunks(get_tempdir: str):
 
     result = get_merge_chunks.fn(
         records={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
-        merge_columns=["id1", "id2"],
+        merge_columns_compartments=["id1", "id2"],
         merge_chunk_size=2,
     )
 
@@ -499,6 +501,22 @@ def test_convert_s3_path(
         )
         assert parquet_result.schema.equals(parquet_control.schema)
         assert parquet_result.shape == parquet_control.shape
+
+
+def test_infer_record_group_common_schema(
+    example_local_records: Dict[str, List[Dict[str, Any]]],
+    example_tables: Tuple[pa.Table, pa.Table, pa.Table],
+):
+    """
+    Tests infer_record_group_common_schema
+    """
+    _, table_b, _ = example_tables
+
+    result = infer_record_group_common_schema.fn(
+        record_group=example_local_records["animal_legs.csv"],
+    )
+
+    assert table_b.schema.equals(pa.schema(result))
 
 
 def test_convert_cellprofiler_csv(

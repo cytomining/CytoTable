@@ -14,6 +14,7 @@ from .convert import (
     gather_records,
     get_merge_chunks,
     get_source_filepaths,
+    infer_record_group_common_schema,
     infer_source_datatype,
     merge_record_chunk,
     prepend_column_name,
