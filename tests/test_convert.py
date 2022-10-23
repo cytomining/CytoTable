@@ -266,6 +266,7 @@ def test_merge_record_chunk(get_tempdir: str):
         dest_path=f"{get_tempdir}/destination.parquet",
         merge_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
         merge_columns=["id1", "id2"],
+        common_schema=[("id1", "int64"), ("id2", "string")],
     )
 
     assert isinstance(result, str)

@@ -404,6 +404,7 @@ def write_parquet(
 @task
 def get_merge_chunks(
     records: Dict[str, List[Dict[str, Any]]],
+    metadata: Union[List[str], Tuple[str, ...]],
     merge_columns_compartments: Union[List[str], Tuple[str, ...]],
     merge_chunk_size: int,
 ) -> List[List[Dict[str, Any]]]:
@@ -423,7 +424,12 @@ def get_merge_chunks(
     """
 
     # fetch the first concat result as the basis for merge groups
-    first_result = next(iter(records.values()))
+    for record in records.values():
+        if pathlib.Path(record[0]["destination_path"]).stem.lower() not in [
+            name.lower() for name in metadata
+        ]:
+            first_result = record
+            break
 
     # gather the workflow result for basis if it's not yet returned
     basis = (
@@ -448,7 +454,10 @@ def get_merge_chunks(
 def merge_record_chunk(
     records: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
-    merge_columns: Union[List[str], Tuple[str, ...]],
+    compartments: Union[List[str], Tuple[str, ...]],
+    metadata: Union[List[str], Tuple[str, ...]],
+    merge_columns_compartments: Union[List[str], Tuple[str, ...]],
+    merge_columns_metadata: Union[List[str], Tuple[str, ...]],
     merge_group: List[Dict[str, Any]],
 ) -> str:
     """
@@ -458,34 +467,60 @@ def merge_record_chunk(
     # form filters variable for use in pyarrow.parquet.read_table
     # see the following for more details on the filters argument expectations:
     # https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html
-    filters = [
+    compartment_filters = [
         [
             # create groups of merge column filters where values always
             # are expected to equal those within the merge_group together
             [merge_column, "=", merge_column_value]
             for merge_column, merge_column_value in chunk.items()
+            if merge_column in merge_columns_compartments
+        ]
+        for chunk in merge_group
+    ]
+    metadata_filters = [
+        [
+            # create groups of merge column filters where values always
+            # are expected to equal those within the merge_group together
+            [merge_column, "=", merge_column_value]
+            for merge_column, merge_column_value in chunk.items()
+            if merge_column in merge_columns_metadata
         ]
         for chunk in merge_group
     ]
 
-    # variable to hold result
     records_flat = list(itertools.chain(*list(records.values())))
 
     # spur the result using the first record bas a basis for the loop below
     result = parquet.read_table(
-        source=records_flat[0]["destination_path"], filters=filters
+        source=records_flat[0]["destination_path"],
+        filters=(
+            compartment_filters
+            if AnyPath(records_flat[0]["destination_path"]).stem.lower()
+            in [compartment.lower() for compartment in compartments]
+            else metadata_filters
+        ),
     )
 
     # begin looping through the other records after the first
     for record in records_flat[1:]:
         # join the record to the result
+        is_compartment = (
+            True
+            if AnyPath(record["destination_path"]).stem.lower()
+            in [compartment.lower() for compartment in compartments]
+            else False
+        )
         result.join(
             right_table=parquet.read_table(
-                source=record["destination_path"], filters=filters
+                source=record["destination_path"],
+                filters=(compartment_filters if is_compartment else metadata_filters),
             ),
-            keys=merge_columns,
+            # determine the keys to join by using the compartment or metadata names
+            keys=(
+                merge_columns_compartments if is_compartment else merge_columns_metadata
+            ),
             # use right outer join to expand the dataset as needed
-            join_type="right outer",
+            join_type=("inner" if is_compartment else "right outer"),
         )
 
     result_file_path = (
@@ -687,12 +722,14 @@ def to_parquet(  # pylint: disable=too-many-arguments
             unique_name=unmapped(len(renamed_record_group) >= 2),
         )
 
-        if (concat or merge) and infer_common_schema:
-            common_schema = infer_record_group_common_schema(record_group=record_group)
+        if concat and infer_common_schema:
+            common_schema = infer_record_group_common_schema(
+                record_group=results[record_group_name]
+            )
 
         # if concat or merge, concat the record groups
         # note: merge implies a concat, but concat does not imply a merge
-        if concat:
+        if concat or merge:
             # build a new concatenated record group
             results[record_group_name] = concat_record_group.submit(
                 record_group=results[record_group_name],
@@ -716,12 +753,16 @@ def to_parquet(  # pylint: disable=too-many-arguments
                 }
             ),
             dest_path=unmapped(dest_path),
+            compartments=unmapped(compartments),
+            metadata=unmapped(metadata),
             merge_columns_compartments=unmapped(merge_columns_compartments),
+            merge_columns_metadata=unmapped(merge_columns_metadata),
             # get merging chunks by merge columns
             merge_group=get_merge_chunks(
                 records=results,
                 merge_columns_compartments=merge_columns_compartments,
                 merge_chunk_size=merge_chunk_size,
+                metadata=metadata,
             ),
         )
 
