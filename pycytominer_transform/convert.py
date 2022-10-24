@@ -423,7 +423,7 @@ def get_merge_chunks(
         A list of lists with at most chunk size length that contain merge keys
     """
 
-    # fetch the first concat result as the basis for merge groups
+    # fetch the compartment concat result as the basis for merge groups
     for record in records.values():
         if pathlib.Path(record[0]["destination_path"]).stem.lower() not in [
             name.lower() for name in metadata
@@ -490,38 +490,46 @@ def merge_record_chunk(
 
     records_flat = list(itertools.chain(*list(records.values())))
 
-    # spur the result using the first record bas a basis for the loop below
-    result = parquet.read_table(
-        source=records_flat[0]["destination_path"],
-        filters=(
-            compartment_filters
-            if AnyPath(records_flat[0]["destination_path"]).stem.lower()
-            in [compartment.lower() for compartment in compartments]
-            else metadata_filters
-        ),
-    )
-
     # begin looping through the other records after the first
-    for record in records_flat[1:]:
-        # join the record to the result
+    for index, record in enumerate(records_flat):
+        # determine whether we're working with an incoming compartment or metadata
         is_compartment = (
             True
-            if AnyPath(record["destination_path"]).stem.lower()
-            in [compartment.lower() for compartment in compartments]
+            if any(
+                [
+                    compartment.lower()
+                    in AnyPath(record["destination_path"]).stem.lower()
+                    for compartment in compartments
+                ]
+            )
             else False
         )
-        result.join(
-            right_table=parquet.read_table(
-                source=record["destination_path"],
+
+        if index == 0:
+            # spur the result using the first record bas a basis for the loop below
+            result = parquet.read_table(
+                source=records_flat[0]["destination_path"],
                 filters=(compartment_filters if is_compartment else metadata_filters),
-            ),
-            # determine the keys to join by using the compartment or metadata names
-            keys=(
-                merge_columns_compartments if is_compartment else merge_columns_metadata
-            ),
-            # use right outer join to expand the dataset as needed
-            join_type=("inner" if is_compartment else "right outer"),
-        )
+            )
+
+        else:
+            # join the record to the result
+            result = result.join(
+                right_table=parquet.read_table(
+                    source=record["destination_path"],
+                    filters=(
+                        compartment_filters if is_compartment else metadata_filters
+                    ),
+                ),
+                # determine the keys to join by using the compartment or metadata names
+                keys=(
+                    merge_columns_compartments
+                    if is_compartment
+                    else merge_columns_metadata
+                ),
+                # use right outer join to expand the dataset as needed
+                join_type="full outer",
+            )
 
     result_file_path = (
         # store the result in the parent of the dest_path
