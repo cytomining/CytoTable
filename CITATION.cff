@@ -1,0 +1,61 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+---
+cff-version: 1.2.0
+title: pycytominer-transform
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: David
+    family-names: Bunten
+    orcid: 'https://orcid.org/0000-0001-6041-3665'
+  - given-names: Gregory
+    family-names: Way
+    orcid: 'https://orcid.org/0000-0002-0503-9348'
+  - given-names: Faisal
+    family-names: Alquaddoomi
+    orcid: 'https://orcid.org/0000-0003-4297-8747'
+repository-code: 'https://github.com/cytomining/pycytominer-transform'
+url: 'https://cytomining.github.io/pycytominer-transform/'
+abstract: >-
+  Transform data for processing image-based profiling
+  readouts with Pycytominer.
+keywords:
+  - microscopy
+  - profiling
+  - data
+  - data-engineering
+  - pycytominer
+  - way-lab
+license: BSD-3-Clause
+references:
+  - authors:
+      - name: "cytominer-database Development Team"
+    date-accessed: "2022-10-27"
+    title: cytominer-database
+    type: software
+    repository-code: "https://github.com/cytomining/cytominer-database"
+    scope: "tests/"
+    notes: >-
+      cytominer-database testing data is used to help validate expected results
+    identifiers:
+      - description: "CITATION.cff"
+        type: url
+        value: "https://github.com/cytomining/cytominer-database/blob/master/CITATION.cff"
+  - authors:
+      - name: "CellProfiler ExampleHuman Data Team"
+    date-accessed: "2022-09-01"
+    title: CellProfiler
+    type: data
+    repository-code: "https://github.com/CellProfiler/examples/tree/master/ExampleHuman"
+    url: "https://cellprofiler.org/examples"
+    scope: "ExampleHuman"
+    notes: >-
+      CellProfiler ExampleHuman data is used to help validate expected results
+      for pycytominer-transform.
+    identifiers:
+      - description: "README.md with Citation Information"
+        type: url
+        value: "https://github.com/CellProfiler/examples/blob/master/ExampleHuman/README.md"

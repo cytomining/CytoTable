@@ -144,7 +144,7 @@ dagger.#Plan & {
 		filesystem: {
 			"./": read: contents:             dagger.#FS
 			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
-			"./docs/build": write: contents: actions.docs.sphinx.export.directories."/workdir/docs/build"
+			"./docs/build": write: contents:  actions.docs.sphinx.export.directories."/workdir/docs/build"
 			"./htmlcov": write: contents:     actions.coverage.coverage.export.directories."/workdir/htmlcov"
 
 			"./tests/data/cellprofiler": write: contents: actions.gather_data.cellprofiler.export.export.directories."/usr/local/src/output"
@@ -252,14 +252,13 @@ dagger.#Plan & {
 		docs: {
 			// check that we don't have sphinx build errors
 			sphinx: docker.#Run & {
-				input: _python_build.output
+				input:   _python_build.output
 				workdir: "/workdir"
 				command: {
 					name: "poetry"
-					args: ["run" ,"sphinx-build" ,"/workdir/docs/source" ,"/workdir/docs/build"]
+					args: ["run", "sphinx-build", "/workdir/docs/source", "/workdir/docs/build"]
 				}
 				export: directories: "/workdir/docs/build": _
-
 			}
 		}
 
@@ -275,11 +274,11 @@ dagger.#Plan & {
 			}
 			// check that we don't have sphinx build errors
 			sphinx: docker.#Run & {
-				input: _python_build.output
+				input:   _python_build.output
 				workdir: "/workdir"
 				command: {
 					name: "poetry"
-					args: ["run" ,"sphinx-build" ,"/workdir/docs/source" ,"/tmp/doctest" ,"-W"]
+					args: ["run", "sphinx-build", "/workdir/docs/source", "/tmp/doctest", "-W"]
 				}
 			}
 			// run pytest
@@ -288,6 +287,15 @@ dagger.#Plan & {
 				command: {
 					name: "poetry"
 					args: ["run", "pytest"]
+				}
+			}
+			// check CITATION.cff for proper format
+			citation: docker.#Run & {
+				input:   _python_build.output
+				workdir: "/workdir"
+				command: {
+					name: "poetry"
+					args: ["run", "cffconvert", "--validate"]
 				}
 			}
 		}
