@@ -8,7 +8,7 @@ packages = [{include = "pycytominer_transform"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pyarrow = "^9.0.0"
+pyarrow = "^8.0.0"
 prefect = "^2.3.2"
 griffe = "0.21.0"
 cloudpathlib = {extras = ["all"], version = "^0.10.0"}
@@ -24,6 +24,9 @@ prefect-dask = "^0.2.0.post1"
 bokeh = "^2.4.3"
 moto = {extras = ["s3", "server"], version = "^4.0.7"}
 cffconvert = "^2.0.0"
+cytominer-database = "^0.3.4"
+pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "e43be52" }
+
 
 [build-system]
 requires = ["poetry-core"]
