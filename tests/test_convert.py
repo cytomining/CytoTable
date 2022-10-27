@@ -14,14 +14,14 @@ from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
 from pycytominer_transform import (  # pylint: disable=R0801
-    concat_merge_records,
+    concat_join_records,
     concat_record_group,
     convert,
-    get_merge_chunks,
+    get_join_chunks,
     get_source_filepaths,
     infer_record_group_common_schema,
     infer_source_datatype,
-    merge_record_chunk,
+    join_record_chunk,
     prepend_column_name,
     read_file,
     to_parquet,
@@ -124,7 +124,7 @@ def test_prepend_column_name():
     result = prepend_column_name.fn(
         record={"table": test_table},
         record_group_name="Compartment.csv",
-        merge_columns=["id1", "id2"],
+        identifying_columns=["id1", "id2"],
     )
 
     assert result["table"].column_names == [
@@ -188,9 +188,9 @@ def test_concat_record_group(
         )
 
 
-def test_get_merge_chunks(get_tempdir: str):
+def test_get_join_chunks(get_tempdir: str):
     """
-    Tests get_merge_chunks
+    Tests get_join_chunks
     """
 
     # form test path
@@ -209,10 +209,11 @@ def test_get_merge_chunks(get_tempdir: str):
         where=test_path,
     )
 
-    result = get_merge_chunks.fn(
+    result = get_join_chunks.fn(
         records={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
-        merge_columns_compartments=["id1", "id2"],
-        merge_chunk_size=2,
+        metadata=["merge_chunks_test"],
+        chunk_columns=["id1", "id2"],
+        chunk_size=2,
     )
 
     # test that we have 3 chunks of merge columns
@@ -225,9 +226,9 @@ def test_get_merge_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test_merge_record_chunk(get_tempdir: str):
+def test_join_record_chunk(get_tempdir: str):
     """
-    Tests get_merge_chunks
+    Tests get_join_chunks
     """
 
     # form test path a
@@ -258,15 +259,22 @@ def test_merge_record_chunk(get_tempdir: str):
         where=test_path_b,
     )
 
-    result = merge_record_chunk.fn(
+    result = join_record_chunk.fn(
         records={
             "example_a": [{"destination_path": test_path_a}],
             "example_b": [{"destination_path": test_path_b}],
         },
         dest_path=f"{get_tempdir}/destination.parquet",
-        merge_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
-        merge_columns=["id1", "id2"],
-        common_schema=[("id1", "int64"), ("id2", "string")],
+        joins=[
+            {
+                "left": "example_a",
+                "left_columns": ["id1", "id2"],
+                "right": "example_b",
+                "right_columns": ["id1", "id2"],
+                "how": "full outer",
+            }
+        ],
+        join_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
     )
 
     assert isinstance(result, str)
@@ -285,19 +293,19 @@ def test_merge_record_chunk(get_tempdir: str):
     )
 
 
-def test_concat_merge_records(get_tempdir: str):
+def test_concat_join_records(get_tempdir: str):
     """
-    Tests concat_merge_records
+    Tests concat_join_records
     """
 
     # create a test dir
-    pathlib.Path(f"{get_tempdir}/concat_merge/").mkdir(exist_ok=True)
+    pathlib.Path(f"{get_tempdir}/concat_join/").mkdir(exist_ok=True)
 
     # form test paths
-    test_path_a = f"{get_tempdir}/concat_merge/merge_chunks_test_a.parquet"
-    test_path_b = f"{get_tempdir}/concat_merge/merge_chunks_test_b.parquet"
-    test_path_a_merge_chunk = f"{get_tempdir}/merge_chunks_test_a.parquet"
-    test_path_b_merge_chunk = f"{get_tempdir}/merge_chunks_test_b.parquet"
+    test_path_a = f"{get_tempdir}/concat_join/join_chunks_test_a.parquet"
+    test_path_b = f"{get_tempdir}/concat_join/join_chunks_test_b.parquet"
+    test_path_a_join_chunk = f"{get_tempdir}/join_chunks_test_a.parquet"
+    test_path_b_join_chunk = f"{get_tempdir}/join_chunks_test_b.parquet"
 
     # form test data
     test_table_a = pa.Table.from_pydict(
@@ -344,21 +352,21 @@ def test_concat_merge_records(get_tempdir: str):
     )
 
     # copy the files for testing purposes
-    copy(test_path_a, test_path_a_merge_chunk)
-    copy(test_path_b, test_path_b_merge_chunk)
+    copy(test_path_a, test_path_a_join_chunk)
+    copy(test_path_b, test_path_b_join_chunk)
 
-    result = concat_merge_records.fn(
-        dest_path=f"{get_tempdir}/example_concat_merge.parquet",
-        merge_records=[test_path_a_merge_chunk, test_path_b_merge_chunk],
+    result = concat_join_records.fn(
+        dest_path=f"{get_tempdir}/example_concat_join.parquet",
+        join_records=[test_path_a_join_chunk, test_path_b_join_chunk],
         records={
-            "merge_chunks_test_a.parquet": [{"destination_path": test_path_a}],
-            "merge_chunks_test_b.parquet": [{"destination_path": test_path_b}],
+            "join_chunks_test_a.parquet": [{"destination_path": test_path_a}],
+            "join_chunks_test_b.parquet": [{"destination_path": test_path_b}],
         },
     )
 
     # ensure the concatted result is what we expect
     assert parquet.read_table(
-        source=result["example_concat_merge.parquet"][0]["destination_path"]
+        source=result["example_concat_join.parquet"][0]["destination_path"]
     ).equals(pa.concat_tables(tables=[test_table_a, test_table_b]))
 
     # ensure the test paths provided via records were removed (unlinked)
@@ -443,11 +451,12 @@ def test_to_parquet(
         source_datatype=None,
         compartments=["animal_legs", "colors"],
         metadata=[],
+        identifying_columns=["animals"],
         concat=False,
-        merge=False,
-        merge_columns_compartments=None,
-        merge_columns_metadata=None,
-        merge_chunk_size=None,
+        join=False,
+        joins=None,
+        chunk_columns=None,
+        chunk_size=None,
         infer_common_schema=False,
     )
 
@@ -473,7 +482,7 @@ def test_convert_s3_path(
         dest_path=f"{get_tempdir}/s3_test",
         dest_datatype="parquet",
         concat=False,
-        merge=False,
+        join=False,
         source_datatype="csv",
         # override default compartments for those which were uploaded to mock instance
         compartments=["animal_legs", "colors"],

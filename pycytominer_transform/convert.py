@@ -20,11 +20,46 @@ from pycytominer_transform.exceptions import (
     SchemaException,
 )
 
+# names of source table compartments (for ex. cells.csv, etc.)
 DEFAULT_NAMES_COMPARTMENTS = ("cells", "nuclei", "cytoplasm")
+# names of source table metadata (for ex. image.csv, etc.)
 DEFAULT_NAMES_METADATA = ("image",)
-DEFAULT_MERGE_COLUMNS_COMPARTMENTS = ("ImageNumber", "ObjectNumber")
-DEFAULT_MERGE_COLUMNS_METADATA = ("ImageNumber",)
-DEFAULT_MERGE_CHUNK_SIZE = 1000
+# column names in any compartment or metadata tables which contain
+# unique names to avoid renaming
+DEFAULT_IDENTIFYING_COLUMNS = ("ImageNumber", "ObjectNumber")
+# chunk size to use for join operations to help with possible performance issues
+# note: this number is an estimate and is may need changes contingent on data
+# and system used by this library.
+DEFAULT_CHUNK_SIZE = 1000
+# chunking columns to use along with chunk size for join operations
+DEFAULT_CHUNK_COLUMNS = ("ImageNumber",)
+# compartment and metadata joins performed in this order
+# note: first join takes place arbitrarily and requires compartment or metadata
+# name specification. For all but the first join we use "result" as a reference
+# to the previously joined data, building upon each join sequentially in this list.
+DEFAULT_JOINS = (
+    {
+        "left": "cytoplasm",
+        "left_columns": ["ImageNumber", "Cytoplasm_Parent_Cells"],
+        "right": "cells",
+        "right_columns": ["ImageNumber", "ObjectNumber"],
+        "how": "full outer",
+    },
+    {
+        "left": "result",
+        "left_columns": ["ImageNumber", "Cytoplasm_Parent_Nuclei"],
+        "right": "nuclei",
+        "right_columns": ["ImageNumber", "ObjectNumber"],
+        "how": "full outer",
+    },
+    {
+        "left": "result",
+        "left_columns": ["ImageNumber"],
+        "right": "image",
+        "right_columns": ["ImageNumber"],
+        "how": "left outer",
+    },
+)
 
 
 @task
@@ -69,8 +104,7 @@ def get_source_filepaths(
         if file.is_file()
         and (
             targets is None
-            or str(file.stem).lower()
-            in [compartment.lower() for compartment in targets]
+            or str(file.stem).lower() in [target.lower() for target in targets]
         )
     ]
 
@@ -80,7 +114,7 @@ def get_source_filepaths(
 
     grouped_records = {}
 
-    # group files together by similar filename for potential concatenation later
+    # group files together by similar filename for later data operations
     for unique_source in set(source["source_path"].name for source in records):
         grouped_records[unique_source] = [
             source for source in records if source["source_path"].name == unique_source
@@ -242,7 +276,7 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
 def prepend_column_name(
     record: Dict[str, Any],
     record_group_name: str,
-    merge_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    identifying_columns: Union[List[str], Tuple[str, ...]],
 ) -> Dict[str, Any]:
     """
     Rename columns using the record group name
@@ -251,7 +285,7 @@ def prepend_column_name(
     record["table"] = record["table"].rename_columns(
         [
             f"{str(pathlib.Path(record_group_name).stem)}_{column_name}"
-            if merge_columns and column_name not in merge_columns
+            if column_name not in identifying_columns
             else column_name
             for column_name in record["table"].column_names
         ]
@@ -402,32 +436,29 @@ def write_parquet(
 
 
 @task
-def get_merge_chunks(
+def get_join_chunks(
     records: Dict[str, List[Dict[str, Any]]],
     metadata: Union[List[str], Tuple[str, ...]],
-    merge_columns_compartments: Union[List[str], Tuple[str, ...]],
-    merge_chunk_size: int,
+    chunk_columns: Union[List[str], Tuple[str, ...]],
+    chunk_size: int,
 ) -> List[List[Dict[str, Any]]]:
     """
-    Reads first record as reference for building merge chunks by merge_columns
-
+    Reads first record as reference for building join chunks by chunk_columns
     records: Dict[List[Dict[str, Any]]]:
       Grouped datasets of files which will be used by other functions.
-    merge_columns: Union[List[str], Tuple[str, ...]]:
-      Columns to use to form merge chunk result
-    merge_chunk_size: int:
-      Size of chunks to use for merge chunk result
+    join_columns: Union[List[str], Tuple[str, ...]]:
+      Columns to use to form join chunk result
+    join_chunk_size: int:
+      Size of chunks to use for join chunk result
 
     Returns:
       List[List[Dict[str, Any]]]]:
-        A list of lists with at most chunk size length that contain merge keys
+        A list of lists with at most chunk size length that contain join keys
     """
 
-    # fetch the compartment concat result as the basis for merge groups
-    for record in records.values():
-        if pathlib.Path(record[0]["destination_path"]).stem.lower() not in [
-            name.lower() for name in metadata
-        ]:
+    # fetch the compartment concat result as the basis for join groups
+    for key, record in records.items():
+        if pathlib.Path(key).stem.lower() in [name.lower() for name in metadata]:
             first_result = record
             break
 
@@ -438,105 +469,73 @@ def get_merge_chunks(
         else first_result
     )
 
-    # read only the table's merge_columns
-    merge_column_rows = parquet.read_table(
-        source=basis[0]["destination_path"], columns=merge_columns_compartments
+    # read only the table's chunk_columns
+    join_column_rows = parquet.read_table(
+        source=basis[0]["destination_path"], columns=chunk_columns
     ).to_pylist()
 
-    # build and return the chunked merge column rows
+    # build and return the chunked join column rows
     return [
-        merge_column_rows[i : i + merge_chunk_size]
-        for i in range(0, len(merge_column_rows), merge_chunk_size)
+        join_column_rows[i : i + chunk_size]
+        for i in range(0, len(join_column_rows), chunk_size)
     ]
 
 
 @task
-def merge_record_chunk(
+def join_record_chunk(
     records: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
-    compartments: Union[List[str], Tuple[str, ...]],
-    metadata: Union[List[str], Tuple[str, ...]],
-    merge_columns_compartments: Union[List[str], Tuple[str, ...]],
-    merge_columns_metadata: Union[List[str], Tuple[str, ...]],
-    merge_group: List[Dict[str, Any]],
+    joins: Union[
+        List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]
+    ],
+    join_group: List[Dict[str, Any]],
 ) -> str:
     """
-    Merge records based on merge group keys (group of specific merge column values)
+    Join records based on join group keys (group of specific join column values)
     """
 
     # form filters variable for use in pyarrow.parquet.read_table
     # see the following for more details on the filters argument expectations:
     # https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html
-    compartment_filters = [
+    filters = [
         [
-            # create groups of merge column filters where values always
-            # are expected to equal those within the merge_group together
-            [merge_column, "=", merge_column_value]
-            for merge_column, merge_column_value in chunk.items()
-            if merge_column in merge_columns_compartments
+            # create groups of join column filters where values always
+            # are expected to equal those within the join_group together
+            [join_column, "=", join_column_value]
+            for join_column, join_column_value in chunk.items()
         ]
-        for chunk in merge_group
-    ]
-    metadata_filters = [
-        [
-            # create groups of merge column filters where values always
-            # are expected to equal those within the merge_group together
-            [merge_column, "=", merge_column_value]
-            for merge_column, merge_column_value in chunk.items()
-            if merge_column in merge_columns_metadata
-        ]
-        for chunk in merge_group
+        for chunk in join_group
     ]
 
-    records_flat = list(itertools.chain(*list(records.values())))
+    # transform record data to enable join operations below
+    records = {key.split(".")[0].lower(): val for key, val in records.items()}
 
-    # begin looping through the other records after the first
-    for index, record in enumerate(records_flat):
-        # determine whether we're working with an incoming compartment or metadata
-        is_compartment = (
-            True
-            if any(
-                [
-                    compartment.lower()
-                    in AnyPath(record["destination_path"]).stem.lower()
-                    for compartment in compartments
-                ]
-            )
-            else False
-        )
-
+    # perform compartment joins
+    for index, join in enumerate(joins):
         if index == 0:
-            # spur the result using the first record bas a basis for the loop below
+            # spur the result using the first record bas a basis for the operations below
             result = parquet.read_table(
-                source=records_flat[0]["destination_path"],
-                filters=(compartment_filters if is_compartment else metadata_filters),
+                source=records[join["left"]][0]["destination_path"],
+                filters=filters,
             )
 
-        else:
-            # join the record to the result
-            result = result.join(
-                right_table=parquet.read_table(
-                    source=record["destination_path"],
-                    filters=(
-                        compartment_filters if is_compartment else metadata_filters
-                    ),
-                ),
-                # determine the keys to join by using the compartment or metadata names
-                keys=(
-                    merge_columns_compartments
-                    if is_compartment
-                    else merge_columns_metadata
-                ),
-                # use right outer join to expand the dataset as needed
-                join_type="full outer",
-            )
+        # join the record to the result
+        result = result.join(
+            right_table=parquet.read_table(
+                source=records[join["right"]][0]["destination_path"],
+                filters=filters,
+            ),
+            keys=join["left_columns"],
+            right_keys=join["right_columns"],
+            join_type=join["how"],
+        )
 
     result_file_path = (
         # store the result in the parent of the dest_path
         f"{str(pathlib.Path(dest_path).parent)}/"
         # use the dest_path stem in the name
         f"{str(pathlib.Path(dest_path).stem)}-"
-        # give the merge chunk result a unique to arbitrarily
+        # give the join chunk result a unique to arbitrarily
         # differentiate from other chunk groups which are mapped
         # and before they are brought together as one dataset
         f"{str(uuid.uuid4().hex)}.parquet"
@@ -552,15 +551,15 @@ def merge_record_chunk(
 
 
 @task
-def concat_merge_records(
-    dest_path: str, merge_records: List[str], records: Dict[str, List[Dict[str, Any]]]
+def concat_join_records(
+    dest_path: str, join_records: List[str], records: Dict[str, List[Dict[str, Any]]]
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Concatenate merge records from parquet-based chunks.
+    Concatenate join records from parquet-based chunks.
     """
 
-    # remove the unmerged concatted compartments to prepare final dest_path usage
-    # (we now have merged results)
+    # remove the unjoined concatted compartments to prepare final dest_path usage
+    # (we now have joined results)
     flattened_records = list(itertools.chain(*list(records.values())))
     for record in flattened_records:
         pathlib.Path(record["destination_path"]).unlink(missing_ok=True)
@@ -575,13 +574,13 @@ def concat_merge_records(
     # write the concatted result as a parquet file
     parquet.write_table(
         table=pa.concat_tables(
-            tables=[parquet.read_table(table_path) for table_path in merge_records]
+            tables=[parquet.read_table(table_path) for table_path in join_records]
         ),
         where=dest_path,
     )
 
-    # remove merge chunks as we have the final result
-    for table_path in merge_records:
+    # remove join chunks as we have the final result
+    for table_path in join_records:
         pathlib.Path(table_path).unlink()
 
     # return modified records format to indicate the final result
@@ -646,17 +645,20 @@ def infer_record_group_common_schema(record_group: List[Dict[str, Any]]):
 
 
 @flow
-def to_parquet(  # pylint: disable=too-many-arguments
+def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
     source_datatype: Optional[str],
     compartments: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
+    identifying_columns: Union[List[str], Tuple[str, ...]],
     concat: bool,
-    merge: bool,
-    merge_columns_compartments: Optional[Union[List[str], Tuple[str, ...]]],
-    merge_columns_metadata: Optional[Union[List[str], Tuple[str, ...]]],
-    merge_chunk_size: Optional[int],
+    join: bool,
+    joins: Optional[
+        Union[List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]]
+    ],
+    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
+    chunk_size: Optional[int],
     infer_common_schema: bool,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -676,12 +678,12 @@ def to_parquet(  # pylint: disable=too-many-arguments
         Compartment names to use for conversion.
       concat: bool:
         Whether to concatenate similar files together.
-      merge: bool:
-        Whether to merge the compartment data together into one dataset
-      merge_columns: Optional[Union[List[str], Tuple[str, ...]]],
-        Column names which appear in all compartments to use when performing merge
-      merge_chunk_size: Optional[int],
-        Size of merge chunks which is used to limit data size during merge ops
+      join: bool:
+        Whether to join the compartment data together into one dataset
+      chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
+        Column names which appear in all compartments to use when performing join
+      chunk_size: Optional[int],
+        Size of join chunks which is used to limit data size during join ops
       infer_common_schema: bool:  (Default value = True)
         Whether to infer a common schema when concatenating records.
 
@@ -712,13 +714,7 @@ def to_parquet(  # pylint: disable=too-many-arguments
         renamed_record_group = prepend_column_name.map(
             record=record_group,
             record_group_name=unmapped(record_group_name),
-            merge_columns=unmapped(
-                list(merge_columns_compartments)
-                if merge_columns_compartments is not None
-                else [] + list(merge_columns_metadata)
-                if merge_columns_metadata is not None
-                else []
-            ),
+            identifying_columns=unmapped(identifying_columns),
         )
 
         # map for writing parquet files with list of files via records
@@ -735,9 +731,9 @@ def to_parquet(  # pylint: disable=too-many-arguments
                 record_group=results[record_group_name]
             )
 
-        # if concat or merge, concat the record groups
-        # note: merge implies a concat, but concat does not imply a merge
-        if concat or merge:
+        # if concat or join, concat the record groups
+        # note: join implies a concat, but concat does not imply a join
+        if concat or join:
             # build a new concatenated record group
             results[record_group_name] = concat_record_group.submit(
                 record_group=results[record_group_name],
@@ -746,13 +742,13 @@ def to_parquet(  # pylint: disable=too-many-arguments
             )
 
     # conditional section for merging
-    # note: merge implies a concat, but concat does not imply a merge
-    if merge:
-        # map merged results based on the merge groups gathered above
+    # note: join implies a concat, but concat does not imply a join
+    if join:
+        # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
-        merge_records_result = merge_record_chunk.map(
+        join_records_result = join_record_chunk.map(
             # gather the result of concatted records prior to
-            # merge group merging as each mapped task run will need
+            # join group merging as each mapped task run will need
             # full concat results
             records=unmapped(
                 {
@@ -761,28 +757,25 @@ def to_parquet(  # pylint: disable=too-many-arguments
                 }
             ),
             dest_path=unmapped(dest_path),
-            compartments=unmapped(compartments),
-            metadata=unmapped(metadata),
-            merge_columns_compartments=unmapped(merge_columns_compartments),
-            merge_columns_metadata=unmapped(merge_columns_metadata),
-            # get merging chunks by merge columns
-            merge_group=get_merge_chunks(
+            joins=unmapped(joins),
+            # get merging chunks by join columns
+            join_group=get_join_chunks(
                 records=results,
-                merge_columns_compartments=merge_columns_compartments,
-                merge_chunk_size=merge_chunk_size,
+                chunk_columns=chunk_columns,
+                chunk_size=chunk_size,
                 metadata=metadata,
             ),
         )
 
-        # concat our merge chunks together as one cohesive dataset
+        # concat our join chunks together as one cohesive dataset
         # return results in common format which includes metadata
         # for lineage and debugging
-        results = concat_merge_records(
+        results = concat_join_records(
             dest_path=dest_path,
-            merge_records=(
-                merge_records_result.result()
-                if isinstance(merge_records_result, PrefectFuture)
-                else merge_records_result
+            join_records=(
+                join_records_result.result()
+                if isinstance(join_records_result, PrefectFuture)
+                else join_records_result
             ),
             records=results,
         )
@@ -802,22 +795,23 @@ def to_parquet(  # pylint: disable=too-many-arguments
     }
 
 
-def convert(  # pylint: disable=too-many-arguments
+def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
     compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_COMPARTMENTS,
     metadata: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_METADATA,
+    identifying_columns: Union[
+        List[str], Tuple[str, ...]
+    ] = DEFAULT_IDENTIFYING_COLUMNS,
     concat: bool = True,
-    merge: bool = True,
-    merge_columns_compartments: Optional[
-        Union[List[str], Tuple[str, ...]]
-    ] = DEFAULT_MERGE_COLUMNS_COMPARTMENTS,
-    merge_columns_metadata: Optional[
-        Union[List[str], Tuple[str, ...]]
-    ] = DEFAULT_MERGE_COLUMNS_METADATA,
-    merge_chunk_size: Optional[int] = DEFAULT_MERGE_CHUNK_SIZE,
+    join: bool = True,
+    joins: Optional[
+        Union[List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]]
+    ] = DEFAULT_JOINS,
+    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = DEFAULT_CHUNK_COLUMNS,
+    chunk_size: Optional[int] = DEFAULT_CHUNK_SIZE,
     infer_common_schema: bool = True,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
     **kwargs,
@@ -844,13 +838,13 @@ def convert(  # pylint: disable=too-many-arguments
         Compartment names to use for conversion.
       concat: bool:  (Default value = True)
         Whether to concatenate similar files together.
-      merge: bool:  (Default value = True)
-        Whether to merge the compartment data together into one dataset
-      merge_columns: Optional[Union[List[str], Tuple[str, ...]]]
-        (Default value = DEFAULT_MERGE_COLUMNS)
-        Column names which appear in all compartments to use when performing merge
-      merge_chunk_size: Optional[int] (Default value = DEFAULT_MERGE_CHUNK_SIZE)
-        Size of merge chunks which is used to limit data size during merge ops
+      join: bool:  (Default value = True)
+        Whether to join the compartment data together into one dataset
+      chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
+        (Default value = DEFAULT_CHUNK_COLUMNS)
+        Column names which appear in all compartments to use when performing join
+      chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
+        Size of join chunks which is used to limit data size during join ops
       infer_common_schema: bool (Default value = True)
         Whether to infer a common schema when concatenating records.
       task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
@@ -895,11 +889,12 @@ def convert(  # pylint: disable=too-many-arguments
             source_datatype=source_datatype,
             compartments=compartments,
             metadata=metadata,
+            identifying_columns=identifying_columns,
             concat=concat,
-            merge=merge,
-            merge_columns_compartments=merge_columns_compartments,
-            merge_columns_metadata=merge_columns_metadata,
-            merge_chunk_size=merge_chunk_size,
+            join=join,
+            joins=joins,
+            chunk_columns=chunk_columns,
+            chunk_size=chunk_size,
             infer_common_schema=infer_common_schema,
             **kwargs,
         )
