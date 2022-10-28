@@ -41,22 +41,28 @@ DEFAULT_JOINS = (
     {
         "left": "cytoplasm",
         "left_columns": ["ImageNumber", "Cytoplasm_Parent_Cells"],
+        "left_suffix": "_cytoplasm",
         "right": "cells",
         "right_columns": ["ImageNumber", "ObjectNumber"],
+        "right_suffix": "_cells",
         "how": "full outer",
     },
     {
         "left": "result",
         "left_columns": ["ImageNumber", "Cytoplasm_Parent_Nuclei"],
+        "left_suffix": "_cytoplasm",
         "right": "nuclei",
         "right_columns": ["ImageNumber", "ObjectNumber"],
+        "right_suffix": "_nuclei",
         "how": "full outer",
     },
     {
         "left": "result",
         "left_columns": ["ImageNumber"],
+        "left_suffix": None,
         "right": "image",
         "right_columns": ["ImageNumber"],
+        "right_suffix": None,
         "how": "left outer",
     },
 )
@@ -528,6 +534,8 @@ def join_record_chunk(
             keys=join["left_columns"],
             right_keys=join["right_columns"],
             join_type=join["how"],
+            left_suffix=join["left_suffix"],
+            right_suffix=join["right_suffix"],
         )
 
     result_file_path = (

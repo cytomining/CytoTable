@@ -3,6 +3,7 @@ conftest.py for pytest
 """
 import os
 import pathlib
+import subprocess
 import tempfile
 from typing import Any, Dict, List, Tuple
 
@@ -13,6 +14,7 @@ import pytest
 from moto import mock_s3
 from moto.server import ThreadedMotoServer
 from pyarrow import csv, parquet
+from pycytominer.cyto_utils.cells import SingleCells
 
 
 # note: we use name here to avoid pylint flagging W0621
@@ -28,10 +30,84 @@ def fixture_get_tempdir() -> str:
 @pytest.fixture()
 def data_dir_cellprofiler() -> str:
     """
-    Provide a data directory for cellprofiler
+    Provide a data directory for cellprofiler test data
     """
 
     return f"{os.path.dirname(__file__)}/data/cellprofiler"
+
+
+@pytest.fixture()
+def data_dirs_cytominerdatabase() -> List[str]:
+    """
+    Provide a data directory for cytominer-database test data
+    """
+
+    basedir = f"{os.path.dirname(__file__)}/data/cytominer-database"
+
+    return [
+        f"{basedir}/data_a",
+        f"{basedir}/data_b",
+    ]
+
+
+@pytest.fixture()
+def cytominerdatabase_sqlite(
+    get_tempdir: str,
+    data_dirs_cytominerdatabase: List[str],
+) -> List[str]:
+    """
+    Processed cytominer-database test data as sqlite data
+    """
+
+    output_paths = []
+    for data_dir in data_dirs_cytominerdatabase:
+        # example command for reference as subprocess below
+        # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
+        output_path = f"sqlite:///{get_tempdir}/{pathlib.Path(data_dir).name}.sqlite"
+
+        # run cytominer-database as command-line call
+        subprocess.call(
+            [
+                "cytominer-database",
+                "ingest",
+                data_dir,
+                output_path,
+                "-c",
+                f"{data_dir}/config_SQLite.ini",
+            ]
+        )
+        # store the sqlite output file within list to be returned
+        output_paths.append(output_path)
+
+    return output_paths
+
+
+@pytest.fixture()
+def pycytominer_merge_single_cells_parquet(
+    get_tempdir: str,
+    cytominerdatabase_sqlite: List[str],
+) -> List[str]:
+    """
+    Processed cytominer-database test sqlite data as
+    pycytominer merged single cell parquet files
+    """
+
+    output_paths = []
+    for sqlite_file in cytominerdatabase_sqlite:
+        # build SingleCells from database and merge single cells into parquet file
+        output_paths.append(
+            SingleCells(
+                sqlite_file,
+                strata=["Metadata_Well"],
+                image_cols=["TableNumber", "ImageNumber"],
+            ).merge_single_cells(
+                sc_output_file=f"{get_tempdir}/{pathlib.Path(sqlite_file).name}.parquet",
+                output_type="parquet",
+                join_on=["Image_Metadata_Well"],
+            )
+        )
+
+    return output_paths
 
 
 @pytest.fixture(name="example_tables")

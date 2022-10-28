@@ -529,6 +529,34 @@ def test_infer_record_group_common_schema(
     assert table_b.schema.equals(pa.schema(result))
 
 
+def test_convert_cytominerdatabase_csv(
+    get_tempdir: str,
+    data_dirs_cytominerdatabase: List[str],
+    pycytominer_merge_single_cells_parquet: List[str],
+):
+    """
+    Tests convert with cytominerdatabase csvs and processed
+    csvs from cytominer-database to pycytominer merge_single_cells
+    """
+
+    for test_set in zip(
+        data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
+    ):
+        control_table = parquet.read_table(source=test_set[1])
+        test_table = parquet.read_table(
+            source=convert(
+                source_path=test_set[0],
+                dest_path=f"{get_tempdir}/{pathlib.Path(test_set[0]).name}.control_test.parquet",
+                dest_datatype="parquet",
+                source_datatype="csv",
+                merge=True,
+            )[pathlib.Path(f"{test_set[0]}.control_test.parquet").name][0][
+                "destination_path"
+            ]
+        )
+        assert control_table.schema.equals(test_table.schema)
+
+
 def test_convert_cellprofiler_csv(
     get_tempdir: str,
     data_dir_cellprofiler: str,
