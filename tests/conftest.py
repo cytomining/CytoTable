@@ -3,6 +3,7 @@ conftest.py for pytest
 """
 import os
 import pathlib
+import shutil
 import subprocess
 import tempfile
 from typing import Any, Dict, List, Tuple
@@ -18,13 +19,17 @@ from pycytominer.cyto_utils.cells import SingleCells
 
 
 # note: we use name here to avoid pylint flagging W0621
-@pytest.fixture(name="get_tempdir")
+@pytest.fixture(name="get_tempdir", scope="session")
 def fixture_get_tempdir() -> str:
     """
     Provide temporary directory for testing
     """
 
-    return tempfile.gettempdir()
+    tmpdir = tempfile.mkdtemp()
+
+    yield tmpdir
+
+    shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 @pytest.fixture()
