@@ -186,17 +186,12 @@ dagger.#Plan & {
 								jar xvf ExampleHuman.zip
 
 								# make output dirs
-								mkdir -p output/csv_single
-								mkdir -p output/csv_multi/a
-								mkdir -p output/csv_multi/b
+								mkdir -p output/ExampleHuman
 
 								# run cellprofiler against example pipeline
-								# commands reference: https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
-								cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output/csv_single -i ExampleHuman/images
-
-								# simulate multi-dir csv output
-								cp output/csv_single/* output/csv_multi/a
-								cp output/csv_single/* output/csv_multi/b
+								# commands reference: 
+								# https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
+								cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output/ExampleHuman -i ExampleHuman/images
 								"""
 						},
 

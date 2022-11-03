@@ -44,39 +44,18 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
         )
 
     single_dir_result = get_source_filepaths.fn(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
     )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
 
     single_dir_result = get_source_filepaths.fn(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/csv_single"),
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
     )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
-
-    multi_dir_result = get_source_filepaths.fn(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/csv_multi"),
-        targets=["image", "cells", "nuclei", "cytoplasm"],
-    )
-    # test that a multi-file dataset has more than one value under group
-    assert len(list(multi_dir_result.values())[0]) == 2
-    # test that we only have a source path for each item within groupings
-    assert list(
-        # gather only unique values within grouped dicts
-        set(
-            # use itertools.chain to collapse list of lists
-            itertools.chain(
-                *[
-                    list(item.keys())
-                    for group in multi_dir_result
-                    for item in multi_dir_result[group]
-                ]
-            )
-        )
-    ) == ["source_path"]
 
 
 def test_read_file(get_tempdir: str):
@@ -570,16 +549,16 @@ def test_convert_cellprofiler_csv(
 
     with pytest.raises(Exception):
         single_dir_result = convert(
-            source_path=f"{data_dir_cellprofiler}/csv_single",
-            dest_path=f"{get_tempdir}/csv_single",
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{get_tempdir}/ExampleHuman",
             dest_datatype="parquet",
             compartments=[],
             source_datatype="csv",
         )
 
     single_dir_result = convert(
-        source_path=f"{data_dir_cellprofiler}/csv_single",
-        dest_path=f"{get_tempdir}/csv_single",
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{get_tempdir}/ExampleHuman",
         dest_datatype="parquet",
         source_datatype="csv",
         concat=False,
@@ -587,47 +566,11 @@ def test_convert_cellprofiler_csv(
         merge_columns=None,
     )
 
-    multi_dir_nonconcat_result = convert(
-        source_path=f"{data_dir_cellprofiler}/csv_multi",
-        dest_path=f"{get_tempdir}/csv_multi_nonconcat",
-        dest_datatype="parquet",
-        concat=False,
-        merge=False,
-        source_datatype="csv",
-    )
-
     # loop through the results to ensure data matches what we expect
     # note: these are flattened and unique to each of the sets above.
-    for result in itertools.chain(
-        *(list(single_dir_result.values()) + list(multi_dir_nonconcat_result.values()))
-    ):
+    for result in itertools.chain(*(list(single_dir_result.values()))):
         parquet_result = parquet.read_table(source=result["destination_path"])
         csv_source = csv.read_csv(input_file=result["source_path"])
-        assert parquet_result.schema.equals(csv_source.schema)
-        assert parquet_result.shape == csv_source.shape
-
-    multi_dir_concat_result = convert(
-        source_path=f"{data_dir_cellprofiler}/csv_multi",
-        dest_path=f"{get_tempdir}/csv_multi_concat",
-        dest_datatype="parquet",
-        concat=True,
-        merge=False,
-        source_datatype="csv",
-    )
-
-    # loop through the results to ensure data matches what we expect
-    # note: these are flattened and unique to each of the sets above.
-    for result in itertools.chain(*list(multi_dir_concat_result.values())):
-        csv_source = pa.concat_tables(
-            [
-                csv.read_csv(file)
-                for file in pathlib.Path(result["source_path"].parent).glob(
-                    f"**/{result['source_path'].stem}.csv"
-                )
-            ]
-        )
-
-        parquet_result = parquet.read_table(source=result["destination_path"])
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape
 
@@ -640,8 +583,8 @@ def test_convert_dask_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: 
     """
 
     multi_dir_nonconcat_result = convert(
-        source_path=f"{data_dir_cellprofiler}/csv_multi",
-        dest_path=f"{get_tempdir}/csv_multi_nonconcat",
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{get_tempdir}/ExampleHuman",
         dest_datatype="parquet",
         concat=False,
         merge=False,
