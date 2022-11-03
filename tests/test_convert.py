@@ -521,15 +521,19 @@ def test_convert_cytominerdatabase_csv(
     for test_set in zip(
         data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
     ):
-        control_table = parquet.read_table(source=test_set[1])
+        # load control table, dropping tablenumber and unlabeled objectnumber (no compartment specified)
+        control_table = parquet.read_table(source=test_set[1]).drop(
+            ["Metadata_TableNumber", "Metadata_ObjectNumber"]
+        )
+        # load test table by reading parquet-based output from convert
         test_table = parquet.read_table(
             source=convert(
                 source_path=test_set[0],
-                dest_path=f"{get_tempdir}/{pathlib.Path(test_set[0]).name}.control_test.parquet",
+                dest_path=f"{get_tempdir}/{pathlib.Path(test_set[0]).name}.test_table.parquet",
                 dest_datatype="parquet",
                 source_datatype="csv",
                 merge=True,
-            )[pathlib.Path(f"{test_set[0]}.control_test.parquet").name][0][
+            )[pathlib.Path(f"{test_set[0]}.test_table.parquet").name][0][
                 "destination_path"
             ]
         )

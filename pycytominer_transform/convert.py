@@ -26,42 +26,64 @@ DEFAULT_NAMES_COMPARTMENTS = ("cells", "nuclei", "cytoplasm")
 DEFAULT_NAMES_METADATA = ("image",)
 # column names in any compartment or metadata tables which contain
 # unique names to avoid renaming
-DEFAULT_IDENTIFYING_COLUMNS = ("ImageNumber", "ObjectNumber")
+DEFAULT_IDENTIFYING_COLUMNS = (
+    "ImageNumber",
+    "ObjectNumber",
+    "Metadata_Well",
+    "Parent_Cells",
+    "Parent_Nuclei",
+)
 # chunk size to use for join operations to help with possible performance issues
 # note: this number is an estimate and is may need changes contingent on data
 # and system used by this library.
 DEFAULT_CHUNK_SIZE = 1000
 # chunking columns to use along with chunk size for join operations
-DEFAULT_CHUNK_COLUMNS = ("ImageNumber",)
-# compartment and metadata joins performed in this order
+DEFAULT_CHUNK_COLUMNS = ("Metadata_ImageNumber",)
+# compartment and metadata joins performed in this order with dict keys which
+# roughly align with pyarrow.Table.join arguments, where they will eventually be used
 # note: first join takes place arbitrarily and requires compartment or metadata
 # name specification. For all but the first join we use "result" as a reference
 # to the previously joined data, building upon each join sequentially in this list.
 DEFAULT_JOINS = (
+    # join cells into cytoplasm compartment data
     {
         "left": "cytoplasm",
-        "left_columns": ["ImageNumber", "Cytoplasm_Parent_Cells"],
+        "left_columns": None,
+        "left_join_columns": [
+            "Metadata_ImageNumber",
+            "Metadata_Cytoplasm_Parent_Cells",
+        ],
         "left_suffix": "_cytoplasm",
         "right": "cells",
-        "right_columns": ["ImageNumber", "ObjectNumber"],
+        "right_columns": None,
+        "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
         "right_suffix": "_cells",
         "how": "full outer",
     },
+    # join nuclei into cytoplasm and cell compartment data
     {
         "left": "result",
-        "left_columns": ["ImageNumber", "Cytoplasm_Parent_Nuclei"],
+        "left_columns": None,
+        "left_join_columns": [
+            "Metadata_ImageNumber",
+            "Metadata_Cytoplasm_Parent_Nuclei",
+        ],
         "left_suffix": "_cytoplasm",
         "right": "nuclei",
-        "right_columns": ["ImageNumber", "ObjectNumber"],
+        "right_columns": None,
+        "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
         "right_suffix": "_nuclei",
         "how": "full outer",
     },
+    # join image data into cytosplasm, cell, and nuclei data
     {
         "left": "result",
-        "left_columns": ["ImageNumber"],
+        "left_columns": None,
+        "left_join_columns": ["Metadata_ImageNumber"],
         "left_suffix": None,
         "right": "image",
-        "right_columns": ["ImageNumber"],
+        "right_columns": ["Metadata_ImageNumber", "Metadata_Well"],
+        "right_join_columns": ["Metadata_ImageNumber"],
         "right_suffix": None,
         "how": "left outer",
     },
@@ -122,7 +144,7 @@ def get_source_filepaths(
 
     # group files together by similar filename for later data operations
     for unique_source in set(source["source_path"].name for source in records):
-        grouped_records[unique_source] = [
+        grouped_records[unique_source.capitalize()] = [
             source for source in records if source["source_path"].name == unique_source
         ]
 
@@ -283,15 +305,31 @@ def prepend_column_name(
     record: Dict[str, Any],
     record_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
+    metadata: Union[List[str], Tuple[str, ...]],
 ) -> Dict[str, Any]:
     """
-    Rename columns using the record group name
+    Rename columns using the record group name or adds "Metadata" for
+    identifying columns.
     """
+
+    record_group_name_stem = str(pathlib.Path(record_group_name).stem)
 
     record["table"] = record["table"].rename_columns(
         [
-            f"{str(pathlib.Path(record_group_name).stem)}_{column_name}"
+            f"{record_group_name_stem}_{column_name}"
             if column_name not in identifying_columns
+            else f"Metadata_{record_group_name_stem}_{column_name}"
+            if (
+                not column_name.startswith("Metadata_")
+                and column_name in identifying_columns
+                and not any([item.capitalize() in column_name for item in metadata])
+                and not "ObjectNumber" in column_name
+            )
+            else f"Metadata_{column_name}"
+            if (
+                not column_name.startswith("Metadata_")
+                and column_name in identifying_columns
+            )
             else column_name
             for column_name in record["table"].column_names
         ]
@@ -522,17 +560,23 @@ def join_record_chunk(
             # spur the result using the first record bas a basis for the operations below
             result = parquet.read_table(
                 source=records[join["left"]][0]["destination_path"],
+                columns=join["left_columns"],
                 filters=filters,
             )
+
+        # optionally filter result to left_columns subset before join
+        if join["left_columns"] is not None:
+            result = result.select(join["left_columns"])
 
         # join the record to the result
         result = result.join(
             right_table=parquet.read_table(
                 source=records[join["right"]][0]["destination_path"],
+                columns=join["right_columns"],
                 filters=filters,
             ),
-            keys=join["left_columns"],
-            right_keys=join["right_columns"],
+            keys=join["left_join_columns"],
+            right_keys=join["right_join_columns"],
             join_type=join["how"],
             left_suffix=join["left_suffix"],
             right_suffix=join["right_suffix"],
@@ -723,6 +767,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             record=record_group,
             record_group_name=unmapped(record_group_name),
             identifying_columns=unmapped(identifying_columns),
+            metadata=unmapped(metadata),
         )
 
         # map for writing parquet files with list of files via records
