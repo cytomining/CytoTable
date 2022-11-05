@@ -523,8 +523,24 @@ def test_convert_cytominerdatabase_csv(
     ):
         # load control table, dropping tablenumber and unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=test_set[1]).drop(
-            ["Metadata_TableNumber", "Metadata_ObjectNumber"]
+            [
+                # tablenumber is not implemented within pycytominer-transform
+                "Metadata_TableNumber",
+                # objectnumber references are provided via cytoplasm parent object joins
+                "Metadata_ObjectNumber",
+                "Metadata_ObjectNumber_cells",
+                "__index_level_0__",
+            ]
         )
+        # rename column to account for minor difference in processing
+        control_table = control_table.rename_columns(
+            [
+                # rename based on compartment prefix name within pycytominer-transform format
+                col if col != "Cells_Parent_Nuclei" else "Metadata_Cells_Parent_Nuclei"
+                for col in control_table.schema.names
+            ]
+        )
+
         # load test table by reading parquet-based output from convert
         test_table = parquet.read_table(
             source=convert(
@@ -535,9 +551,11 @@ def test_convert_cytominerdatabase_csv(
                 merge=True,
             )[pathlib.Path(f"{test_set[0]}.test_table.parquet").name][0][
                 "destination_path"
-            ]
+            ],
+            schema=control_table.schema,
         )
         assert control_table.schema.equals(test_table.schema)
+        assert control_table.shape == test_table.shape
 
 
 def test_convert_cellprofiler_csv(
