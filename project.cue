@@ -259,38 +259,51 @@ dagger.#Plan & {
 
 		// various tests for this repo
 		test: {
-			// run pre-commit checks
-			pre_commit: docker.#Run & {
-				input: _python_build.output
-				command: {
-					name: "poetry"
-					args: ["run", "pre-commit", "run", "--all-files"]
+			// python versions to reference for builds
+			"3.9": _
+			"3.8": _
+
+			[compat_python_version=string]: {
+
+				// python build for tests with specific version as compat_python_version
+				build: #PythonBuild & {
+					filesystem: client.filesystem."./".read.contents
+					python_ver: compat_python_version
+					poetry_ver: poetry_version
 				}
-			}
-			// check that we don't have sphinx build errors
-			sphinx: docker.#Run & {
-				input:   _python_build.output
-				workdir: "/workdir"
-				command: {
-					name: "poetry"
-					args: ["run", "sphinx-build", "/workdir/docs/source", "/tmp/doctest", "-W"]
+				// run pre-commit checks
+				pre_commit: docker.#Run & {
+					input: build.output
+					command: {
+						name: "poetry"
+						args: ["run", "pre-commit", "run", "--all-files"]
+					}
 				}
-			}
-			// run pytest
-			pytest: docker.#Run & {
-				input: _python_build.output
-				command: {
-					name: "poetry"
-					args: ["run", "pytest"]
+				// check that we don't have sphinx build errors
+				sphinx: docker.#Run & {
+					input:   build.output
+					workdir: "/workdir"
+					command: {
+						name: "poetry"
+						args: ["run", "sphinx-build", "/workdir/docs/source", "/tmp/doctest", "-W"]
+					}
 				}
-			}
-			// check CITATION.cff for proper format
-			citation: docker.#Run & {
-				input:   _python_build.output
-				workdir: "/workdir"
-				command: {
-					name: "poetry"
-					args: ["run", "cffconvert", "--validate"]
+				// run pytest
+				pytest: docker.#Run & {
+					input: build.output
+					command: {
+						name: "poetry"
+						args: ["run", "pytest"]
+					}
+				}
+				// check CITATION.cff for proper format
+				citation: docker.#Run & {
+					input:   build.output
+					workdir: "/workdir"
+					command: {
+						name: "poetry"
+						args: ["run", "cffconvert", "--validate"]
+					}
 				}
 			}
 		}
