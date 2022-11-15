@@ -16,6 +16,7 @@ from pyarrow import csv, parquet
 from pycytominer_transform import (  # pylint: disable=R0801
     concat_join_records,
     concat_record_group,
+    config,
     convert,
     get_join_chunks,
     get_source_filepaths,
@@ -29,6 +30,25 @@ from pycytominer_transform import (  # pylint: disable=R0801
 )
 
 
+def test_config():
+    """
+    Tests config to ensure proper values
+    """
+
+    # check that we have relevant keys for each preset
+    for config_preset in config.values():
+        assert sorted(
+            [
+                "CONFIG_NAMES_COMPARTMENTS",
+                "CONFIG_NAMES_METADATA",
+                "CONFIG_IDENTIFYING_COLUMNS",
+                "CONFIG_CHUNK_SIZE",
+                "CONFIG_CHUNK_COLUMNS",
+                "CONFIG_JOINS",
+            ]
+        ) == sorted(config_preset.keys())
+
+
 def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     """
     Tests get_source_filepaths
@@ -39,13 +59,11 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
         single_dir_result = get_source_filepaths.fn(
-            path=empty_dir,
-            targets=["image", "cells", "nuclei", "cytoplasm"],
+            path=empty_dir, targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
     single_dir_result = get_source_filepaths.fn(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
-        targets=["cells"],
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"), targets=["cells"],
     )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
@@ -102,15 +120,16 @@ def test_prepend_column_name():
 
     result = prepend_column_name.fn(
         record={"table": test_table},
-        record_group_name="Compartment.csv",
+        record_group_name="Cells.csv",
         identifying_columns=["id1", "id2"],
+        metadata=[],
     )
 
     assert result["table"].column_names == [
-        "id1",
-        "id2",
-        "Compartment_field1",
-        "Compartment_field2",
+        "Metadata_Cells_id1",
+        "Metadata_Cells_id2",
+        "Cells_field1",
+        "Cells_field2",
     ]
 
 
@@ -144,9 +163,7 @@ def test_concat_record_group(
 
     # add a mismatching record to animal_legs.csv group
     table_e = pa.Table.from_pydict(
-        {
-            "color": pa.array(["blue", "red", "green", "orange"]),
-        }
+        {"color": pa.array(["blue", "red", "green", "orange"]),}
     )
     pathlib.Path(f"{get_tempdir}/animals/e").mkdir(parents=True, exist_ok=True)
     csv.write_csv(table_e, f"{get_tempdir}/animals/e/animal_legs.csv")
@@ -247,9 +264,13 @@ def test_join_record_chunk(get_tempdir: str):
         joins=[
             {
                 "left": "example_a",
-                "left_columns": ["id1", "id2"],
+                "left_columns": None,
+                "left_join_columns": ["id1", "id2"],
+                "left_suffix": None,
                 "right": "example_b",
-                "right_columns": ["id1", "id2"],
+                "right_columns": None,
+                "right_join_columns": ["id1", "id2"],
+                "right_suffix": None,
                 "how": "full outer",
             }
         ],
@@ -289,26 +310,10 @@ def test_concat_join_records(get_tempdir: str):
     # form test data
     test_table_a = pa.Table.from_pydict(
         {
-            "id1": [
-                1,
-                2,
-                3,
-            ],
-            "id2": [
-                "a",
-                "a",
-                "a",
-            ],
-            "field1": [
-                "foo",
-                "bar",
-                "baz",
-            ],
-            "field2": [
-                True,
-                False,
-                True,
-            ],
+            "id1": [1, 2, 3,],
+            "id2": ["a", "a", "a",],
+            "field1": ["foo", "bar", "baz",],
+            "field2": [True, False, True,],
         }
     )
     test_table_b = pa.Table.from_pydict(
@@ -322,12 +327,10 @@ def test_concat_join_records(get_tempdir: str):
 
     # write test data to file
     parquet.write_table(
-        table=test_table_a,
-        where=test_path_a,
+        table=test_table_a, where=test_path_a,
     )
     parquet.write_table(
-        table=test_table_b,
-        where=test_path_b,
+        table=test_table_b, where=test_path_b,
     )
 
     # copy the files for testing purposes
@@ -521,6 +524,7 @@ def test_convert_cytominerdatabase_csv(
     for test_set in zip(
         data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
     ):
+        print(test_set)
         # load control table, dropping tablenumber and unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=test_set[1]).drop(
             [
@@ -559,8 +563,7 @@ def test_convert_cytominerdatabase_csv(
 
 
 def test_convert_cellprofiler_csv(
-    get_tempdir: str,
-    data_dir_cellprofiler: str,
+    get_tempdir: str, data_dir_cellprofiler: str,
 ):
     """
     Tests convert
