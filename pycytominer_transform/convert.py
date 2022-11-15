@@ -20,74 +20,7 @@ from pycytominer_transform.exceptions import (
     SchemaException,
 )
 
-# names of source table compartments (for ex. cells.csv, etc.)
-DEFAULT_NAMES_COMPARTMENTS = ("cells", "nuclei", "cytoplasm")
-# names of source table metadata (for ex. image.csv, etc.)
-DEFAULT_NAMES_METADATA = ("image",)
-# column names in any compartment or metadata tables which contain
-# unique names to avoid renaming
-DEFAULT_IDENTIFYING_COLUMNS = (
-    "ImageNumber",
-    "ObjectNumber",
-    "Metadata_Well",
-    "Parent_Cells",
-    "Parent_Nuclei",
-)
-# chunk size to use for join operations to help with possible performance issues
-# note: this number is an estimate and is may need changes contingent on data
-# and system used by this library.
-DEFAULT_CHUNK_SIZE = 1000
-# chunking columns to use along with chunk size for join operations
-DEFAULT_CHUNK_COLUMNS = ("Metadata_ImageNumber",)
-# compartment and metadata joins performed in this order with dict keys which
-# roughly align with pyarrow.Table.join arguments, where they will eventually be used
-# note: first join takes place arbitrarily and requires compartment or metadata
-# name specification. For all but the first join we use "result" as a reference
-# to the previously joined data, building upon each join sequentially in this list.
-DEFAULT_JOINS = (
-    # join cells into cytoplasm compartment data
-    {
-        "left": "cytoplasm",
-        "left_columns": None,
-        "left_join_columns": [
-            "Metadata_ImageNumber",
-            "Metadata_Cytoplasm_Parent_Cells",
-        ],
-        "left_suffix": "_cytoplasm",
-        "right": "cells",
-        "right_columns": None,
-        "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
-        "right_suffix": "_cells",
-        "how": "full outer",
-    },
-    # join nuclei into cytoplasm and cell compartment data
-    {
-        "left": "result",
-        "left_columns": None,
-        "left_join_columns": [
-            "Metadata_ImageNumber",
-            "Metadata_Cytoplasm_Parent_Nuclei",
-        ],
-        "left_suffix": "_cytoplasm",
-        "right": "nuclei",
-        "right_columns": None,
-        "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
-        "right_suffix": "_nuclei",
-        "how": "full outer",
-    },
-    # join image data into cytosplasm, cell, and nuclei data
-    {
-        "left": "result",
-        "left_columns": None,
-        "left_join_columns": ["Metadata_ImageNumber"],
-        "left_suffix": None,
-        "right": "image",
-        "right_columns": ["Metadata_ImageNumber", "Metadata_Well"],
-        "right_join_columns": ["Metadata_ImageNumber"],
-        "right_suffix": None,
-        "how": "left outer",
-    },
-)
+from .presets import config
 
 
 @task
@@ -293,8 +226,7 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to record
         record["table"] = csv.read_csv(
-            input_file=record["source_path"],
-            parse_options=parse_options,
+            input_file=record["source_path"], parse_options=parse_options,
         )
 
     return record
@@ -595,8 +527,7 @@ def join_record_chunk(
 
     # write the result
     parquet.write_table(
-        table=result,
-        where=result_file_path,
+        table=result, where=result_file_path,
     )
 
     return result_file_path
@@ -853,19 +784,26 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    compartments: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_COMPARTMENTS,
-    metadata: Union[List[str], Tuple[str, ...]] = DEFAULT_NAMES_METADATA,
-    identifying_columns: Union[
-        List[str], Tuple[str, ...]
-    ] = DEFAULT_IDENTIFYING_COLUMNS,
+    compartments: Union[List[str], Tuple[str, ...]] = config["cellprofiler_csv"][
+        "CONFIG_NAMES_COMPARTMENTS"
+    ],
+    metadata: Union[List[str], Tuple[str, ...]] = config["cellprofiler_csv"][
+        "CONFIG_NAMES_METADATA"
+    ],
+    identifying_columns: Union[List[str], Tuple[str, ...]] = config["cellprofiler_csv"][
+        "CONFIG_IDENTIFYING_COLUMNS"
+    ],
     concat: bool = True,
     join: bool = True,
     joins: Optional[
         Union[List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]]
-    ] = DEFAULT_JOINS,
-    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = DEFAULT_CHUNK_COLUMNS,
-    chunk_size: Optional[int] = DEFAULT_CHUNK_SIZE,
+    ] = config["cellprofiler_csv"]["CONFIG_JOINS"],
+    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = config[
+        "cellprofiler_csv"
+    ]["CONFIG_CHUNK_COLUMNS"],
+    chunk_size: Optional[int] = config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"],
     infer_common_schema: bool = True,
+    preset: Optional[str] = None,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -900,6 +838,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         Size of join chunks which is used to limit data size during join ops
       infer_common_schema: bool (Default value = True)
         Whether to infer a common schema when concatenating records.
+      preset: str (Default value = None)
+        an optional group of presets to use based on common configurations
       task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
         Prefect task runner to use with flows.
 
@@ -933,6 +873,15 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             no_sign_request=True,
         )
     """
+
+    # optionally load preset configuration for arguments
+    if preset is not None:
+        compartments = config[preset]["CONFIG_NAMES_COMPARTMENTS"]
+        metadata = config[preset]["CONFIG_NAMES_METADATA"]
+        identifying_columns = config[preset]["CONFIG_IDENTIFYING_COLUMNS"]
+        joins = config[preset]["CONFIG_JOINS"]
+        chunk_columns = config[preset]["CONFIG_CHUNK_COLUMNS"]
+        chunk_size = config[preset]["CONFIG_CHUNK_SIZE"]
 
     # send records to be written to parquet if selected
     if dest_datatype == "parquet":

@@ -1,14 +1,7 @@
 """
 __init__.py for pycytominer_convert
 """
-
 from .convert import (
-    DEFAULT_CHUNK_COLUMNS,
-    DEFAULT_CHUNK_SIZE,
-    DEFAULT_IDENTIFYING_COLUMNS,
-    DEFAULT_JOINS,
-    DEFAULT_NAMES_COMPARTMENTS,
-    DEFAULT_NAMES_METADATA,
     concat_join_records,
     concat_record_group,
     convert,
@@ -23,3 +16,4 @@ from .convert import (
     to_parquet,
     write_parquet,
 )
+from .presets import config
