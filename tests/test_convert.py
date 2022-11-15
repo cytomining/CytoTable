@@ -24,7 +24,7 @@ from pycytominer_transform import (  # pylint: disable=R0801
     infer_source_datatype,
     join_record_chunk,
     prepend_column_name,
-    read_file,
+    read_data,
     to_parquet,
     write_parquet,
 )
@@ -76,7 +76,7 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     assert len(set(single_dir_result.keys())) == 4
 
 
-def test_read_file(get_tempdir: str):
+def test_read_data(get_tempdir: str):
     """
     Tests read_csv
     """
@@ -88,7 +88,7 @@ def test_read_file(get_tempdir: str):
 
     csv.write_csv(data=table, output_file=destination)
 
-    result = read_file.fn(record={"source_path": destination})
+    result = read_data.fn(record={"source_path": destination})
 
     assert isinstance(result, dict)
     assert sorted(list(result.keys())) == sorted(["source_path", "table"])
@@ -100,7 +100,7 @@ def test_read_file(get_tempdir: str):
     with open(destination_err, "w", encoding="utf-8") as wfile:
         wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
 
-    assert isinstance(read_file.fn(record={"source_path": destination_err}), Dict)
+    assert isinstance(read_data.fn(record={"source_path": destination_err}), Dict)
 
 
 def test_prepend_column_name():
@@ -524,7 +524,6 @@ def test_convert_cytominerdatabase_csv(
     for test_set in zip(
         data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
     ):
-        print(test_set)
         # load control table, dropping tablenumber and unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=test_set[1]).drop(
             [

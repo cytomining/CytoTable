@@ -7,6 +7,7 @@ import pathlib
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
+import connectorx as cx
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task, unmapped
@@ -42,7 +43,9 @@ def build_path(
 
 @task
 def get_source_filepaths(
-    path: Union[pathlib.Path, AnyPath], targets: Optional[List[str]] = None
+    path: Union[pathlib.Path, AnyPath],
+    source_datatype: Optional[str] = None,
+    targets: Optional[List[str]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -57,6 +60,17 @@ def get_source_filepaths(
       Dict[str, List[Dict[str, Any]]]
         Data structure which groups related files based on the compartments.
     """
+
+    if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
+        return {
+            f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
+            for table_name in cx.read_sql(
+                conn="sqlite://" + str(path),
+                query="SELECT name as table_name FROM sqlite_master WHERE type = 'table';",
+                return_type="arrow",
+            )["table_name"].to_pylist()
+            if any([target.lower() in table_name.lower() for target in targets])
+        }
 
     # gathers files from provided path using compartments as a filter
     records = [
@@ -189,7 +203,9 @@ def gather_records(
     source_path = build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
-    records = get_source_filepaths(path=source_path, targets=targets)
+    records = get_source_filepaths(
+        path=source_path, source_datatype=source_datatype, targets=targets
+    )
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = infer_source_datatype(
@@ -201,9 +217,9 @@ def gather_records(
 
 
 @task
-def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
+def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Read csv file from record.
+    Read data from record.
 
     Args:
       record: Dict[str, Any]:
@@ -229,6 +245,14 @@ def read_file(record: Dict[str, Any]) -> Dict[str, Any]:
             input_file=record["source_path"], parse_options=parse_options,
         )
 
+    if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
+
+        record["table"] = cx.read_sql(
+            conn="sqlite://" + str(record["source_path"]),
+            query=f"SELECT * FROM {record['table_name']}",
+            return_type="arrow",
+        )
+
     return record
 
 
@@ -238,6 +262,7 @@ def prepend_column_name(
     record_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
+    targets: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
     Rename columns using the record group name or adds "Metadata" for
@@ -246,10 +271,18 @@ def prepend_column_name(
 
     record_group_name_stem = str(pathlib.Path(record_group_name).stem)
 
+    if targets is not None:
+        record_group_name_stem = [
+            target.capitalize()
+            for target in targets
+            if target.lower() in record_group_name_stem.lower()
+        ][0]
+
     record["table"] = record["table"].rename_columns(
         [
             f"{record_group_name_stem}_{column_name}"
             if column_name not in identifying_columns
+            and not column_name.startswith(record_group_name_stem)
             else f"Metadata_{record_group_name_stem}_{column_name}"
             if (
                 not column_name.startswith("Metadata_")
@@ -690,12 +723,13 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # for each group of records, map writing parquet per file
     for record_group_name, record_group in records.items():
 
-        # read files
-        record_group = read_file.map(record=record_group)
+        # read data from record groups
+        record_group = read_data.map(record=record_group)
 
         # rename cols to include compartment or meta names
         renamed_record_group = prepend_column_name.map(
             record=record_group,
+            targets=unmapped(list(compartments) + list(metadata)),
             record_group_name=unmapped(record_group_name),
             identifying_columns=unmapped(identifying_columns),
             metadata=unmapped(metadata),

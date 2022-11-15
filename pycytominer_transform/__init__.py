@@ -12,7 +12,7 @@ from .convert import (
     infer_source_datatype,
     join_record_chunk,
     prepend_column_name,
-    read_file,
+    read_data,
     to_parquet,
     write_parquet,
 )
