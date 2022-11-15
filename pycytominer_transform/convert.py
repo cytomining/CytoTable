@@ -419,9 +419,10 @@ def write_parquet(
     pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
 
     # build a default destination path for the parquet output
-    destination_path = pathlib.Path(
-        f"{dest_path}/{str(record['source_path'].stem)}.parquet"
-    )
+    stub_name = str(record["source_path"].stem)
+    if "table_name" in record.keys():
+        stub_name = f"{stub_name}.{record['table_name']}"
+    destination_path = pathlib.Path(f"{dest_path}/{stub_name}.parquet")
 
     # build unique names to avoid overlaps
     if unique_name:
@@ -467,7 +468,7 @@ def get_join_chunks(
 
     # fetch the compartment concat result as the basis for join groups
     for key, record in records.items():
-        if pathlib.Path(key).stem.lower() in [name.lower() for name in metadata]:
+        if any([name.lower() in pathlib.Path(key).stem.lower() for name in metadata]):
             first_result = record
             break
 
@@ -762,6 +763,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
     if join:
+
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
         join_records_result = join_record_chunk.map(
