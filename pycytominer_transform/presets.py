@@ -101,16 +101,19 @@ config = {
         "CONFIG_JOINS": (
             # join cells into cytoplasm compartment data
             {
-                "left": "cytoplasm",
+                "left": "per_cytoplasm",
                 "left_columns": None,
                 "left_join_columns": [
                     "Metadata_ImageNumber",
-                    "Metadata_Cytoplasm_Parent_Cells",
+                    "Cytoplasm_Parent_Cells",
                 ],
                 "left_suffix": "_cytoplasm",
-                "right": "cells",
+                "right": "per_cells",
                 "right_columns": None,
-                "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
+                "right_join_columns": [
+                    "Metadata_ImageNumber",
+                    "Cells_Number_Object_Number",
+                ],
                 "right_suffix": "_cells",
                 "how": "full outer",
             },
@@ -120,12 +123,15 @@ config = {
                 "left_columns": None,
                 "left_join_columns": [
                     "Metadata_ImageNumber",
-                    "Metadata_Cytoplasm_Parent_Nuclei",
+                    "Cytoplasm_Parent_OrigNuclei",
                 ],
                 "left_suffix": "_cytoplasm",
-                "right": "nuclei",
+                "right": "per_nuclei",
                 "right_columns": None,
-                "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
+                "right_join_columns": [
+                    "Metadata_ImageNumber",
+                    "Nuclei_Number_Object_Number",
+                ],
                 "right_suffix": "_nuclei",
                 "how": "full outer",
             },
@@ -135,8 +141,8 @@ config = {
                 "left_columns": None,
                 "left_join_columns": ["Metadata_ImageNumber"],
                 "left_suffix": None,
-                "right": "image",
-                "right_columns": ["Metadata_ImageNumber", "Metadata_Well"],
+                "right": "per_image",
+                "right_columns": ["Metadata_ImageNumber", "Image_Metadata_Well"],
                 "right_join_columns": ["Metadata_ImageNumber"],
                 "right_suffix": None,
                 "how": "left outer",
