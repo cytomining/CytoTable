@@ -45,17 +45,32 @@ references:
         type: url
         value: "https://github.com/cytomining/cytominer-database/blob/master/CITATION.cff"
   - authors:
-      - name: "CellProfiler ExampleHuman Data Team"
+      - name: "ExampleHuman CellProfiler Data Team"
     date-accessed: "2022-09-01"
-    title: CellProfiler
+    title: ExampleHuman CellProfiler Data
     type: data
     repository-code: "https://github.com/CellProfiler/examples/tree/master/ExampleHuman"
     url: "https://cellprofiler.org/examples"
     scope: "ExampleHuman"
     notes: >-
-      CellProfiler ExampleHuman data is used to help validate expected results
+      ExampleHuman CellProfiler data is used to help validate expected results
       for pycytominer-transform.
     identifiers:
       - description: "README.md with Citation Information"
         type: url
         value: "https://github.com/CellProfiler/examples/blob/master/ExampleHuman/README.md"
+  - authors:
+      - name: "Way Lab NF1_SchwannCell_data Team"
+    date-accessed: "2022-09-01"
+    title: Way Lab NF1_SchwannCell_data CellProfiler Data
+    type: data
+    repository-code: "https://github.com/WayScience/NF1_SchwannCell_data"
+    url: "https://github.com/WayScience/NF1_SchwannCell_data/blob/main/CellProfiler_pipelines/Analysis_Output/NF1_data.sqlite"
+    scope: "NF1_data.sqlite"
+    notes: >-
+      CellProfiler generated data as NF1_data.sqlite is used to help validate 
+      expected results for pycytominer-transform.
+    identifiers:
+      - description: "Github Link with Contributors"
+        type: url
+        value: "https://github.com/WayScience/NF1_SchwannCell_data/graphs/contributors"
