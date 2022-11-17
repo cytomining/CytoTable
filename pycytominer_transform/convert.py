@@ -602,10 +602,7 @@ def concat_join_records(
 
     # return modified records format to indicate the final result
     # and retain the other record data for reference as needed
-    return {
-        pathlib.Path(dest_path).name: [{"destination_path": dest_path}],
-        "sources": flattened_records,
-    }
+    return dest_path
 
 
 @task
@@ -800,19 +797,23 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             records=results,
         )
 
-    return {
-        key: value.result()
-        if isinstance(value, PrefectFuture)
-        else [
-            inner_result.result()
-            if isinstance(inner_result, PrefectFuture)
-            else inner_result
-            for inner_result in value
-        ]
-        if not isinstance(value, Dict)
-        else value
-        for key, value in results.items()
-    }
+    return (
+        {
+            key: value.result()
+            if isinstance(value, PrefectFuture)
+            else [
+                inner_result.result()
+                if isinstance(inner_result, PrefectFuture)
+                else inner_result
+                for inner_result in value
+            ]
+            if not isinstance(value, Dict)
+            else value
+            for key, value in results.items()
+        }
+        if isinstance(results, dict)
+        else results
+    )
 
 
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
