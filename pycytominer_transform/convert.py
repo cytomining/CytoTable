@@ -3,6 +3,7 @@ pycytominer-transform: convert - transforming data for use with pyctyominer.
 """
 
 import itertools
+import os
 import pathlib
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
@@ -10,7 +11,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 import connectorx as cx
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
-from prefect import flow, logging, task, unmapped
+from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
@@ -706,6 +707,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         Grouped records which include metadata about destination filepath
         where parquet file was written.
     """
+
     # gather records to be processed
     records = gather_records(
         source_path=source_path,
@@ -912,8 +914,12 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         )
     """
 
-    # set the log level for prefect
-    logging.get_logger().setLevel(log_level)
+    # log level overrides for prefect
+    os.environ["PREFECT_LOGGING_LEVEL"] = log_level
+    os.environ["PREFECT_LOGGING_ROOT_LEVEL"] = log_level
+    os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_LEVEL"] = log_level
+    os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_FLOW_RUNS_LEVEL"] = log_level
+    os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_TASK_RUNS_LEVEL"] = log_level
 
     # optionally load preset configuration for arguments
     if preset is not None:
