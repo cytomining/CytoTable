@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 import connectorx as cx
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
-from prefect import flow, task, unmapped
+from prefect import flow, logging, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
@@ -842,6 +842,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     infer_common_schema: bool = True,
     preset: Optional[str] = None,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
+    log_level: str = "ERROR",
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -910,6 +911,9 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             no_sign_request=True,
         )
     """
+
+    # set the log level for prefect
+    logging.get_logger().setLevel(log_level)
 
     # optionally load preset configuration for arguments
     if preset is not None:
