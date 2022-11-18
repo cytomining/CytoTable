@@ -12,7 +12,7 @@ pyarrow = "^9.0.0"
 prefect = "^2.3.2"
 griffe = "0.21.0"
 cloudpathlib = {extras = ["all"], version = "^0.10.0"}
-connectorx = "^0.3.1"
+duckdb = "^0.6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.3"

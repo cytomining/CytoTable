@@ -8,7 +8,7 @@ import pathlib
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-import connectorx as cx
+import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task, unmapped
@@ -65,11 +65,20 @@ def get_source_filepaths(
     if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
         return {
             f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
-            for table_name in cx.read_sql(
-                conn="sqlite://" + str(path),
-                query="SELECT name as table_name FROM sqlite_master WHERE type = 'table';",
-                return_type="arrow",
-            )["table_name"].to_pylist()
+            for table_name in duckdb.connect()
+            .execute(
+                f"""
+                /* install and load sqlite plugin for duckdb */
+                INSTALL sqlite_scanner;
+                LOAD sqlite_scanner;
+                /* perform query on sqlite_master table for metadata on tables */
+                SELECT name as table_name
+                from sqlite_scan('{str(path)}', 'sqlite_master')
+                where type='table'
+                """
+            )
+            .arrow()["table_name"]
+            .to_pylist()
             if any([target.lower() in table_name.lower() for target in targets])
         }
 
@@ -248,10 +257,18 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
 
     if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
 
-        record["table"] = cx.read_sql(
-            conn="sqlite://" + str(record["source_path"]),
-            query=f"SELECT * FROM {record['table_name']}",
-            return_type="arrow",
+        record["table"] = (
+            duckdb.connect()
+            .execute(
+                f"""
+                /* install and load sqlite plugin for duckdb */
+                INSTALL sqlite_scanner;
+                LOAD sqlite_scanner;
+                /* perform query on sqlite_master table for metadata on tables */
+                SELECT * from sqlite_scan('{str(record["source_path"])}', '{str(record["table_name"])}')
+                """
+            )
+            .arrow()
         )
 
     return record
