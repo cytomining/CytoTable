@@ -920,6 +920,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_LEVEL"] = log_level
     os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_FLOW_RUNS_LEVEL"] = log_level
     os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_TASK_RUNS_LEVEL"] = log_level
+    os.environ["PREFECT_LOGGING_SERVER_LEVEL"] = log_level
 
     # optionally load preset configuration for arguments
     if preset is not None:
