@@ -500,6 +500,7 @@ def join_record_chunk(
         List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]
     ],
     join_group: List[Dict[str, Any]],
+    drop_null: bool,
 ) -> str:
     """
     Join records based on join group keys (group of specific join column values)
@@ -548,6 +549,9 @@ def join_record_chunk(
             left_suffix=join["left_suffix"],
             right_suffix=join["right_suffix"],
         )
+
+        if drop_null:
+            result = result.drop_null()
 
     result_file_path = (
         # store the result in the parent of the dest_path
@@ -675,6 +679,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
     chunk_size: Optional[int],
     infer_common_schema: bool,
+    drop_null: bool,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -784,6 +789,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 chunk_size=chunk_size,
                 metadata=metadata,
             ),
+            drop_null=unmapped(drop_null),
         )
 
         # concat our join chunks together as one cohesive dataset
@@ -842,6 +848,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     ]["CONFIG_CHUNK_COLUMNS"],
     chunk_size: Optional[int] = config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"],
     infer_common_schema: bool = True,
+    drop_null: bool = True,
     preset: Optional[str] = None,
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
     log_level: str = "ERROR",
@@ -878,6 +885,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         Size of join chunks which is used to limit data size during join ops
       infer_common_schema: bool (Default value = True)
         Whether to infer a common schema when concatenating records.
+      drop_null: bool (Default value = True)
+        Whether to drop nan/null values from results
       preset: str (Default value = None)
         an optional group of presets to use based on common configurations
       task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
@@ -946,6 +955,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             chunk_columns=chunk_columns,
             chunk_size=chunk_size,
             infer_common_schema=infer_common_schema,
+            drop_null=drop_null,
             **kwargs,
         )
 
