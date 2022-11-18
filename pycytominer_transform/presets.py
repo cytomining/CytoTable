@@ -142,7 +142,11 @@ config = {
                 "left_join_columns": ["Metadata_ImageNumber"],
                 "left_suffix": None,
                 "right": "per_image",
-                "right_columns": ["Metadata_ImageNumber", "Image_Metadata_Well"],
+                "right_columns": [
+                    "Metadata_ImageNumber",
+                    "Image_Metadata_Well",
+                    "Image_Metadata_Plate",
+                ],
                 "right_join_columns": ["Metadata_ImageNumber"],
                 "right_suffix": None,
                 "how": "left outer",
