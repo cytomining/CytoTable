@@ -23,55 +23,30 @@ config = {
         "CONFIG_CHUNK_SIZE": 1000,
         # chunking columns to use along with chunk size for join operations
         "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
-        # compartment and metadata joins performed in this order with dict keys which
-        # roughly align with pyarrow.Table.join arguments, where they will eventually be used
-        # note: first join takes place arbitrarily and requires compartment or metadata
-        # name specification. For all but the first join we use "result" as a reference
-        # to the previously joined data, building upon each join sequentially in this list.
-        "CONFIG_JOINS": (
-            # join cells into cytoplasm compartment data
-            {
-                "left": "cytoplasm",
-                "left_columns": None,
-                "left_join_columns": [
-                    "Metadata_ImageNumber",
-                    "Metadata_Cytoplasm_Parent_Cells",
-                ],
-                "left_suffix": "_cytoplasm",
-                "right": "cells",
-                "right_columns": None,
-                "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
-                "right_suffix": "_cells",
-                "how": "full outer",
-            },
-            # join nuclei into cytoplasm and cell compartment data
-            {
-                "left": "result",
-                "left_columns": None,
-                "left_join_columns": [
-                    "Metadata_ImageNumber",
-                    "Metadata_Cytoplasm_Parent_Nuclei",
-                ],
-                "left_suffix": "_cytoplasm",
-                "right": "nuclei",
-                "right_columns": None,
-                "right_join_columns": ["Metadata_ImageNumber", "Metadata_ObjectNumber"],
-                "right_suffix": "_nuclei",
-                "how": "full outer",
-            },
-            # join image data into cytosplasm, cell, and nuclei data
-            {
-                "left": "result",
-                "left_columns": None,
-                "left_join_columns": ["Metadata_ImageNumber"],
-                "left_suffix": None,
-                "right": "image",
-                "right_columns": ["Metadata_ImageNumber", "Metadata_Well"],
-                "right_join_columns": ["Metadata_ImageNumber"],
-                "right_suffix": None,
-                "how": "left outer",
-            },
-        ),
+        # compartment and metadata joins performed using DuckDB SQL
+        # and modified at runtime as needed
+        "CONFIG_JOINS": """
+            WITH Image_Filtered AS (
+                SELECT
+                    ImageNumber,
+                    Image_Metadata_Well,
+                    Image_Metadata_Plate
+                FROM
+                    read_parquet('image.parquet')
+                )
+            SELECT
+                *
+            FROM
+                Image_Filtered AS image
+            LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
+                cytoplasm.ImageNumber = image.ImageNumber
+            LEFT JOIN read_parquet('cells.parquet') AS cells ON
+                cells.ImageNumber = cytoplasm.ImageNumber
+                AND cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+                nuclei.ImageNumber = cytoplasm.ImageNumber
+                AND nuclei.Nuclei_ObjectNumber = per_cytoplasm.Cytoplasm_Parent_Nuclei
+            """,
     },
     "cellprofiler_sqlite": {
         # names of source table compartments (for ex. cells.csv, etc.)
@@ -85,7 +60,7 @@ config = {
             "ObjectNumber",
             "Metadata_Well",
             "Parent_Cells",
-            "Parent_Nuclei",
+            "Parent_OrigNuclei",
         ),
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
@@ -93,64 +68,29 @@ config = {
         "CONFIG_CHUNK_SIZE": 1000,
         # chunking columns to use along with chunk size for join operations
         "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
-        # compartment and metadata joins performed in this order with dict keys which
-        # roughly align with pyarrow.Table.join arguments, where they will eventually be used
-        # note: first join takes place arbitrarily and requires compartment or metadata
-        # name specification. For all but the first join we use "result" as a reference
-        # to the previously joined data, building upon each join sequentially in this list.
-        "CONFIG_JOINS": (
-            # join cells into cytoplasm compartment data
-            {
-                "left": "per_cytoplasm",
-                "left_columns": None,
-                "left_join_columns": [
-                    "Metadata_ImageNumber",
-                    "Cytoplasm_Parent_Cells",
-                ],
-                "left_suffix": "_cytoplasm",
-                "right": "per_cells",
-                "right_columns": None,
-                "right_join_columns": [
-                    "Metadata_ImageNumber",
-                    "Cells_Number_Object_Number",
-                ],
-                "right_suffix": "_cells",
-                "how": "full outer",
-            },
-            # join nuclei into cytoplasm and cell compartment data
-            {
-                "left": "result",
-                "left_columns": None,
-                "left_join_columns": [
-                    "Metadata_ImageNumber",
-                    "Cytoplasm_Parent_OrigNuclei",
-                ],
-                "left_suffix": "_cytoplasm",
-                "right": "per_nuclei",
-                "right_columns": None,
-                "right_join_columns": [
-                    "Metadata_ImageNumber",
-                    "Nuclei_Number_Object_Number",
-                ],
-                "right_suffix": "_nuclei",
-                "how": "full outer",
-            },
-            # join image data into cytosplasm, cell, and nuclei data
-            {
-                "left": "result",
-                "left_columns": None,
-                "left_join_columns": ["Metadata_ImageNumber"],
-                "left_suffix": None,
-                "right": "per_image",
-                "right_columns": [
-                    "Metadata_ImageNumber",
-                    "Image_Metadata_Well",
-                    "Image_Metadata_Plate",
-                ],
-                "right_join_columns": ["Metadata_ImageNumber"],
-                "right_suffix": None,
-                "how": "left outer",
-            },
-        ),
+        # compartment and metadata joins performed using DuckDB SQL
+        # and modified at runtime as needed
+        "CONFIG_JOINS": """
+            WITH Per_Image_Filtered AS (
+                SELECT
+                    Metadata_ImageNumber,
+                    Image_Metadata_Well,
+                    Image_Metadata_Plate
+                FROM
+                    read_parquet('per_image.parquet')
+                )
+            SELECT
+                *
+            FROM
+                Per_Image_Filtered AS per_image
+            LEFT JOIN read_parquet('per_cytoplasm.parquet') AS per_cytoplasm ON
+                per_cytoplasm.Metadata_ImageNumber = per_image.Metadata_ImageNumber
+            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells ON
+                per_cells.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
+                AND per_cells.Cells_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
+                per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
+                AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_OrigNuclei
+            """,
     },
 }

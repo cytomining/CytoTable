@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
-from prefect import flow, task, unmapped
+from prefect import flow, get_run_logger, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
@@ -21,8 +21,8 @@ from pycytominer_transform.exceptions import (
     NoInputDataException,
     SchemaException,
 )
-
-from .presets import config
+from pycytominer_transform.presets import config
+from pycytominer_transform.utils import column_sort
 
 
 @task
@@ -283,8 +283,7 @@ def prepend_column_name(
     targets: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    Rename columns using the record group name or adds "Metadata" for
-    identifying columns.
+    Rename columns using the record group name, avoiding identifying columns
     """
 
     record_group_name_stem = str(pathlib.Path(record_group_name).stem)
@@ -439,7 +438,7 @@ def write_parquet(
     # build a default destination path for the parquet output
     stub_name = str(record["source_path"].stem)
     if "table_name" in record.keys():
-        stub_name = f"{stub_name}.{record['table_name']}"
+        stub_name = f"{record['table_name']}"
     destination_path = pathlib.Path(f"{dest_path}/{stub_name}.parquet")
 
     # build unique names to avoid overlaps
@@ -513,9 +512,7 @@ def get_join_chunks(
 def join_record_chunk(
     records: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
-    joins: Union[
-        List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]
-    ],
+    joins: str,
     join_group: List[Dict[str, Any]],
     drop_null: bool,
 ) -> str:
@@ -523,52 +520,66 @@ def join_record_chunk(
     Join records based on join group keys (group of specific join column values)
     """
 
-    # form filters variable for use in pyarrow.parquet.read_table
-    # see the following for more details on the filters argument expectations:
-    # https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html
-    filters = [
-        [
-            # create groups of join column filters where values always
-            # are expected to equal those within the join_group together
-            [join_column, "=", join_column_value]
-            for join_column, join_column_value in chunk.items()
-        ]
-        for chunk in join_group
-    ]
-
-    # transform record data to enable join operations below
-    records = {key.split(".")[0].lower(): val for key, val in records.items()}
-
-    # perform compartment joins
-    for index, join in enumerate(joins):
-        if index == 0:
-            # spur the result using the first record bas a basis for the operations below
-            result = parquet.read_table(
-                source=records[join["left"]][0]["destination_path"],
-                columns=join["left_columns"],
-                filters=filters,
+    # replace with real location of sources for join sql
+    for key, val in records.items():
+        if pathlib.Path(val[0]["destination_path"]).stem.lower() in joins.lower():
+            joins = joins.replace(
+                str(pathlib.Path(val[0]["destination_path"]).name.lower()),
+                str(val[0]["destination_path"]),
             )
 
-        # optionally filter result to left_columns subset before join
-        if join["left_columns"] is not None:
-            result = result.select(join["left_columns"])
-
-        # join the record to the result
-        result = result.join(
-            right_table=parquet.read_table(
-                source=records[join["right"]][0]["destination_path"],
-                columns=join["right_columns"],
-                filters=filters,
-            ),
-            keys=join["left_join_columns"],
-            right_keys=join["right_join_columns"],
-            join_type=join["how"],
-            left_suffix=join["left_suffix"],
-            right_suffix=join["right_suffix"],
+    # update the join groups to include unique values per table
+    updated_join_group = []
+    for key in records.keys():
+        updated_join_group.extend(
+            [
+                {
+                    f"{str(pathlib.Path(key).stem)}.{join_key}": val
+                    for join_key, val in chunk.items()
+                }
+                for chunk in join_group
+            ]
         )
 
-        if drop_null:
-            result = result.drop_null()
+    # form where clause for sql joins to filter the results
+    joins += (
+        "WHERE ("
+        + ") OR (".join(
+            [
+                " OR ".join(
+                    [
+                        # create groups of join column filters where values always
+                        # are expected to equal those within the join_group together
+                        f"{join_column} = {join_column_value}"
+                        for join_column, join_column_value in chunk.items()
+                    ]
+                )
+                for chunk in updated_join_group
+            ]
+        )
+        + ")"
+    )
+
+    get_run_logger().info(joins)
+
+    # perform compartment joins
+    result = duckdb.connect().execute(joins).arrow()
+
+    if drop_null:
+        result = result.drop_null()
+
+    # account for duplicate column names from joins
+    cols = []
+    # reversed order column check as col removals will change index order
+    for i, colname in reversed(list(enumerate(result.column_names))):
+        if colname not in cols:
+            cols.append(colname)
+        else:
+            result = result.remove_column(i)
+
+    # inner sorted alphabetizes any columns which may not be part of custom_sort
+    # outer sort provides pycytominer-specific column sort order
+    result = result.select(sorted(sorted(result.column_names), key=column_sort))
 
     result_file_path = (
         # store the result in the parent of the dest_path
@@ -690,9 +701,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     identifying_columns: Union[List[str], Tuple[str, ...]],
     concat: bool,
     join: bool,
-    joins: Optional[
-        Union[List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]]
-    ],
+    joins: Optional[str],
     chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
     chunk_size: Optional[int],
     infer_common_schema: bool,
@@ -857,9 +866,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     ],
     concat: bool = True,
     join: bool = True,
-    joins: Optional[
-        Union[List[Dict[str, Union[str, Any]]], Tuple[Dict[str, Union[str, Any]], ...]]
-    ] = config["cellprofiler_csv"]["CONFIG_JOINS"],
+    joins: Optional[str] = config["cellprofiler_csv"]["CONFIG_JOINS"],
     chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = config[
         "cellprofiler_csv"
     ]["CONFIG_CHUNK_COLUMNS"],
