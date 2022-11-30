@@ -228,9 +228,9 @@ def test_join_record_chunk(get_tempdir: str):
     """
 
     # form test path a
-    test_path_a = f"{get_tempdir}/merge_chunks_test_a.parquet"
+    test_path_a = f"{get_tempdir}/example_a_merged.parquet"
     # form test path b
-    test_path_b = f"{get_tempdir}/merge_chunks_test_b.parquet"
+    test_path_b = f"{get_tempdir}/example_b_merged.parquet"
 
     # write test data to file
     parquet.write_table(
@@ -261,20 +261,15 @@ def test_join_record_chunk(get_tempdir: str):
             "example_b": [{"destination_path": test_path_b}],
         },
         dest_path=f"{get_tempdir}/destination.parquet",
-        joins=[
-            {
-                "left": "example_a",
-                "left_columns": None,
-                "left_join_columns": ["id1", "id2"],
-                "left_suffix": None,
-                "right": "example_b",
-                "right_columns": None,
-                "right_join_columns": ["id1", "id2"],
-                "right_suffix": None,
-                "how": "full outer",
-            }
-        ],
+        joins="""
+            SELECT *
+            FROM read_parquet('example_a_merged.parquet') as example_a
+            JOIN read_parquet('example_b_merged.parquet') as example_b ON
+                example_b.id1 = example_a.id1
+                AND example_b.id2 = example_a.id2
+        """,
         join_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
+        drop_null=True,
     )
 
     assert isinstance(result, str)
@@ -347,9 +342,9 @@ def test_concat_join_records(get_tempdir: str):
     )
 
     # ensure the concatted result is what we expect
-    assert parquet.read_table(
-        source=result["example_concat_join.parquet"][0]["destination_path"]
-    ).equals(pa.concat_tables(tables=[test_table_a, test_table_b]))
+    assert parquet.read_table(source=result).equals(
+        pa.concat_tables(tables=[test_table_a, test_table_b])
+    )
 
     # ensure the test paths provided via records were removed (unlinked)
     assert (pathlib.Path(test_path_a).exists() is False) and (
@@ -440,6 +435,7 @@ def test_to_parquet(
         chunk_columns=None,
         chunk_size=None,
         infer_common_schema=False,
+        drop_null=True,
     )
 
     flattened_results = list(itertools.chain(*list(result.values())))
@@ -558,7 +554,18 @@ def test_convert_cytominerdatabase_csv(
             schema=control_table.schema,
         )
         assert control_table.schema.equals(test_table.schema)
-        assert control_table.shape == test_table.shape
+        assert control_table.num_columns == test_table.num_columns
+        assert control_table.num_rows <= test_table.num_rows
+        # assert control_table.equals(test_table.drop_null())
+
+
+def test_convert_cellprofiler_sqlite(
+    get_tempdir: str, data_dirs_cellprofiler_sqlite: str,
+):
+    """
+    Tests convert with cellprofiler sqlite exports
+    """
+    pass
 
 
 def test_convert_cellprofiler_csv(

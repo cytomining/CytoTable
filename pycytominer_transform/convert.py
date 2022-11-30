@@ -541,11 +541,14 @@ def join_record_chunk(
         "WHERE ("
         + ") OR (".join(
             [
-                " OR ".join(
+                " AND ".join(
                     [
                         # create groups of join column filters where values always
                         # are expected to equal those within the join_group together
                         f"{join_column} = {join_column_value}"
+                        if not isinstance(join_column_value, str)
+                        # account for string values
+                        else (f"{join_column} = " f"'{join_column_value}'")
                         for join_column, join_column_value in chunk.items()
                     ]
                 )
