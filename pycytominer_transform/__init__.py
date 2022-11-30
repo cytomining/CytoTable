@@ -16,5 +16,11 @@ from .convert import (
     to_parquet,
     write_parquet,
 )
+from .exceptions import (
+    CytominerException,
+    DatatypeException,
+    NoInputDataException,
+    SchemaException,
+)
 from .presets import config
 from .utils import column_sort
