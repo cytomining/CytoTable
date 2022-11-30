@@ -10,7 +10,12 @@ def column_sort(value: str):
     value_lower = value.lower()
 
     # first sorted values (by list index)
-    sort_first = ["tablenumber", "imagenumber"]
+    sort_first = [
+        "tablenumber",
+        "metadata_tablenumber",
+        "imagenumber",
+        "metadata_imagenumber",
+    ]
 
     # middle sort value
     sort_middle = "metadata"

@@ -14,6 +14,7 @@ config = {
             "ImageNumber",
             "ObjectNumber",
             "Metadata_Well",
+            "Metadata_Plate",
             "Parent_Cells",
             "Parent_Nuclei",
         ),
@@ -28,9 +29,8 @@ config = {
         "CONFIG_JOINS": """
             WITH Image_Filtered AS (
                 SELECT
-                    ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
+                    /* seeks columns by name, avoiding failure if some do not exist */
+                    COLUMNS('^Metadata_ImageNumber$|^Image_Metadata_Well$|^Image_Metadata_Plate$')
                 FROM
                     read_parquet('image.parquet')
                 )
@@ -39,13 +39,13 @@ config = {
             FROM
                 Image_Filtered AS image
             LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
-                cytoplasm.ImageNumber = image.ImageNumber
+                cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
             LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.ImageNumber = cytoplasm.ImageNumber
-                AND cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
             LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.ImageNumber = cytoplasm.ImageNumber
-                AND nuclei.Nuclei_ObjectNumber = per_cytoplasm.Cytoplasm_Parent_Nuclei
+                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
             """,
     },
     "cellprofiler_sqlite": {

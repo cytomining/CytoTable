@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
-from prefect import flow, get_run_logger, task, unmapped
+from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
@@ -363,12 +363,7 @@ def concat_record_group(
     ]
 
     destination_path = pathlib.Path(
-        (
-            f"{dest_path}"
-            f"/{record_group[0]['source_path'].parent.parent.name}"
-            f".{record_group[0]['source_path'].stem}"
-            ".parquet"
-        )
+        (f"{dest_path}/" f"{record_group[0]['source_path'].stem}" ".parquet")
     )
 
     # if there's already a file remove it
@@ -522,7 +517,7 @@ def join_record_chunk(
 
     # replace with real location of sources for join sql
     for key, val in records.items():
-        if pathlib.Path(val[0]["destination_path"]).stem.lower() in joins.lower():
+        if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
                 str(pathlib.Path(val[0]["destination_path"]).name.lower()),
                 str(val[0]["destination_path"]),
@@ -559,8 +554,6 @@ def join_record_chunk(
         )
         + ")"
     )
-
-    get_run_logger().info(joins)
 
     # perform compartment joins
     result = duckdb.connect().execute(joins).arrow()
