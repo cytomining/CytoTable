@@ -142,17 +142,15 @@ def test_concat_record_group(
     Tests concat_record_group
     """
 
-    table_a, table_b, _ = example_tables
+    _, _, _, table_nuclei_1, table_nuclei_2 = example_tables
 
     # simulate concat
-    concat_table = pa.concat_tables(
-        [table_a.select(["n_legs", "animals"]).cast(table_b.schema), table_b]
-    )
+    concat_table = pa.concat_tables([table_nuclei_1, table_nuclei_2])
 
     result = concat_record_group.fn(
-        record_group=example_local_records["animal_legs.csv"],
+        record_group=example_local_records["nuclei.csv"],
         dest_path=get_tempdir,
-        common_schema=table_b.schema,
+        common_schema=table_nuclei_1.schema,
     )
     assert len(result) == 1
     assert parquet.read_schema(result[0]["destination_path"]) == concat_table.schema
@@ -161,26 +159,23 @@ def test_concat_record_group(
         parquet.read_metadata(result[0]["destination_path"]).num_columns,
     ) == concat_table.shape
 
-    # add a mismatching record to animal_legs.csv group
-    table_e = pa.Table.from_pydict(
+    # add a mismatching record to group
+    mismatching_table = pa.Table.from_pydict(
         {"color": pa.array(["blue", "red", "green", "orange"]),}
     )
-    pathlib.Path(f"{get_tempdir}/animals/e").mkdir(parents=True, exist_ok=True)
-    csv.write_csv(table_e, f"{get_tempdir}/animals/e/animal_legs.csv")
-    parquet.write_table(table_e, f"{get_tempdir}/animals/e.animal_legs.parquet")
-    example_local_records["animal_legs.csv"].append(
+    pathlib.Path(f"{get_tempdir}/example/5").mkdir(parents=True, exist_ok=True)
+    csv.write_csv(mismatching_table, f"{get_tempdir}/example/5/nuclei.csv")
+    parquet.write_table(mismatching_table, f"{get_tempdir}/example/5.nuclei.parquet")
+    example_local_records["nuclei.csv"].append(
         {
-            "source_path": pathlib.Path(f"{get_tempdir}/animals/e/animal_legs.csv"),
-            "destination_path": pathlib.Path(
-                f"{get_tempdir}/animals/e.animal_legs.parquet"
-            ),
+            "source_path": pathlib.Path(f"{get_tempdir}/example/5/nuclei.csv"),
+            "destination_path": pathlib.Path(f"{get_tempdir}/example/5.nuclei.parquet"),
         }
     )
 
     with pytest.raises(Exception):
         concat_record_group.fn(
-            record_group=example_local_records["animal_legs.csv"],
-            dest_path=get_tempdir,
+            record_group=example_local_records["nuclei.csv"], dest_path=get_tempdir,
         )
 
 
@@ -421,14 +416,12 @@ def test_to_parquet(
     )
 
     result = to_parquet(
-        source_path=str(
-            example_local_records["animal_legs.csv"][0]["source_path"].parent
-        ),
+        source_path=str(example_local_records["image.csv"][0]["source_path"].parent),
         dest_path=get_tempdir,
         source_datatype=None,
-        compartments=["animal_legs", "colors"],
-        metadata=[],
-        identifying_columns=["animals"],
+        compartments=["cytoplasm", "cells", "nuclei"],
+        metadata=["image"],
+        identifying_columns=["imagenumber"],
         concat=False,
         join=False,
         joins=None,
@@ -461,9 +454,11 @@ def test_convert_s3_path(
         dest_datatype="parquet",
         concat=False,
         join=False,
+        joins=None,
         source_datatype="csv",
-        # override default compartments for those which were uploaded to mock instance
-        compartments=["animal_legs", "colors"],
+        compartments=["cytoplasm", "cells"],
+        metadata=["image"],
+        identifying_columns=["imagenumber"],
         # endpoint_url here will be used with cloudpathlib client(**kwargs)
         endpoint_url=example_s3_endpoint,
     )
@@ -476,17 +471,22 @@ def test_convert_s3_path(
     }
 
     # compare each of the results using files from the source
-    for destination_path in [
-        record["destination_path"]
-        for group in multi_dir_nonconcat_s3_result.values()
-        for record in group
-    ]:
-        parquet_control = parquet.read_table(
-            destination_paths[pathlib.Path(destination_path).name]
-        )
-        parquet_result = parquet.read_table(
-            destination_path, schema=parquet_control.schema
-        )
+
+    for control_path, test_path in zip(
+        [
+            record["destination_path"]
+            for group in multi_dir_nonconcat_s3_result.values()
+            for record in group
+        ],
+        [
+            record["destination_path"]
+            for group in example_local_records.values()
+            for record in group
+        ],
+    ):
+        parquet_control = parquet.read_table(control_path)
+        parquet_result = parquet.read_table(test_path, schema=parquet_control.schema)
+
         assert parquet_result.schema.equals(parquet_control.schema)
         assert parquet_result.shape == parquet_control.shape
 
@@ -498,13 +498,13 @@ def test_infer_record_group_common_schema(
     """
     Tests infer_record_group_common_schema
     """
-    _, table_b, _ = example_tables
+    _, _, _, table_nuclei_1, _ = example_tables
 
     result = infer_record_group_common_schema.fn(
-        record_group=example_local_records["animal_legs.csv"],
+        record_group=example_local_records["nuclei.csv"],
     )
 
-    assert table_b.schema.equals(pa.schema(result))
+    assert table_nuclei_1.schema.equals(pa.schema(result))
 
 
 def test_convert_cytominerdatabase_csv(
@@ -517,11 +517,11 @@ def test_convert_cytominerdatabase_csv(
     csvs from cytominer-database to pycytominer merge_single_cells
     """
 
-    for test_set in zip(
+    for cytominerdatabase_dir, pycytominer_merge_dir in zip(
         data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
     ):
         # load control table, dropping tablenumber and unlabeled objectnumber (no compartment specified)
-        control_table = parquet.read_table(source=test_set[1]).drop(
+        control_table = parquet.read_table(source=pycytominer_merge_dir).drop(
             [
                 # tablenumber is not implemented within pycytominer-transform
                 "Metadata_TableNumber",
@@ -543,33 +543,57 @@ def test_convert_cytominerdatabase_csv(
         # load test table by reading parquet-based output from convert
         test_table = parquet.read_table(
             source=convert(
-                source_path=test_set[0],
-                dest_path=f"{get_tempdir}/{pathlib.Path(test_set[0]).name}.test_table.parquet",
+                source_path=cytominerdatabase_dir,
+                dest_path=f"{get_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet",
                 dest_datatype="parquet",
                 source_datatype="csv",
                 merge=True,
-            )[pathlib.Path(f"{test_set[0]}.test_table.parquet").name][0][
-                "destination_path"
-            ],
+                drop_null=False,
+            ),
             schema=control_table.schema,
         )
+
         assert control_table.schema.equals(test_table.schema)
         assert control_table.num_columns == test_table.num_columns
         assert control_table.num_rows <= test_table.num_rows
-        # assert control_table.equals(test_table.drop_null())
 
 
 def test_convert_cellprofiler_sqlite(
-    get_tempdir: str, data_dirs_cellprofiler_sqlite: str,
+    get_tempdir: str, data_dir_cellprofiler: str, cellprofiler_merged_nf1data: pa.Table
 ):
     """
     Tests convert with cellprofiler sqlite exports
     """
-    pass
+
+    control_result = cellprofiler_merged_nf1data
+
+    test_result = parquet.read_table(
+        convert(
+            source_path=f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite",
+            dest_path=f"{get_tempdir}/NF1_data.parquet",
+            dest_datatype="parquet",
+            source_datatype="sqlite",
+            preset="cellprofiler_sqlite",
+        )
+    )
+
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+    )
+
+    assert test_result.shape == control_result.shape
+    assert test_result.equals(control_result)
 
 
 def test_convert_cellprofiler_csv(
-    get_tempdir: str, data_dir_cellprofiler: str,
+    get_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_examplehuman: pa.Table,
 ):
     """
     Tests convert
@@ -578,54 +602,73 @@ def test_convert_cellprofiler_csv(
     Dedicated tests for prefect-dask runner elsewhere.
     """
 
+    # expects exception due to no compartments
     with pytest.raises(Exception):
-        single_dir_result = convert(
+        convert(
             source_path=f"{data_dir_cellprofiler}/ExampleHuman",
             dest_path=f"{get_tempdir}/ExampleHuman",
             dest_datatype="parquet",
-            compartments=[],
             source_datatype="csv",
+            compartments=[],
         )
 
-    single_dir_result = convert(
-        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-        dest_path=f"{get_tempdir}/ExampleHuman",
-        dest_datatype="parquet",
-        source_datatype="csv",
-        concat=False,
-        merge=False,
-        merge_columns=None,
+    control_result = cellprofiler_merged_examplehuman
+
+    test_result = parquet.read_table(
+        convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{get_tempdir}/ExampleHuman",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+        )
     )
 
-    # loop through the results to ensure data matches what we expect
-    # note: these are flattened and unique to each of the sets above.
-    for result in itertools.chain(*(list(single_dir_result.values()))):
-        parquet_result = parquet.read_table(source=result["destination_path"])
-        csv_source = csv.read_csv(input_file=result["source_path"])
-        assert parquet_result.schema.equals(csv_source.schema)
-        assert parquet_result.shape == csv_source.shape
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+    )
+
+    assert test_result.shape == control_result.shape
+    assert test_result.equals(control_result)
 
 
-def test_convert_dask_cellprofiler_csv(get_tempdir: str, data_dir_cellprofiler: str):
+def test_convert_dask_cellprofiler_csv(
+    get_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_examplehuman: pa.Table,
+):
     """
     Tests convert
 
-    Note: dedicated test for prefect-dask runner.
+    Note: dedicated test for prefect-dask runner 
     """
 
-    multi_dir_nonconcat_result = convert(
-        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-        dest_path=f"{get_tempdir}/ExampleHuman",
-        dest_datatype="parquet",
-        concat=False,
-        merge=False,
-        task_runner=DaskTaskRunner,
+    control_result = cellprofiler_merged_examplehuman
+
+    test_result = parquet.read_table(
+        convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{get_tempdir}/ExampleHuman",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+            task_runner=DaskTaskRunner,
+        )
     )
 
-    # loop through the results to ensure data matches what we expect
-    # note: these are flattened and unique to each of the sets above.
-    for result in itertools.chain(*list(multi_dir_nonconcat_result.values())):
-        parquet_result = parquet.read_table(source=result["destination_path"])
-        csv_source = csv.read_csv(input_file=result["source_path"])
-        assert parquet_result.schema.equals(csv_source.schema)
-        assert parquet_result.shape == csv_source.shape
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+    )
+
+    assert test_result.shape == control_result.shape
+    assert test_result.equals(control_result)
