@@ -15,6 +15,8 @@ def column_sort(value: str):
         "metadata_tablenumber",
         "imagenumber",
         "metadata_imagenumber",
+        "objectnumber",
+        "object_number",
     ]
 
     # middle sort value
