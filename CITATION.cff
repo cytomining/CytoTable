@@ -68,7 +68,7 @@ references:
     url: "https://github.com/WayScience/NF1_SchwannCell_data/blob/main/CellProfiler_pipelines/Analysis_Output/NF1_data.sqlite"
     scope: "NF1_data.sqlite"
     notes: >-
-      CellProfiler generated data as NF1_data.sqlite is used to help validate 
+      CellProfiler generated data as NF1_data.sqlite is used to help validate
       expected results for pycytominer-transform.
     identifiers:
       - description: "Github Link with Contributors"

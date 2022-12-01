@@ -189,7 +189,7 @@ dagger.#Plan & {
 								mkdir -p output/ExampleHuman
 
 								# run cellprofiler against example pipeline
-								# commands reference: 
+								# commands reference:
 								# https://github.com/CellProfiler/CellProfiler/wiki/Getting-started-using-CellProfiler-from-the-command-line
 								cellprofiler -c -r -p ExampleHuman/ExampleHuman.cppipe -o output/ExampleHuman -i ExampleHuman/images
 								"""

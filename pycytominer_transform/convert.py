@@ -252,7 +252,8 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to record
         record["table"] = csv.read_csv(
-            input_file=record["source_path"], parse_options=parse_options,
+            input_file=record["source_path"],
+            parse_options=parse_options,
         )
 
     if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
@@ -590,7 +591,8 @@ def join_record_chunk(
 
     # write the result
     parquet.write_table(
-        table=result, where=result_file_path,
+        table=result,
+        where=result_file_path,
     )
 
     return result_file_path
