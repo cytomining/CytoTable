@@ -60,8 +60,7 @@ def data_dirs_cytominerdatabase() -> List[str]:
 
 @pytest.fixture()
 def cytominerdatabase_sqlite(
-    get_tempdir: str,
-    data_dirs_cytominerdatabase: List[str],
+    get_tempdir: str, data_dirs_cytominerdatabase: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test data as sqlite data
@@ -92,8 +91,7 @@ def cytominerdatabase_sqlite(
 
 @pytest.fixture()
 def pycytominer_merge_single_cells_parquet(
-    get_tempdir: str,
-    cytominerdatabase_sqlite: List[str],
+    get_tempdir: str, cytominerdatabase_sqlite: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test sqlite data as
@@ -147,24 +145,9 @@ def fixture_example_tables() -> Tuple[pa.Table, pa.Table, pa.Table]:
     )
     table_nuclei_1 = pa.Table.from_pydict(
         {
-            "ImageNumber": pa.array(
-                [
-                    "1",
-                    "1",
-                ]
-            ),
-            "Nuclei_ObjectNumber": pa.array(
-                [
-                    1,
-                    2,
-                ]
-            ),
-            "Nuclei_Feature_Z": pa.array(
-                [
-                    0.001,
-                    0.002,
-                ]
-            ),
+            "ImageNumber": pa.array(["1", "1",]),
+            "Nuclei_ObjectNumber": pa.array([1, 2,]),
+            "Nuclei_Feature_Z": pa.array([0.001, 0.002,]),
         }
     )
 
@@ -244,9 +227,7 @@ def fixture_example_local_records(
 
 
 @pytest.fixture(name="cellprofiler_merged_examplehuman")
-def fixture_cellprofiler_merged_examplehuman(
-    data_dir_cellprofiler: str,
-) -> pa.Table:
+def fixture_cellprofiler_merged_examplehuman(data_dir_cellprofiler: str,) -> pa.Table:
     """
     Fixture for manually configured merged/joined result from
     CellProfiler ExampleHuman CSV Data
@@ -285,21 +266,26 @@ def fixture_cellprofiler_merged_examplehuman(
     cells_table = col_renames(name="Cells", table=cells_table)
     nuclei_table = col_renames(name="Nuclei", table=nuclei_table)
 
-    sql_stmt = """
-        SELECT
-            *
-        FROM
-            image_table AS image
-        LEFT JOIN cytoplasm_table AS cytoplasm ON
-            cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
-        LEFT JOIN cells_table AS cells ON
-            cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-            AND cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
-        LEFT JOIN nuclei_table AS nuclei ON
-            nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-            AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-    """
-    control_result = duckdb.connect().execute(sql_stmt).arrow()
+    control_result = (
+        duckdb.connect()
+        .execute(
+            """
+            SELECT
+                *
+            FROM
+                image_table AS image
+            LEFT JOIN cytoplasm_table AS cytoplasm ON
+                cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
+            LEFT JOIN cells_table AS cells ON
+                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
+            LEFT JOIN nuclei_table AS nuclei ON
+                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
+        """
+        )
+        .arrow()
+    )
 
     # reversed order column check as col removals will change index order
     cols = []
@@ -319,9 +305,7 @@ def fixture_cellprofiler_merged_examplehuman(
 
 
 @pytest.fixture(name="cellprofiler_merged_nf1data")
-def fixture_cellprofiler_merged_nf1data(
-    data_dir_cellprofiler: str,
-) -> pa.Table:
+def fixture_cellprofiler_merged_nf1data(data_dir_cellprofiler: str,) -> pa.Table:
     """
     Fixture for manually configured merged/joined result from
     CellProfiler NF1_SchwannCell SQLite Data
@@ -329,34 +313,41 @@ def fixture_cellprofiler_merged_nf1data(
 
     sqlite_source = f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
 
-    sql_stmt = f"""
-        /* install and load sqlite plugin for duckdb */
-        INSTALL sqlite_scanner;
-        LOAD sqlite_scanner;
+    control_result = (
+        duckdb.connect()
+        .execute(
+            """
+            /* install and load sqlite plugin for duckdb */
+            INSTALL sqlite_scanner;
+            LOAD sqlite_scanner;
 
-        /* attach sqlite db to duckdb for full table awareness */
-        CALL sqlite_attach('{sqlite_source}');
+            /* attach sqlite db to duckdb for full table awareness */
+            CALL sqlite_attach(?);
 
-        /* perform query on sqlite tables through duckdb */
-        WITH Per_Image_Filtered AS (
-            SELECT
-                ImageNumber,
-                Image_Metadata_Well,
-                Image_Metadata_Plate
-            FROM Per_Image
+            /* perform query on sqlite tables through duckdb */
+            WITH Per_Image_Filtered AS (
+                SELECT
+                    ImageNumber,
+                    Image_Metadata_Well,
+                    Image_Metadata_Plate
+                FROM Per_Image
+            )
+            SELECT *
+            FROM Per_Image_Filtered image
+            LEFT JOIN Per_Cytoplasm cytoplasm ON
+                image.ImageNumber = cytoplasm.ImageNumber
+            LEFT JOIN Per_Cells cells ON
+                cells.ImageNumber = cytoplasm.ImageNumber
+                AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN Per_Nuclei nuclei ON
+                nuclei.ImageNumber = cytoplasm.ImageNumber
+                AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_OrigNuclei
+        """,
+            parameters=[sqlite_source],
         )
-        SELECT *
-        FROM Per_Image_Filtered image
-        LEFT JOIN Per_Cytoplasm cytoplasm ON
-            image.ImageNumber = cytoplasm.ImageNumber
-        LEFT JOIN Per_Cells cells ON
-            cells.ImageNumber = cytoplasm.ImageNumber
-            AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
-        LEFT JOIN Per_Nuclei nuclei ON
-            nuclei.ImageNumber = cytoplasm.ImageNumber
-            AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_OrigNuclei
-    """
-    control_result = duckdb.connect().execute(sql_stmt).arrow().drop_null()
+        .arrow()
+        .drop_null()
+    )
 
     # reversed order column check as col removals will change index order
     cols = []

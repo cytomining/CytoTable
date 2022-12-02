@@ -67,15 +67,16 @@ def get_source_filepaths(
             f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
             for table_name in duckdb.connect()
             .execute(
-                f"""
+                """
                 /* install and load sqlite plugin for duckdb */
                 INSTALL sqlite_scanner;
                 LOAD sqlite_scanner;
                 /* perform query on sqlite_master table for metadata on tables */
                 SELECT name as table_name
-                from sqlite_scan('{str(path)}', 'sqlite_master')
+                from sqlite_scan(?, 'sqlite_master')
                 where type='table'
-                """
+                """,
+                parameters=[str(path)],
             )
             .arrow()["table_name"]
             .to_pylist()
@@ -261,13 +262,14 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
         record["table"] = (
             duckdb.connect()
             .execute(
-                f"""
+                """
                 /* install and load sqlite plugin for duckdb */
                 INSTALL sqlite_scanner;
                 LOAD sqlite_scanner;
                 /* perform query on sqlite_master table for metadata on tables */
-                SELECT * from sqlite_scan('{str(record["source_path"])}', '{str(record["table_name"])}')
-                """
+                SELECT * from sqlite_scan(?, ?)
+                """,
+                parameters=[str(record["source_path"]), str(record["table_name"])],
             )
             .arrow()
         )
