@@ -6,7 +6,7 @@ import itertools
 import os
 import pathlib
 import uuid
-from typing import Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import duckdb
 import pyarrow as pa
@@ -45,8 +45,8 @@ def build_path(
 @task
 def get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
+    targets: List[str],
     source_datatype: Optional[str] = None,
-    targets: Optional[List[str]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -80,7 +80,7 @@ def get_source_filepaths(
             )
             .arrow()["table_name"]
             .to_pylist()
-            if any([target.lower() in table_name.lower() for target in targets])
+            if any(target.lower() in table_name.lower() for target in targets)
         }
 
     # gathers files from provided path using compartments as a filter
@@ -307,7 +307,7 @@ def prepend_column_name(
             if (
                 not column_name.startswith("Metadata_")
                 and column_name in identifying_columns
-                and not any([item.capitalize() in column_name for item in metadata])
+                and not any(item.capitalize() in column_name for item in metadata)
                 and not "ObjectNumber" in column_name
             )
             else f"Metadata_{column_name}"
@@ -483,7 +483,7 @@ def get_join_chunks(
 
     # fetch the compartment concat result as the basis for join groups
     for key, record in records.items():
-        if any([name.lower() in pathlib.Path(key).stem.lower() for name in metadata]):
+        if any(name.lower() in pathlib.Path(key).stem.lower() for name in metadata):
             first_result = record
             break
 
@@ -603,7 +603,7 @@ def join_record_chunk(
 @task
 def concat_join_records(
     dest_path: str, join_records: List[str], records: Dict[str, List[Dict[str, Any]]]
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> str:
     """
     Concatenate join records from parquet-based chunks.
     """
@@ -855,22 +855,24 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    compartments: Union[List[str], Tuple[str, ...]] = config["cellprofiler_csv"][
-        "CONFIG_NAMES_COMPARTMENTS"
-    ],
-    metadata: Union[List[str], Tuple[str, ...]] = config["cellprofiler_csv"][
-        "CONFIG_NAMES_METADATA"
-    ],
-    identifying_columns: Union[List[str], Tuple[str, ...]] = config["cellprofiler_csv"][
-        "CONFIG_IDENTIFYING_COLUMNS"
-    ],
+    compartments: Union[List[str], Tuple[str, ...]] = cast(
+        list, config["cellprofiler_csv"]["CONFIG_NAMES_COMPARTMENTS"]
+    ),
+    metadata: Union[List[str], Tuple[str, ...]] = cast(
+        list, config["cellprofiler_csv"]["CONFIG_NAMES_METADATA"]
+    ),
+    identifying_columns: Union[List[str], Tuple[str, ...]] = cast(
+        list, config["cellprofiler_csv"]["CONFIG_IDENTIFYING_COLUMNS"]
+    ),
     concat: bool = True,
     join: bool = True,
-    joins: Optional[str] = config["cellprofiler_csv"]["CONFIG_JOINS"],
-    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = config[
-        "cellprofiler_csv"
-    ]["CONFIG_CHUNK_COLUMNS"],
-    chunk_size: Optional[int] = config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"],
+    joins: Optional[str] = cast(str, config["cellprofiler_csv"]["CONFIG_JOINS"]),
+    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = cast(
+        list, config["cellprofiler_csv"]["CONFIG_CHUNK_COLUMNS"]
+    ),
+    chunk_size: Optional[int] = cast(
+        int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"]
+    ),
     infer_common_schema: bool = True,
     drop_null: bool = True,
     preset: Optional[str] = None,
@@ -957,12 +959,12 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
     # optionally load preset configuration for arguments
     if preset is not None:
-        compartments = config[preset]["CONFIG_NAMES_COMPARTMENTS"]
-        metadata = config[preset]["CONFIG_NAMES_METADATA"]
-        identifying_columns = config[preset]["CONFIG_IDENTIFYING_COLUMNS"]
-        joins = config[preset]["CONFIG_JOINS"]
-        chunk_columns = config[preset]["CONFIG_CHUNK_COLUMNS"]
-        chunk_size = config[preset]["CONFIG_CHUNK_SIZE"]
+        compartments = cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
+        metadata = cast(list, config[preset]["CONFIG_NAMES_METADATA"])
+        identifying_columns = cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
+        joins = cast(str, config[preset]["CONFIG_JOINS"])
+        chunk_columns = cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
+        chunk_size = cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
 
     # send records to be written to parquet if selected
     if dest_datatype == "parquet":

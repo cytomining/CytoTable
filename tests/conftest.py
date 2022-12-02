@@ -6,7 +6,7 @@ import pathlib
 import shutil
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 import boto3
 import boto3.session
@@ -23,7 +23,7 @@ from pycytominer_transform import column_sort
 
 # note: we use name here to avoid pylint flagging W0621
 @pytest.fixture(name="get_tempdir", scope="session")
-def fixture_get_tempdir() -> str:
+def fixture_get_tempdir() -> Generator:
     """
     Provide temporary directory for testing
     """
@@ -35,8 +35,8 @@ def fixture_get_tempdir() -> str:
     shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
-@pytest.fixture()
-def data_dir_cellprofiler() -> str:
+@pytest.fixture(name="data_dir_cellprofiler")
+def fixture_data_dir_cellprofiler() -> str:
     """
     Provide a data directory for cellprofiler test data
     """
@@ -44,8 +44,8 @@ def data_dir_cellprofiler() -> str:
     return f"{os.path.dirname(__file__)}/data/cellprofiler"
 
 
-@pytest.fixture()
-def data_dirs_cytominerdatabase() -> List[str]:
+@pytest.fixture(name="data_dirs_cytominerdatabase")
+def fixture_data_dirs_cytominerdatabase() -> List[str]:
     """
     Provide a data directory for cytominer-database test data
     """
@@ -58,9 +58,10 @@ def data_dirs_cytominerdatabase() -> List[str]:
     ]
 
 
-@pytest.fixture()
-def cytominerdatabase_sqlite(
-    get_tempdir: str, data_dirs_cytominerdatabase: List[str],
+@pytest.fixture(name="cytominerdatabase_sqlite")
+def fixture_cytominerdatabase_sqlite(
+    get_tempdir: str,
+    data_dirs_cytominerdatabase: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test data as sqlite data
@@ -91,7 +92,8 @@ def cytominerdatabase_sqlite(
 
 @pytest.fixture()
 def pycytominer_merge_single_cells_parquet(
-    get_tempdir: str, cytominerdatabase_sqlite: List[str],
+    get_tempdir: str,
+    cytominerdatabase_sqlite: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test sqlite data as
@@ -117,7 +119,7 @@ def pycytominer_merge_single_cells_parquet(
 
 
 @pytest.fixture(name="example_tables")
-def fixture_example_tables() -> Tuple[pa.Table, pa.Table, pa.Table]:
+def fixture_example_tables() -> Tuple[pa.Table, ...]:
     """
     Provide static example tables
     """
@@ -145,9 +147,24 @@ def fixture_example_tables() -> Tuple[pa.Table, pa.Table, pa.Table]:
     )
     table_nuclei_1 = pa.Table.from_pydict(
         {
-            "ImageNumber": pa.array(["1", "1",]),
-            "Nuclei_ObjectNumber": pa.array([1, 2,]),
-            "Nuclei_Feature_Z": pa.array([0.001, 0.002,]),
+            "ImageNumber": pa.array(
+                [
+                    "1",
+                    "1",
+                ]
+            ),
+            "Nuclei_ObjectNumber": pa.array(
+                [
+                    1,
+                    2,
+                ]
+            ),
+            "Nuclei_Feature_Z": pa.array(
+                [
+                    0.001,
+                    0.002,
+                ]
+            ),
         }
     )
 
@@ -164,7 +181,8 @@ def fixture_example_tables() -> Tuple[pa.Table, pa.Table, pa.Table]:
 
 @pytest.fixture(name="example_local_records")
 def fixture_example_local_records(
-    get_tempdir: str, example_tables: Tuple[pa.Table, pa.Table, pa.Table]
+    get_tempdir: str,
+    example_tables: Tuple[pa.Table, ...],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Provide an example record
@@ -227,7 +245,9 @@ def fixture_example_local_records(
 
 
 @pytest.fixture(name="cellprofiler_merged_examplehuman")
-def fixture_cellprofiler_merged_examplehuman(data_dir_cellprofiler: str,) -> pa.Table:
+def fixture_cellprofiler_merged_examplehuman(
+    data_dir_cellprofiler: str,
+) -> pa.Table:
     """
     Fixture for manually configured merged/joined result from
     CellProfiler ExampleHuman CSV Data
@@ -242,7 +262,7 @@ def fixture_cellprofiler_merged_examplehuman(data_dir_cellprofiler: str,) -> pa.
                 f"Metadata_{colname}"
                 if colname in ["ImageNumber", "ObjectNumber"]
                 else f"Metadata_{name}_{colname}"
-                if any([name in colname for name in ["Parent_Cells", "Parent_Nuclei"]])
+                if any(name in colname for name in ["Parent_Cells", "Parent_Nuclei"])
                 else f"{name}_{colname}"
                 if not (colname.startswith(name) or colname.startswith("Metadata_"))
                 else colname
@@ -251,17 +271,15 @@ def fixture_cellprofiler_merged_examplehuman(data_dir_cellprofiler: str,) -> pa.
         )
 
     # prepare simulated merge result from convert
-    image_table = (
-        csv.read_csv(f"{data_dir_cellprofiler}/ExampleHuman/Image.csv")
-        .select(["ImageNumber"])
-        .rename_columns(["Metadata_ImageNumber"])
-    )
-
+    image_table = csv.read_csv(
+        f"{data_dir_cellprofiler}/ExampleHuman/Image.csv"
+    ).select(["ImageNumber"])
     cytoplasm_table = csv.read_csv(
         f"{data_dir_cellprofiler}/ExampleHuman/Cytoplasm.csv"
     )
     cells_table = csv.read_csv(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv")
     nuclei_table = csv.read_csv(f"{data_dir_cellprofiler}/ExampleHuman/Nuclei.csv")
+    image_table = col_renames(name="Image", table=image_table)
     cytoplasm_table = col_renames(name="Cytoplasm", table=cytoplasm_table)
     cells_table = col_renames(name="Cells", table=cells_table)
     nuclei_table = col_renames(name="Nuclei", table=nuclei_table)
@@ -305,16 +323,18 @@ def fixture_cellprofiler_merged_examplehuman(data_dir_cellprofiler: str,) -> pa.
 
 
 @pytest.fixture(name="cellprofiler_merged_nf1data")
-def fixture_cellprofiler_merged_nf1data(data_dir_cellprofiler: str,) -> pa.Table:
+def fixture_cellprofiler_merged_nf1data(
+    data_dir_cellprofiler: str,
+) -> pa.Table:
     """
     Fixture for manually configured merged/joined result from
     CellProfiler NF1_SchwannCell SQLite Data
     """
 
-    sqlite_source = f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
-
     control_result = (
         duckdb.connect()
+        # segmented executes below are used to parameterize the sqlite source
+        # without using the same parameter in the select query (unnecessary after CALL)
         .execute(
             """
             /* install and load sqlite plugin for duckdb */
@@ -323,7 +343,13 @@ def fixture_cellprofiler_merged_nf1data(data_dir_cellprofiler: str,) -> pa.Table
 
             /* attach sqlite db to duckdb for full table awareness */
             CALL sqlite_attach(?);
-
+            """,
+            parameters=[
+                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
+            ],
+        )
+        .execute(
+            """
             /* perform query on sqlite tables through duckdb */
             WITH Per_Image_Filtered AS (
                 SELECT
@@ -342,8 +368,7 @@ def fixture_cellprofiler_merged_nf1data(data_dir_cellprofiler: str,) -> pa.Table
             LEFT JOIN Per_Nuclei nuclei ON
                 nuclei.ImageNumber = cytoplasm.ImageNumber
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_OrigNuclei
-        """,
-            parameters=[sqlite_source],
+        """
         )
         .arrow()
         .drop_null()

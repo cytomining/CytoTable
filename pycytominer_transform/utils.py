@@ -1,3 +1,7 @@
+"""
+Utility functions for pycytominer-transform
+"""
+
 # custom sort for resulting columns
 def column_sort(value: str):
     """
@@ -37,16 +41,16 @@ def column_sort(value: str):
 
     # if sort_middle is anywhere in value return
     # next index value after sort_first values
-    elif sort_middle in value_lower:
+    if sort_middle in value_lower:
         return len(sort_first)
 
     # if any sort_later are found as the first part of value
     # return enumerated index of sort_later value (starting from
     # relative len based on the above conditionals and lists)
-    elif any(value_lower.startswith(val) for val in sort_later):
-        for k, v in enumerate(sort_later, start=len(sort_first) + 1):
-            if value_lower.startswith(v):
-                return k
+    if any(value_lower.startswith(val) for val in sort_later):
+        for _k, _v in enumerate(sort_later, start=len(sort_first) + 1):
+            if value_lower.startswith(_v):
+                return _k
 
     # else we return the total length of all sort values
     return len(sort_first) + len(sort_later) + 1

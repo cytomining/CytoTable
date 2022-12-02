@@ -137,7 +137,7 @@ def test_prepend_column_name():
 
 def test_concat_record_group(
     get_tempdir: str,
-    example_tables: Tuple[pa.Table, pa.Table, pa.Table],
+    example_tables: Tuple[pa.Table, ...],
     example_local_records: Dict[str, List[Dict[str, Any]]],
 ):
     """
@@ -486,13 +486,6 @@ def test_convert_s3_path(
         endpoint_url=example_s3_endpoint,
     )
 
-    # gather destination paths used from source files for testing
-    destination_paths = {
-        pathlib.Path(record["destination_path"]).name: record["destination_path"]
-        for group in example_local_records.values()
-        for record in group
-    }
-
     # compare each of the results using files from the source
 
     for control_path, test_path in zip(
@@ -516,7 +509,7 @@ def test_convert_s3_path(
 
 def test_infer_record_group_common_schema(
     example_local_records: Dict[str, List[Dict[str, Any]]],
-    example_tables: Tuple[pa.Table, pa.Table, pa.Table],
+    example_tables: Tuple[pa.Table, ...],
 ):
     """
     Tests infer_record_group_common_schema
@@ -543,7 +536,8 @@ def test_convert_cytominerdatabase_csv(
     for cytominerdatabase_dir, pycytominer_merge_dir in zip(
         data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
     ):
-        # load control table, dropping tablenumber and unlabeled objectnumber (no compartment specified)
+        # load control table, dropping tablenumber
+        # and unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=pycytominer_merge_dir).drop(
             [
                 # tablenumber is not implemented within pycytominer-transform
@@ -567,7 +561,9 @@ def test_convert_cytominerdatabase_csv(
         test_table = parquet.read_table(
             source=convert(
                 source_path=cytominerdatabase_dir,
-                dest_path=f"{get_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet",
+                dest_path=(
+                    f"{get_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet"
+                ),
                 dest_datatype="parquet",
                 source_datatype="csv",
                 merge=True,
@@ -592,7 +588,9 @@ def test_convert_cellprofiler_sqlite(
 
     test_result = parquet.read_table(
         convert(
-            source_path=f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite",
+            source_path=(
+                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
+            ),
             dest_path=f"{get_tempdir}/NF1_data.parquet",
             dest_datatype="parquet",
             source_datatype="sqlite",
