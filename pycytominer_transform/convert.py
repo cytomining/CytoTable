@@ -668,6 +668,14 @@ def infer_record_group_common_schema(record_group: List[Dict[str, Any]]):
 
                 common_schema = common_schema.remove(index)
 
+            # check if we have a nulltype and non-nulltype conflict, deferring to non-nulltype
+            elif pa.types.is_null(field.type) and not pa.types.is_null(
+                schema.field(field.name).type
+            ):
+                common_schema = common_schema.set(
+                    index, field.with_type(schema.field(field.name).type)
+                )
+
             # check if we have an integer to float challenge and enable later casting
             elif pa.types.is_integer(field.type) and pa.types.is_floating(
                 schema.field(field.name).type
