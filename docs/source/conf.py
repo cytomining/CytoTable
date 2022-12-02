@@ -67,6 +67,9 @@ html_theme_options = {
     "page_width": "1000px",
     "github_user": "cytomining",
     "github_repo": "pycytominer-transform",
+    "github_button": "true",
+    "github_type": "star",
+    "github_count": "false",
 }
 
 # set option to avoid rendering default variables
