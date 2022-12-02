@@ -30,7 +30,18 @@ def build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
 ) -> Union[pathlib.Path, Any]:
     """
-    Build a path client
+    Build a path client or return local path.
+
+    Args:
+        path: Union[pathlib.Path, Any]:
+            Path to seek filepaths within.
+        **kwargs: Any
+            keyword arguments to be used with 
+            Cloudpathlib.CloudPath.client
+
+    Returns:
+        Union[pathlib.Path, Any]
+            A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
     processed_path = AnyPath(path)
@@ -52,14 +63,17 @@ def get_source_filepaths(
     Gather dataset of filepaths from a provided directory path.
 
     Args:
-      path: Union[pathlib.Path, Any]:
-        Path to seek filepaths within.
-      compartments: List[str]:
-        Compartment filenames to seek within the provided path.
+        path: Union[pathlib.Path, Any]:
+            Path to seek filepaths within.
+        targets: List[str]:
+            Compartment and metadata names to seek within the provided path.
+        source_datatype: Optional[str]  (Default value = None)
+            Data type for source data files.
+            
 
     Returns:
-      Dict[str, List[Dict[str, Any]]]
-        Data structure which groups related files based on the compartments.
+        Dict[str, List[Dict[str, Any]]]
+            Data structure which groups related files based on the compartments.
     """
 
     if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
@@ -117,15 +131,15 @@ def infer_source_datatype(
     Infers and optionally validates datatype (extension) of files.
 
     Args:
-      records: Dict[str, List[Dict[str, Any]]]:
-        Grouped datasets of files which will be used by other functions.
-      source_datatype: Optional[str]:  (Default value = None)
-        Optional source datatype to validate within the context of
-        detected datatypes.
+        records: Dict[str, List[Dict[str, Any]]]:
+            Grouped datasets of files which will be used by other functions.
+        source_datatype: Optional[str]:  (Default value = None)
+            Optional source datatype to validate within the context of
+            detected datatypes.
 
     Returns:
-      str
-        A string of the datatype detected or validated source_datatype.
+        str
+            A string of the datatype detected or validated source_datatype.
     """
 
     # gather file extension suffixes
@@ -164,14 +178,14 @@ def filter_source_filepaths(
     Filter source filepaths based on provided source_datatype
 
     Args:
-      records: Dict[str, List[Dict[str, Any]]]
-        Grouped datasets of files which will be used by other functions.
-      source_datatype: str
-        Source datatype to use for filtering the dataset.
+        records: Dict[str, List[Dict[str, Any]]]
+            Grouped datasets of files which will be used by other functions.
+        source_datatype: str
+            Source datatype to use for filtering the dataset.
 
     Returns:
-      Dict[str, List[Dict[str, Any]]]
-        Data structure which groups related files based on the datatype.
+        Dict[str, List[Dict[str, Any]]]
+            Data structure which groups related files based on the datatype.
     """
 
     return {
@@ -199,16 +213,16 @@ def gather_records(
     Flow for gathering records for conversion
 
     Args:
-      source_path: str:
-        Where to gather file-based data from.
-      source_datatype: Optional[str]:  (Default value = None)
-        The source datatype (extension) to use for reading the tables.
-      compartments: Optional[List[str]]:  (Default value = None)
-        The source file names to target within the provided path.
+        source_path: str:
+            Where to gather file-based data from.
+        source_datatype: Optional[str]:  (Default value = None)
+            The source datatype (extension) to use for reading the tables.
+        targets: Optional[List[str]]:  (Default value = None)
+            The source file names to target within the provided path.
 
     Returns:
-      Dict[str, List[Dict[str, Any]]]
-        Data structure which groups related files based on the compartments.
+        Dict[str, List[Dict[str, Any]]]
+            Data structure which groups related files based on the compartments.
     """
 
     source_path = build_path(path=source_path, **kwargs)
@@ -233,12 +247,12 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
     Read data from record.
 
     Args:
-      record: Dict[str, Any]:
-        Data containing filepath to csv file
+        record: Dict[str, Any]:
+            Data containing filepath to csv file
 
     Returns:
-      record: Dict[str, Any]
-        Updated record (Dict[str, Any]) with CSV data in-memory
+        record: Dict[str, Any]
+            Updated record (Dict[str, Any]) with source data in-memory
     """
 
     if AnyPath(record["source_path"]).suffix == ".csv":  # pylint: disable=no-member
@@ -253,8 +267,7 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to record
         record["table"] = csv.read_csv(
-            input_file=record["source_path"],
-            parse_options=parse_options,
+            input_file=record["source_path"], parse_options=parse_options,
         )
 
     if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
@@ -286,7 +299,25 @@ def prepend_column_name(
     targets: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    Rename columns using the record group name, avoiding identifying columns
+    Rename columns using the record group name, avoiding identifying columns.
+
+    Args:
+        record: Dict[str, Any]:
+            Individual data source record which includes meta about source
+            as well as Arrow table with data.
+        record_group_name: str:
+            Name of data source record group (for common compartments, etc).
+        identifying_columns: Union[List[str], Tuple[str, ...]]:
+            Column names which are used as ID's and as a result need to be 
+            ignored with regards to renaming.
+        metadata: Union[List[str], Tuple[str, ...]]:
+            List of source data names which are used as metadata
+        targets: Optional[List[str]] = None:
+            List of source data names which are used as compartments
+
+    Returns:
+        Dict[str, Any]
+            Updated record which includes the updated table column names
     """
 
     record_group_name_stem = str(pathlib.Path(record_group_name).stem)
@@ -332,17 +363,21 @@ def concat_record_group(
     """
     Concatenate group of records together as unified dataset.
 
+    For a reference to data concatenation within Arrow see the following:
+    https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
+
     Args:
-      record_group: List[Dict[str, Any]]:
-        Data structure containing grouped data for concatenation.
-      dest_path: Optional[str] (Default value = None)
-        Optional destination path for concatenated records.
-      infer_common_schema: bool (Default value = True)
-        Whether to infer a common schema when concatenating records.
+        record_group: List[Dict[str, Any]]:
+            Data structure containing grouped data for concatenation.
+        dest_path: Optional[str] (Default value = None)
+            Optional destination path for concatenated records.
+        common_schema: List[Tuple[str, str]] (Default value = None)
+            Common schema to use for concatenation amongst arrow tables
+            which may have slightly different but compatible schema.
 
     Returns:
-      List[Dict[str, Any]]
-        Updated dictionary containing concatted records
+        List[Dict[str, Any]]
+            Updated dictionary containing concatenated records.
     """
 
     # if we have nothing to concat, return the record group
@@ -413,17 +448,17 @@ def write_parquet(
     Write parquet data using in-memory data.
 
     Args:
-      record: Dict:
-        Dictionary including in-memory data which will be written to parquet.
-      dest_path: str:
-        Destination path to write the parquet file to.
-      unique_name: bool:  (Default value = False)
-        Determines whether a unique name is necessary for the file.
+        record: Dict:
+            Dictionary including in-memory data which will be written to parquet.
+        dest_path: str:
+            Destination path to write the parquet file to.
+        unique_name: bool:  (Default value = False)
+            Determines whether a unique name is necessary for the file.
 
     Returns:
-      Dict[str, Any]
-        Updated dictionary containing the destination path where parquet file
-        was written.
+        Dict[str, Any]
+            Updated dictionary containing the destination path where parquet file
+            was written.
     """
 
     # unlink the file if it exists
@@ -468,17 +503,21 @@ def get_join_chunks(
     chunk_size: int,
 ) -> List[List[Dict[str, Any]]]:
     """
-    Reads first record as reference for building join chunks by chunk_columns
-    records: Dict[List[Dict[str, Any]]]:
-      Grouped datasets of files which will be used by other functions.
-    join_columns: Union[List[str], Tuple[str, ...]]:
-      Columns to use to form join chunk result
-    join_chunk_size: int:
-      Size of chunks to use for join chunk result
+    Build groups of join keys for later join operations
+
+    Args:
+        records: Dict[List[Dict[str, Any]]]:
+            Grouped datasets of files which will be used by other functions.
+        metadata: Union[List[str], Tuple[str, ...]]:
+            List of source data names which are used as metadata
+        chunk_columns: Union[List[str], Tuple[str, ...]]:
+            Column names which appear in all compartments to use when performing join
+        chunk_size: int:
+            Size of join chunks which is used to limit data size during join ops
 
     Returns:
-      List[List[Dict[str, Any]]]]:
-        A list of lists with at most chunk size length that contain join keys
+        List[List[Dict[str, Any]]]]:
+            A list of lists with at most chunk size length that contain join keys
     """
 
     # fetch the compartment concat result as the basis for join groups
@@ -516,6 +555,27 @@ def join_record_chunk(
 ) -> str:
     """
     Join records based on join group keys (group of specific join column values)
+
+    Args:
+        records: Dict[str, List[Dict[str, Any]]]:
+            Grouped datasets of files which will be used by other functions.
+            Includes the metadata concerning location of actual data.
+        dest_path: str:
+            Destination path to write file-based content.
+        joins: str:
+            DuckDB-compatible SQL which will be used to perform the join
+            operations using the join_group keys as a reference.
+        join_group: List[Dict[str, Any]]:
+            Group of joinable keys to be used as "chunked" filter
+            of overall dataset.
+        drop_null: bool:
+            Whether to drop rows with null values within the resulting
+            joined data.
+
+
+    Returns:
+        str
+            Path to joined file which is created as a result of this function.
     """
 
     # replace with real location of sources for join sql
@@ -593,8 +653,7 @@ def join_record_chunk(
 
     # write the result
     parquet.write_table(
-        table=result,
-        where=result_file_path,
+        table=result, where=result_file_path,
     )
 
     return result_file_path
@@ -602,10 +661,27 @@ def join_record_chunk(
 
 @task
 def concat_join_records(
-    dest_path: str, join_records: List[str], records: Dict[str, List[Dict[str, Any]]]
+    records: Dict[str, List[Dict[str, Any]]], dest_path: str, join_records: List[str],
 ) -> str:
     """
     Concatenate join records from parquet-based chunks.
+
+    For a reference to data concatenation within Arrow see the following:
+    https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
+
+    Args:
+        records: Dict[str, List[Dict[str, Any]]]:
+            Grouped datasets of files which will be used by other functions.
+            Includes the metadata concerning location of actual data.
+        dest_path: str:
+            Destination path to write file-based content.
+        join_records: List[str]:
+            List of local filepath destination for join record chunks
+            which will be concatenated.
+
+    Returns:
+        str
+            Path to concatenated file which is created as a result of this function.
     """
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
@@ -639,9 +715,23 @@ def concat_join_records(
 
 
 @task
-def infer_record_group_common_schema(record_group: List[Dict[str, Any]]):
+def infer_record_group_common_schema(
+    record_group: List[Dict[str, Any]]
+) -> List[Tuple[str, str]]:
     """
-    Infers a common schema for record group
+    Infers a common schema for group of parquet files which may have 
+    similar but slightly different schema or data. Intended to assist with
+    data concatenation and other operations.
+
+    Args:
+        record_group: List[Dict[str, Any]]:
+            Group of one or more data records which includes metadata about
+            path to parquet data.
+    
+    Returns:
+        List[Tuple[str, str]]
+            A list of tuples which includes column name and PyArrow datatype.
+            This data will later be used as the basis for forming a PyArrow schema.
     """
 
     # read first file for basis of schema and column order for all others
@@ -715,36 +805,46 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     infer_common_schema: bool,
     drop_null: bool,
     **kwargs,
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
     Export data to parquet.
 
     Args:
-      source_path: str:
-        str reference to read source files from.
-        Note: may be local or remote object-storage location using convention "s3://..." or similar.
-      dest_path: str:
-        Path to write files to.
-        Note: this may only be a local path.
-      source_datatype: Optional[str]: (Default value = None)
-        Source datatype to focus on during conversion.
-      compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
-        Compartment names to use for conversion.
-      concat: bool:
-        Whether to concatenate similar files together.
-      join: bool:
-        Whether to join the compartment data together into one dataset
-      chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
-        Column names which appear in all compartments to use when performing join
-      chunk_size: Optional[int],
-        Size of join chunks which is used to limit data size during join ops
-      infer_common_schema: bool:  (Default value = True)
-        Whether to infer a common schema when concatenating records.
+        source_path: str:
+            str reference to read source files from.
+            Note: may be local or remote object-storage location using convention "s3://..." or similar.
+        dest_path: str:
+            Path to write files to.
+            Note: this may only be a local path.
+        source_datatype: Optional[str]: (Default value = None)
+            Source datatype to focus on during conversion.
+        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
+            Compartment names to use for conversion.
+        metadata: Union[List[str], Tuple[str, ...]]:
+            Metadata names to use for conversion.
+        identifying_columns: Union[List[str], Tuple[str, ...]]:
+            Column names which are used as ID's and as a result need to be 
+            ignored with regards to renaming.
+        concat: bool:
+            Whether to concatenate similar files together.
+        join: bool:
+            Whether to join the compartment data together into one dataset
+        joins: str:
+            DuckDB-compatible SQL which will be used to perform the join operations.
+        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
+            Column names which appear in all compartments to use when performing join
+        chunk_size: Optional[int],
+            Size of join chunks which is used to limit data size during join ops
+        infer_common_schema: bool:  (Default value = True)
+            Whether to infer a common schema when concatenating records.
+        drop_null: bool:
+            Whether to drop null results.
 
     Returns:
-      Dict[str, List[Dict[str, Any]]]:
-        Grouped records which include metadata about destination filepath
-        where parquet file was written.
+        Union[Dict[str, List[Dict[str, Any]]], str]:
+            Grouped records which include metadata about destination filepath
+            where parquet file was written or a string filepath for the joined
+            result.
     """
 
     # gather records to be processed
@@ -887,7 +987,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     task_runner: BaseTaskRunner = ConcurrentTaskRunner,
     log_level: str = "ERROR",
     **kwargs,
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
     Convert file-based data from various sources to Pycytominer-compatible standards.
 
@@ -895,66 +995,74 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     using convention "s3://..." or similar.
 
     Args:
-      source_path: str:
-        str reference to read source files from.
-        Note: may be local or remote object-storage location using convention "s3://..." or similar.
-      dest_path: str:
-        Path to write files to.
-        Note: this may only be a local path.
-      dest_datatype: Literal["parquet"]:
-        Destination datatype to write to.
-      source_datatype: Optional[str]:  (Default value = None)
-        Source datatype to focus on during conversion.
-      compartments: Union[List[str], Tuple[str, str, str, str]]:
-        (Default value = DEFAULT_COMPARTMENTS)
-        Compartment names to use for conversion.
-      concat: bool:  (Default value = True)
-        Whether to concatenate similar files together.
-      join: bool:  (Default value = True)
-        Whether to join the compartment data together into one dataset
-      chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
-        (Default value = DEFAULT_CHUNK_COLUMNS)
-        Column names which appear in all compartments to use when performing join
-      chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
-        Size of join chunks which is used to limit data size during join ops
-      infer_common_schema: bool (Default value = True)
-        Whether to infer a common schema when concatenating records.
-      drop_null: bool (Default value = True)
-        Whether to drop nan/null values from results
-      preset: str (Default value = None)
-        an optional group of presets to use based on common configurations
-      task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)
-        Prefect task runner to use with flows.
+        source_path: str:
+            str reference to read source files from.
+            Note: may be local or remote object-storage location using convention "s3://..." or similar.
+        dest_path: str:
+            Path to write files to.
+            Note: this may only be a local path.
+        dest_datatype: Literal["parquet"]:
+            Destination datatype to write to.
+        source_datatype: Optional[str]:  (Default value = None)
+            Source datatype to focus on during conversion.
+        compartments: Union[List[str], Tuple[str, str, str, str]]:
+            (Default value = DEFAULT_COMPARTMENTS)
+            Compartment names to use for conversion.
+        metadata: Union[List[str], Tuple[str, ...]]:
+            Metadata names to use for conversion.
+        identifying_columns: Union[List[str], Tuple[str, ...]]:
+            Column names which are used as ID's and as a result need to be 
+            ignored with regards to renaming.
+        concat: bool:  (Default value = True)
+            Whether to concatenate similar files together.
+        join: bool:  (Default value = True)
+            Whether to join the compartment data together into one dataset
+        joins: str: (Default value = presets.config["cellprofiler_csv"]["CONFIG_JOINS"]):
+            DuckDB-compatible SQL which will be used to perform the join operations.
+        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
+            (Default value = DEFAULT_CHUNK_COLUMNS)
+            Column names which appear in all compartments to use when performing join
+        chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
+            Size of join chunks which is used to limit data size during join ops
+        infer_common_schema: bool: (Default value = True)
+            Whether to infer a common schema when concatenating records.
+        drop_null: bool (Default value = True)
+            Whether to drop nan/null values from results
+        preset: str (Default value = None)
+            an optional group of presets to use based on common configurations
+        task_runner: BaseTaskRunner: (Default value = ConcurrentTaskRunner)
+            Prefect task runner to use with flows.
+        log_level: str: (Default value = "ERROR"):
+            Log level for Prefect flow and task operations.
 
     Returns:
-      Dict[str, List[Dict[str, Any]]]
-        Grouped records which include metadata about destination filepath
-        where parquet file was written.
-
+        Union[Dict[str, List[Dict[str, Any]]], str]
+            Grouped records which include metadata about destination filepath
+            where parquet file was written or str of joined result filepath.
 
     Example:
 
-      .. code-block:: python
+        .. code-block:: python
 
-        from pycytominer_transform import convert
+            from pycytominer_transform import convert
 
-        # using a local path
-        convert(
-            source_path="./tests/data/cellprofiler/csv_single",
-            source_datatype="csv",
-            dest_path=".",
-            dest_datatype="parquet",
-        )
+            # using a local path
+            convert(
+                source_path="./tests/data/cellprofiler/csv_single",
+                source_datatype="csv",
+                dest_path=".",
+                dest_datatype="parquet",
+            )
 
-        # using an s3-compatible path with no signature for client
-        convert(
-            source_path="s3://s3path",
-            source_datatype="csv",
-            dest_path=".",
-            dest_datatype="parquet",
-            concat=True,
-            no_sign_request=True,
-        )
+            # using an s3-compatible path with no signature for client
+            convert(
+                source_path="s3://s3path",
+                source_datatype="csv",
+                dest_path=".",
+                dest_datatype="parquet",
+                concat=True,
+                no_sign_request=True,
+            )
     """
 
     # log level overrides for prefect

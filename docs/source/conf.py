@@ -60,5 +60,14 @@ html_theme = "alabaster"
 # so a file named "default.css" will overwrite the builtin "default.css".
 # html_static_path = ["_static"]
 
+# set theme options
+html_theme_options = {
+    "font_family": "arial",
+    "sidebar_width": "300px",
+    "page_width": "1000px",
+    "github_user": "cytomining",
+    "github_repo": "pycytominer-transform",
+}
 
-html_theme_options = {"font_family": "arial"}
+# set option to avoid rendering default variables
+autodoc_preserve_defaults = True

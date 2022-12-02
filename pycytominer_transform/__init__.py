@@ -2,9 +2,11 @@
 __init__.py for pycytominer_convert
 """
 from .convert import (
+    build_path,
     concat_join_records,
     concat_record_group,
     convert,
+    filter_source_filepaths,
     gather_records,
     get_join_chunks,
     get_source_filepaths,

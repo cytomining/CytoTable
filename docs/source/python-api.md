@@ -8,7 +8,27 @@
 
 |
 
+.. autofunction:: build_path
+
+|
+
+.. autofunction:: concat_join_records
+
+|
+
+.. autofunction:: concat_record_group
+
+|
+
+.. autofunction:: filter_source_filepaths
+
+|
+
 .. autofunction:: gather_records
+
+|
+
+.. autofunction:: get_join_chunks
 
 |
 
@@ -16,11 +36,23 @@
 
 |
 
+.. autofunction:: infer_record_group_common_schema
+
+|
+
 .. autofunction:: infer_source_datatype
 
 |
 
-.. autofunction:: read_file
+.. autofunction:: join_record_chunk
+
+|
+
+.. autofunction:: prepend_column_name
+
+|
+
+.. autofunction:: read_data
 
 |
 
@@ -29,10 +61,6 @@
 |
 
 .. autofunction:: write_parquet
-
-|
-
-.. autofunction:: concat_record_group
 
 |
 
