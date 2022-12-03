@@ -5,7 +5,7 @@ import io
 import itertools
 import pathlib
 from shutil import copy
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, cast
 
 import pyarrow as pa
 import pytest
@@ -487,11 +487,10 @@ def test_convert_s3_path(
     )
 
     # compare each of the results using files from the source
-
     for control_path, test_path in zip(
         [
             record["destination_path"]
-            for group in multi_dir_nonconcat_s3_result.values()
+            for group in cast(Dict, multi_dir_nonconcat_s3_result).values()
             for record in group
         ],
         [

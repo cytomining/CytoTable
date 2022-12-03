@@ -10,235 +10,16 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import duckdb
 import pyarrow as pa
-from cloudpathlib import AnyPath, CloudPath
+from cloudpathlib import AnyPath
 from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
 from pyarrow import csv, parquet
 
-from pycytominer_transform.exceptions import (
-    DatatypeException,
-    NoInputDataException,
-    SchemaException,
-)
+from pycytominer_transform.exceptions import SchemaException
 from pycytominer_transform.presets import config
+from pycytominer_transform.records import gather_records
 from pycytominer_transform.utils import column_sort
-
-
-@task
-def build_path(
-    path: Union[str, pathlib.Path, AnyPath], **kwargs
-) -> Union[pathlib.Path, Any]:
-    """
-    Build a path client or return local path.
-
-    Args:
-        path: Union[pathlib.Path, Any]:
-            Path to seek filepaths within.
-        **kwargs: Any
-            keyword arguments to be used with 
-            Cloudpathlib.CloudPath.client
-
-    Returns:
-        Union[pathlib.Path, Any]
-            A local pathlib.Path or Cloudpathlib.AnyPath type path.
-    """
-
-    processed_path = AnyPath(path)
-
-    # set the client for a CloudPath
-    if isinstance(processed_path, CloudPath):
-        processed_path.client = processed_path.client.__class__(**kwargs)
-
-    return processed_path
-
-
-@task
-def get_source_filepaths(
-    path: Union[pathlib.Path, AnyPath],
-    targets: List[str],
-    source_datatype: Optional[str] = None,
-) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Gather dataset of filepaths from a provided directory path.
-
-    Args:
-        path: Union[pathlib.Path, Any]:
-            Path to seek filepaths within.
-        targets: List[str]:
-            Compartment and metadata names to seek within the provided path.
-        source_datatype: Optional[str]  (Default value = None)
-            Data type for source data files.
-            
-
-    Returns:
-        Dict[str, List[Dict[str, Any]]]
-            Data structure which groups related files based on the compartments.
-    """
-
-    if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
-        return {
-            f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
-            for table_name in duckdb.connect()
-            .execute(
-                """
-                /* install and load sqlite plugin for duckdb */
-                INSTALL sqlite_scanner;
-                LOAD sqlite_scanner;
-                /* perform query on sqlite_master table for metadata on tables */
-                SELECT name as table_name
-                from sqlite_scan(?, 'sqlite_master')
-                where type='table'
-                """,
-                parameters=[str(path)],
-            )
-            .arrow()["table_name"]
-            .to_pylist()
-            if any(target.lower() in table_name.lower() for target in targets)
-        }
-
-    # gathers files from provided path using compartments as a filter
-    records = [
-        {"source_path": file}
-        for file in path.glob("**/*")
-        if file.is_file()
-        and (
-            targets is None
-            or str(file.stem).lower() in [target.lower() for target in targets]
-        )
-    ]
-
-    # if we collected no files above, raise exception
-    if len(records) < 1:
-        raise NoInputDataException(f"No input data to process at path: {str(path)}")
-
-    grouped_records = {}
-
-    # group files together by similar filename for later data operations
-    for unique_source in set(source["source_path"].name for source in records):
-        grouped_records[unique_source.capitalize()] = [
-            source for source in records if source["source_path"].name == unique_source
-        ]
-
-    return grouped_records
-
-
-@task
-def infer_source_datatype(
-    records: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
-) -> str:
-    """
-    Infers and optionally validates datatype (extension) of files.
-
-    Args:
-        records: Dict[str, List[Dict[str, Any]]]:
-            Grouped datasets of files which will be used by other functions.
-        source_datatype: Optional[str]:  (Default value = None)
-            Optional source datatype to validate within the context of
-            detected datatypes.
-
-    Returns:
-        str
-            A string of the datatype detected or validated source_datatype.
-    """
-
-    # gather file extension suffixes
-    suffixes = list(set((group.split(".")[-1]).lower() for group in records))
-
-    # if we don't have a source datatype and have more than one suffix
-    # we can't infer which file type to read.
-    if source_datatype is None and len(suffixes) > 1:
-        raise DatatypeException(
-            f"Detected more than one inferred datatypes from source path: {suffixes}"
-        )
-
-    # if we have a source datatype and it isn't within the detected suffixes
-    # we will have no files to process.
-    if source_datatype is not None and source_datatype not in suffixes:
-        raise DatatypeException(
-            (
-                f"Unable to find source datatype {source_datatype} "
-                "within files. Detected datatypes: {suffixes}"
-            )
-        )
-
-    # if we haven't set a source datatype and need to rely on the inferred one
-    # set it so it may be returned
-    if source_datatype is None:
-        source_datatype = suffixes[0]
-
-    return source_datatype
-
-
-@task
-def filter_source_filepaths(
-    records: Dict[str, List[Dict[str, Any]]], source_datatype: str
-) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    Filter source filepaths based on provided source_datatype
-
-    Args:
-        records: Dict[str, List[Dict[str, Any]]]
-            Grouped datasets of files which will be used by other functions.
-        source_datatype: str
-            Source datatype to use for filtering the dataset.
-
-    Returns:
-        Dict[str, List[Dict[str, Any]]]
-            Data structure which groups related files based on the datatype.
-    """
-
-    return {
-        filegroup: [
-            file
-            for file in files
-            # ensure the filesize is greater than 0
-            if file["source_path"].stat().st_size > 0
-            # ensure the datatype matches the source datatype
-            and file["source_path"].suffix == f".{source_datatype}"
-        ]
-        for filegroup, files in records.items()
-    }
-
-
-@flow
-def gather_records(
-    source_path: str,
-    source_datatype: Optional[str] = None,
-    targets: Optional[List[str]] = None,
-    **kwargs,
-) -> Dict[str, List[Dict[str, Any]]]:
-
-    """
-    Flow for gathering records for conversion
-
-    Args:
-        source_path: str:
-            Where to gather file-based data from.
-        source_datatype: Optional[str]:  (Default value = None)
-            The source datatype (extension) to use for reading the tables.
-        targets: Optional[List[str]]:  (Default value = None)
-            The source file names to target within the provided path.
-
-    Returns:
-        Dict[str, List[Dict[str, Any]]]
-            Data structure which groups related files based on the compartments.
-    """
-
-    source_path = build_path(path=source_path, **kwargs)
-
-    # gather filepaths which will be used as the basis for this work
-    records = get_source_filepaths(
-        path=source_path, source_datatype=source_datatype, targets=targets
-    )
-
-    # infer or validate the source datatype based on source filepaths
-    source_datatype = infer_source_datatype(
-        records=records, source_datatype=source_datatype
-    )
-
-    # filter source filepaths to inferred or source datatype
-    return filter_source_filepaths(records=records, source_datatype=source_datatype)
 
 
 @task
@@ -267,7 +48,8 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to record
         record["table"] = csv.read_csv(
-            input_file=record["source_path"], parse_options=parse_options,
+            input_file=record["source_path"],
+            parse_options=parse_options,
         )
 
     if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
@@ -308,7 +90,7 @@ def prepend_column_name(
         record_group_name: str:
             Name of data source record group (for common compartments, etc).
         identifying_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which are used as ID's and as a result need to be 
+            Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
             List of source data names which are used as metadata
@@ -653,7 +435,8 @@ def join_record_chunk(
 
     # write the result
     parquet.write_table(
-        table=result, where=result_file_path,
+        table=result,
+        where=result_file_path,
     )
 
     return result_file_path
@@ -661,7 +444,9 @@ def join_record_chunk(
 
 @task
 def concat_join_records(
-    records: Dict[str, List[Dict[str, Any]]], dest_path: str, join_records: List[str],
+    records: Dict[str, List[Dict[str, Any]]],
+    dest_path: str,
+    join_records: List[str],
 ) -> str:
     """
     Concatenate join records from parquet-based chunks.
@@ -719,7 +504,7 @@ def infer_record_group_common_schema(
     record_group: List[Dict[str, Any]]
 ) -> List[Tuple[str, str]]:
     """
-    Infers a common schema for group of parquet files which may have 
+    Infers a common schema for group of parquet files which may have
     similar but slightly different schema or data. Intended to assist with
     data concatenation and other operations.
 
@@ -727,7 +512,7 @@ def infer_record_group_common_schema(
         record_group: List[Dict[str, Any]]:
             Group of one or more data records which includes metadata about
             path to parquet data.
-    
+
     Returns:
         List[Tuple[str, str]]
             A list of tuples which includes column name and PyArrow datatype.
@@ -812,7 +597,8 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     Args:
         source_path: str:
             str reference to read source files from.
-            Note: may be local or remote object-storage location using convention "s3://..." or similar.
+            Note: may be local or remote object-storage
+            location using convention "s3://..." or similar.
         dest_path: str:
             Path to write files to.
             Note: this may only be a local path.
@@ -823,7 +609,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         metadata: Union[List[str], Tuple[str, ...]]:
             Metadata names to use for conversion.
         identifying_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which are used as ID's and as a result need to be 
+            Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
         concat: bool:
             Whether to concatenate similar files together.
@@ -997,7 +783,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     Args:
         source_path: str:
             str reference to read source files from.
-            Note: may be local or remote object-storage location using convention "s3://..." or similar.
+            Note: may be local or remote object-storage location
+            using convention "s3://..." or similar.
         dest_path: str:
             Path to write files to.
             Note: this may only be a local path.
@@ -1011,7 +798,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         metadata: Union[List[str], Tuple[str, ...]]:
             Metadata names to use for conversion.
         identifying_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which are used as ID's and as a result need to be 
+            Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
         concat: bool:  (Default value = True)
             Whether to concatenate similar files together.

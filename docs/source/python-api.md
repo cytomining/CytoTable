@@ -8,19 +8,11 @@
 
 |
 
-.. autofunction:: build_path
-
-|
-
 .. autofunction:: concat_join_records
 
 |
 
 .. autofunction:: concat_record_group
-
-|
-
-.. autofunction:: filter_source_filepaths
 
 |
 
@@ -32,15 +24,7 @@
 
 |
 
-.. autofunction:: get_source_filepaths
-
-|
-
 .. autofunction:: infer_record_group_common_schema
-
-|
-
-.. autofunction:: infer_source_datatype
 
 |
 
@@ -61,6 +45,29 @@
 |
 
 .. autofunction:: write_parquet
+
+|
+
+.. automodule:: pycytominer_transform.records
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
+.. autofunction:: build_path
+
+|
+
+.. autofunction:: filter_source_filepaths
+
+|
+
+.. autofunction:: get_source_filepaths
+
+|
+
+.. autofunction:: infer_source_datatype
 
 |
 
