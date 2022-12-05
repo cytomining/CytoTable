@@ -74,3 +74,6 @@ html_theme_options = {
 
 # set option to avoid rendering default variables
 autodoc_preserve_defaults = True
+
+# enable anchor creation
+myst_heading_anchors = 3

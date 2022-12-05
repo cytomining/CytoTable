@@ -17,4 +17,5 @@ tutorial
 contributing
 Code of Conduct <code_of_conduct>
 python-api
+architecture
 ```
