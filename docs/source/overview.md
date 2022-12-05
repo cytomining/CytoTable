@@ -5,6 +5,19 @@ This page provides a brief overview of pycytominer-transform topics.
 
 ## Data Sources
 
+```{mermaid}
+flowchart LR
+    images[("Image\nfile(s)")]:::outlined --> image-tools[Image Analysis Tools]:::outlined
+    image-tools --> measurements[("Measurement\nfile(s)")]:::green
+    measurements --> pycytominer-transform:::green
+
+    classDef outlined fill:#fff,stroke:#333
+    classDef green fill:#97F0B4,stroke:#333
+```
+
+Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.
+These measurement data are the focus of the data source content which follows.
+
 ### Data Source Locations
 
 ```{eval-rst}
