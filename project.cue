@@ -16,7 +16,7 @@ import "universe.dagger.io/docker"
 	python_ver: string | *"3.9"
 
 	// poetry version to use for build
-	poetry_ver: string | *"1.2.0"
+	poetry_ver: string | *"1.2"
 
 	// container image
 	output: _python_build.output
@@ -151,7 +151,7 @@ dagger.#Plan & {
 		}
 	}
 	python_version: string | *"3.9"
-	poetry_version: string | *"1.2.0"
+	poetry_version: string | *"1.2"
 
 	actions: {
 
