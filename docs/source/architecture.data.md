@@ -9,8 +9,8 @@ Data sources for pyctyominer-transform are measurement data created from other c
 See below for a brief overview of these sources and data types.
 
 - [CellProfiler](https://github.com/CellProfiler/CellProfiler) generates [CSV](https://en.wikipedia.org/wiki/Comma-separated_values) and [SQLite](https://www.sqlite.org/) databases data.
-- [Cytominer-database](https://github.com/cytomining/Cytominer-database>) generates [SQLite](https://www.sqlite.org/) databases (which includes table data based on CellProfiler CSV's mentioned above).
-- [DeepProfiler](<<https://github.com/cytomining/DeepProfiler>) generates [NPZ](https://numpy.org/doc/stable/reference/routines.io.html?highlight=npz%20format#numpy-binary-files-npy-npz) data.
+- [Cytominer-database](https://github.com/cytomining/cytominer-database) generates [SQLite](https://www.sqlite.org/) databases (which includes table data based on CellProfiler CSV's mentioned above).
+- [DeepProfiler](https://github.com/cytomining/DeepProfiler) generates [NPZ](https://numpy.org/doc/stable/reference/routines.io.html?highlight=npz%20format#numpy-binary-files-npy-npz) data.
 
 ## Data structure
 

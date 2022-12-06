@@ -7,7 +7,6 @@ import pathlib
 from typing import Any, Dict, List, Optional, Union
 
 import duckdb
-import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task
 
