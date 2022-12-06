@@ -94,3 +94,6 @@ config = {
             """,
     },
 }
+"""
+Configuration presets for pycytominer-transform
+"""

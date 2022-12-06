@@ -140,7 +140,7 @@ def prepend_column_name(
 def concat_record_group(
     record_group: List[Dict[str, Any]],
     dest_path: str = ".",
-    common_schema: List[Tuple[str, str]] = None,
+    common_schema: Optional[List[Tuple[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Concatenate group of records together as unified dataset.
@@ -849,6 +849,15 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 dest_datatype="parquet",
                 concat=True,
                 no_sign_request=True,
+            )
+
+            # using a preset for configuration
+            convert(
+                source_path="example.sqlite",
+                dest_path="example.parquet",
+                dest_datatype="parquet",
+                merge=True,
+                preset="cellprofiler_sqlite",
             )
     """
 

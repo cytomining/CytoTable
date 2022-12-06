@@ -1,6 +1,10 @@
 # Python API
 
 ```{eval-rst}
+
+Convert
+-------
+
 .. automodule:: pycytominer_transform.convert
    :members:
    :undoc-members:
@@ -48,6 +52,9 @@
 
 |
 
+Records
+-------
+
 .. automodule:: pycytominer_transform.records
    :members:
    :undoc-members:
@@ -68,6 +75,24 @@
 |
 
 .. autofunction:: infer_source_datatype
+
+|
+
+Presets
+-------
+
+.. autodata:: pycytominer_transform.presets.config
+   :no-value:
+
+|
+
+Exceptions
+----------
+
+.. automodule:: pycytominer_transform.exceptions
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 |
 
