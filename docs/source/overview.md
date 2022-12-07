@@ -39,8 +39,12 @@ For example, remote AWS S3 paths which are public-facing and do not require auth
 
 ### Data Source Types
 
+Data source compatibility for pycytominer-transform is focused (but not explicitly limited to) the following.
+
+#### CellProfiler Data Sources
+
 - __Comma-separated values (.csv)__: "A comma-separated values (CSV) file is a delimited text file that uses a comma to separate values." ([reference](https://en.wikipedia.org/wiki/Comma-separated_values))
-  CSV data sources generally follow the format provided as output by [CellProfiler ExportToSpreadsheet](https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToSpreadsheet.html).
+  CellProfiler CSV data sources generally follow the format provided as output by [CellProfiler ExportToSpreadsheet](https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToSpreadsheet.html).
 
 ```{eval-rst}
   * **Manual specification:** CSV data source types may be manually specified by using :code:`convert(..., source_datatype="csv", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
@@ -48,7 +52,7 @@ For example, remote AWS S3 paths which are public-facing and do not require auth
 ```
 
 - __SQLite Databases (.sqlite)__: "SQLite database files are commonly used as containers to transfer rich content between systems and as a long-term archival format for data." ([reference](https://sqlite.org/index.html))
-  SQLite database sources may follow a format provided as output by [CellProfiler ExportToDatabase](https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToDatabase.html) or [cytominer-database](https://github.com/cytomining/cytominer-database).
+  CellProfiler SQLite database sources may follow a format provided as output by [CellProfiler ExportToDatabase](https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToDatabase.html) or [cytominer-database](https://github.com/cytomining/cytominer-database).
 
 ```{eval-rst}
   * **Manual specification:** SQLite data source types may be manually specified by using :code:`convert(..., source_datatype="sqlite", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
