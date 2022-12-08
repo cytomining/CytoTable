@@ -1,6 +1,6 @@
 # Technical Architecture
 
-Documentation covering technical architecture for pyctyominer-transform.
+Documentation covering technical architecture for pycytominer-transform.
 
 ## Workflow Technologies
 
@@ -13,7 +13,7 @@ See the following documentation for more information on how tasks and flows may 
 
 Flows and tasks within pycytominer-transform may be executed using [Prefect Task Executors](https://docs.prefect.io/tutorials/execution/).
 By default, pycytominer-transform assumes local parallel task execution where possible by implementing [ConcurrentTaskRunner](https://docs.prefect.io/tutorials/execution/#concurrent-execution).
-pycytominer-transform may also optionally be used with [prefect-dask  DaskTaskRunner](https://prefecthq.github.io/prefect-dask/) which can further, help scale parallel execution using a [Dask environment](https://docs.dask.org/en/stable/) (local or otherwise).
+pycytominer-transform may also optionally be used with [prefect-dask DaskTaskRunner](https://prefecthq.github.io/prefect-dask/) which can further, help scale parallel execution using a [Dask environment](https://docs.dask.org/en/stable/) (local or otherwise).
 
 ## Data Technologies
 
@@ -26,10 +26,10 @@ Reference the following page for how cloudpathlib client arguments may be used: 
 
 ### In-process Data Format
 
-In addition to Python native data types, internal data management for pycytominer-transform is accomplished using [PyArrow (Apache Arrow) Tables](https://arrow.apache.org/docs/python/generated/pyarrow.Table.html).
+In addition to using Python native data types, we also accomplish internal data management for pycytominer-transform using [PyArrow (Apache Arrow) Tables](https://arrow.apache.org/docs/python/generated/pyarrow.Table.html).
 Using Arrow-compatible formats is intended to assist cross-platform utility, encourage high-performance, and enable advanced data integration with non-Python tools.
 
 ### SQL-based Data Management
 
-The [DuckDB Python API client](https://duckdb.org/docs/api/python/overview) is used in some areas to interface with [SQL](https://en.wikipedia.org/wiki/SQL) (for example, SQLite databases) and other data formats.
-DuckDB SQL statements are used to organize joined datasets or tables as Arrow format results.
+We use the [DuckDB Python API client](https://duckdb.org/docs/api/python/overview) in some areas to interface with [SQL](https://en.wikipedia.org/wiki/SQL) (for example, SQLite databases) and other data formats.
+We use DuckDB SQL statements to organize joined datasets or tables as Arrow format results.

@@ -20,7 +20,7 @@ authors:
 repository-code: 'https://github.com/cytomining/pycytominer-transform'
 url: 'https://cytomining.github.io/pycytominer-transform/'
 abstract: >-
-  Transform data for processing image-based profiling
+  Transform single cell morphology data for image-based profiling applications and analyses.
   readouts with Pycytominer.
 keywords:
   - microscopy
