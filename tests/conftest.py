@@ -1,7 +1,6 @@
 """
 conftest.py for pytest
 """
-import os
 import pathlib
 import shutil
 import subprocess
@@ -41,7 +40,7 @@ def fixture_data_dir_cellprofiler() -> str:
     Provide a data directory for cellprofiler test data
     """
 
-    return f"{os.path.dirname(__file__)}/data/cellprofiler"
+    return f"{pathlib.Path(__file__).parent}/data/cellprofiler"
 
 
 @pytest.fixture(name="data_dirs_cytominerdatabase")
@@ -50,7 +49,7 @@ def fixture_data_dirs_cytominerdatabase() -> List[str]:
     Provide a data directory for cytominer-database test data
     """
 
-    basedir = f"{os.path.dirname(__file__)}/data/cytominer-database"
+    basedir = f"{pathlib.Path(__file__).parent}/data/cytominer-database"
 
     return [
         f"{basedir}/data_a",
