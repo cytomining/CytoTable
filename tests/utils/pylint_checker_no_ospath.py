@@ -43,7 +43,7 @@ class OSPathUseChecker(BaseRawFileChecker):
             for (lineno, line) in enumerate(stream):
                 # check for os.path used within a line
                 if "os.path" in str(line):
-                    self.add_message("ospath-use-check", line=lineno)
+                    self.add_message("ospath-check", line=lineno)
 
 
 def register(linter: "PyLinter") -> None:
