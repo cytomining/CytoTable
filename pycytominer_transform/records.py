@@ -6,11 +6,11 @@ metedata organized into "records" for performing conversion work.
 import pathlib
 from typing import Any, Dict, List, Optional, Union
 
-import duckdb
 from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task
 
 from pycytominer_transform.exceptions import DatatypeException, NoInputDataException
+from pycytominer_transform.utils import duckdb_with_sqlite
 
 
 @task
@@ -67,12 +67,9 @@ def get_source_filepaths(
     if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
         return {
             f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
-            for table_name in duckdb.connect()
+            for table_name in duckdb_with_sqlite()
             .execute(
                 """
-                /* install and load sqlite plugin for duckdb */
-                INSTALL sqlite_scanner;
-                LOAD sqlite_scanner;
                 /* perform query on sqlite_master table for metadata on tables */
                 SELECT name as table_name
                 from sqlite_scan(?, 'sqlite_master')

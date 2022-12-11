@@ -2,6 +2,9 @@
 Utility functions for pycytominer-transform
 """
 
+import duckdb
+
+
 # custom sort for resulting columns
 def column_sort(value: str):
     """
@@ -54,3 +57,21 @@ def column_sort(value: str):
 
     # else we return the total length of all sort values
     return len(sort_first) + len(sort_later) + 1
+
+
+def duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
+    """
+    Creates a DuckDB connection with the
+    sqlite_scanner installed and loaded.
+
+    Returns:
+        duckdb.DuckDBPyConnection
+    """
+
+    return duckdb.connect().execute(
+        """
+        /* install and load sqlite plugin for duckdb */
+        INSTALL sqlite_scanner;
+        LOAD sqlite_scanner;
+        """
+    )

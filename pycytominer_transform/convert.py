@@ -19,7 +19,7 @@ from pyarrow import csv, parquet
 from pycytominer_transform.exceptions import SchemaException
 from pycytominer_transform.presets import config
 from pycytominer_transform.records import gather_records
-from pycytominer_transform.utils import column_sort
+from pycytominer_transform.utils import column_sort, duckdb_with_sqlite
 
 
 @task
@@ -55,12 +55,9 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
     if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
 
         record["table"] = (
-            duckdb.connect()
+            duckdb_with_sqlite()
             .execute(
                 """
-                /* install and load sqlite plugin for duckdb */
-                INSTALL sqlite_scanner;
-                LOAD sqlite_scanner;
                 /* perform query on sqlite_master table for metadata on tables */
                 SELECT * from sqlite_scan(?, ?)
                 """,
