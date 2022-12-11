@@ -78,6 +78,16 @@ Records
 
 |
 
+Utils
+-----
+
+.. automodule:: pycytominer_transform.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
 Presets
 -------
 
