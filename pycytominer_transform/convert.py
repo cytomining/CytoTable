@@ -18,25 +18,25 @@ from pyarrow import csv, parquet
 
 from pycytominer_transform.exceptions import SchemaException
 from pycytominer_transform.presets import config
-from pycytominer_transform.records import gather_records
+from pycytominer_transform.sources import gather_sources
 from pycytominer_transform.utils import column_sort, duckdb_with_sqlite
 
 
 @task
-def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
+def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Read data from record.
+    Read data from source.
 
     Args:
-        record: Dict[str, Any]:
+        source: Dict[str, Any]:
             Data containing filepath to csv file
 
     Returns:
-        record: Dict[str, Any]
-            Updated record (Dict[str, Any]) with source data in-memory
+        source: Dict[str, Any]
+            Updated source (Dict[str, Any]) with source data in-memory
     """
 
-    if AnyPath(record["source_path"]).suffix == ".csv":  # pylint: disable=no-member
+    if AnyPath(source["source_path"]).suffix == ".csv":  # pylint: disable=no-member
         # define invalid row handler for rows which may be
         # somehow erroneous. See below for more details:
         # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
@@ -46,46 +46,46 @@ def read_data(record: Dict[str, Any]) -> Dict[str, Any]:
         # setup parse options
         parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
 
-        # read csv using pyarrow lib and attach table data to record
-        record["table"] = csv.read_csv(
-            input_file=record["source_path"],
+        # read csv using pyarrow lib and attach table data to source
+        source["table"] = csv.read_csv(
+            input_file=source["source_path"],
             parse_options=parse_options,
         )
 
-    if AnyPath(record["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
+    if AnyPath(source["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
 
-        record["table"] = (
+        source["table"] = (
             duckdb_with_sqlite()
             .execute(
                 """
                 /* perform query on sqlite_master table for metadata on tables */
                 SELECT * from sqlite_scan(?, ?)
                 """,
-                parameters=[str(record["source_path"]), str(record["table_name"])],
+                parameters=[str(source["source_path"]), str(source["table_name"])],
             )
             .arrow()
         )
 
-    return record
+    return source
 
 
 @task
 def prepend_column_name(
-    record: Dict[str, Any],
-    record_group_name: str,
+    source: Dict[str, Any],
+    source_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
     targets: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """
-    Rename columns using the record group name, avoiding identifying columns.
+    Rename columns using the source group name, avoiding identifying columns.
 
     Args:
-        record: Dict[str, Any]:
-            Individual data source record which includes meta about source
+        source: Dict[str, Any]:
+            Individual data source source which includes meta about source
             as well as Arrow table with data.
-        record_group_name: str:
-            Name of data source record group (for common compartments, etc).
+        source_group_name: str:
+            Name of data source source group (for common compartments, etc).
         identifying_columns: Union[List[str], Tuple[str, ...]]:
             Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
@@ -96,24 +96,24 @@ def prepend_column_name(
 
     Returns:
         Dict[str, Any]
-            Updated record which includes the updated table column names
+            Updated source which includes the updated table column names
     """
 
-    record_group_name_stem = str(pathlib.Path(record_group_name).stem)
+    source_group_name_stem = str(pathlib.Path(source_group_name).stem)
 
     if targets is not None:
-        record_group_name_stem = [
+        source_group_name_stem = [
             target.capitalize()
             for target in targets
-            if target.lower() in record_group_name_stem.lower()
+            if target.lower() in source_group_name_stem.lower()
         ][0]
 
-    record["table"] = record["table"].rename_columns(
+    source["table"] = source["table"].rename_columns(
         [
-            f"{record_group_name_stem}_{column_name}"
+            f"{source_group_name_stem}_{column_name}"
             if column_name not in identifying_columns
-            and not column_name.startswith(record_group_name_stem)
-            else f"Metadata_{record_group_name_stem}_{column_name}"
+            and not column_name.startswith(source_group_name_stem)
+            else f"Metadata_{source_group_name_stem}_{column_name}"
             if (
                 not column_name.startswith("Metadata_")
                 and column_name in identifying_columns
@@ -126,42 +126,42 @@ def prepend_column_name(
                 and column_name in identifying_columns
             )
             else column_name
-            for column_name in record["table"].column_names
+            for column_name in source["table"].column_names
         ]
     )
 
-    return record
+    return source
 
 
 @task
-def concat_record_group(
-    record_group: List[Dict[str, Any]],
+def concat_source_group(
+    source_group: List[Dict[str, Any]],
     dest_path: str = ".",
     common_schema: Optional[List[Tuple[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Concatenate group of records together as unified dataset.
+    Concatenate group of sources together as unified dataset.
 
     For a reference to data concatenation within Arrow see the following:
     https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
 
     Args:
-        record_group: List[Dict[str, Any]]:
+        source_group: List[Dict[str, Any]]:
             Data structure containing grouped data for concatenation.
         dest_path: Optional[str] (Default value = None)
-            Optional destination path for concatenated records.
+            Optional destination path for concatenated sources.
         common_schema: List[Tuple[str, str]] (Default value = None)
             Common schema to use for concatenation amongst arrow tables
             which may have slightly different but compatible schema.
 
     Returns:
         List[Dict[str, Any]]
-            Updated dictionary containing concatenated records.
+            Updated dictionary containing concatenated sources.
     """
 
-    # if we have nothing to concat, return the record group
-    if len(record_group) < 2:
-        return record_group
+    # if we have nothing to concat, return the source group
+    if len(source_group) < 2:
+        return source_group
 
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
@@ -172,15 +172,15 @@ def concat_record_group(
             # source path becomes parent's parent dir with the same filename
             "source_path": pathlib.Path(
                 (
-                    f"{record_group[0]['source_path'].parent.parent}"
-                    f"/{record_group[0]['source_path'].stem}"
+                    f"{source_group[0]['source_path'].parent.parent}"
+                    f"/{source_group[0]['source_path'].stem}"
                 )
             )
         }
     ]
 
     destination_path = pathlib.Path(
-        (f"{dest_path}/" f"{record_group[0]['source_path'].stem}" ".parquet")
+        (f"{dest_path}/" f"{source_group[0]['source_path'].stem}" ".parquet")
     )
 
     # if there's already a file remove it
@@ -194,7 +194,7 @@ def concat_record_group(
     # (all must be the same schema)
     with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
 
-        for table in [record["destination_path"] for record in record_group]:
+        for table in [source["destination_path"] for source in source_group]:
             # if we haven't inferred the common schema
             # check that our file matches the expected schema, otherwise raise an error
             if common_schema is None and not writer_schema.equals(
@@ -203,7 +203,7 @@ def concat_record_group(
                 raise SchemaException(
                     (
                         f"Detected mismatching schema for target concatenation group members:"
-                        f" {str(record_group[0]['destination_path'])} and {str(table)}"
+                        f" {str(source_group[0]['destination_path'])} and {str(table)}"
                     )
                 )
 
@@ -221,13 +221,13 @@ def concat_record_group(
 
 @task
 def write_parquet(
-    record: Dict[str, Any], dest_path: str, unique_name: bool = False
+    source: Dict[str, Any], dest_path: str, unique_name: bool = False
 ) -> Dict[str, Any]:
     """
     Write parquet data using in-memory data.
 
     Args:
-        record: Dict:
+        source: Dict:
             Dictionary including in-memory data which will be written to parquet.
         dest_path: str:
             Destination path to write the parquet file to.
@@ -248,35 +248,35 @@ def write_parquet(
     pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
 
     # build a default destination path for the parquet output
-    stub_name = str(record["source_path"].stem)
-    if "table_name" in record.keys():
-        stub_name = f"{record['table_name']}"
+    stub_name = str(source["source_path"].stem)
+    if "table_name" in source.keys():
+        stub_name = f"{source['table_name']}"
     destination_path = pathlib.Path(f"{dest_path}/{stub_name}.parquet")
 
     # build unique names to avoid overlaps
     if unique_name:
         destination_path = pathlib.Path(
             (
-                f"{dest_path}/{str(record['source_path'].parent.name)}"
-                f".{str(record['source_path'].stem)}.parquet"
+                f"{dest_path}/{str(source['source_path'].parent.name)}"
+                f".{str(source['source_path'].stem)}.parquet"
             )
         )
 
     # write the table to destination path output
-    parquet.write_table(table=record["table"], where=destination_path)
+    parquet.write_table(table=source["table"], where=destination_path)
 
     # unset table
-    del record["table"]
+    del source["table"]
 
-    # update the record to include the destination path
-    record["destination_path"] = destination_path
+    # update the source to include the destination path
+    source["destination_path"] = destination_path
 
-    return record
+    return source
 
 
 @task
 def get_join_chunks(
-    records: Dict[str, List[Dict[str, Any]]],
+    sources: Dict[str, List[Dict[str, Any]]],
     metadata: Union[List[str], Tuple[str, ...]],
     chunk_columns: Union[List[str], Tuple[str, ...]],
     chunk_size: int,
@@ -285,7 +285,7 @@ def get_join_chunks(
     Build groups of join keys for later join operations
 
     Args:
-        records: Dict[List[Dict[str, Any]]]:
+        sources: Dict[List[Dict[str, Any]]]:
             Grouped datasets of files which will be used by other functions.
         metadata: Union[List[str], Tuple[str, ...]]:
             List of source data names which are used as metadata
@@ -300,9 +300,9 @@ def get_join_chunks(
     """
 
     # fetch the compartment concat result as the basis for join groups
-    for key, record in records.items():
+    for key, source in sources.items():
         if any(name.lower() in pathlib.Path(key).stem.lower() for name in metadata):
-            first_result = record
+            first_result = source
             break
 
     # gather the workflow result for basis if it's not yet returned
@@ -325,18 +325,18 @@ def get_join_chunks(
 
 
 @task
-def join_record_chunk(
-    records: Dict[str, List[Dict[str, Any]]],
+def join_source_chunk(
+    sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     joins: str,
     join_group: List[Dict[str, Any]],
     drop_null: bool,
 ) -> str:
     """
-    Join records based on join group keys (group of specific join column values)
+    Join sources based on join group keys (group of specific join column values)
 
     Args:
-        records: Dict[str, List[Dict[str, Any]]]:
+        sources: Dict[str, List[Dict[str, Any]]]:
             Grouped datasets of files which will be used by other functions.
             Includes the metadata concerning location of actual data.
         dest_path: str:
@@ -358,7 +358,7 @@ def join_record_chunk(
     """
 
     # replace with real location of sources for join sql
-    for key, val in records.items():
+    for key, val in sources.items():
         if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
                 str(pathlib.Path(val[0]["destination_path"]).name.lower()),
@@ -367,7 +367,7 @@ def join_record_chunk(
 
     # update the join groups to include unique values per table
     updated_join_group = []
-    for key in records.keys():
+    for key in sources.keys():
         updated_join_group.extend(
             [
                 {
@@ -440,25 +440,25 @@ def join_record_chunk(
 
 
 @task
-def concat_join_records(
-    records: Dict[str, List[Dict[str, Any]]],
+def concat_join_sources(
+    sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
-    join_records: List[str],
+    join_sources: List[str],
 ) -> str:
     """
-    Concatenate join records from parquet-based chunks.
+    Concatenate join sources from parquet-based chunks.
 
     For a reference to data concatenation within Arrow see the following:
     https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
 
     Args:
-        records: Dict[str, List[Dict[str, Any]]]:
+        sources: Dict[str, List[Dict[str, Any]]]:
             Grouped datasets of files which will be used by other functions.
             Includes the metadata concerning location of actual data.
         dest_path: str:
             Destination path to write file-based content.
-        join_records: List[str]:
-            List of local filepath destination for join record chunks
+        join_sources: List[str]:
+            List of local filepath destination for join source chunks
             which will be concatenated.
 
     Returns:
@@ -468,9 +468,9 @@ def concat_join_records(
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
-    flattened_records = list(itertools.chain(*list(records.values())))
-    for record in flattened_records:
-        pathlib.Path(record["destination_path"]).unlink(missing_ok=True)
+    flattened_sources = list(itertools.chain(*list(sources.values())))
+    for source in flattened_sources:
+        pathlib.Path(source["destination_path"]).unlink(missing_ok=True)
 
     # remove dir if we have it
     if pathlib.Path(dest_path).is_dir():
@@ -482,23 +482,23 @@ def concat_join_records(
     # write the concatted result as a parquet file
     parquet.write_table(
         table=pa.concat_tables(
-            tables=[parquet.read_table(table_path) for table_path in join_records]
+            tables=[parquet.read_table(table_path) for table_path in join_sources]
         ),
         where=dest_path,
     )
 
     # remove join chunks as we have the final result
-    for table_path in join_records:
+    for table_path in join_sources:
         pathlib.Path(table_path).unlink()
 
-    # return modified records format to indicate the final result
-    # and retain the other record data for reference as needed
+    # return modified sources format to indicate the final result
+    # and retain the other source data for reference as needed
     return dest_path
 
 
 @task
-def infer_record_group_common_schema(
-    record_group: List[Dict[str, Any]]
+def infer_source_group_common_schema(
+    source_group: List[Dict[str, Any]]
 ) -> List[Tuple[str, str]]:
     """
     Infers a common schema for group of parquet files which may have
@@ -506,8 +506,8 @@ def infer_record_group_common_schema(
     data concatenation and other operations.
 
     Args:
-        record_group: List[Dict[str, Any]]:
-            Group of one or more data records which includes metadata about
+        source_group: List[Dict[str, Any]]:
+            Group of one or more data sources which includes metadata about
             path to parquet data.
 
     Returns:
@@ -517,11 +517,11 @@ def infer_record_group_common_schema(
     """
 
     # read first file for basis of schema and column order for all others
-    common_schema = parquet.read_schema(record_group[0]["destination_path"])
+    common_schema = parquet.read_schema(source_group[0]["destination_path"])
 
     # infer common basis of schema and column order for all others
     for schema in [
-        parquet.read_schema(record["destination_path"]) for record in record_group
+        parquet.read_schema(source["destination_path"]) for source in source_group
     ]:
 
         # account for completely equal schema
@@ -557,7 +557,7 @@ def infer_record_group_common_schema(
     if len(list(common_schema.names)) == 0:
         raise SchemaException(
             (
-                "No common schema basis to perform concatenation for record group."
+                "No common schema basis to perform concatenation for source group."
                 " All columns mismatch one another within the group."
             )
         )
@@ -619,64 +619,64 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         chunk_size: Optional[int],
             Size of join chunks which is used to limit data size during join ops
         infer_common_schema: bool:  (Default value = True)
-            Whether to infer a common schema when concatenating records.
+            Whether to infer a common schema when concatenating sources.
         drop_null: bool:
             Whether to drop null results.
 
     Returns:
         Union[Dict[str, List[Dict[str, Any]]], str]:
-            Grouped records which include metadata about destination filepath
+            Grouped sources which include metadata about destination filepath
             where parquet file was written or a string filepath for the joined
             result.
     """
 
-    # gather records to be processed
-    records = gather_records(
+    # gather sources to be processed
+    sources = gather_sources(
         source_path=source_path,
         source_datatype=source_datatype,
         targets=list(compartments) + list(metadata),
         **kwargs,
     )
 
-    if not isinstance(records, Dict):
-        records = records.result()
+    if not isinstance(sources, Dict):
+        sources = sources.result()
 
     results = {}
-    # for each group of records, map writing parquet per file
-    for record_group_name, record_group in records.items():
+    # for each group of sources, map writing parquet per file
+    for source_group_name, source_group in sources.items():
 
-        # read data from record groups
-        record_group = read_data.map(record=record_group)
+        # read data from source groups
+        source_group = read_data.map(source=source_group)
 
         # rename cols to include compartment or meta names
-        renamed_record_group = prepend_column_name.map(
-            record=record_group,
+        renamed_source_group = prepend_column_name.map(
+            source=source_group,
             targets=unmapped(list(compartments) + list(metadata)),
-            record_group_name=unmapped(record_group_name),
+            source_group_name=unmapped(source_group_name),
             identifying_columns=unmapped(identifying_columns),
             metadata=unmapped(metadata),
         )
 
-        # map for writing parquet files with list of files via records
-        results[record_group_name] = write_parquet.map(
-            record=renamed_record_group,
+        # map for writing parquet files with list of files via sources
+        results[source_group_name] = write_parquet.map(
+            source=renamed_source_group,
             dest_path=unmapped(dest_path),
-            # if the record group has more than one record, we will need a unique name
-            # arg set to true or false based on evaluation of len(record_group)
-            unique_name=unmapped(len(renamed_record_group) >= 2),
+            # if the source group has more than one source, we will need a unique name
+            # arg set to true or false based on evaluation of len(source_group)
+            unique_name=unmapped(len(renamed_source_group) >= 2),
         )
 
         if concat and infer_common_schema:
-            common_schema = infer_record_group_common_schema(
-                record_group=results[record_group_name]
+            common_schema = infer_source_group_common_schema(
+                source_group=results[source_group_name]
             )
 
-        # if concat or join, concat the record groups
+        # if concat or join, concat the source groups
         # note: join implies a concat, but concat does not imply a join
         if concat or join:
-            # build a new concatenated record group
-            results[record_group_name] = concat_record_group.submit(
-                record_group=results[record_group_name],
+            # build a new concatenated source group
+            results[source_group_name] = concat_source_group.submit(
+                source_group=results[source_group_name],
                 dest_path=dest_path,
                 common_schema=common_schema,
             )
@@ -687,11 +687,11 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
-        join_records_result = join_record_chunk.map(
-            # gather the result of concatted records prior to
+        join_sources_result = join_source_chunk.map(
+            # gather the result of concatted sources prior to
             # join group merging as each mapped task run will need
             # full concat results
-            records=unmapped(
+            sources=unmapped(
                 {
                     key: value.result() if isinstance(value, PrefectFuture) else value
                     for key, value in results.items()
@@ -701,7 +701,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             joins=unmapped(joins),
             # get merging chunks by join columns
             join_group=get_join_chunks(
-                records=results,
+                sources=results,
                 chunk_columns=chunk_columns,
                 chunk_size=chunk_size,
                 metadata=metadata,
@@ -712,14 +712,14 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # concat our join chunks together as one cohesive dataset
         # return results in common format which includes metadata
         # for lineage and debugging
-        results = concat_join_records(
+        results = concat_join_sources(
             dest_path=dest_path,
-            join_records=(
-                join_records_result.result()
-                if isinstance(join_records_result, PrefectFuture)
-                else join_records_result
+            join_sources=(
+                join_sources_result.result()
+                if isinstance(join_sources_result, PrefectFuture)
+                else join_sources_result
             ),
-            records=results,
+            sources=results,
         )
 
     return (
@@ -809,7 +809,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
             Size of join chunks which is used to limit data size during join ops
         infer_common_schema: bool: (Default value = True)
-            Whether to infer a common schema when concatenating records.
+            Whether to infer a common schema when concatenating sources.
         drop_null: bool (Default value = True)
             Whether to drop nan/null values from results
         preset: str (Default value = None)
@@ -821,7 +821,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
     Returns:
         Union[Dict[str, List[Dict[str, Any]]], str]
-            Grouped records which include metadata about destination filepath
+            Grouped sources which include metadata about destination filepath
             where parquet file was written or str of joined result filepath.
 
     Example:
@@ -878,7 +878,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         chunk_columns = cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
         chunk_size = cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
 
-    # send records to be written to parquet if selected
+    # send sources to be written to parquet if selected
     if dest_datatype == "parquet":
         output = to_parquet.with_options(task_runner=task_runner)(
             source_path=source_path,

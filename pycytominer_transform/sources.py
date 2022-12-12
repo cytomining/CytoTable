@@ -1,6 +1,6 @@
 """
-pycytominer-transform: records - tasks and flows related to
-metedata organized into "records" for performing conversion work.
+pycytominer-transform: sources - tasks and flows related to
+source data and metadata for performing conversion work.
 """
 
 import pathlib
@@ -83,7 +83,7 @@ def get_source_filepaths(
         }
 
     # gathers files from provided path using compartments as a filter
-    records = [
+    sources = [
         {"source_path": file}
         for file in path.glob("**/*")
         if file.is_file()
@@ -94,29 +94,29 @@ def get_source_filepaths(
     ]
 
     # if we collected no files above, raise exception
-    if len(records) < 1:
+    if len(sources) < 1:
         raise NoInputDataException(f"No input data to process at path: {str(path)}")
 
-    grouped_records = {}
+    grouped_sources = {}
 
     # group files together by similar filename for later data operations
-    for unique_source in set(source["source_path"].name for source in records):
-        grouped_records[unique_source.capitalize()] = [
-            source for source in records if source["source_path"].name == unique_source
+    for unique_source in set(source["source_path"].name for source in sources):
+        grouped_sources[unique_source.capitalize()] = [
+            source for source in sources if source["source_path"].name == unique_source
         ]
 
-    return grouped_records
+    return grouped_sources
 
 
 @task
 def infer_source_datatype(
-    records: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
+    sources: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
 ) -> str:
     """
     Infers and optionally validates datatype (extension) of files.
 
     Args:
-        records: Dict[str, List[Dict[str, Any]]]:
+        sources: Dict[str, List[Dict[str, Any]]]:
             Grouped datasets of files which will be used by other functions.
         source_datatype: Optional[str]:  (Default value = None)
             Optional source datatype to validate within the context of
@@ -128,7 +128,7 @@ def infer_source_datatype(
     """
 
     # gather file extension suffixes
-    suffixes = list(set((group.split(".")[-1]).lower() for group in records))
+    suffixes = list(set((group.split(".")[-1]).lower() for group in sources))
 
     # if we don't have a source datatype and have more than one suffix
     # we can't infer which file type to read.
@@ -157,13 +157,13 @@ def infer_source_datatype(
 
 @task
 def filter_source_filepaths(
-    records: Dict[str, List[Dict[str, Any]]], source_datatype: str
+    sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Filter source filepaths based on provided source_datatype
 
     Args:
-        records: Dict[str, List[Dict[str, Any]]]
+        sources: Dict[str, List[Dict[str, Any]]]
             Grouped datasets of files which will be used by other functions.
         source_datatype: str
             Source datatype to use for filtering the dataset.
@@ -182,12 +182,12 @@ def filter_source_filepaths(
             # ensure the datatype matches the source datatype
             and file["source_path"].suffix == f".{source_datatype}"
         ]
-        for filegroup, files in records.items()
+        for filegroup, files in sources.items()
     }
 
 
 @flow
-def gather_records(
+def gather_sources(
     source_path: str,
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
@@ -195,7 +195,7 @@ def gather_records(
 ) -> Dict[str, List[Dict[str, Any]]]:
 
     """
-    Flow for gathering records for conversion
+    Flow for gathering data sources for conversion
 
     Args:
         source_path: str:
@@ -213,14 +213,14 @@ def gather_records(
     source_path = build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
-    records = get_source_filepaths(
+    sources = get_source_filepaths(
         path=source_path, source_datatype=source_datatype, targets=targets
     )
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = infer_source_datatype(
-        records=records, source_datatype=source_datatype
+        sources=sources, source_datatype=source_datatype
     )
 
     # filter source filepaths to inferred or source datatype
-    return filter_source_filepaths(records=records, source_datatype=source_datatype)
+    return filter_source_filepaths(sources=sources, source_datatype=source_datatype)

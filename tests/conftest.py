@@ -178,13 +178,13 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
     return table_image, table_cytoplasm, table_cells, table_nuclei_1, table_nuclei_2
 
 
-@pytest.fixture(name="example_local_records")
-def fixture_example_local_records(
+@pytest.fixture(name="example_local_sources")
+def fixture_example_local_sources(
     get_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Provide an example record
+    Provide an example source
     """
 
     for table, number, name in zip(
@@ -419,10 +419,10 @@ def fixture_s3_session() -> boto3.session.Session:
 @pytest.fixture()
 def example_s3_endpoint(
     s3_session: boto3.session.Session,
-    example_local_records: Dict[str, List[Dict[str, Any]]],
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
 ) -> str:
     """
-    Create an mocked bucket which includes example records
+    Create an mocked bucket which includes example sources
 
     Referenced with changes from:
     https://docs.getmoto.org/en/latest/docs/getting_started.html
@@ -440,9 +440,9 @@ def example_s3_endpoint(
 
     # upload each example file to the mock bucket
     for source_path in [
-        record["source_path"]
-        for group in example_local_records.values()
-        for record in group
+        source["source_path"]
+        for group in example_local_sources.values()
+        for source in group
     ]:
         s3_client.upload_file(
             Filename=str(source_path),

@@ -14,15 +14,15 @@ from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
 from pycytominer_transform import (  # pylint: disable=R0801
-    concat_join_records,
-    concat_record_group,
+    concat_join_sources,
+    concat_source_group,
     config,
     convert,
     get_join_chunks,
     get_source_filepaths,
-    infer_record_group_common_schema,
     infer_source_datatype,
-    join_record_chunk,
+    infer_source_group_common_schema,
+    join_source_chunk,
     prepend_column_name,
     read_data,
     to_parquet,
@@ -54,7 +54,7 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     Tests get_source_filepaths
     """
 
-    # test that no records raises an exception
+    # test that no sources raises an exception
     empty_dir = pathlib.Path(f"{get_tempdir}/temp")
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
@@ -90,7 +90,7 @@ def test_read_data(get_tempdir: str):
 
     csv.write_csv(data=table, output_file=destination)
 
-    result = read_data.fn(record={"source_path": destination})
+    result = read_data.fn(source={"source_path": destination})
 
     assert isinstance(result, dict)
     assert sorted(list(result.keys())) == sorted(["source_path", "table"])
@@ -102,7 +102,7 @@ def test_read_data(get_tempdir: str):
     with open(destination_err, "w", encoding="utf-8") as wfile:
         wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
 
-    assert isinstance(read_data.fn(record={"source_path": destination_err}), Dict)
+    assert isinstance(read_data.fn(source={"source_path": destination_err}), Dict)
 
 
 def test_prepend_column_name():
@@ -121,8 +121,8 @@ def test_prepend_column_name():
     )
 
     result = prepend_column_name.fn(
-        record={"table": test_table},
-        record_group_name="Cells.csv",
+        source={"table": test_table},
+        source_group_name="Cells.csv",
         identifying_columns=["id1", "id2"],
         metadata=[],
     )
@@ -135,13 +135,13 @@ def test_prepend_column_name():
     ]
 
 
-def test_concat_record_group(
+def test_concat_source_group(
     get_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
-    example_local_records: Dict[str, List[Dict[str, Any]]],
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
-    Tests concat_record_group
+    Tests concat_source_group
     """
 
     _, _, _, table_nuclei_1, table_nuclei_2 = example_tables
@@ -149,8 +149,8 @@ def test_concat_record_group(
     # simulate concat
     concat_table = pa.concat_tables([table_nuclei_1, table_nuclei_2])
 
-    result = concat_record_group.fn(
-        record_group=example_local_records["nuclei.csv"],
+    result = concat_source_group.fn(
+        source_group=example_local_sources["nuclei.csv"],
         dest_path=get_tempdir,
         common_schema=table_nuclei_1.schema,
     )
@@ -161,7 +161,7 @@ def test_concat_record_group(
         parquet.read_metadata(result[0]["destination_path"]).num_columns,
     ) == concat_table.shape
 
-    # add a mismatching record to group
+    # add a mismatching source to group
     mismatching_table = pa.Table.from_pydict(
         {
             "color": pa.array(["blue", "red", "green", "orange"]),
@@ -170,7 +170,7 @@ def test_concat_record_group(
     pathlib.Path(f"{get_tempdir}/example/5").mkdir(parents=True, exist_ok=True)
     csv.write_csv(mismatching_table, f"{get_tempdir}/example/5/nuclei.csv")
     parquet.write_table(mismatching_table, f"{get_tempdir}/example/5.nuclei.parquet")
-    example_local_records["nuclei.csv"].append(
+    example_local_sources["nuclei.csv"].append(
         {
             "source_path": pathlib.Path(f"{get_tempdir}/example/5/nuclei.csv"),
             "destination_path": pathlib.Path(f"{get_tempdir}/example/5.nuclei.parquet"),
@@ -178,8 +178,8 @@ def test_concat_record_group(
     )
 
     with pytest.raises(Exception):
-        concat_record_group.fn(
-            record_group=example_local_records["nuclei.csv"],
+        concat_source_group.fn(
+            source_group=example_local_sources["nuclei.csv"],
             dest_path=get_tempdir,
         )
 
@@ -206,7 +206,7 @@ def test_get_join_chunks(get_tempdir: str):
     )
 
     result = get_join_chunks.fn(
-        records={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
+        sources={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
         metadata=["merge_chunks_test"],
         chunk_columns=["id1", "id2"],
         chunk_size=2,
@@ -222,7 +222,7 @@ def test_get_join_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test_join_record_chunk(get_tempdir: str):
+def test_join_source_chunk(get_tempdir: str):
     """
     Tests get_join_chunks
     """
@@ -255,8 +255,8 @@ def test_join_record_chunk(get_tempdir: str):
         where=test_path_b,
     )
 
-    result = join_record_chunk.fn(
-        records={
+    result = join_source_chunk.fn(
+        sources={
             "example_a": [{"destination_path": test_path_a}],
             "example_b": [{"destination_path": test_path_b}],
         },
@@ -288,9 +288,9 @@ def test_join_record_chunk(get_tempdir: str):
     )
 
 
-def test_concat_join_records(get_tempdir: str):
+def test_concat_join_sources(get_tempdir: str):
     """
-    Tests concat_join_records
+    Tests concat_join_sources
     """
 
     # create a test dir
@@ -350,10 +350,10 @@ def test_concat_join_records(get_tempdir: str):
     copy(test_path_a, test_path_a_join_chunk)
     copy(test_path_b, test_path_b_join_chunk)
 
-    result = concat_join_records.fn(
+    result = concat_join_sources.fn(
         dest_path=f"{get_tempdir}/example_concat_join.parquet",
-        join_records=[test_path_a_join_chunk, test_path_b_join_chunk],
-        records={
+        join_sources=[test_path_a_join_chunk, test_path_b_join_chunk],
+        sources={
             "join_chunks_test_a.parquet": [{"destination_path": test_path_a}],
             "join_chunks_test_b.parquet": [{"destination_path": test_path_b}],
         },
@@ -364,7 +364,7 @@ def test_concat_join_records(get_tempdir: str):
         pa.concat_tables(tables=[test_table_a, test_table_b])
     )
 
-    # ensure the test paths provided via records were removed (unlinked)
+    # ensure the test paths provided via sources were removed (unlinked)
     assert (pathlib.Path(test_path_a).exists() is False) and (
         pathlib.Path(test_path_a).exists() is False
     )
@@ -380,7 +380,7 @@ def test_write_parquet(get_tempdir: str):
     )
 
     result = write_parquet.fn(
-        record={
+        source={
             "source_path": AnyPath(f"{get_tempdir}/example/colors.csv"),
             "table": table,
         },
@@ -393,7 +393,7 @@ def test_write_parquet(get_tempdir: str):
     assert result_table.schema == table.schema
     assert result_table.shape == table.shape
     result = write_parquet.fn(
-        record={
+        source={
             "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
             "table": table,
         },
@@ -415,31 +415,31 @@ def test_infer_source_datatype():
         "sample_1.csv": [{"source_path": "stub"}],
         "sample_2.CSV": [{"source_path": "stub"}],
     }
-    assert infer_source_datatype.fn(records=data) == "csv"
+    assert infer_source_datatype.fn(sources=data) == "csv"
     with pytest.raises(Exception):
-        infer_source_datatype.fn(records=data, source_datatype="parquet")
+        infer_source_datatype.fn(sources=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
     assert (
-        infer_source_datatype.fn(records=data, source_datatype="parquet") == "parquet"
+        infer_source_datatype.fn(sources=data, source_datatype="parquet") == "parquet"
     )
     with pytest.raises(Exception):
-        infer_source_datatype.fn(records=data)
+        infer_source_datatype.fn(sources=data)
 
 
 def test_to_parquet(
-    get_tempdir: str, example_local_records: Dict[str, List[Dict[str, Any]]]
+    get_tempdir: str, example_local_sources: Dict[str, List[Dict[str, Any]]]
 ):
     """
     Tests to_parquet
     """
 
-    flattened_example_records = list(
-        itertools.chain(*list(example_local_records.values()))
+    flattened_example_sources = list(
+        itertools.chain(*list(example_local_sources.values()))
     )
 
     result = to_parquet(
-        source_path=str(example_local_records["image.csv"][0]["source_path"].parent),
+        source_path=str(example_local_sources["image.csv"][0]["source_path"].parent),
         dest_path=get_tempdir,
         source_datatype=None,
         compartments=["cytoplasm", "cells", "nuclei"],
@@ -457,14 +457,14 @@ def test_to_parquet(
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
         parquet_result = parquet.read_table(source=flattened_result["destination_path"])
-        csv_source = csv.read_csv(flattened_example_records[i]["source_path"])
+        csv_source = csv.read_csv(flattened_example_sources[i]["source_path"])
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape
 
 
 def test_convert_s3_path(
     get_tempdir: str,
-    example_local_records: Dict[str, List[Dict[str, Any]]],
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_s3_endpoint: str,
 ):
     """
@@ -489,14 +489,14 @@ def test_convert_s3_path(
     # compare each of the results using files from the source
     for control_path, test_path in zip(
         [
-            record["destination_path"]
+            source["destination_path"]
             for group in cast(Dict, multi_dir_nonconcat_s3_result).values()
-            for record in group
+            for source in group
         ],
         [
-            record["destination_path"]
-            for group in example_local_records.values()
-            for record in group
+            source["destination_path"]
+            for group in example_local_sources.values()
+            for source in group
         ],
     ):
         parquet_control = parquet.read_table(control_path)
@@ -506,17 +506,17 @@ def test_convert_s3_path(
         assert parquet_result.shape == parquet_control.shape
 
 
-def test_infer_record_group_common_schema(
-    example_local_records: Dict[str, List[Dict[str, Any]]],
+def test_infer_source_group_common_schema(
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_tables: Tuple[pa.Table, ...],
 ):
     """
-    Tests infer_record_group_common_schema
+    Tests infer_source_group_common_schema
     """
     _, _, _, table_nuclei_1, _ = example_tables
 
-    result = infer_record_group_common_schema.fn(
-        record_group=example_local_records["nuclei.csv"],
+    result = infer_source_group_common_schema.fn(
+        source_group=example_local_sources["nuclei.csv"],
     )
 
     assert table_nuclei_1.schema.equals(pa.schema(result))

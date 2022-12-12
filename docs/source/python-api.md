@@ -12,15 +12,11 @@ Convert
 
 |
 
-.. autofunction:: concat_join_records
+.. autofunction:: concat_join_sources
 
 |
 
-.. autofunction:: concat_record_group
-
-|
-
-.. autofunction:: gather_records
+.. autofunction:: concat_source_group
 
 |
 
@@ -28,11 +24,11 @@ Convert
 
 |
 
-.. autofunction:: infer_record_group_common_schema
+.. autofunction:: infer_source_group_common_schema
 
 |
 
-.. autofunction:: join_record_chunk
+.. autofunction:: join_source_chunk
 
 |
 
@@ -52,10 +48,10 @@ Convert
 
 |
 
-Records
+Sources
 -------
 
-.. automodule:: pycytominer_transform.records
+.. automodule:: pycytominer_transform.sources
    :members:
    :undoc-members:
    :show-inheritance:
