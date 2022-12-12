@@ -576,8 +576,8 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
     source_datatype: Optional[str],
-    compartments: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
+    compartments: Union[List[str], Tuple[str, ...]],
     identifying_columns: Union[List[str], Tuple[str, ...]],
     concat: bool,
     join: bool,
@@ -601,10 +601,10 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Note: this may only be a local path.
         source_datatype: Optional[str]: (Default value = None)
             Source datatype to focus on during conversion.
-        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
-            Compartment names to use for conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
             Metadata names to use for conversion.
+        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
+            Compartment names to use for conversion.
         identifying_columns: Union[List[str], Tuple[str, ...]]:
             Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
@@ -634,7 +634,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     sources = gather_sources(
         source_path=source_path,
         source_datatype=source_datatype,
-        targets=list(compartments) + list(metadata),
+        targets=list(metadata) + list(compartments),
         **kwargs,
     )
 
@@ -651,7 +651,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # rename cols to include compartment or meta names
         renamed_source_group = prepend_column_name.map(
             source=source_group,
-            targets=unmapped(list(compartments) + list(metadata)),
+            targets=unmapped(list(metadata) + list(compartments)),
             source_group_name=unmapped(source_group_name),
             identifying_columns=unmapped(identifying_columns),
             metadata=unmapped(metadata),
@@ -746,11 +746,11 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    compartments: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_NAMES_COMPARTMENTS"]
-    ),
     metadata: Union[List[str], Tuple[str, ...]] = cast(
         list, config["cellprofiler_csv"]["CONFIG_NAMES_METADATA"]
+    ),
+    compartments: Union[List[str], Tuple[str, ...]] = cast(
+        list, config["cellprofiler_csv"]["CONFIG_NAMES_COMPARTMENTS"]
     ),
     identifying_columns: Union[List[str], Tuple[str, ...]] = cast(
         list, config["cellprofiler_csv"]["CONFIG_IDENTIFYING_COLUMNS"]
@@ -789,11 +789,11 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Destination datatype to write to.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
+        metadata: Union[List[str], Tuple[str, ...]]:
+            Metadata names to use for conversion.
         compartments: Union[List[str], Tuple[str, str, str, str]]:
             (Default value = DEFAULT_COMPARTMENTS)
             Compartment names to use for conversion.
-        metadata: Union[List[str], Tuple[str, ...]]:
-            Metadata names to use for conversion.
         identifying_columns: Union[List[str], Tuple[str, ...]]:
             Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
@@ -871,8 +871,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
     # optionally load preset configuration for arguments
     if preset is not None:
-        compartments = cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
         metadata = cast(list, config[preset]["CONFIG_NAMES_METADATA"])
+        compartments = cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
         identifying_columns = cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
         joins = cast(str, config[preset]["CONFIG_JOINS"])
         chunk_columns = cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
@@ -884,8 +884,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             source_path=source_path,
             dest_path=dest_path,
             source_datatype=source_datatype,
-            compartments=compartments,
             metadata=metadata,
+            compartments=compartments,
             identifying_columns=identifying_columns,
             concat=concat,
             join=join,
