@@ -48,7 +48,8 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to source
         source["table"] = csv.read_csv(
-            input_file=source["source_path"], parse_options=parse_options,
+            input_file=source["source_path"],
+            parse_options=parse_options,
         )
 
     if AnyPath(source["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
@@ -470,7 +471,8 @@ def join_source_chunk(
 
     # write the result
     parquet.write_table(
-        table=result, where=result_file_path,
+        table=result,
+        where=result_file_path,
     )
 
     return result_file_path
@@ -478,7 +480,9 @@ def join_source_chunk(
 
 @task
 def concat_join_sources(
-    sources: Dict[str, List[Dict[str, Any]]], dest_path: str, join_sources: List[str],
+    sources: Dict[str, List[Dict[str, Any]]],
+    dest_path: str,
+    join_sources: List[str],
 ) -> str:
     """
     Concatenate join sources from parquet-based chunks.

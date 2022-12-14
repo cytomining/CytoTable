@@ -59,11 +59,13 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
         single_dir_result = get_source_filepaths.fn(
-            path=empty_dir, targets=["image", "cells", "nuclei", "cytoplasm"],
+            path=empty_dir,
+            targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
     single_dir_result = get_source_filepaths.fn(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"), targets=["cells"],
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
+        targets=["cells"],
     )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
@@ -157,7 +159,11 @@ def test_prepend_column_name():
             )
         },
         source_group_name="Per_Cells.sqlite",
-        identifying_columns=["ImageNumber", "Parent_Cells", "Parent_OrigNuclei",],
+        identifying_columns=[
+            "ImageNumber",
+            "Parent_Cells",
+            "Parent_OrigNuclei",
+        ],
         metadata=["image"],
         targets=["image", "cells", "nuclei", "cytoplasm"],
     )
@@ -200,7 +206,9 @@ def test_concat_source_group(
 
     # add a mismatching source to group
     mismatching_table = pa.Table.from_pydict(
-        {"color": pa.array(["blue", "red", "green", "orange"]),}
+        {
+            "color": pa.array(["blue", "red", "green", "orange"]),
+        }
     )
     pathlib.Path(f"{get_tempdir}/example/5").mkdir(parents=True, exist_ok=True)
     csv.write_csv(mismatching_table, f"{get_tempdir}/example/5/nuclei.csv")
@@ -214,7 +222,8 @@ def test_concat_source_group(
 
     with pytest.raises(Exception):
         concat_source_group.fn(
-            source_group=example_local_sources["nuclei.csv"], dest_path=get_tempdir,
+            source_group=example_local_sources["nuclei.csv"],
+            dest_path=get_tempdir,
         )
 
 
@@ -339,10 +348,26 @@ def test_concat_join_sources(get_tempdir: str):
     # form test data
     test_table_a = pa.Table.from_pydict(
         {
-            "id1": [1, 2, 3,],
-            "id2": ["a", "a", "a",],
-            "field1": ["foo", "bar", "baz",],
-            "field2": [True, False, True,],
+            "id1": [
+                1,
+                2,
+                3,
+            ],
+            "id2": [
+                "a",
+                "a",
+                "a",
+            ],
+            "field1": [
+                "foo",
+                "bar",
+                "baz",
+            ],
+            "field2": [
+                True,
+                False,
+                True,
+            ],
         }
     )
     test_table_b = pa.Table.from_pydict(
@@ -356,10 +381,12 @@ def test_concat_join_sources(get_tempdir: str):
 
     # write test data to file
     parquet.write_table(
-        table=test_table_a, where=test_path_a,
+        table=test_table_a,
+        where=test_path_a,
     )
     parquet.write_table(
-        table=test_table_b, where=test_path_b,
+        table=test_table_b,
+        where=test_path_b,
     )
 
     # copy the files for testing purposes
