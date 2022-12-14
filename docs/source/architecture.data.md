@@ -65,4 +65,5 @@ erDiagram
 ```
 
 The above diagram shows canonical relationships of the Cytoplasm compartment data to other compartments found within the data that is used by pycytominer-transform.
-Each Cytoplasm object is related to Cells via the Parent_Cells field and Nuclei via the Parent_Nuclei field. These Parent_* fields are ObjectNumbers in their respective compartments.
+Each Cytoplasm object is related to Cells via the Parent_Cells field and Nuclei via the Parent_Nuclei field.
+These Parent\_\* fields are ObjectNumbers in their respective compartments.
