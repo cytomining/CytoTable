@@ -59,13 +59,11 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
         single_dir_result = get_source_filepaths.fn(
-            path=empty_dir,
-            targets=["image", "cells", "nuclei", "cytoplasm"],
+            path=empty_dir, targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
     single_dir_result = get_source_filepaths.fn(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
-        targets=["cells"],
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"), targets=["cells"],
     )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
@@ -110,26 +108,65 @@ def test_prepend_column_name():
     Tests prepend_column_name
     """
 
-    # write test data to file
-    test_table = pa.Table.from_pydict(
-        {
-            "id1": [1, 2, 3, 1, 2, 3],
-            "id2": ["a", "a", "a", "b", "b", "b"],
-            "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
-            "field2": [True, False, True, True, False, True],
-        }
-    )
-
+    # example cytoplasm csv table run
     result = prepend_column_name.fn(
-        source={"table": test_table},
-        source_group_name="Cells.csv",
-        identifying_columns=["id1", "id2"],
-        metadata=[],
+        source={
+            "table": pa.Table.from_pydict(
+                {
+                    "ImageNumber": [1, 2, 3, 1, 2, 3],
+                    "ObjectNumber": [1, 1, 1, 2, 2, 2],
+                    "Parent_Cells": [1, 1, 1, 2, 2, 2],
+                    "Parent_Nuclei": [1, 1, 1, 2, 2, 2],
+                    "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+                    "field2": [True, False, True, True, False, True],
+                }
+            )
+        },
+        source_group_name="Cytoplasm.csv",
+        identifying_columns=[
+            "ImageNumber",
+            "ObjectNumber",
+            "Parent_Cells",
+            "Parent_Nuclei",
+        ],
+        metadata=["image"],
+        targets=["image", "cells", "nuclei", "cytoplasm"],
     )
 
+    # compare the results with what's expected for column names
     assert result["table"].column_names == [
-        "Metadata_Cells_id1",
-        "Metadata_Cells_id2",
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Metadata_Cytoplasm_Parent_Cells",
+        "Metadata_Cytoplasm_Parent_Nuclei",
+        "Cytoplasm_field1",
+        "Cytoplasm_field2",
+    ]
+
+    # example cells sqlite table run
+    result = prepend_column_name.fn(
+        source={
+            "table": pa.Table.from_pydict(
+                {
+                    "ImageNumber": [1, 2, 3, 1, 2, 3],
+                    "Cells_Number_Object_Number": [1, 1, 1, 2, 2, 2],
+                    "Parent_OrigNuclei": [1, 1, 1, 2, 2, 2],
+                    "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+                    "field2": [True, False, True, True, False, True],
+                }
+            )
+        },
+        source_group_name="Per_Cells.sqlite",
+        identifying_columns=["ImageNumber", "Parent_Cells", "Parent_OrigNuclei",],
+        metadata=["image"],
+        targets=["image", "cells", "nuclei", "cytoplasm"],
+    )
+
+    # compare the results with what's expected for column names
+    assert result["table"].column_names == [
+        "Metadata_ImageNumber",
+        "Cells_Number_Object_Number",
+        "Metadata_Cells_Parent_OrigNuclei",
         "Cells_field1",
         "Cells_field2",
     ]
@@ -163,9 +200,7 @@ def test_concat_source_group(
 
     # add a mismatching source to group
     mismatching_table = pa.Table.from_pydict(
-        {
-            "color": pa.array(["blue", "red", "green", "orange"]),
-        }
+        {"color": pa.array(["blue", "red", "green", "orange"]),}
     )
     pathlib.Path(f"{get_tempdir}/example/5").mkdir(parents=True, exist_ok=True)
     csv.write_csv(mismatching_table, f"{get_tempdir}/example/5/nuclei.csv")
@@ -179,8 +214,7 @@ def test_concat_source_group(
 
     with pytest.raises(Exception):
         concat_source_group.fn(
-            source_group=example_local_sources["nuclei.csv"],
-            dest_path=get_tempdir,
+            source_group=example_local_sources["nuclei.csv"], dest_path=get_tempdir,
         )
 
 
@@ -305,26 +339,10 @@ def test_concat_join_sources(get_tempdir: str):
     # form test data
     test_table_a = pa.Table.from_pydict(
         {
-            "id1": [
-                1,
-                2,
-                3,
-            ],
-            "id2": [
-                "a",
-                "a",
-                "a",
-            ],
-            "field1": [
-                "foo",
-                "bar",
-                "baz",
-            ],
-            "field2": [
-                True,
-                False,
-                True,
-            ],
+            "id1": [1, 2, 3,],
+            "id2": ["a", "a", "a",],
+            "field1": ["foo", "bar", "baz",],
+            "field2": [True, False, True,],
         }
     )
     test_table_b = pa.Table.from_pydict(
@@ -338,12 +356,10 @@ def test_concat_join_sources(get_tempdir: str):
 
     # write test data to file
     parquet.write_table(
-        table=test_table_a,
-        where=test_path_a,
+        table=test_table_a, where=test_path_a,
     )
     parquet.write_table(
-        table=test_table_b,
-        where=test_path_b,
+        table=test_table_b, where=test_path_b,
     )
 
     # copy the files for testing purposes

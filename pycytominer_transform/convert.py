@@ -48,8 +48,7 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to source
         source["table"] = csv.read_csv(
-            input_file=source["source_path"],
-            parse_options=parse_options,
+            input_file=source["source_path"], parse_options=parse_options,
         )
 
     if AnyPath(source["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
@@ -75,7 +74,7 @@ def prepend_column_name(
     source_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
-    targets: Optional[List[str]] = None,
+    targets: List[str],
 ) -> Dict[str, Any]:
     """
     Rename columns using the source group name, avoiding identifying columns.
@@ -91,7 +90,7 @@ def prepend_column_name(
             ignored with regards to renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
             List of source data names which are used as metadata
-        targets: Optional[List[str]] = None:
+        targets: List[str]:
             List of source data names which are used as compartments
 
     Returns:
@@ -99,36 +98,75 @@ def prepend_column_name(
             Updated source which includes the updated table column names
     """
 
-    source_group_name_stem = str(pathlib.Path(source_group_name).stem)
+    # stem of source group name
+    # for example:
+    #   targets: ['cytoplasm']
+    #   source_group_name: 'Per_Cytoplasm.sqlite'
+    #   source_group_name_stem: 'Cytoplasm'
+    source_group_name_stem = targets[
+        # return first result from generator below as index to targets
+        next(
+            i
+            for i, val in enumerate(targets)
+            # compare if value from targets in source_group_name stem
+            if val.lower() in str(pathlib.Path(source_group_name).stem).lower()
+        )
+        # capitalize the result
+    ].capitalize()
 
-    if targets is not None:
-        source_group_name_stem = [
-            target.capitalize()
-            for target in targets
-            if target.lower() in source_group_name_stem.lower()
-        ][0]
+    # capture updated column names as new variable
+    updated_column_names = []
 
-    source["table"] = source["table"].rename_columns(
-        [
-            f"{source_group_name_stem}_{column_name}"
-            if column_name not in identifying_columns
-            and not column_name.startswith(source_group_name_stem)
-            else f"Metadata_{source_group_name_stem}_{column_name}"
-            if (
-                not column_name.startswith("Metadata_")
-                and column_name in identifying_columns
-                and not any(item.capitalize() in column_name for item in metadata)
-                and not "ObjectNumber" in column_name
+    for column_name in source["table"].column_names:
+        # if-condition for prepending source_group_name_stem to column name
+        # where colname is not an identifying column
+        # and where the column is not already prepended with source_group_name_stem
+        # for example:
+        #   source_group_name_stem: 'Cells'
+        #   column_name: 'AreaShape_Area'
+        #   updated_column_name: 'Cells_AreaShape_Area'
+        if column_name not in identifying_columns and not column_name.startswith(
+            source_group_name_stem
+        ):
+            updated_column_names.append(f"{source_group_name_stem}_{column_name}")
+
+        # if-condition for prepending 'Metadata' and source_group_name_stem to column name
+        # where colname is an identifying column
+        # and where the colname does not already start with 'Metadata_'
+        # and colname not in metadata list
+        # and colname does not include 'ObjectNumber'
+        # for example:
+        #   source_group_name_stem: 'Cells'
+        #   column_name: 'Parent_Nuclei'
+        #   updated_column_name: 'Metadata_Cells_Parent_Nuclei'
+        elif (
+            column_name in identifying_columns
+            and not column_name.startswith("Metadata_")
+            and not any(item.capitalize() in column_name for item in metadata)
+            and not "ObjectNumber" in column_name
+        ):
+
+            updated_column_names.append(
+                f"Metadata_{source_group_name_stem}_{column_name}"
             )
-            else f"Metadata_{column_name}"
-            if (
-                not column_name.startswith("Metadata_")
-                and column_name in identifying_columns
-            )
-            else column_name
-            for column_name in source["table"].column_names
-        ]
-    )
+        # if-condition for prepending 'Metadata' to column name
+        # where colname doesn't already start with 'Metadata_'
+        # and colname is in identifying columns list
+        # for example:
+        #   column_name: 'ObjectNumber'
+        #   updated_column_name: 'Metadata_ObjectNumber'
+        elif (
+            not column_name.startswith("Metadata_")
+            and column_name in identifying_columns
+        ):
+            updated_column_names.append(f"Metadata_{column_name}")
+
+        # else we add the existing colname to the updated list as-is
+        else:
+            updated_column_names.append(column_name)
+
+    # perform table column name updates
+    source["table"] = source["table"].rename_columns(updated_column_names)
 
     return source
 
@@ -432,8 +470,7 @@ def join_source_chunk(
 
     # write the result
     parquet.write_table(
-        table=result,
-        where=result_file_path,
+        table=result, where=result_file_path,
     )
 
     return result_file_path
@@ -441,9 +478,7 @@ def join_source_chunk(
 
 @task
 def concat_join_sources(
-    sources: Dict[str, List[Dict[str, Any]]],
-    dest_path: str,
-    join_sources: List[str],
+    sources: Dict[str, List[Dict[str, Any]]], dest_path: str, join_sources: List[str],
 ) -> str:
     """
     Concatenate join sources from parquet-based chunks.

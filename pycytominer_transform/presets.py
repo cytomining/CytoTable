@@ -57,7 +57,6 @@ config = {
         # unique names to avoid renaming
         "CONFIG_IDENTIFYING_COLUMNS": (
             "ImageNumber",
-            "ObjectNumber",
             "Metadata_Well",
             "Parent_Cells",
             "Parent_OrigNuclei",
