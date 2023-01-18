@@ -1,4 +1,4 @@
-# pylint: disable=ospath-check
+# pylint: disable=ospath-discouraged
 """
 Custom Pylint checker to detect the use of Python built-in os.path.
 Pathlib is preferred over os.path and this custom checker is intended
@@ -25,10 +25,10 @@ class OSPathUseChecker(BaseRawFileChecker):
     msgs = {
         "W0001": (
             "use pathlib instead of os.path for filesystem operations",
-            "ospath-check",
+            "ospath-discouraged",
             (
                 "Used when os.path has been detected where pathlib"
-                "may otherwise be used."
+                "should otherwise be used."
             ),
         )
     }
@@ -43,7 +43,7 @@ class OSPathUseChecker(BaseRawFileChecker):
             for (lineno, line) in enumerate(stream):
                 # check for os.path used within a line
                 if "os.path" in str(line):
-                    self.add_message("ospath-check", line=lineno)
+                    self.add_message("ospath-discouraged", line=lineno)
 
 
 def register(linter: "PyLinter") -> None:
