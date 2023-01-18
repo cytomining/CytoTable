@@ -6,7 +6,7 @@ For a brief introduction on how to use pycytominer-transform, please see the [tu
 ## Presets and Manual Overrides
 
 ```{eval-rst}
-Various preset configurations are available for use within pycytominer-transform which effect how data are read and produced under :data:`presets.config <pycytominer_transform.presets.config>`.
+Various preset configurations are available for use within pycytominer-transform which affect how data are read and produced under :data:`presets.config <pycytominer_transform.presets.config>`.
 These presets are intended to assist with common data source expectations.
 Please note that these presets may not capture all possible outcomes.
 Use manual overrides within :mod:`convert() <pycytominer_transform.convert.convert>` as needed.
