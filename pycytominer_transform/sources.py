@@ -193,7 +193,6 @@ def gather_sources(
     targets: Optional[List[str]] = None,
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
-
     """
     Flow for gathering data sources for conversion
 

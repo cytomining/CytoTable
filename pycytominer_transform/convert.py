@@ -36,7 +36,8 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
             Updated source (Dict[str, Any]) with source data in-memory
     """
 
-    if AnyPath(source["source_path"]).suffix == ".csv":  # pylint: disable=no-member
+    # pylint: disable=no-member
+    if AnyPath(source["source_path"]).suffix == ".csv":
         # define invalid row handler for rows which may be
         # somehow erroneous. See below for more details:
         # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
@@ -52,8 +53,8 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
             parse_options=parse_options,
         )
 
-    elif AnyPath(source["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
-
+    # pylint: disable=no-member
+    elif AnyPath(source["source_path"]).suffix == ".sqlite":
         source["table"] = (
             duckdb_with_sqlite()
             .execute(
@@ -146,7 +147,6 @@ def prepend_column_name(
             and not any(item.capitalize() in column_name for item in metadata)
             and not "ObjectNumber" in column_name
         ):
-
             updated_column_names.append(
                 f"Metadata_{source_group_name_stem}_{column_name}"
             )
@@ -232,7 +232,6 @@ def concat_source_group(
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
     with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
-
         for table in [source["destination_path"] for source in source_group]:
             # if we haven't inferred the common schema
             # check that our file matches the expected schema, otherwise raise an error
@@ -562,7 +561,6 @@ def infer_source_group_common_schema(
     for schema in [
         parquet.read_schema(source["destination_path"]) for source in source_group
     ]:
-
         # account for completely equal schema
         if schema.equals(common_schema):
             continue
@@ -572,11 +570,9 @@ def infer_source_group_common_schema(
 
         # reversed enumeration because removing indexes ascendingly changes schema field order
         for index, field in reversed(list(enumerate(common_schema))):
-
             # check whether field name is contained within writer basis, remove if not
             # note: because this only checks for naming, we defer to initially detected type
             if field.name not in schema_field_names:
-
                 common_schema = common_schema.remove(index)
 
             # check if we have a nulltype and non-nulltype conflict, deferring to non-nulltype
@@ -683,7 +679,6 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     results = {}
     # for each group of sources, map writing parquet per file
     for source_group_name, source_group in sources.items():
-
         # read data from source groups
         source_group = read_data.map(source=source_group)
 
@@ -723,7 +718,6 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
     if join:
-
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
         join_sources_result = join_source_chunk.map(
