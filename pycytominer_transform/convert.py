@@ -52,7 +52,7 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
             parse_options=parse_options,
         )
 
-    if AnyPath(source["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
+    elif AnyPath(source["source_path"]).suffix == ".sqlite":  # pylint: disable=no-member
 
         source["table"] = (
             duckdb_with_sqlite()
