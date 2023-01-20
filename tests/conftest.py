@@ -17,7 +17,7 @@ from moto.server import ThreadedMotoServer
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-from pycytominer_transform import column_sort
+from pycytominer_transform.utils import _column_sort
 
 
 # note: we use name here to avoid pylint flagging W0621
@@ -315,7 +315,7 @@ def fixture_cellprofiler_merged_examplehuman(
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
     control_result = control_result.select(
-        sorted(sorted(control_result.column_names), key=column_sort)
+        sorted(sorted(control_result.column_names), key=_column_sort)
     )
 
     return control_result
@@ -391,7 +391,7 @@ def fixture_cellprofiler_merged_nf1data(
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
     control_result = control_result.select(
-        sorted(sorted(control_result.column_names), key=column_sort)
+        sorted(sorted(control_result.column_names), key=_column_sort)
     )
 
     return control_result

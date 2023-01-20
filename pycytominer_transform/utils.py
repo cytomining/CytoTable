@@ -6,7 +6,7 @@ import duckdb
 
 
 # custom sort for resulting columns
-def column_sort(value: str):
+def _column_sort(value: str):
     """
     A custom sort for column values as a list.
     To be used with sorted and Pyarrow tables.
@@ -59,7 +59,7 @@ def column_sort(value: str):
     return len(sort_first) + len(sort_later) + 1
 
 
-def duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
+def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
     """
     Creates a DuckDB connection with the
     sqlite_scanner installed and loaded.

@@ -7,44 +7,45 @@ Convert
 
 .. automodule:: pycytominer_transform.convert
    :members:
+   :private-members:
    :undoc-members:
    :show-inheritance:
 
 |
 
-.. autofunction:: concat_join_sources
+.. autofunction:: _concat_join_sources
 
 |
 
-.. autofunction:: concat_source_group
+.. autofunction:: _concat_source_group
 
 |
 
-.. autofunction:: get_join_chunks
+.. autofunction:: _get_join_chunks
 
 |
 
-.. autofunction:: infer_source_group_common_schema
+.. autofunction:: _infer_source_group_common_schema
 
 |
 
-.. autofunction:: join_source_chunk
+.. autofunction:: _join_source_chunk
 
 |
 
-.. autofunction:: prepend_column_name
+.. autofunction:: _prepend_column_name
 
 |
 
-.. autofunction:: read_data
+.. autofunction:: _read_data
 
 |
 
-.. autofunction:: to_parquet
+.. autofunction:: _to_parquet
 
 |
 
-.. autofunction:: write_parquet
+.. autofunction:: _write_parquet
 
 |
 
@@ -53,24 +54,25 @@ Sources
 
 .. automodule:: pycytominer_transform.sources
    :members:
+   :private-members:
    :undoc-members:
    :show-inheritance:
 
 |
 
-.. autofunction:: build_path
+.. autofunction:: _build_path
 
 |
 
-.. autofunction:: filter_source_filepaths
+.. autofunction:: _filter_source_filepaths
 
 |
 
-.. autofunction:: get_source_filepaths
+.. autofunction:: _get_source_filepaths
 
 |
 
-.. autofunction:: infer_source_datatype
+.. autofunction:: _infer_source_datatype
 
 |
 
@@ -79,6 +81,7 @@ Utils
 
 .. automodule:: pycytominer_transform.utils
    :members:
+   :private-members:
    :undoc-members:
    :show-inheritance:
 

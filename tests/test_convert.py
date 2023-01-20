@@ -13,21 +13,20 @@ from cloudpathlib import AnyPath
 from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
-from pycytominer_transform import (  # pylint: disable=R0801
-    concat_join_sources,
-    concat_source_group,
-    config,
+from pycytominer_transform.convert import (
+    _concat_join_sources,
+    _concat_source_group,
+    _get_join_chunks,
+    _infer_source_group_common_schema,
+    _join_source_chunk,
+    _prepend_column_name,
+    _read_data,
+    _to_parquet,
+    _write_parquet,
     convert,
-    get_join_chunks,
-    get_source_filepaths,
-    infer_source_datatype,
-    infer_source_group_common_schema,
-    join_source_chunk,
-    prepend_column_name,
-    read_data,
-    to_parquet,
-    write_parquet,
 )
+from pycytominer_transform.presets import config
+from pycytominer_transform.sources import _get_source_filepaths, _infer_source_datatype
 
 
 def test_config():
@@ -49,28 +48,28 @@ def test_config():
         ) == sorted(config_preset.keys())
 
 
-def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
+def test__get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     """
-    Tests get_source_filepaths
+    Tests _get_source_filepaths
     """
 
     # test that no sources raises an exception
     empty_dir = pathlib.Path(f"{get_tempdir}/temp")
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
-        single_dir_result = get_source_filepaths.fn(
+        single_dir_result = _get_source_filepaths.fn(
             path=empty_dir,
             targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
-    single_dir_result = get_source_filepaths.fn(
+    single_dir_result = _get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
     )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
 
-    single_dir_result = get_source_filepaths.fn(
+    single_dir_result = _get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
     )
@@ -90,7 +89,7 @@ def test_read_data(get_tempdir: str):
 
     csv.write_csv(data=table, output_file=destination)
 
-    result = read_data.fn(source={"source_path": destination})
+    result = _read_data.fn(source={"source_path": destination})
 
     assert isinstance(result, dict)
     assert sorted(list(result.keys())) == sorted(["source_path", "table"])
@@ -102,16 +101,16 @@ def test_read_data(get_tempdir: str):
     with open(destination_err, "w", encoding="utf-8") as wfile:
         wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
 
-    assert isinstance(read_data.fn(source={"source_path": destination_err}), Dict)
+    assert isinstance(_read_data.fn(source={"source_path": destination_err}), Dict)
 
 
-def test_prepend_column_name():
+def test__prepend_column_name():
     """
-    Tests prepend_column_name
+    Tests _prepend_column_name
     """
 
     # example cytoplasm csv table run
-    result = prepend_column_name.fn(
+    result = _prepend_column_name.fn(
         source={
             "table": pa.Table.from_pydict(
                 {
@@ -146,7 +145,7 @@ def test_prepend_column_name():
     ]
 
     # example cells sqlite table run
-    result = prepend_column_name.fn(
+    result = _prepend_column_name.fn(
         source={
             "table": pa.Table.from_pydict(
                 {
@@ -178,13 +177,13 @@ def test_prepend_column_name():
     ]
 
 
-def test_concat_source_group(
+def test__concat_source_group(
     get_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
     example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
-    Tests concat_source_group
+    Tests _concat_source_group
     """
 
     _, _, _, table_nuclei_1, table_nuclei_2 = example_tables
@@ -192,7 +191,7 @@ def test_concat_source_group(
     # simulate concat
     concat_table = pa.concat_tables([table_nuclei_1, table_nuclei_2])
 
-    result = concat_source_group.fn(
+    result = _concat_source_group.fn(
         source_group=example_local_sources["nuclei.csv"],
         dest_path=get_tempdir,
         common_schema=table_nuclei_1.schema,
@@ -221,15 +220,15 @@ def test_concat_source_group(
     )
 
     with pytest.raises(Exception):
-        concat_source_group.fn(
+        _concat_source_group.fn(
             source_group=example_local_sources["nuclei.csv"],
             dest_path=get_tempdir,
         )
 
 
-def test_get_join_chunks(get_tempdir: str):
+def test__get_join_chunks(get_tempdir: str):
     """
-    Tests get_join_chunks
+    Tests _get_join_chunks
     """
 
     # form test path
@@ -248,7 +247,7 @@ def test_get_join_chunks(get_tempdir: str):
         where=test_path,
     )
 
-    result = get_join_chunks.fn(
+    result = _get_join_chunks.fn(
         sources={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
         metadata=["merge_chunks_test"],
         chunk_columns=["id1", "id2"],
@@ -265,9 +264,9 @@ def test_get_join_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test_join_source_chunk(get_tempdir: str):
+def test__join_source_chunk(get_tempdir: str):
     """
-    Tests get_join_chunks
+    Tests _get_join_chunks
     """
 
     # form test path a
@@ -298,7 +297,7 @@ def test_join_source_chunk(get_tempdir: str):
         where=test_path_b,
     )
 
-    result = join_source_chunk.fn(
+    result = _join_source_chunk.fn(
         sources={
             "example_a": [{"destination_path": test_path_a}],
             "example_b": [{"destination_path": test_path_b}],
@@ -331,9 +330,9 @@ def test_join_source_chunk(get_tempdir: str):
     )
 
 
-def test_concat_join_sources(get_tempdir: str):
+def test__concat_join_sources(get_tempdir: str):
     """
-    Tests concat_join_sources
+    Tests _concat_join_sources
     """
 
     # create a test dir
@@ -393,7 +392,7 @@ def test_concat_join_sources(get_tempdir: str):
     copy(test_path_a, test_path_a_join_chunk)
     copy(test_path_b, test_path_b_join_chunk)
 
-    result = concat_join_sources.fn(
+    result = _concat_join_sources.fn(
         dest_path=f"{get_tempdir}/example_concat_join.parquet",
         join_sources=[test_path_a_join_chunk, test_path_b_join_chunk],
         sources={
@@ -413,16 +412,16 @@ def test_concat_join_sources(get_tempdir: str):
     )
 
 
-def test_write_parquet(get_tempdir: str):
+def test__write_parquet(get_tempdir: str):
     """
-    Tests write_parquet
+    Tests _write_parquet
     """
 
     table = pa.Table.from_pydict(
         {"color": pa.array(["blue", "red", "green", "orange"])}
     )
 
-    result = write_parquet.fn(
+    result = _write_parquet.fn(
         source={
             "source_path": AnyPath(f"{get_tempdir}/example/colors.csv"),
             "table": table,
@@ -435,7 +434,7 @@ def test_write_parquet(get_tempdir: str):
     assert sorted(list(result.keys())) == sorted(["destination_path", "source_path"])
     assert result_table.schema == table.schema
     assert result_table.shape == table.shape
-    result = write_parquet.fn(
+    result = _write_parquet.fn(
         source={
             "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
             "table": table,
@@ -449,39 +448,39 @@ def test_write_parquet(get_tempdir: str):
     )
 
 
-def test_infer_source_datatype():
+def test__infer_source_datatype():
     """
-    Tests infer_source_datatype
+    Tests _infer_source_datatype
     """
 
     data = {
         "sample_1.csv": [{"source_path": "stub"}],
         "sample_2.CSV": [{"source_path": "stub"}],
     }
-    assert infer_source_datatype.fn(sources=data) == "csv"
+    assert _infer_source_datatype.fn(sources=data) == "csv"
     with pytest.raises(Exception):
-        infer_source_datatype.fn(sources=data, source_datatype="parquet")
+        _infer_source_datatype.fn(sources=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
     assert (
-        infer_source_datatype.fn(sources=data, source_datatype="parquet") == "parquet"
+        _infer_source_datatype.fn(sources=data, source_datatype="parquet") == "parquet"
     )
     with pytest.raises(Exception):
-        infer_source_datatype.fn(sources=data)
+        _infer_source_datatype.fn(sources=data)
 
 
-def test_to_parquet(
+def test__to_parquet(
     get_tempdir: str, example_local_sources: Dict[str, List[Dict[str, Any]]]
 ):
     """
-    Tests to_parquet
+    Tests _to_parquet
     """
 
     flattened_example_sources = list(
         itertools.chain(*list(example_local_sources.values()))
     )
 
-    result = to_parquet(
+    result = _to_parquet(
         source_path=str(example_local_sources["image.csv"][0]["source_path"].parent),
         dest_path=get_tempdir,
         source_datatype=None,
@@ -549,16 +548,16 @@ def test_convert_s3_path(
         assert parquet_result.shape == parquet_control.shape
 
 
-def test_infer_source_group_common_schema(
+def test__infer_source_group_common_schema(
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_tables: Tuple[pa.Table, ...],
 ):
     """
-    Tests infer_source_group_common_schema
+    Tests _infer_source_group_common_schema
     """
     _, _, _, table_nuclei_1, _ = example_tables
 
-    result = infer_source_group_common_schema.fn(
+    result = _infer_source_group_common_schema.fn(
         source_group=example_local_sources["nuclei.csv"],
     )
 

@@ -18,12 +18,12 @@ from pyarrow import csv, parquet
 
 from pycytominer_transform.exceptions import SchemaException
 from pycytominer_transform.presets import config
-from pycytominer_transform.sources import gather_sources
-from pycytominer_transform.utils import column_sort, duckdb_with_sqlite
+from pycytominer_transform.sources import _gather_sources
+from pycytominer_transform.utils import _column_sort, _duckdb_with_sqlite
 
 
 @task
-def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
+def _read_data(source: Dict[str, Any]) -> Dict[str, Any]:
     """
     Read data from source.
 
@@ -56,7 +56,7 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
     # pylint: disable=no-member
     elif AnyPath(source["source_path"]).suffix == ".sqlite":
         source["table"] = (
-            duckdb_with_sqlite()
+            _duckdb_with_sqlite()
             .execute(
                 """
                 /* perform query on sqlite_master table for metadata on tables */
@@ -71,7 +71,7 @@ def read_data(source: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @task
-def prepend_column_name(
+def _prepend_column_name(
     source: Dict[str, Any],
     source_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
@@ -173,7 +173,7 @@ def prepend_column_name(
 
 
 @task
-def concat_source_group(
+def _concat_source_group(
     source_group: List[Dict[str, Any]],
     dest_path: str = ".",
     common_schema: Optional[List[Tuple[str, str]]] = None,
@@ -258,7 +258,7 @@ def concat_source_group(
 
 
 @task
-def write_parquet(
+def _write_parquet(
     source: Dict[str, Any], dest_path: str, unique_name: bool = False
 ) -> Dict[str, Any]:
     """
@@ -313,7 +313,7 @@ def write_parquet(
 
 
 @task
-def get_join_chunks(
+def _get_join_chunks(
     sources: Dict[str, List[Dict[str, Any]]],
     metadata: Union[List[str], Tuple[str, ...]],
     chunk_columns: Union[List[str], Tuple[str, ...]],
@@ -363,7 +363,7 @@ def get_join_chunks(
 
 
 @task
-def join_source_chunk(
+def _join_source_chunk(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     joins: str,
@@ -455,7 +455,7 @@ def join_source_chunk(
 
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
-    result = result.select(sorted(sorted(result.column_names), key=column_sort))
+    result = result.select(sorted(sorted(result.column_names), key=_column_sort))
 
     result_file_path = (
         # store the result in the parent of the dest_path
@@ -478,7 +478,7 @@ def join_source_chunk(
 
 
 @task
-def concat_join_sources(
+def _concat_join_sources(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     join_sources: List[str],
@@ -535,7 +535,7 @@ def concat_join_sources(
 
 
 @task
-def infer_source_group_common_schema(
+def _infer_source_group_common_schema(
     source_group: List[Dict[str, Any]]
 ) -> List[Tuple[str, str]]:
     """
@@ -607,7 +607,7 @@ def infer_source_group_common_schema(
 
 
 @flow
-def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
+def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
     source_datatype: Optional[str],
@@ -666,7 +666,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     """
 
     # gather sources to be processed
-    sources = gather_sources(
+    sources = _gather_sources(
         source_path=source_path,
         source_datatype=source_datatype,
         targets=list(metadata) + list(compartments),
@@ -680,10 +680,10 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # for each group of sources, map writing parquet per file
     for source_group_name, source_group in sources.items():
         # read data from source groups
-        source_group = read_data.map(source=source_group)
+        source_group = _read_data.map(source=source_group)
 
         # rename cols to include compartment or meta names
-        renamed_source_group = prepend_column_name.map(
+        renamed_source_group = _prepend_column_name.map(
             source=source_group,
             targets=unmapped(list(metadata) + list(compartments)),
             source_group_name=unmapped(source_group_name),
@@ -692,7 +692,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         )
 
         # map for writing parquet files with list of files via sources
-        results[source_group_name] = write_parquet.map(
+        results[source_group_name] = _write_parquet.map(
             source=renamed_source_group,
             dest_path=unmapped(dest_path),
             # if the source group has more than one source, we will need a unique name
@@ -701,7 +701,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         )
 
         if concat and infer_common_schema:
-            common_schema = infer_source_group_common_schema(
+            common_schema = _infer_source_group_common_schema(
                 source_group=results[source_group_name]
             )
 
@@ -709,7 +709,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # note: join implies a concat, but concat does not imply a join
         if concat or join:
             # build a new concatenated source group
-            results[source_group_name] = concat_source_group.submit(
+            results[source_group_name] = _concat_source_group.submit(
                 source_group=results[source_group_name],
                 dest_path=dest_path,
                 common_schema=common_schema,
@@ -720,7 +720,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     if join:
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
-        join_sources_result = join_source_chunk.map(
+        join_sources_result = _join_source_chunk.map(
             # gather the result of concatted sources prior to
             # join group merging as each mapped task run will need
             # full concat results
@@ -733,7 +733,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             dest_path=unmapped(dest_path),
             joins=unmapped(joins),
             # get merging chunks by join columns
-            join_group=get_join_chunks(
+            join_group=_get_join_chunks(
                 sources=results,
                 chunk_columns=chunk_columns,
                 chunk_size=chunk_size,
@@ -745,7 +745,7 @@ def to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # concat our join chunks together as one cohesive dataset
         # return results in common format which includes metadata
         # for lineage and debugging
-        results = concat_join_sources(
+        results = _concat_join_sources(
             dest_path=dest_path,
             join_sources=(
                 join_sources_result.result()
@@ -913,7 +913,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
     # send sources to be written to parquet if selected
     if dest_datatype == "parquet":
-        output = to_parquet.with_options(task_runner=task_runner)(
+        output = _to_parquet.with_options(task_runner=task_runner)(
             source_path=source_path,
             dest_path=dest_path,
             source_datatype=source_datatype,

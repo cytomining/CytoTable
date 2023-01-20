@@ -10,11 +10,11 @@ from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task
 
 from pycytominer_transform.exceptions import DatatypeException, NoInputDataException
-from pycytominer_transform.utils import duckdb_with_sqlite
+from pycytominer_transform.utils import _duckdb_with_sqlite
 
 
 @task
-def build_path(
+def _build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
 ) -> Union[pathlib.Path, Any]:
     """
@@ -42,7 +42,7 @@ def build_path(
 
 
 @task
-def get_source_filepaths(
+def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
     targets: List[str],
     source_datatype: Optional[str] = None,
@@ -67,7 +67,7 @@ def get_source_filepaths(
     if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
         return {
             f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
-            for table_name in duckdb_with_sqlite()
+            for table_name in _duckdb_with_sqlite()
             .execute(
                 """
                 /* perform query on sqlite_master table for metadata on tables */
@@ -109,7 +109,7 @@ def get_source_filepaths(
 
 
 @task
-def infer_source_datatype(
+def _infer_source_datatype(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
 ) -> str:
     """
@@ -156,7 +156,7 @@ def infer_source_datatype(
 
 
 @task
-def filter_source_filepaths(
+def _filter_source_filepaths(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -187,7 +187,7 @@ def filter_source_filepaths(
 
 
 @flow
-def gather_sources(
+def _gather_sources(
     source_path: str,
     source_datatype: Optional[str] = None,
     targets: Optional[List[str]] = None,
@@ -209,17 +209,17 @@ def gather_sources(
             Data structure which groups related files based on the compartments.
     """
 
-    source_path = build_path(path=source_path, **kwargs)
+    source_path = _build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
-    sources = get_source_filepaths(
+    sources = _get_source_filepaths(
         path=source_path, source_datatype=source_datatype, targets=targets
     )
 
     # infer or validate the source datatype based on source filepaths
-    source_datatype = infer_source_datatype(
+    source_datatype = _infer_source_datatype(
         sources=sources, source_datatype=source_datatype
     )
 
     # filter source filepaths to inferred or source datatype
-    return filter_source_filepaths(sources=sources, source_datatype=source_datatype)
+    return _filter_source_filepaths(sources=sources, source_datatype=source_datatype)
