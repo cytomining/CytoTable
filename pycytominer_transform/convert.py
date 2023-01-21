@@ -81,6 +81,11 @@ def _prepend_column_name(
     """
     Rename columns using the source group name, avoiding identifying columns.
 
+    Notes:
+    * A source_group_name represents a filename referenced as part of what
+    is specified within targets.
+    * Target list values are used to reference source_group_names.
+
     Args:
         source: Dict[str, Any]:
             Individual data source source which includes meta about source
