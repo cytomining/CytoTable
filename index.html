@@ -19,7 +19,7 @@
     <script>mermaid.initialize({startOnLoad:true});</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="next" title="Overview" href="overview.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -43,13 +43,14 @@
 <em>Diagram showing data flow relative to this project.</em></p>
 <section id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this heading">¶</a></h2>
-<p>pycytominer-transform takes input data from CSV’s, SQLite, or NPZ, for conversion to <a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a> relevant output in Parquet format.
+<p>pycytominer-transform enables single-cell morphology data analysis by cleaning and transforming CellProfiler (<code class="docutils literal notranslate"><span class="pre">.csv</span></code> or <code class="docutils literal notranslate"><span class="pre">.sqlite</span></code>), cytominer-database (<code class="docutils literal notranslate"><span class="pre">.sqlite</span></code>), and DeepProfiler (<code class="docutils literal notranslate"><span class="pre">.npz</span></code>) output data at scale.
+pycytominer-transform creates parquet files for both independent analysis and for input into <a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a>.
 The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).</p>
 </section>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
 <p>Install pycytominer-transform with the following command:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip install git+https://github.com/cytomining/pycytominer-transform.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/cytomining/pycytominer-transform.git
 </pre></div>
 </div>
 </section>
@@ -69,17 +70,21 @@ The Parquet files will have a unified and documented data model, including refer
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#presets-and-manual-overrides">Presets and Manual Overrides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#data-sources">Data Sources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#data-source-locations">Data Source Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#data-source-types">Data Source Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#data-destinations">Data Destinations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#data-destination-locations">Data Destination Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#data-destination-types">Data Destination Types</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#data-sources">Data Sources</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-source-locations">Data Source Locations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-source-types">Data Source Types</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="tutorial.html#data-destinations">Data Destinations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-destination-locations">Data Destination Locations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="tutorial.html#data-destination-types">Data Destination Types</a></li>
-</ul>
-</li>
 <li class="toctree-l2"><a class="reference internal" href="tutorial.html#cellprofiler-csv-output-to-parquet">CellProfiler CSV Output to Parquet</a></li>
 </ul>
 </li>
@@ -126,15 +131,57 @@ The Parquet files will have a unified and documented data model, including refer
 <li class="toctree-l2"><a class="reference internal" href="code_of_conduct.html#attribution">Attribution</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.technical.html">Technical Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.technical.html#workflow-technologies">Workflow Technologies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.technical.html#data-technologies">Data Technologies</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.data.html">Data Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="architecture.data.html#sources">Sources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.data.html#data-structure">Data structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.data.html#relationships">Relationships</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.gather_records"><code class="docutils literal notranslate"><span class="pre">gather_records()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.get_source_filepaths"><code class="docutils literal notranslate"><span class="pre">get_source_filepaths()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.infer_source_datatype"><code class="docutils literal notranslate"><span class="pre">infer_source_datatype()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.read_file"><code class="docutils literal notranslate"><span class="pre">read_file()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.to_parquet"><code class="docutils literal notranslate"><span class="pre">to_parquet()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.write_parquet"><code class="docutils literal notranslate"><span class="pre">write_parquet()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.concat_record_group"><code class="docutils literal notranslate"><span class="pre">concat_record_group()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-pycytominer_transform.convert">Convert</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._concat_join_sources"><code class="docutils literal notranslate"><span class="pre">_concat_join_sources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._concat_source_group"><code class="docutils literal notranslate"><span class="pre">_concat_source_group()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._get_join_chunks"><code class="docutils literal notranslate"><span class="pre">_get_join_chunks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._infer_source_group_common_schema"><code class="docutils literal notranslate"><span class="pre">_infer_source_group_common_schema()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._join_source_chunk"><code class="docutils literal notranslate"><span class="pre">_join_source_chunk()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._prepend_column_name"><code class="docutils literal notranslate"><span class="pre">_prepend_column_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._read_data"><code class="docutils literal notranslate"><span class="pre">_read_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._to_parquet"><code class="docutils literal notranslate"><span class="pre">_to_parquet()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.convert._write_parquet"><code class="docutils literal notranslate"><span class="pre">_write_parquet()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-pycytominer_transform.sources">Sources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.sources._build_path"><code class="docutils literal notranslate"><span class="pre">_build_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.sources._filter_source_filepaths"><code class="docutils literal notranslate"><span class="pre">_filter_source_filepaths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.sources._get_source_filepaths"><code class="docutils literal notranslate"><span class="pre">_get_source_filepaths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.sources._infer_source_datatype"><code class="docutils literal notranslate"><span class="pre">_infer_source_datatype()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-pycytominer_transform.utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.utils._column_sort"><code class="docutils literal notranslate"><span class="pre">_column_sort()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.utils._duckdb_with_sqlite"><code class="docutils literal notranslate"><span class="pre">_duckdb_with_sqlite()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#presets">Presets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.presets.config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-pycytominer_transform.exceptions">Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.exceptions.CytominerException"><code class="docutils literal notranslate"><span class="pre">CytominerException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.exceptions.DatatypeException"><code class="docutils literal notranslate"><span class="pre">DatatypeException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.exceptions.NoInputDataException"><code class="docutils literal notranslate"><span class="pre">NoInputDataException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#pycytominer_transform.exceptions.SchemaException"><code class="docutils literal notranslate"><span class="pre">SchemaException</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -156,14 +203,23 @@ The Parquet files will have a unified and documented data model, including refer
 
 
 
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
 
 
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a></li>
 </ul>
 
@@ -171,7 +227,7 @@ The Parquet files will have a unified and documented data model, including refer
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="tutorial.html" title="next chapter">Tutorial</a></li>
+      <li>Next: <a href="overview.html" title="next chapter">Overview</a></li>
   </ul></li>
 </ul>
 </div>
@@ -202,7 +258,7 @@ The Parquet files will have a unified and documented data model, including refer
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/index.md.txt"

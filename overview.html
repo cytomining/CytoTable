@@ -1,0 +1,212 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Overview &#8212; pycytominer-transform v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorial" href="tutorial.html" />
+    <link rel="prev" title="pycytominer-transform" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h1>
+<p>This page provides a brief overview of pycytominer-transform topics.
+For a brief introduction on how to use pycytominer-transform, please see the <a class="reference internal" href="tutorial.html"><span class="doc std std-doc">tutorial</span></a> page.</p>
+<section id="presets-and-manual-overrides">
+<h2>Presets and Manual Overrides<a class="headerlink" href="#presets-and-manual-overrides" title="Permalink to this heading">¶</a></h2>
+<p>Various preset configurations are available for use within pycytominer-transform which affect how data are read and produced under <a class="reference internal" href="python-api.html#pycytominer_transform.presets.config" title="pycytominer_transform.presets.config"><code class="xref py py-data docutils literal notranslate"><span class="pre">presets.config</span></code></a>.
+These presets are intended to assist with common data source expectations.
+Please note that these presets may not capture all possible outcomes.
+Use manual overrides within <a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a> as needed.</p>
+</section>
+<section id="data-sources">
+<h2>Data Sources<a class="headerlink" href="#data-sources" title="Permalink to this heading">¶</a></h2>
+<div class="mermaid">
+            flowchart LR
+    images[(&quot;Image\nfile(s)&quot;)]:::outlined --&gt; image-tools[Image Analysis Tools]:::outlined
+    image-tools --&gt; measurements[(&quot;Measurement\nfile(s)&quot;)]:::green
+    measurements --&gt; pycytominer-transform:::green
+
+    classDef outlined fill:#fff,stroke:#333
+    classDef green fill:#97F0B4,stroke:#333
+        </div><p>Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.
+These measurement data are the focus of the data source content which follows.</p>
+<section id="data-source-locations">
+<h3>Data Source Locations<a class="headerlink" href="#data-source-locations" title="Permalink to this heading">¶</a></h3>
+<p>Data sources may be provided to pycytominer-transform using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
+We use <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a>  under the hood to reference files in a unified way, whether they’re local or remote.</p>
+<p>Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (<a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/">S3Client</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/">AzureBlobClient</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/">GSClient</a>) and <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">**kwargs)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).
+For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, <code class="code docutils literal notranslate"><span class="pre">aws</span> <span class="pre">s3</span> <span class="pre">...</span> <span class="pre">--no-sign-request</span></code>) may be used via <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">no_sign_request=True)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+</section>
+<section id="data-source-types">
+<h3>Data Source Types<a class="headerlink" href="#data-source-types" title="Permalink to this heading">¶</a></h3>
+<p>Data source compatibility for pycytominer-transform is focused (but not explicitly limited to) the following.</p>
+<section id="cellprofiler-data-sources">
+<h4>CellProfiler Data Sources<a class="headerlink" href="#cellprofiler-data-sources" title="Permalink to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>Comma-separated values (.csv)</strong>: “A comma-separated values (CSV) file is a delimited text file that uses a comma to separate values.” (<a class="reference external" href="https://en.wikipedia.org/wiki/Comma-separated_values">reference</a>)
+CellProfiler CSV data sources generally follow the format provided as output by <a class="reference external" href="https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToSpreadsheet.html">CellProfiler ExportToSpreadsheet</a>.</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Manual specification:</strong> CSV data source types may be manually specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">source_datatype=&quot;csv&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
+<li><p><strong>Preset specification:</strong> CSV data sources from CellProfiler may use the configuration preset <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">preset=&quot;cellprofiler_csv&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p><strong>SQLite Databases (.sqlite)</strong>: “SQLite database files are commonly used as containers to transfer rich content between systems and as a long-term archival format for data.” (<a class="reference external" href="https://sqlite.org/index.html">reference</a>)
+CellProfiler SQLite database sources may follow a format provided as output by <a class="reference external" href="https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToDatabase.html">CellProfiler ExportToDatabase</a> or <a class="reference external" href="https://github.com/cytomining/cytominer-database">cytominer-database</a>.</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Manual specification:</strong> SQLite data source types may be manually specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">source_datatype=&quot;sqlite&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
+<li><p><strong>Preset specification:</strong> SQLite data sources from CellProfiler may use the configuration preset <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">preset=&quot;cellprofiler_sqlite&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
+</ul>
+</div></blockquote>
+</section>
+</section>
+</section>
+<section id="data-destinations">
+<h2>Data Destinations<a class="headerlink" href="#data-destinations" title="Permalink to this heading">¶</a></h2>
+<section id="data-destination-locations">
+<h3>Data Destination Locations<a class="headerlink" href="#data-destination-locations" title="Permalink to this heading">¶</a></h3>
+<p>Converted data destinations are may be provided to pycytominer-transform using only local filepaths (in contrast to data sources, which may also be remote).
+Specify the converted data destination using the  <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_path=&quot;&lt;a</span> <span class="pre">local</span> <span class="pre">filepath&gt;&quot;)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+</section>
+<section id="data-destination-types">
+<h3>Data Destination Types<a class="headerlink" href="#data-destination-types" title="Permalink to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Apache Parquet (.parquet)</strong>: “Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.
+It provides efficient data compression and encoding schemes with enhanced performance to handle complex data in bulk.” (<a class="reference external" href="https://parquet.apache.org/">reference</a>)</p></li>
+</ul>
+<blockquote>
+<div><p>Parquet data destination type may be specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;parquet&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#pycytominer_transform.convert.convert" title="pycytominer_transform.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+</div></blockquote>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">pycytominer-transform</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#presets-and-manual-overrides">Presets and Manual Overrides</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-sources">Data Sources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-source-locations">Data Source Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-source-types">Data Source Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-destinations">Data Destinations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-destination-locations">Data Destination Locations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-destination-types">Data Destination Types</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">pycytominer-transform</a></li>
+      <li>Next: <a href="tutorial.html" title="next chapter">Tutorial</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/overview.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

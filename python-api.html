@@ -19,7 +19,7 @@
     <script>mermaid.initialize({startOnLoad:true});</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Contributor Covenant Code of Conduct" href="code_of_conduct.html" />
+    <link rel="prev" title="Data Architecture" href="architecture.data.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -36,12 +36,14 @@
 
           <div class="body" role="main">
             
-  <section id="module-pycytominer_transform.convert">
-<span id="python-api"></span><h1>Python API<a class="headerlink" href="#module-pycytominer_transform.convert" title="Permalink to this heading">¶</a></h1>
+  <section id="python-api">
+<h1>Python API<a class="headerlink" href="#python-api" title="Permalink to this heading">¶</a></h1>
+<section id="module-pycytominer_transform.convert">
+<span id="convert"></span><h2>Convert<a class="headerlink" href="#module-pycytominer_transform.convert" title="Permalink to this heading">¶</a></h2>
 <p>pycytominer-transform: convert - transforming data for use with pyctyominer.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="pycytominer_transform.convert.convert">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">source_path:</span> <span class="pre">str,</span> <span class="pre">dest_path:</span> <span class="pre">str,</span> <span class="pre">dest_datatype:</span> <span class="pre">~typing.Literal['parquet'],</span> <span class="pre">source_datatype:</span> <span class="pre">~typing.Optional[str]</span> <span class="pre">=</span> <span class="pre">None,</span> <span class="pre">compartments:</span> <span class="pre">~typing.Union[~typing.List[str],</span> <span class="pre">~typing.Tuple[str,</span> <span class="pre">...]]</span> <span class="pre">=</span> <span class="pre">('image',</span> <span class="pre">'cells',</span> <span class="pre">'nuclei',</span> <span class="pre">'cytoplasm'),</span> <span class="pre">concat:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">infer_common_schema:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">True,</span> <span class="pre">task_runner:</span> <span class="pre">~prefect.task_runners.BaseTaskRunner</span> <span class="pre">=</span> <span class="pre">&lt;class</span> <span class="pre">'prefect.task_runners.ConcurrentTaskRunner'&gt;,</span> <span class="pre">**kwargs</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.convert" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'parquet'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cast(list,</span> <span class="pre">config['cellprofiler_csv']['CONFIG_NAMES_METADATA'])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cast(list,</span> <span class="pre">config['cellprofiler_csv']['CONFIG_NAMES_COMPARTMENTS'])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifying_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cast(list,</span> <span class="pre">config['cellprofiler_csv']['CONFIG_IDENTIFYING_COLUMNS'])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">join</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cast(str,</span> <span class="pre">config['cellprofiler_csv']['CONFIG_JOINS'])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cast(list,</span> <span class="pre">config['cellprofiler_csv']['CONFIG_CHUNK_COLUMNS'])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">cast(int,</span> <span class="pre">config['cellprofiler_csv']['CONFIG_CHUNK_SIZE'])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_null</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task_runner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">BaseTaskRunner</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">ConcurrentTaskRunner</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'ERROR'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.convert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert file-based data from various sources to Pycytominer-compatible standards.</p>
 <p>Note: source paths may be local or remote object-storage location
 using convention “s3://…” or similar.</p>
@@ -50,7 +52,8 @@ using convention “s3://…” or similar.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>source_path</strong> – str:
 str reference to read source files from.
-Note: may be local or remote object-storage location using convention “s3://…” or similar.</p></li>
+Note: may be local or remote object-storage location
+using convention “s3://…” or similar.</p></li>
 <li><p><strong>dest_path</strong> – str:
 Path to write files to.
 Note: this may only be a local path.</p></li>
@@ -58,21 +61,41 @@ Note: this may only be a local path.</p></li>
 Destination datatype to write to.</p></li>
 <li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
 Source datatype to focus on during conversion.</p></li>
+<li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
+Metadata names to use for conversion.</p></li>
 <li><p><strong>compartments</strong> – Union[List[str], Tuple[str, str, str, str]]:
 (Default value = DEFAULT_COMPARTMENTS)
 Compartment names to use for conversion.</p></li>
+<li><p><strong>identifying_columns</strong> – Union[List[str], Tuple[str, …]]:
+Column names which are used as ID’s and as a result need to be
+ignored with regards to renaming.</p></li>
 <li><p><strong>concat</strong> – bool:  (Default value = True)
 Whether to concatenate similar files together.</p></li>
-<li><p><strong>infer_common_schema</strong> – bool (Default value = True)
-Whether to infer a common schema when concatenating records.</p></li>
-<li><p><strong>task_runner</strong> – BaseTaskRunner (Default value = ConcurrentTaskRunner)
+<li><p><strong>join</strong> – bool:  (Default value = True)
+Whether to join the compartment data together into one dataset</p></li>
+<li><p><strong>joins</strong> – str: (Default value = presets.config[“cellprofiler_csv”][“CONFIG_JOINS”]):
+DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
+<li><p><strong>chunk_columns</strong> – Optional[Union[List[str], Tuple[str, …]]]
+(Default value = DEFAULT_CHUNK_COLUMNS)
+Column names which appear in all compartments to use when performing join</p></li>
+<li><p><strong>chunk_size</strong> – Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
+Size of join chunks which is used to limit data size during join ops</p></li>
+<li><p><strong>infer_common_schema</strong> – bool: (Default value = True)
+Whether to infer a common schema when concatenating sources.</p></li>
+<li><p><strong>drop_null</strong> – bool (Default value = True)
+Whether to drop nan/null values from results</p></li>
+<li><p><strong>preset</strong> – str (Default value = None)
+an optional group of presets to use based on common configurations</p></li>
+<li><p><strong>task_runner</strong> – BaseTaskRunner: (Default value = ConcurrentTaskRunner)
 Prefect task runner to use with flows.</p></li>
+<li><p><strong>log_level</strong> – str: (Default value = “ERROR”):
+Log level for Prefect flow and task operations.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Grouped records which include metadata about destination filepath
-where parquet file was written.</p>
+<dt>Union[Dict[str, List[Dict[str, Any]]], str]</dt><dd><p>Grouped sources which include metadata about destination filepath
+where parquet file was written or str of joined result filepath.</p>
 </dd>
 </dl>
 </p>
@@ -81,22 +104,34 @@ where parquet file was written.</p>
 <p class="rubric">Example</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">pycytominer_transform</span> <span class="kn">import</span> <span class="n">convert</span>
 
-<span class="c1"># using a local path</span>
+<span class="c1"># using a local path with cellprofiler csv presets</span>
 <span class="n">convert</span><span class="p">(</span>
     <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/csv_single&quot;</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="c1"># using an s3-compatible path with no signature for client</span>
+<span class="c1"># and cellprofiler csv presets</span>
 <span class="n">convert</span><span class="p">(</span>
     <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;s3://s3path&quot;</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
     <span class="n">concat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># using local path with cellprofiler sqlite presets</span>
+<span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;example.sqlite&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;example.parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_sqlite&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -106,23 +141,27 @@ where parquet file was written.</p>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.gather_records">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">gather_records</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#gather_records"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.gather_records" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flow for gathering records for conversion</p>
+<dt class="sig sig-object py" id="pycytominer_transform.convert._concat_join_sources">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_concat_join_sources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">join_sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_concat_join_sources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._concat_join_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate join sources from parquet-based chunks.</p>
+<p>For a reference to data concatenation within Arrow see the following:
+<a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html">https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html</a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>source_path</strong> – str:
-Where to gather file-based data from.</p></li>
-<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
-The source datatype (extension) to use for reading the tables.</p></li>
-<li><p><strong>compartments</strong> – Optional[List[str]]:  (Default value = None)
-The source file names to target within the provided path.</p></li>
+<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]:
+Grouped datasets of files which will be used by other functions.
+Includes the metadata concerning location of actual data.</p></li>
+<li><p><strong>dest_path</strong> – str:
+Destination path to write file-based content.</p></li>
+<li><p><strong>join_sources</strong> – List[str]:
+List of local filepath destination for join source chunks
+which will be concatenated.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the compartments.</p>
+<dt>str</dt><dd><p>Path to concatenated file which is created as a result of this function.</p>
 </dd>
 </dl>
 </p>
@@ -134,21 +173,40 @@ The source file names to target within the provided path.</p></li>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.get_source_filepaths">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AnyPath</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#get_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.get_source_filepaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gather dataset of filepaths from a provided directory path.</p>
+<dt class="sig sig-object py" id="pycytominer_transform.convert._concat_source_group">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_concat_source_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_concat_source_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._concat_source_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate group of sources together as unified dataset.</p>
+<p>For a reference to data concatenation within Arrow see the following:
+<a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html">https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html</a></p>
+<p>Notes: this function presumes a multi-directory, multi-file common data
+structure for compartments and other data. For example:</p>
+<p>Source (file tree):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>root
+├──<span class="w"> </span>subdir_1
+│<span class="w">   </span>└──<span class="w"> </span>Cells.csv
+└──<span class="w"> </span>subdir_2
+<span class="w">    </span>└──<span class="w"> </span>Cells.csv
+</pre></div>
+</div>
+<p>Becomes (list with dictionary):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">concatted</span> <span class="o">=</span> <span class="p">[{</span><span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="s2">&quot;root/Cells&quot;</span><span class="p">}]</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
-Path to seek filepaths within.</p></li>
-<li><p><strong>compartments</strong> – List[str]:
-Compartment filenames to seek within the provided path.</p></li>
+<li><p><strong>source_group</strong> – List[Dict[str, Any]]:
+Data structure containing grouped data for concatenation.</p></li>
+<li><p><strong>dest_path</strong> – Optional[str] (Default value = None)
+Optional destination path for concatenated sources.</p></li>
+<li><p><strong>common_schema</strong> – List[Tuple[str, str]] (Default value = None)
+Common schema to use for concatenation amongst arrow tables
+which may have slightly different but compatible schema.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the compartments.</p>
+<dt>List[Dict[str, Any]]</dt><dd><p>Updated dictionary containing concatenated sources.</p>
 </dd>
 </dl>
 </p>
@@ -160,22 +218,50 @@ Compartment filenames to seek within the provided path.</p></li>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.infer_source_datatype">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">infer_source_datatype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">records</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#infer_source_datatype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.infer_source_datatype" title="Permalink to this definition">¶</a></dt>
-<dd><p>Infers and optionally validates datatype (extension) of files.</p>
+<dt class="sig sig-object py" id="pycytominer_transform.convert._get_join_chunks">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_get_join_chunks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_get_join_chunks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._get_join_chunks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build groups of join keys for later join operations</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>records</strong> – Dict[str, List[Dict[str, Any]]]:
+<li><p><strong>sources</strong> – Dict[List[Dict[str, Any]]]:
 Grouped datasets of files which will be used by other functions.</p></li>
-<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
-Optional source datatype to validate within the context of
-detected datatypes.</p></li>
+<li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
+List of source data names which are used as metadata</p></li>
+<li><p><strong>chunk_columns</strong> – Union[List[str], Tuple[str, …]]:
+Column names which appear in all compartments to use when performing join</p></li>
+<li><p><strong>chunk_size</strong> – int:
+Size of join chunks which is used to limit data size during join ops</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of lists with at most chunk size length that contain join keys</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[List[Dict[str, Any]]]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.convert._infer_source_group_common_schema">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_infer_source_group_common_schema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_infer_source_group_common_schema"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._infer_source_group_common_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infers a common schema for group of parquet files which may have
+similar but slightly different schema or data. Intended to assist with
+data concatenation and other operations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_group</strong> – List[Dict[str, Any]]:
+Group of one or more data sources which includes metadata about
+path to parquet data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>str</dt><dd><p>A string of the datatype detected or validated source_datatype.</p>
+<dt>List[Tuple[str, str]]</dt><dd><p>A list of tuples which includes column name and PyArrow datatype.
+This data will later be used as the basis for forming a PyArrow schema.</p>
 </dd>
 </dl>
 </p>
@@ -187,23 +273,97 @@ detected datatypes.</p></li>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.read_file">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">read_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#read_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.read_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read csv file from record.</p>
+<dt class="sig sig-object py" id="pycytominer_transform.convert._join_source_chunk">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_join_source_chunk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">join_group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_null</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_join_source_chunk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._join_source_chunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Join sources based on join group keys (group of specific join column values)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>record</strong> – Dict[str, Any]:
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]:
+Grouped datasets of files which will be used by other functions.
+Includes the metadata concerning location of actual data.</p></li>
+<li><p><strong>dest_path</strong> – str:
+Destination path to write file-based content.</p></li>
+<li><p><strong>joins</strong> – str:
+DuckDB-compatible SQL which will be used to perform the join
+operations using the join_group keys as a reference.</p></li>
+<li><p><strong>join_group</strong> – List[Dict[str, Any]]:
+Group of joinable keys to be used as “chunked” filter
+of overall dataset.</p></li>
+<li><p><strong>drop_null</strong> – bool:
+Whether to drop rows with null values within the resulting
+joined data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>str</dt><dd><p>Path to joined file which is created as a result of this function.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.convert._prepend_column_name">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_prepend_column_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_group_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifying_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_prepend_column_name"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._prepend_column_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rename columns using the source group name, avoiding identifying columns.</p>
+<p>Notes:
+* A source_group_name represents a filename referenced as part of what
+is specified within targets.
+* Target list values are used to reference source_group_names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> – Dict[str, Any]:
+Individual data source source which includes meta about source
+as well as Arrow table with data.</p></li>
+<li><p><strong>source_group_name</strong> – str:
+Name of data source source group (for common compartments, etc).</p></li>
+<li><p><strong>identifying_columns</strong> – Union[List[str], Tuple[str, …]]:
+Column names which are used as ID’s and as a result need to be
+ignored with regards to renaming.</p></li>
+<li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
+List of source data names which are used as metadata</p></li>
+<li><p><strong>targets</strong> – List[str]:
+List of source data names which are used as compartments</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Dict[str, Any]</dt><dd><p>Updated source which includes the updated table column names</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.convert._read_data">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_read_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_read_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._read_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read data from source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> – Dict[str, Any]:
 Data containing filepath to csv file</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Dict[str, Any]</dt><dd><p>Updated record (Dict[str, Any]) with CSV data in-memory</p>
+<dt>Dict[str, Any]</dt><dd><p>Updated source (Dict[str, Any]) with source data in-memory</p>
 </dd>
 </dl>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>record</p>
+<dd class="field-odd"><p>source</p>
 </dd>
 </dl>
 </dd></dl>
@@ -212,34 +372,51 @@ Data containing filepath to csv file</p>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.to_parquet">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.to_parquet" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pycytominer_transform.convert._to_parquet">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifying_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">join</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_null</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._to_parquet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Export data to parquet.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>source_path</strong> – str:
 str reference to read source files from.
-Note: may be local or remote object-storage location using convention “s3://…” or similar.</p></li>
+Note: may be local or remote object-storage
+location using convention “s3://…” or similar.</p></li>
 <li><p><strong>dest_path</strong> – str:
 Path to write files to.
 Note: this may only be a local path.</p></li>
 <li><p><strong>source_datatype</strong> – Optional[str]: (Default value = None)
 Source datatype to focus on during conversion.</p></li>
-<li><p><strong>compartments</strong> – Optional[List[str]]: (Default value = None)
+<li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
+Metadata names to use for conversion.</p></li>
+<li><p><strong>compartments</strong> – Union[List[str], Tuple[str, …]]: (Default value = None)
 Compartment names to use for conversion.</p></li>
-<li><p><strong>concat</strong> – bool:  (Default value = True)
+<li><p><strong>identifying_columns</strong> – Union[List[str], Tuple[str, …]]:
+Column names which are used as ID’s and as a result need to be
+ignored with regards to renaming.</p></li>
+<li><p><strong>concat</strong> – bool:
 Whether to concatenate similar files together.</p></li>
+<li><p><strong>join</strong> – bool:
+Whether to join the compartment data together into one dataset</p></li>
+<li><p><strong>joins</strong> – str:
+DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
+<li><p><strong>chunk_columns</strong> – Optional[Union[List[str], Tuple[str, …]]],
+Column names which appear in all compartments to use when performing join</p></li>
+<li><p><strong>chunk_size</strong> – Optional[int],
+Size of join chunks which is used to limit data size during join ops</p></li>
 <li><p><strong>infer_common_schema</strong> – bool:  (Default value = True)
-Whether to infer a common schema when concatenating records.</p></li>
+Whether to infer a common schema when concatenating sources.</p></li>
+<li><p><strong>drop_null</strong> – bool:
+Whether to drop null results.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Grouped records which include metadata about destination filepath
-where parquet file was written.</p>
+<dd class="field-even"><p>Grouped sources which include metadata about destination filepath
+where parquet file was written or a string filepath for the joined
+result.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict[str, List[Dict[str, Any]]]</p>
+<dd class="field-odd"><p>Union[Dict[str, List[Dict[str, Any]]], str]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -248,13 +425,13 @@ where parquet file was written.</p>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.write_parquet">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">write_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#write_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.write_parquet" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="pycytominer_transform.convert._write_parquet">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">_write_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unique_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#_write_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert._write_parquet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write parquet data using in-memory data.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>record</strong> – Dict:
+<li><p><strong>source</strong> – Dict:
 Dictionary including in-memory data which will be written to parquet.</p></li>
 <li><p><strong>dest_path</strong> – str:
 Destination path to write the parquet file to.</p></li>
@@ -276,24 +453,31 @@ was written.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
+</section>
+<section id="module-pycytominer_transform.sources">
+<span id="sources"></span><h2>Sources<a class="headerlink" href="#module-pycytominer_transform.sources" title="Permalink to this heading">¶</a></h2>
+<p>pycytominer-transform: sources - tasks and flows related to
+source data and metadata for performing conversion work.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
 <dl class="py function">
-<dt class="sig sig-object py" id="pycytominer_transform.convert.concat_record_group">
-<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.convert.</span></span><span class="sig-name descname"><span class="pre">concat_record_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record_group</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/convert.html#concat_record_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.convert.concat_record_group" title="Permalink to this definition">¶</a></dt>
-<dd><p>Concatenate group of records together as unified dataset.</p>
+<dt class="sig sig-object py" id="pycytominer_transform.sources._build_path">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.sources.</span></span><span class="sig-name descname"><span class="pre">_build_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AnyPath</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/sources.html#_build_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.sources._build_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a path client or return local path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>record_group</strong> – List[Dict[str, Any]]:
-Data structure containing grouped data for concatenation.</p></li>
-<li><p><strong>dest_path</strong> – Optional[str] (Default value = None)
-Optional destination path for concatenated records.</p></li>
-<li><p><strong>infer_common_schema</strong> – bool (Default value = True)
-Whether to infer a common schema when concatenating records.</p></li>
+<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
+Path to seek filepaths within.</p></li>
+<li><p><strong>**kwargs</strong> – Any
+keyword arguments to be used with
+Cloudpathlib.CloudPath.client</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>List[Dict[str, Any]]</dt><dd><p>Updated dictionary containing concatted records</p>
+<dt>Union[pathlib.Path, Any]</dt><dd><p>A local pathlib.Path or Cloudpathlib.AnyPath type path.</p>
 </dd>
 </dl>
 </p>
@@ -304,6 +488,162 @@ Whether to infer a common schema when concatenating records.</p></li>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.sources._filter_source_filepaths">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.sources.</span></span><span class="sig-name descname"><span class="pre">_filter_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/sources.html#_filter_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.sources._filter_source_filepaths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter source filepaths based on provided source_datatype</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]
+Grouped datasets of files which will be used by other functions.</p></li>
+<li><p><strong>source_datatype</strong> – str
+Source datatype to use for filtering the dataset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the datatype.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.sources._get_source_filepaths">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.sources.</span></span><span class="sig-name descname"><span class="pre">_get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AnyPath</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/pycytominer_transform/sources.html#_get_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.sources._get_source_filepaths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather dataset of filepaths from a provided directory path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
+Path to seek filepaths within.</p></li>
+<li><p><strong>targets</strong> – List[str]:
+Compartment and metadata names to seek within the provided path.</p></li>
+<li><p><strong>source_datatype</strong> – Optional[str]  (Default value = None)
+Data type for source data files.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the compartments.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.sources._infer_source_datatype">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.sources.</span></span><span class="sig-name descname"><span class="pre">_infer_source_datatype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/pycytominer_transform/sources.html#_infer_source_datatype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.sources._infer_source_datatype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infers and optionally validates datatype (extension) of files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]:
+Grouped datasets of files which will be used by other functions.</p></li>
+<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
+Optional source datatype to validate within the context of
+detected datatypes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>str</dt><dd><p>A string of the datatype detected or validated source_datatype.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="module-pycytominer_transform.utils">
+<span id="utils"></span><h2>Utils<a class="headerlink" href="#module-pycytominer_transform.utils" title="Permalink to this heading">¶</a></h2>
+<p>Utility functions for pycytominer-transform</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.utils._column_sort">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.utils.</span></span><span class="sig-name descname"><span class="pre">_column_sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pycytominer_transform/utils.html#_column_sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.utils._column_sort" title="Permalink to this definition">¶</a></dt>
+<dd><p>A custom sort for column values as a list.
+To be used with sorted and Pyarrow tables.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pycytominer_transform.utils._duckdb_with_sqlite">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.utils.</span></span><span class="sig-name descname"><span class="pre">_duckdb_with_sqlite</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DuckDBPyConnection</span></span></span><a class="reference internal" href="_modules/pycytominer_transform/utils.html#_duckdb_with_sqlite"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.utils._duckdb_with_sqlite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a DuckDB connection with the
+sqlite_scanner installed and loaded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>duckdb.DuckDBPyConnection</p>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="presets">
+<h2>Presets<a class="headerlink" href="#presets" title="Permalink to this heading">¶</a></h2>
+<dl class="py data">
+<dt class="sig sig-object py" id="pycytominer_transform.presets.config">
+<span class="sig-prename descclassname"><span class="pre">pycytominer_transform.presets.</span></span><span class="sig-name descname"><span class="pre">config</span></span><a class="headerlink" href="#pycytominer_transform.presets.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configuration presets for pycytominer-transform</p>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="module-pycytominer_transform.exceptions">
+<span id="exceptions"></span><h2>Exceptions<a class="headerlink" href="#module-pycytominer_transform.exceptions" title="Permalink to this heading">¶</a></h2>
+<p>Provide hierarchy of exceptions for pycytominer-transform</p>
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycytominer_transform.exceptions.CytominerException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycytominer_transform.exceptions.</span></span><span class="sig-name descname"><span class="pre">CytominerException</span></span><a class="reference internal" href="_modules/pycytominer_transform/exceptions.html#CytominerException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.exceptions.CytominerException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Root exception for custom hierarchy of exceptions
+with pycytominer-transform</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycytominer_transform.exceptions.DatatypeException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycytominer_transform.exceptions.</span></span><span class="sig-name descname"><span class="pre">DatatypeException</span></span><a class="reference internal" href="_modules/pycytominer_transform/exceptions.html#DatatypeException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.exceptions.DatatypeException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycytominer_transform.exceptions.CytominerException" title="pycytominer_transform.exceptions.CytominerException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytominerException</span></code></a></p>
+<p>Exception for datatype challenges</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycytominer_transform.exceptions.NoInputDataException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycytominer_transform.exceptions.</span></span><span class="sig-name descname"><span class="pre">NoInputDataException</span></span><a class="reference internal" href="_modules/pycytominer_transform/exceptions.html#NoInputDataException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.exceptions.NoInputDataException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycytominer_transform.exceptions.CytominerException" title="pycytominer_transform.exceptions.CytominerException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytominerException</span></code></a></p>
+<p>Exception for no input data</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="pycytominer_transform.exceptions.SchemaException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pycytominer_transform.exceptions.</span></span><span class="sig-name descname"><span class="pre">SchemaException</span></span><a class="reference internal" href="_modules/pycytominer_transform/exceptions.html#SchemaException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#pycytominer_transform.exceptions.SchemaException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#pycytominer_transform.exceptions.CytominerException" title="pycytominer_transform.exceptions.CytominerException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytominerException</span></code></a></p>
+<p>Exception for schema challenges</p>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
 </section>
 
 
@@ -320,23 +660,60 @@ Whether to infer a common schema when concatenating records.</p></li>
 
 
 
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
 
 
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.gather_records"><code class="docutils literal notranslate"><span class="pre">gather_records()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.get_source_filepaths"><code class="docutils literal notranslate"><span class="pre">get_source_filepaths()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.infer_source_datatype"><code class="docutils literal notranslate"><span class="pre">infer_source_datatype()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.read_file"><code class="docutils literal notranslate"><span class="pre">read_file()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.to_parquet"><code class="docutils literal notranslate"><span class="pre">to_parquet()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.write_parquet"><code class="docutils literal notranslate"><span class="pre">write_parquet()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#pycytominer_transform.convert.concat_record_group"><code class="docutils literal notranslate"><span class="pre">concat_record_group()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycytominer_transform.convert">Convert</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._concat_join_sources"><code class="docutils literal notranslate"><span class="pre">_concat_join_sources()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._concat_source_group"><code class="docutils literal notranslate"><span class="pre">_concat_source_group()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._get_join_chunks"><code class="docutils literal notranslate"><span class="pre">_get_join_chunks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._infer_source_group_common_schema"><code class="docutils literal notranslate"><span class="pre">_infer_source_group_common_schema()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._join_source_chunk"><code class="docutils literal notranslate"><span class="pre">_join_source_chunk()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._prepend_column_name"><code class="docutils literal notranslate"><span class="pre">_prepend_column_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._read_data"><code class="docutils literal notranslate"><span class="pre">_read_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._to_parquet"><code class="docutils literal notranslate"><span class="pre">_to_parquet()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.convert._write_parquet"><code class="docutils literal notranslate"><span class="pre">_write_parquet()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycytominer_transform.sources">Sources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.sources._build_path"><code class="docutils literal notranslate"><span class="pre">_build_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.sources._filter_source_filepaths"><code class="docutils literal notranslate"><span class="pre">_filter_source_filepaths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.sources._get_source_filepaths"><code class="docutils literal notranslate"><span class="pre">_get_source_filepaths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.sources._infer_source_datatype"><code class="docutils literal notranslate"><span class="pre">_infer_source_datatype()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycytominer_transform.utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.utils._column_sort"><code class="docutils literal notranslate"><span class="pre">_column_sort()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.utils._duckdb_with_sqlite"><code class="docutils literal notranslate"><span class="pre">_duckdb_with_sqlite()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#presets">Presets</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.presets.config"><code class="docutils literal notranslate"><span class="pre">config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#module-pycytominer_transform.exceptions">Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.exceptions.CytominerException"><code class="docutils literal notranslate"><span class="pre">CytominerException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.exceptions.DatatypeException"><code class="docutils literal notranslate"><span class="pre">DatatypeException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.exceptions.NoInputDataException"><code class="docutils literal notranslate"><span class="pre">NoInputDataException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pycytominer_transform.exceptions.SchemaException"><code class="docutils literal notranslate"><span class="pre">SchemaException</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -345,7 +722,7 @@ Whether to infer a common schema when concatenating records.</p></li>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="code_of_conduct.html" title="previous chapter">Contributor Covenant Code of Conduct</a></li>
+      <li>Previous: <a href="architecture.data.html" title="previous chapter">Data Architecture</a></li>
   </ul></li>
 </ul>
 </div>
@@ -376,7 +753,7 @@ Whether to infer a common schema when concatenating records.</p></li>
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/python-api.md.txt"

@@ -1,0 +1,203 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Data Architecture &#8212; pycytominer-transform v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Python API" href="python-api.html" />
+    <link rel="prev" title="Technical Architecture" href="architecture.technical.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="data-architecture">
+<h1>Data Architecture<a class="headerlink" href="#data-architecture" title="Permalink to this heading">¶</a></h1>
+<p>Documentation covering data architecture for pyctyominer-transform.</p>
+<section id="sources">
+<h2>Sources<a class="headerlink" href="#sources" title="Permalink to this heading">¶</a></h2>
+<p>Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.</p>
+<p>See below for a brief overview of these sources and data types.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/CellProfiler/CellProfiler">CellProfiler</a> generates <a class="reference external" href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV</a> and <a class="reference external" href="https://www.sqlite.org/">SQLite</a> databases data.</p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/cytominer-database">Cytominer-database</a> generates <a class="reference external" href="https://www.sqlite.org/">SQLite</a> databases (which includes table data based on CellProfiler CSV’s mentioned above).</p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/DeepProfiler">DeepProfiler</a> generates <a class="reference external" href="https://numpy.org/doc/stable/reference/routines.io.html?highlight=npz%20format#numpy-binary-files-npy-npz">NPZ</a> data.</p></li>
+</ul>
+</section>
+<section id="data-structure">
+<h2>Data structure<a class="headerlink" href="#data-structure" title="Permalink to this heading">¶</a></h2>
+<section id="compartments-and-images">
+<h3>Compartments and Images<a class="headerlink" href="#compartments-and-images" title="Permalink to this heading">¶</a></h3>
+<p>Data are organized into tables of generally two categories:</p>
+<ul class="simple">
+<li><p><strong>Images</strong>: Image tables generally include data about the image itself, including metadata.</p></li>
+<li><p><strong>Compartments</strong>: Compartment data tables (such as Cytoplasm, Cells, Nuclei, Actin, or others) includes measurements specific to an aspect or part of cells found within an image.</p></li>
+</ul>
+</section>
+<section id="identifying-or-key-fields">
+<h3>Identifying or Key Fields<a class="headerlink" href="#identifying-or-key-fields" title="Permalink to this heading">¶</a></h3>
+<p>Identifying or key fields for image and compartment tables may include the following:</p>
+<ul class="simple">
+<li><p><strong>ImageNumber</strong>: Provides specificity on what image is being referenced (there may be many).</p></li>
+<li><p><strong>ObjectNumber</strong>: Provides specificity for a specific compartment object within an ImageNumber.</p></li>
+<li><p><strong>Parent_Cells</strong>: Provides a related Cell compartment ObjectNumber. This field is canonically referenced from the Cytoplasm compartment for joining Cytoplasm and Cell compartment data. (see <a class="reference internal" href="#cytoplasm-compartment-data-relationships"><span class="std std-doc">Cytoplasm Compartment Data Relationships</span></a> below for greater detail)</p></li>
+<li><p><strong>Parent_Nuclei</strong>: Provides a related Nuclei compartment ObjectNumber. This field is canonically referenced from the Cytoplasm compartment for joining Cytoplasm and Cell compartment data. (see <a class="reference internal" href="#cytoplasm-compartment-data-relationships"><span class="std std-doc">Cytoplasm Compartment Data Relationships</span></a> below for greater detail)</p></li>
+</ul>
+</section>
+</section>
+<section id="relationships">
+<h2>Relationships<a class="headerlink" href="#relationships" title="Permalink to this heading">¶</a></h2>
+<section id="image-data-relationships">
+<h3>Image Data Relationships<a class="headerlink" href="#image-data-relationships" title="Permalink to this heading">¶</a></h3>
+<div class="mermaid">
+            erDiagram
+    Image ||--o{ Cytoplasm : includes
+    Image ||--o{ Cells : includes
+    Image ||--o{ Nuclei : includes
+    Image ||--o{ Others : includes
+        </div><p>The above diagram shows an example of image data relationships found within the data that is used by pycytominer-transform.
+Namely: Each image may include zero or many compartment objects (Cytoplasm, Cells, Nuclei, etc)objects.</p>
+</section>
+<section id="cytoplasm-compartment-data-relationships">
+<h3>Cytoplasm Compartment Data Relationships<a class="headerlink" href="#cytoplasm-compartment-data-relationships" title="Permalink to this heading">¶</a></h3>
+<div class="mermaid">
+            erDiagram
+    Cytoplasm {
+        integer ObjectNumber &quot;Cytoplasm object number within image&quot;
+        integer Parent_Cells &quot;Related Cells compartment object number&quot;
+        integer Parent_Nuclei &quot;Related Nuclei compartment object number&quot;
+    }
+    Cells {
+        integer ObjectNumber &quot;Cells object number within image&quot;
+    }
+    Nuclei {
+        integer ObjectNumber &quot;Nuclei object number within image&quot;
+    }
+    Cells ||--|| Cytoplasm : related-to
+    Nuclei ||--|| Cytoplasm : related-to
+        </div><p>The above diagram shows canonical relationships of the Cytoplasm compartment data to other compartments found within the data that is used by pycytominer-transform.
+Each Cytoplasm object is related to Cells via the Parent_Cells field and Nuclei via the Parent_Nuclei field.
+These Parent_* fields are ObjectNumbers in their respective compartments.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">pycytominer-transform</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="architecture.html">Architecture</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="architecture.technical.html">Technical Architecture</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Data Architecture</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#sources">Sources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-structure">Data structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#relationships">Relationships</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="architecture.html">Architecture</a><ul>
+      <li>Previous: <a href="architecture.technical.html" title="previous chapter">Technical Architecture</a></li>
+      <li>Next: <a href="python-api.html" title="next chapter">Python API</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="_sources/architecture.data.md.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

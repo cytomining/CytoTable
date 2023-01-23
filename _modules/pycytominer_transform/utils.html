@@ -1,0 +1,194 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pycytominer_transform.utils &#8212; pycytominer-transform v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pycytominer_transform.utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Utility functions for pycytominer-transform</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">duckdb</span>
+
+
+<span class="c1"># custom sort for resulting columns</span>
+<div class="viewcode-block" id="_column_sort"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.utils._column_sort">[docs]</a><span class="k">def</span> <span class="nf">_column_sort</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A custom sort for column values as a list.</span>
+<span class="sd">    To be used with sorted and Pyarrow tables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># lowercase str which will be used for comparisons</span>
+    <span class="c1"># to avoid any capitalization challenges</span>
+    <span class="n">value_lower</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="c1"># first sorted values (by list index)</span>
+    <span class="n">sort_first</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;tablenumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;metadata_tablenumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;imagenumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;metadata_imagenumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;objectnumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;object_number&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># middle sort value</span>
+    <span class="n">sort_middle</span> <span class="o">=</span> <span class="s2">&quot;metadata&quot;</span>
+
+    <span class="c1"># sorted last (by list order enumeration)</span>
+    <span class="n">sort_later</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;image&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cytoplasm&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;cells&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nuclei&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="c1"># if value is in the sort_first list</span>
+    <span class="c1"># return the index from that list</span>
+    <span class="k">if</span> <span class="n">value_lower</span> <span class="ow">in</span> <span class="n">sort_first</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sort_first</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">value_lower</span><span class="p">)</span>
+
+    <span class="c1"># if sort_middle is anywhere in value return</span>
+    <span class="c1"># next index value after sort_first values</span>
+    <span class="k">if</span> <span class="n">sort_middle</span> <span class="ow">in</span> <span class="n">value_lower</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_first</span><span class="p">)</span>
+
+    <span class="c1"># if any sort_later are found as the first part of value</span>
+    <span class="c1"># return enumerated index of sort_later value (starting from</span>
+    <span class="c1"># relative len based on the above conditionals and lists)</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">value_lower</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sort_later</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">_k</span><span class="p">,</span> <span class="n">_v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sort_later</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">sort_first</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value_lower</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">_v</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">_k</span>
+
+    <span class="c1"># else we return the total length of all sort values</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_first</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_later</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="_duckdb_with_sqlite"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.utils._duckdb_with_sqlite">[docs]</a><span class="k">def</span> <span class="nf">_duckdb_with_sqlite</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Creates a DuckDB connection with the</span>
+<span class="sd">    sqlite_scanner installed and loaded.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        duckdb.DuckDBPyConnection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        /* install and load sqlite plugin for duckdb */</span>
+<span class="sd">        INSTALL sqlite_scanner;</span>
+<span class="sd">        LOAD sqlite_scanner;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pycytominer-transform</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

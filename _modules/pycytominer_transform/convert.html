@@ -39,218 +39,42 @@
 <span class="sd">pycytominer-transform: convert - transforming data for use with pyctyominer.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
+<span class="kn">import</span> <span class="nn">duckdb</span>
 <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
+<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
 <span class="kn">from</span> <span class="nn">prefect</span> <span class="kn">import</span> <span class="n">flow</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="n">unmapped</span>
 <span class="kn">from</span> <span class="nn">prefect.futures</span> <span class="kn">import</span> <span class="n">PrefectFuture</span>
 <span class="kn">from</span> <span class="nn">prefect.task_runners</span> <span class="kn">import</span> <span class="n">BaseTaskRunner</span><span class="p">,</span> <span class="n">ConcurrentTaskRunner</span>
 <span class="kn">from</span> <span class="nn">pyarrow</span> <span class="kn">import</span> <span class="n">csv</span><span class="p">,</span> <span class="n">parquet</span>
 
-<span class="kn">from</span> <span class="nn">pycytominer_transform.exceptions</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DatatypeException</span><span class="p">,</span>
-    <span class="n">NoInputDataException</span><span class="p">,</span>
-    <span class="n">SchemaException</span><span class="p">,</span>
-<span class="p">)</span>
-
-<span class="n">DEFAULT_COMPARTMENTS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;cells&quot;</span><span class="p">,</span> <span class="s2">&quot;nuclei&quot;</span><span class="p">,</span> <span class="s2">&quot;cytoplasm&quot;</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">pycytominer_transform.exceptions</span> <span class="kn">import</span> <span class="n">SchemaException</span>
+<span class="kn">from</span> <span class="nn">pycytominer_transform.presets</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">pycytominer_transform.sources</span> <span class="kn">import</span> <span class="n">_gather_sources</span>
+<span class="kn">from</span> <span class="nn">pycytominer_transform.utils</span> <span class="kn">import</span> <span class="n">_column_sort</span><span class="p">,</span> <span class="n">_duckdb_with_sqlite</span>
 
 
-<span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">build_path</span><span class="p">(</span>
-    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build a path client</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">processed_path</span> <span class="o">=</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-
-    <span class="c1"># set the client for a CloudPath</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processed_path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
-        <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">processed_path</span>
-
-
-<div class="viewcode-block" id="get_source_filepaths"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.get_source_filepaths">[docs]</a><span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">get_source_filepaths</span><span class="p">(</span>
-    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span> <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Gather dataset of filepaths from a provided directory path.</span>
+<div class="viewcode-block" id="_read_data"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._read_data">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_read_data</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read data from source.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      path: Union[pathlib.Path, Any]:</span>
-<span class="sd">        Path to seek filepaths within.</span>
-<span class="sd">      compartments: List[str]:</span>
-<span class="sd">        Compartment filenames to seek within the provided path.</span>
+<span class="sd">        source: Dict[str, Any]:</span>
+<span class="sd">            Data containing filepath to csv file</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Dict[str, List[Dict[str, Any]]]</span>
-<span class="sd">        Data structure which groups related files based on the compartments.</span>
+<span class="sd">        source: Dict[str, Any]</span>
+<span class="sd">            Updated source (Dict[str, Any]) with source data in-memory</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># gathers files from provided path using compartments as a filter</span>
-    <span class="n">records</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">file</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;**/*&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="p">(</span>
-            <span class="n">compartments</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-            <span class="ow">in</span> <span class="p">[</span><span class="n">compartment</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">compartment</span> <span class="ow">in</span> <span class="n">compartments</span><span class="p">]</span>
-        <span class="p">)</span>
-    <span class="p">]</span>
-
-    <span class="c1"># if we collected no files above, raise exception</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No input data to process at path: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="n">grouped_records</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="c1"># group files together by similar filename for potential concatenation later</span>
-    <span class="k">for</span> <span class="n">unique_source</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">records</span><span class="p">):</span>
-        <span class="n">grouped_records</span><span class="p">[</span><span class="n">unique_source</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">source</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">records</span> <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
-        <span class="p">]</span>
-
-    <span class="k">return</span> <span class="n">grouped_records</span></div>
-
-
-<div class="viewcode-block" id="infer_source_datatype"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.infer_source_datatype">[docs]</a><span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">infer_source_datatype</span><span class="p">(</span>
-    <span class="n">records</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Infers and optionally validates datatype (extension) of files.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      records: Dict[str, List[Dict[str, Any]]]:</span>
-<span class="sd">        Grouped datasets of files which will be used by other functions.</span>
-<span class="sd">      source_datatype: Optional[str]:  (Default value = None)</span>
-<span class="sd">        Optional source datatype to validate within the context of</span>
-<span class="sd">        detected datatypes.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      str</span>
-<span class="sd">        A string of the datatype detected or validated source_datatype.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="c1"># gather file extension suffixes</span>
-    <span class="n">suffixes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">((</span><span class="n">group</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">records</span><span class="p">))</span>
-
-    <span class="c1"># if we don&#39;t have a source datatype and have more than one suffix</span>
-    <span class="c1"># we can&#39;t infer which file type to read.</span>
-    <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffixes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Detected more than one inferred datatypes from source path: </span><span class="si">{</span><span class="n">suffixes</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
-
-    <span class="c1"># if we have a source datatype and it isn&#39;t within the detected suffixes</span>
-    <span class="c1"># we will have no files to process.</span>
-    <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">suffixes</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Unable to find source datatype </span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2"> &quot;</span>
-                <span class="s2">&quot;within files. Detected datatypes: </span><span class="si">{suffixes}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
-
-    <span class="c1"># if we haven&#39;t set a source datatype and need to rely on the inferred one</span>
-    <span class="c1"># set it so it may be returned</span>
-    <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">source_datatype</span> <span class="o">=</span> <span class="n">suffixes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-
-    <span class="k">return</span> <span class="n">source_datatype</span></div>
-
-
-<span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">filter_source_filepaths</span><span class="p">(</span>
-    <span class="n">records</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">source_datatype</span><span class="p">:</span> <span class="nb">str</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Filter source filepaths based on provided source_datatype</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      records: Dict[str, List[Dict[str, Any]]]</span>
-<span class="sd">        Grouped datasets of files which will be used by other functions.</span>
-<span class="sd">      source_datatype: str</span>
-<span class="sd">        Source datatype to use for filtering the dataset.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Dict[str, List[Dict[str, Any]]]</span>
-<span class="sd">        Data structure which groups related files based on the datatype.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="n">filegroup</span><span class="p">:</span> <span class="p">[</span>
-            <span class="n">file</span>
-            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span>
-            <span class="c1"># ensure the filesize is greater than 0</span>
-            <span class="k">if</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
-            <span class="c1"># ensure the datatype matches the source datatype</span>
-            <span class="ow">and</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">]</span>
-        <span class="k">for</span> <span class="n">filegroup</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">records</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-    <span class="p">}</span>
-
-
-<div class="viewcode-block" id="gather_records"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.gather_records">[docs]</a><span class="nd">@flow</span>
-<span class="k">def</span> <span class="nf">gather_records</span><span class="p">(</span>
-    <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Flow for gathering records for conversion</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      source_path: str:</span>
-<span class="sd">        Where to gather file-based data from.</span>
-<span class="sd">      source_datatype: Optional[str]:  (Default value = None)</span>
-<span class="sd">        The source datatype (extension) to use for reading the tables.</span>
-<span class="sd">      compartments: Optional[List[str]]:  (Default value = None)</span>
-<span class="sd">        The source file names to target within the provided path.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Dict[str, List[Dict[str, Any]]]</span>
-<span class="sd">        Data structure which groups related files based on the compartments.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">source_path</span> <span class="o">=</span> <span class="n">build_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-
-    <span class="c1"># gather filepaths which will be used as the basis for this work</span>
-    <span class="n">records</span> <span class="o">=</span> <span class="n">get_source_filepaths</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">)</span>
-
-    <span class="c1"># infer or validate the source datatype based on source filepaths</span>
-    <span class="n">source_datatype</span> <span class="o">=</span> <span class="n">infer_source_datatype</span><span class="p">(</span>
-        <span class="n">records</span><span class="o">=</span><span class="n">records</span><span class="p">,</span> <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span>
-    <span class="p">)</span>
-
-    <span class="c1"># filter source filepaths to inferred or source datatype</span>
-    <span class="k">return</span> <span class="n">filter_source_filepaths</span><span class="p">(</span><span class="n">records</span><span class="o">=</span><span class="n">records</span><span class="p">,</span> <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="read_file"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.read_file">[docs]</a><span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">read_file</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Read csv file from record.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      record: Dict[str, Any]:</span>
-<span class="sd">        Data containing filepath to csv file</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      record: Dict[str, Any]</span>
-<span class="sd">        Updated record (Dict[str, Any]) with CSV data in-memory</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span><span class="p">:</span>  <span class="c1"># pylint: disable=no-member</span>
+    <span class="c1"># pylint: disable=no-member</span>
+    <span class="k">if</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span><span class="p">:</span>
         <span class="c1"># define invalid row handler for rows which may be</span>
         <span class="c1"># somehow erroneous. See below for more details:</span>
         <span class="c1"># https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions</span>
@@ -260,128 +84,234 @@
         <span class="c1"># setup parse options</span>
         <span class="n">parse_options</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">ParseOptions</span><span class="p">(</span><span class="n">invalid_row_handler</span><span class="o">=</span><span class="n">skip_erroneous_colcount</span><span class="p">)</span>
 
-        <span class="c1"># read csv using pyarrow lib and attach table data to record</span>
-        <span class="n">record</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
-            <span class="n">input_file</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">],</span>
+        <span class="c1"># read csv using pyarrow lib and attach table data to source</span>
+        <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span>
+            <span class="n">input_file</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">],</span>
             <span class="n">parse_options</span><span class="o">=</span><span class="n">parse_options</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">record</span></div>
+    <span class="c1"># pylint: disable=no-member</span>
+    <span class="k">elif</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+        <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_duckdb_with_sqlite</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                /* perform query on sqlite_master table for metadata on tables */</span>
+<span class="sd">                SELECT * from sqlite_scan(?, ?)</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">])],</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">source</span></div>
 
 
-<div class="viewcode-block" id="concat_record_group"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.concat_record_group">[docs]</a><span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">concat_record_group</span><span class="p">(</span>
-    <span class="n">record_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span>
-    <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Concatenate group of records together as unified dataset.</span>
+<div class="viewcode-block" id="_prepend_column_name"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._prepend_column_name">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_prepend_column_name</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rename columns using the source group name, avoiding identifying columns.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">    * A source_group_name represents a filename referenced as part of what</span>
+<span class="sd">    is specified within targets.</span>
+<span class="sd">    * Target list values are used to reference source_group_names.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      record_group: List[Dict[str, Any]]:</span>
-<span class="sd">        Data structure containing grouped data for concatenation.</span>
-<span class="sd">      dest_path: Optional[str] (Default value = None)</span>
-<span class="sd">        Optional destination path for concatenated records.</span>
-<span class="sd">      infer_common_schema: bool (Default value = True)</span>
-<span class="sd">        Whether to infer a common schema when concatenating records.</span>
+<span class="sd">        source: Dict[str, Any]:</span>
+<span class="sd">            Individual data source source which includes meta about source</span>
+<span class="sd">            as well as Arrow table with data.</span>
+<span class="sd">        source_group_name: str:</span>
+<span class="sd">            Name of data source source group (for common compartments, etc).</span>
+<span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
+<span class="sd">            ignored with regards to renaming.</span>
+<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            List of source data names which are used as metadata</span>
+<span class="sd">        targets: List[str]:</span>
+<span class="sd">            List of source data names which are used as compartments</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      List[Dict[str, Any]]</span>
-<span class="sd">        Updated dictionary containing concatted records</span>
+<span class="sd">        Dict[str, Any]</span>
+<span class="sd">            Updated source which includes the updated table column names</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># if we have nothing to concat, return the record group</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record_group</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">record_group</span>
+    <span class="c1"># stem of source group name</span>
+    <span class="c1"># for example:</span>
+    <span class="c1">#   targets: [&#39;cytoplasm&#39;]</span>
+    <span class="c1">#   source_group_name: &#39;Per_Cytoplasm.sqlite&#39;</span>
+    <span class="c1">#   source_group_name_stem: &#39;Cytoplasm&#39;</span>
+    <span class="n">source_group_name_stem</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span>
+        <span class="c1"># return first result from generator below as index to targets</span>
+        <span class="nb">next</span><span class="p">(</span>
+            <span class="n">i</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+            <span class="c1"># compare if value from targets in source_group_name stem</span>
+            <span class="k">if</span> <span class="n">val</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="c1"># capitalize the result</span>
+    <span class="p">]</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+
+    <span class="c1"># capture updated column names as new variable</span>
+    <span class="n">updated_column_names</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+        <span class="c1"># if-condition for prepending source_group_name_stem to column name</span>
+        <span class="c1"># where colname is not an identifying column</span>
+        <span class="c1"># and where the column is not already prepended with source_group_name_stem</span>
+        <span class="c1"># for example:</span>
+        <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
+        <span class="c1">#   column_name: &#39;AreaShape_Area&#39;</span>
+        <span class="c1">#   updated_column_name: &#39;Cells_AreaShape_Area&#39;</span>
+        <span class="k">if</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+            <span class="n">source_group_name_stem</span>
+        <span class="p">):</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># if-condition for prepending &#39;Metadata&#39; and source_group_name_stem to column name</span>
+        <span class="c1"># where colname is an identifying column</span>
+        <span class="c1"># and where the colname does not already start with &#39;Metadata_&#39;</span>
+        <span class="c1"># and colname not in metadata list</span>
+        <span class="c1"># and colname does not include &#39;ObjectNumber&#39;</span>
+        <span class="c1"># for example:</span>
+        <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
+        <span class="c1">#   column_name: &#39;Parent_Nuclei&#39;</span>
+        <span class="c1">#   updated_column_name: &#39;Metadata_Cells_Parent_Nuclei&#39;</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Metadata_&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span> <span class="ow">in</span> <span class="n">column_name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="s2">&quot;ObjectNumber&quot;</span> <span class="ow">in</span> <span class="n">column_name</span>
+        <span class="p">):</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="c1"># if-condition for prepending &#39;Metadata&#39; to column name</span>
+        <span class="c1"># where colname doesn&#39;t already start with &#39;Metadata_&#39;</span>
+        <span class="c1"># and colname is in identifying columns list</span>
+        <span class="c1"># for example:</span>
+        <span class="c1">#   column_name: &#39;ObjectNumber&#39;</span>
+        <span class="c1">#   updated_column_name: &#39;Metadata_ObjectNumber&#39;</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Metadata_&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
+        <span class="p">):</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># else we add the existing colname to the updated list as-is</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_name</span><span class="p">)</span>
+
+    <span class="c1"># perform table column name updates</span>
+    <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">rename_columns</span><span class="p">(</span><span class="n">updated_column_names</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">source</span></div>
+
+
+<div class="viewcode-block" id="_concat_source_group"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._concat_source_group">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_concat_source_group</span><span class="p">(</span>
+    <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">common_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concatenate group of sources together as unified dataset.</span>
+
+<span class="sd">    For a reference to data concatenation within Arrow see the following:</span>
+<span class="sd">    https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html</span>
+
+<span class="sd">    Notes: this function presumes a multi-directory, multi-file common data</span>
+<span class="sd">    structure for compartments and other data. For example:</span>
+
+<span class="sd">    Source (file tree):</span>
+
+<span class="sd">    .. code-block:: bash</span>
+
+<span class="sd">        root</span>
+<span class="sd">        ├── subdir_1</span>
+<span class="sd">        │   └── Cells.csv</span>
+<span class="sd">        └── subdir_2</span>
+<span class="sd">            └── Cells.csv</span>
+
+
+<span class="sd">    Becomes (list with dictionary):</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        concatted = [{&quot;source_path&quot;: &quot;root/Cells&quot;}]</span>
+
+
+<span class="sd">    Args:</span>
+<span class="sd">        source_group: List[Dict[str, Any]]:</span>
+<span class="sd">            Data structure containing grouped data for concatenation.</span>
+<span class="sd">        dest_path: Optional[str] (Default value = None)</span>
+<span class="sd">            Optional destination path for concatenated sources.</span>
+<span class="sd">        common_schema: List[Tuple[str, str]] (Default value = None)</span>
+<span class="sd">            Common schema to use for concatenation amongst arrow tables</span>
+<span class="sd">            which may have slightly different but compatible schema.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, Any]]</span>
+<span class="sd">            Updated dictionary containing concatenated sources.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># if we have nothing to concat, return the source group</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_group</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">source_group</span>
+
+    <span class="c1"># check whether we already have a file as dest_path</span>
+    <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">concatted</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">{</span>
             <span class="c1"># source path becomes parent&#39;s parent dir with the same filename</span>
             <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
                 <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">record_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">record_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="p">}</span>
     <span class="p">]</span>
 
     <span class="n">destination_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
-        <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">record_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">record_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="s2">&quot;.parquet&quot;</span>
-        <span class="p">)</span>
+        <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/&quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span> <span class="s2">&quot;.parquet&quot;</span><span class="p">)</span>
     <span class="p">)</span>
 
     <span class="c1"># if there&#39;s already a file remove it</span>
     <span class="n">destination_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="c1"># read first file for basis of schema and column order for all others</span>
-    <span class="n">writer_basis_schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">record_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;destination_path&quot;</span><span class="p">])</span>
-
-    <span class="k">if</span> <span class="n">infer_common_schema</span><span class="p">:</span>
-        <span class="c1"># infer common basis of schema and column order for all others</span>
-        <span class="k">for</span> <span class="n">schema</span> <span class="ow">in</span> <span class="p">[</span>
-            <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">record_group</span>
-        <span class="p">]:</span>
-
-            <span class="c1"># account for completely equal schema</span>
-            <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">writer_basis_schema</span><span class="p">):</span>
-                <span class="k">continue</span>
-
-            <span class="c1"># gather field names from schema</span>
-            <span class="n">schema_field_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">]</span>
-
-            <span class="c1"># reversed enumeration because removing indexes ascendingly changes schema field order</span>
-            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">writer_basis_schema</span><span class="p">))):</span>
-
-                <span class="c1"># check whether field name is contained within writer basis, remove if not</span>
-                <span class="c1"># note: because this only checks for naming, we defer to initially detected type</span>
-                <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">schema_field_names</span><span class="p">:</span>
-
-                    <span class="n">writer_basis_schema</span> <span class="o">=</span> <span class="n">writer_basis_schema</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
-
-                <span class="c1"># check if we have an integer to float challenge and enable later casting</span>
-                <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span>
-                    <span class="n">schema</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">type</span>
-                <span class="p">):</span>
-                    <span class="n">writer_basis_schema</span> <span class="o">=</span> <span class="n">writer_basis_schema</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
-                        <span class="n">index</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">with_type</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">())</span>
-                    <span class="p">)</span>
-
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">writer_basis_schema</span><span class="o">.</span><span class="n">names</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">SchemaException</span><span class="p">(</span>
-            <span class="p">(</span>
-                <span class="s2">&quot;No common schema basis to perform concatenation for record group.&quot;</span>
-                <span class="s2">&quot; All columns mismatch one another within the group.&quot;</span>
-            <span class="p">)</span>
-        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">common_schema</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">writer_schema</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">schema</span><span class="p">(</span><span class="n">common_schema</span><span class="p">)</span>
 
     <span class="c1"># build a parquet file writer which will be used to append files</span>
     <span class="c1"># as a single concatted parquet file, referencing the first file&#39;s schema</span>
     <span class="c1"># (all must be the same schema)</span>
-    <span class="k">with</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">destination_path</span><span class="p">),</span> <span class="n">writer_basis_schema</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
-
-        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">[</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">record_group</span><span class="p">]:</span>
+    <span class="k">with</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">destination_path</span><span class="p">),</span> <span class="n">writer_schema</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">[</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group</span><span class="p">]:</span>
             <span class="c1"># if we haven&#39;t inferred the common schema</span>
             <span class="c1"># check that our file matches the expected schema, otherwise raise an error</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">infer_common_schema</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">writer_basis_schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span>
+            <span class="k">if</span> <span class="n">common_schema</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">writer_schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span>
                 <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
             <span class="p">):</span>
                 <span class="k">raise</span> <span class="n">SchemaException</span><span class="p">(</span>
                     <span class="p">(</span>
                         <span class="sa">f</span><span class="s2">&quot;Detected mismatching schema for target concatenation group members:&quot;</span>
-                        <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">record_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;destination_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;destination_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
 
             <span class="c1"># read the file from the list and write to the concatted parquet file</span>
             <span class="c1"># note: we pass column order based on the first chunk file to help ensure schema</span>
             <span class="c1"># compatibility for the writer</span>
-            <span class="n">writer</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">writer_basis_schema</span><span class="p">))</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="n">writer_schema</span><span class="p">))</span>
             <span class="c1"># remove the file which was written in the concatted parquet file (we no longer need it)</span>
             <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
@@ -390,219 +320,676 @@
     <span class="k">return</span> <span class="n">concatted</span></div>
 
 
-<div class="viewcode-block" id="write_parquet"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.write_parquet">[docs]</a><span class="nd">@task</span>
-<span class="k">def</span> <span class="nf">write_parquet</span><span class="p">(</span>
-    <span class="n">record</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">unique_name</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<div class="viewcode-block" id="_write_parquet"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._write_parquet">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_write_parquet</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">unique_name</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Write parquet data using in-memory data.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      record: Dict:</span>
-<span class="sd">        Dictionary including in-memory data which will be written to parquet.</span>
-<span class="sd">      dest_path: str:</span>
-<span class="sd">        Destination path to write the parquet file to.</span>
-<span class="sd">      unique_name: bool:  (Default value = False)</span>
-<span class="sd">        Determines whether a unique name is necessary for the file.</span>
+<span class="sd">        source: Dict:</span>
+<span class="sd">            Dictionary including in-memory data which will be written to parquet.</span>
+<span class="sd">        dest_path: str:</span>
+<span class="sd">            Destination path to write the parquet file to.</span>
+<span class="sd">        unique_name: bool:  (Default value = False)</span>
+<span class="sd">            Determines whether a unique name is necessary for the file.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Dict[str, Any]</span>
-<span class="sd">        Updated dictionary containing the destination path where parquet file</span>
-<span class="sd">        was written.</span>
+<span class="sd">        Dict[str, Any]</span>
+<span class="sd">            Updated dictionary containing the destination path where parquet file</span>
+<span class="sd">            was written.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># unlink the file if it exists</span>
+    <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
     <span class="c1"># make the dest_path dir if it doesn&#39;t already exist</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># build a default destination path for the parquet output</span>
-    <span class="n">destination_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
-    <span class="p">)</span>
+    <span class="n">stub_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">&quot;table_name&quot;</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">stub_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">destination_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">stub_name</span><span class="si">}</span><span class="s2">.parquet&quot;</span><span class="p">)</span>
 
     <span class="c1"># build unique names to avoid overlaps</span>
     <span class="k">if</span> <span class="n">unique_name</span><span class="p">:</span>
         <span class="n">destination_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
     <span class="c1"># write the table to destination path output</span>
-    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">table</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="n">destination_path</span><span class="p">)</span>
+    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">table</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="n">destination_path</span><span class="p">)</span>
 
     <span class="c1"># unset table</span>
-    <span class="k">del</span> <span class="n">record</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span>
 
-    <span class="c1"># update the record to include the destination path</span>
-    <span class="n">record</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">destination_path</span>
+    <span class="c1"># update the source to include the destination path</span>
+    <span class="n">source</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">destination_path</span>
 
-    <span class="k">return</span> <span class="n">record</span></div>
+    <span class="k">return</span> <span class="n">source</span></div>
 
 
-<div class="viewcode-block" id="to_parquet"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.to_parquet">[docs]</a><span class="nd">@flow</span>
-<span class="k">def</span> <span class="nf">to_parquet</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+<div class="viewcode-block" id="_get_join_chunks"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._get_join_chunks">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_get_join_chunks</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build groups of join keys for later join operations</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources: Dict[List[Dict[str, Any]]]:</span>
+<span class="sd">            Grouped datasets of files which will be used by other functions.</span>
+<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            List of source data names which are used as metadata</span>
+<span class="sd">        chunk_columns: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            Column names which appear in all compartments to use when performing join</span>
+<span class="sd">        chunk_size: int:</span>
+<span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[List[Dict[str, Any]]]]:</span>
+<span class="sd">            A list of lists with at most chunk size length that contain join keys</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># fetch the compartment concat result as the basis for join groups</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">):</span>
+            <span class="n">first_result</span> <span class="o">=</span> <span class="n">source</span>
+            <span class="k">break</span>
+
+    <span class="c1"># gather the workflow result for basis if it&#39;s not yet returned</span>
+    <span class="n">basis</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">first_result</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first_result</span><span class="p">,</span> <span class="n">PrefectFuture</span><span class="p">)</span>
+        <span class="k">else</span> <span class="n">first_result</span>
+    <span class="p">)</span>
+
+    <span class="c1"># read only the table&#39;s chunk_columns</span>
+    <span class="n">join_column_rows</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">basis</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;destination_path&quot;</span><span class="p">],</span> <span class="n">columns</span><span class="o">=</span><span class="n">chunk_columns</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+
+    <span class="c1"># build and return the chunked join column rows</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="n">join_column_rows</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">chunk_size</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">join_column_rows</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">)</span>
+    <span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="_join_source_chunk"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._join_source_chunk">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_join_source_chunk</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">join_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Join sources based on join group keys (group of specific join column values)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
+<span class="sd">            Grouped datasets of files which will be used by other functions.</span>
+<span class="sd">            Includes the metadata concerning location of actual data.</span>
+<span class="sd">        dest_path: str:</span>
+<span class="sd">            Destination path to write file-based content.</span>
+<span class="sd">        joins: str:</span>
+<span class="sd">            DuckDB-compatible SQL which will be used to perform the join</span>
+<span class="sd">            operations using the join_group keys as a reference.</span>
+<span class="sd">        join_group: List[Dict[str, Any]]:</span>
+<span class="sd">            Group of joinable keys to be used as &quot;chunked&quot; filter</span>
+<span class="sd">            of overall dataset.</span>
+<span class="sd">        drop_null: bool:</span>
+<span class="sd">            Whether to drop rows with null values within the resulting</span>
+<span class="sd">            joined data.</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str</span>
+<span class="sd">            Path to joined file which is created as a result of this function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># replace with real location of sources for join sql</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">joins</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">joins</span> <span class="o">=</span> <span class="n">joins</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;destination_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;destination_path&quot;</span><span class="p">]),</span>
+            <span class="p">)</span>
+
+    <span class="c1"># update the join groups to include unique values per table</span>
+    <span class="n">updated_join_group</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">updated_join_group</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">join_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">val</span>
+                    <span class="k">for</span> <span class="n">join_key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">chunk</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">join_group</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="c1"># form where clause for sql joins to filter the results</span>
+    <span class="n">joins</span> <span class="o">+=</span> <span class="p">(</span>
+        <span class="s2">&quot;WHERE (&quot;</span>
+        <span class="o">+</span> <span class="s2">&quot;) OR (&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="c1"># create groups of join column filters where values always</span>
+                        <span class="c1"># are expected to equal those within the join_group together</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">join_column</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">join_column_value</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">join_column_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+                        <span class="c1"># account for string values</span>
+                        <span class="k">else</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">join_column</span><span class="si">}</span><span class="s2"> = &quot;</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">join_column_value</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">join_column</span><span class="p">,</span> <span class="n">join_column_value</span> <span class="ow">in</span> <span class="n">chunk</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">updated_join_group</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># perform compartment joins</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">joins</span><span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">drop_null</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">drop_null</span><span class="p">()</span>
+
+    <span class="c1"># account for duplicate column names from joins</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># reversed order column check as col removals will change index order</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">colname</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">column_names</span><span class="p">))):</span>
+        <span class="k">if</span> <span class="n">colname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+            <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">colname</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">remove_column</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="c1"># inner sorted alphabetizes any columns which may not be part of custom_sort</span>
+    <span class="c1"># outer sort provides pycytominer-specific column sort order</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">column_names</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="n">_column_sort</span><span class="p">))</span>
+
+    <span class="n">result_file_path</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="c1"># store the result in the parent of the dest_path</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">/&quot;</span>
+        <span class="c1"># use the dest_path stem in the name</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">-&quot;</span>
+        <span class="c1"># give the join chunk result a unique to arbitrarily</span>
+        <span class="c1"># differentiate from other chunk groups which are mapped</span>
+        <span class="c1"># and before they are brought together as one dataset</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># write the result</span>
+    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+        <span class="n">table</span><span class="o">=</span><span class="n">result</span><span class="p">,</span>
+        <span class="n">where</span><span class="o">=</span><span class="n">result_file_path</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result_file_path</span></div>
+
+
+<div class="viewcode-block" id="_concat_join_sources"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._concat_join_sources">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_concat_join_sources</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">join_sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Concatenate join sources from parquet-based chunks.</span>
+
+<span class="sd">    For a reference to data concatenation within Arrow see the following:</span>
+<span class="sd">    https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
+<span class="sd">            Grouped datasets of files which will be used by other functions.</span>
+<span class="sd">            Includes the metadata concerning location of actual data.</span>
+<span class="sd">        dest_path: str:</span>
+<span class="sd">            Destination path to write file-based content.</span>
+<span class="sd">        join_sources: List[str]:</span>
+<span class="sd">            List of local filepath destination for join source chunks</span>
+<span class="sd">            which will be concatenated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str</span>
+<span class="sd">            Path to concatenated file which is created as a result of this function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># remove the unjoined concatted compartments to prepare final dest_path usage</span>
+    <span class="c1"># (we now have joined results)</span>
+    <span class="n">flattened_sources</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="nb">list</span><span class="p">(</span><span class="n">sources</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">flattened_sources</span><span class="p">:</span>
+        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># remove dir if we have it</span>
+    <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+
+    <span class="c1"># also remove any pre-existing files which may already be at file destination</span>
+    <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># write the concatted result as a parquet file</span>
+    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+        <span class="n">table</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">concat_tables</span><span class="p">(</span>
+            <span class="n">tables</span><span class="o">=</span><span class="p">[</span><span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span> <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">join_sources</span><span class="p">]</span>
+        <span class="p">),</span>
+        <span class="n">where</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># remove join chunks as we have the final result</span>
+    <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">join_sources</span><span class="p">:</span>
+        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+
+    <span class="c1"># return modified sources format to indicate the final result</span>
+    <span class="c1"># and retain the other source data for reference as needed</span>
+    <span class="k">return</span> <span class="n">dest_path</span></div>
+
+
+<div class="viewcode-block" id="_infer_source_group_common_schema"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._infer_source_group_common_schema">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_infer_source_group_common_schema</span><span class="p">(</span>
+    <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Infers a common schema for group of parquet files which may have</span>
+<span class="sd">    similar but slightly different schema or data. Intended to assist with</span>
+<span class="sd">    data concatenation and other operations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source_group: List[Dict[str, Any]]:</span>
+<span class="sd">            Group of one or more data sources which includes metadata about</span>
+<span class="sd">            path to parquet data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Tuple[str, str]]</span>
+<span class="sd">            A list of tuples which includes column name and PyArrow datatype.</span>
+<span class="sd">            This data will later be used as the basis for forming a PyArrow schema.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># read first file for basis of schema and column order for all others</span>
+    <span class="n">common_schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;destination_path&quot;</span><span class="p">])</span>
+
+    <span class="c1"># infer common basis of schema and column order for all others</span>
+    <span class="k">for</span> <span class="n">schema</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;destination_path&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group</span>
+    <span class="p">]:</span>
+        <span class="c1"># account for completely equal schema</span>
+        <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">common_schema</span><span class="p">):</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># gather field names from schema</span>
+        <span class="n">schema_field_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">schema</span><span class="p">]</span>
+
+        <span class="c1"># reversed enumeration because removing indexes ascendingly changes schema field order</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">common_schema</span><span class="p">))):</span>
+            <span class="c1"># check whether field name is contained within writer basis, remove if not</span>
+            <span class="c1"># note: because this only checks for naming, we defer to initially detected type</span>
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">schema_field_names</span><span class="p">:</span>
+                <span class="n">common_schema</span> <span class="o">=</span> <span class="n">common_schema</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+            <span class="c1"># check if we have a nulltype and non-nulltype conflict, deferring to non-nulltype</span>
+            <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span>
+                <span class="n">schema</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">type</span>
+            <span class="p">):</span>
+                <span class="n">common_schema</span> <span class="o">=</span> <span class="n">common_schema</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                    <span class="n">index</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">with_type</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># check if we have an integer to float challenge and enable later casting</span>
+            <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span>
+                <span class="n">schema</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">type</span>
+            <span class="p">):</span>
+                <span class="n">common_schema</span> <span class="o">=</span> <span class="n">common_schema</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">with_type</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()))</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">common_schema</span><span class="o">.</span><span class="n">names</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">SchemaException</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;No common schema basis to perform concatenation for source group.&quot;</span>
+                <span class="s2">&quot; All columns mismatch one another within the group.&quot;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># return a python-native list of tuples with column names and str types</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">common_schema</span><span class="o">.</span><span class="n">names</span><span class="p">,</span>
+            <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">schema_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">schema_type</span> <span class="ow">in</span> <span class="n">common_schema</span><span class="o">.</span><span class="n">types</span><span class="p">],</span>
+        <span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_to_parquet"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert._to_parquet">[docs]</a><span class="nd">@flow</span>
+<span class="k">def</span> <span class="nf">_to_parquet</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments, too-many-locals</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]],</span>
+    <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+    <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Export data to parquet.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      source_path: str:</span>
-<span class="sd">        str reference to read source files from.</span>
-<span class="sd">        Note: may be local or remote object-storage location using convention &quot;s3://...&quot; or similar.</span>
-<span class="sd">      dest_path: str:</span>
-<span class="sd">        Path to write files to.</span>
-<span class="sd">        Note: this may only be a local path.</span>
-<span class="sd">      source_datatype: Optional[str]: (Default value = None)</span>
-<span class="sd">        Source datatype to focus on during conversion.</span>
-<span class="sd">      compartments: Optional[List[str]]: (Default value = None)</span>
-<span class="sd">        Compartment names to use for conversion.</span>
-<span class="sd">      concat: bool:  (Default value = True)</span>
-<span class="sd">        Whether to concatenate similar files together.</span>
-<span class="sd">      infer_common_schema: bool:  (Default value = True)</span>
-<span class="sd">        Whether to infer a common schema when concatenating records.</span>
+<span class="sd">        source_path: str:</span>
+<span class="sd">            str reference to read source files from.</span>
+<span class="sd">            Note: may be local or remote object-storage</span>
+<span class="sd">            location using convention &quot;s3://...&quot; or similar.</span>
+<span class="sd">        dest_path: str:</span>
+<span class="sd">            Path to write files to.</span>
+<span class="sd">            Note: this may only be a local path.</span>
+<span class="sd">        source_datatype: Optional[str]: (Default value = None)</span>
+<span class="sd">            Source datatype to focus on during conversion.</span>
+<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            Metadata names to use for conversion.</span>
+<span class="sd">        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)</span>
+<span class="sd">            Compartment names to use for conversion.</span>
+<span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
+<span class="sd">            ignored with regards to renaming.</span>
+<span class="sd">        concat: bool:</span>
+<span class="sd">            Whether to concatenate similar files together.</span>
+<span class="sd">        join: bool:</span>
+<span class="sd">            Whether to join the compartment data together into one dataset</span>
+<span class="sd">        joins: str:</span>
+<span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
+<span class="sd">        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],</span>
+<span class="sd">            Column names which appear in all compartments to use when performing join</span>
+<span class="sd">        chunk_size: Optional[int],</span>
+<span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
+<span class="sd">        infer_common_schema: bool:  (Default value = True)</span>
+<span class="sd">            Whether to infer a common schema when concatenating sources.</span>
+<span class="sd">        drop_null: bool:</span>
+<span class="sd">            Whether to drop null results.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Dict[str, List[Dict[str, Any]]]:</span>
-<span class="sd">        Grouped records which include metadata about destination filepath</span>
-<span class="sd">        where parquet file was written.</span>
+<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], str]:</span>
+<span class="sd">            Grouped sources which include metadata about destination filepath</span>
+<span class="sd">            where parquet file was written or a string filepath for the joined</span>
+<span class="sd">            result.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># gather records to be processed</span>
-    <span class="n">records</span> <span class="o">=</span> <span class="n">gather_records</span><span class="p">(</span>
+    <span class="c1"># gather sources to be processed</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">_gather_sources</span><span class="p">(</span>
         <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
         <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">,</span>
-        <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
+        <span class="n">targets</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">compartments</span><span class="p">),</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
-        <span class="n">records</span> <span class="o">=</span> <span class="n">records</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+        <span class="n">sources</span> <span class="o">=</span> <span class="n">sources</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
     <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="c1"># for each group of records, map writing parquet per file</span>
-    <span class="k">for</span> <span class="n">record_group_name</span><span class="p">,</span> <span class="n">record_group</span> <span class="ow">in</span> <span class="n">records</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="c1"># for each group of sources, map writing parquet per file</span>
+    <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># read data from source groups</span>
+        <span class="n">source_group</span> <span class="o">=</span> <span class="n">_read_data</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">source_group</span><span class="p">)</span>
 
-        <span class="c1"># read files</span>
-        <span class="n">record_group</span> <span class="o">=</span> <span class="n">read_file</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="n">record_group</span><span class="p">)</span>
-
-        <span class="c1"># if the record group has more than one record, we will need a unique name</span>
-        <span class="n">unique_name</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">record_group</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-            <span class="n">unique_name</span> <span class="o">=</span> <span class="kc">True</span>
-
-        <span class="c1"># map for writing parquet files with list of files via records</span>
-        <span class="n">destinations</span> <span class="o">=</span> <span class="n">write_parquet</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
-            <span class="n">record</span><span class="o">=</span><span class="n">record_group</span><span class="p">,</span>
-            <span class="n">dest_path</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">dest_path</span><span class="p">),</span>
-            <span class="n">unique_name</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">unique_name</span><span class="p">),</span>
+        <span class="c1"># rename cols to include compartment or meta names</span>
+        <span class="n">renamed_source_group</span> <span class="o">=</span> <span class="n">_prepend_column_name</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">source_group</span><span class="p">,</span>
+            <span class="n">targets</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">compartments</span><span class="p">)),</span>
+            <span class="n">source_group_name</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">),</span>
+            <span class="n">identifying_columns</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">identifying_columns</span><span class="p">),</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">metadata</span><span class="p">),</span>
         <span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">concat</span><span class="p">:</span>
-            <span class="c1"># build a new record group</span>
-            <span class="n">results</span><span class="p">[</span><span class="n">record_group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">concat_record_group</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
-                <span class="n">record_group</span><span class="o">=</span><span class="n">destinations</span><span class="p">,</span>
-                <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
-                <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
+        <span class="c1"># map for writing parquet files with list of files via sources</span>
+        <span class="n">results</span><span class="p">[</span><span class="n">source_group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_write_parquet</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">renamed_source_group</span><span class="p">,</span>
+            <span class="n">dest_path</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">dest_path</span><span class="p">),</span>
+            <span class="c1"># if the source group has more than one source, we will need a unique name</span>
+            <span class="c1"># arg set to true or false based on evaluation of len(source_group)</span>
+            <span class="n">unique_name</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">renamed_source_group</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">concat</span> <span class="ow">and</span> <span class="n">infer_common_schema</span><span class="p">:</span>
+            <span class="n">common_schema</span> <span class="o">=</span> <span class="n">_infer_source_group_common_schema</span><span class="p">(</span>
+                <span class="n">source_group</span><span class="o">=</span><span class="n">results</span><span class="p">[</span><span class="n">source_group_name</span><span class="p">]</span>
             <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">results</span><span class="p">[</span><span class="n">record_group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">destinations</span>
 
-    <span class="k">return</span> <span class="p">{</span>
-        <span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">PrefectFuture</span><span class="p">)</span>
-        <span class="k">else</span> <span class="p">[</span><span class="n">inner_result</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">inner_result</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Dict</span><span class="p">)</span>
-        <span class="k">else</span> <span class="n">value</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-    <span class="p">}</span></div>
+        <span class="c1"># if concat or join, concat the source groups</span>
+        <span class="c1"># note: join implies a concat, but concat does not imply a join</span>
+        <span class="k">if</span> <span class="n">concat</span> <span class="ow">or</span> <span class="n">join</span><span class="p">:</span>
+            <span class="c1"># build a new concatenated source group</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">source_group_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_concat_source_group</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span>
+                <span class="n">source_group</span><span class="o">=</span><span class="n">results</span><span class="p">[</span><span class="n">source_group_name</span><span class="p">],</span>
+                <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+                <span class="n">common_schema</span><span class="o">=</span><span class="n">common_schema</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="c1"># conditional section for merging</span>
+    <span class="c1"># note: join implies a concat, but concat does not imply a join</span>
+    <span class="k">if</span> <span class="n">join</span><span class="p">:</span>
+        <span class="c1"># map joined results based on the join groups gathered above</span>
+        <span class="c1"># note: after mapping we end up with a list of strings (task returns str)</span>
+        <span class="n">join_sources_result</span> <span class="o">=</span> <span class="n">_join_source_chunk</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+            <span class="c1"># gather the result of concatted sources prior to</span>
+            <span class="c1"># join group merging as each mapped task run will need</span>
+            <span class="c1"># full concat results</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">PrefectFuture</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="p">}</span>
+            <span class="p">),</span>
+            <span class="n">dest_path</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">dest_path</span><span class="p">),</span>
+            <span class="n">joins</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">joins</span><span class="p">),</span>
+            <span class="c1"># get merging chunks by join columns</span>
+            <span class="n">join_group</span><span class="o">=</span><span class="n">_get_join_chunks</span><span class="p">(</span>
+                <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
+                <span class="n">chunk_columns</span><span class="o">=</span><span class="n">chunk_columns</span><span class="p">,</span>
+                <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">drop_null</span><span class="o">=</span><span class="n">unmapped</span><span class="p">(</span><span class="n">drop_null</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1"># concat our join chunks together as one cohesive dataset</span>
+        <span class="c1"># return results in common format which includes metadata</span>
+        <span class="c1"># for lineage and debugging</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">_concat_join_sources</span><span class="p">(</span>
+            <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+            <span class="n">join_sources</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">join_sources_result</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">join_sources_result</span><span class="p">,</span> <span class="n">PrefectFuture</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">join_sources_result</span>
+            <span class="p">),</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">PrefectFuture</span><span class="p">)</span>
+            <span class="k">else</span> <span class="p">[</span>
+                <span class="n">inner_result</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inner_result</span><span class="p">,</span> <span class="n">PrefectFuture</span><span class="p">)</span>
+                <span class="k">else</span> <span class="n">inner_result</span>
+                <span class="k">for</span> <span class="n">inner_result</span> <span class="ow">in</span> <span class="n">value</span>
+            <span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Dict</span><span class="p">)</span>
+            <span class="k">else</span> <span class="n">value</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="k">else</span> <span class="n">results</span>
+    <span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments</span>
+<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.convert.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments,too-many-locals</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">],</span>
     <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">compartments</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">DEFAULT_COMPARTMENTS</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_METADATA&quot;</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_COMPARTMENTS&quot;</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_IDENTIFYING_COLUMNS&quot;</span><span class="p">]</span>
+    <span class="p">),</span>
     <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">]),</span>
+    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_COLUMNS&quot;</span><span class="p">]</span>
+    <span class="p">),</span>
+    <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+        <span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_SIZE&quot;</span><span class="p">]</span>
+    <span class="p">),</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">task_runner</span><span class="p">:</span> <span class="n">BaseTaskRunner</span> <span class="o">=</span> <span class="n">ConcurrentTaskRunner</span><span class="p">,</span>
+    <span class="n">log_level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Convert file-based data from various sources to Pycytominer-compatible standards.</span>
 
 <span class="sd">    Note: source paths may be local or remote object-storage location</span>
 <span class="sd">    using convention &quot;s3://...&quot; or similar.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      source_path: str:</span>
-<span class="sd">        str reference to read source files from.</span>
-<span class="sd">        Note: may be local or remote object-storage location using convention &quot;s3://...&quot; or similar.</span>
-<span class="sd">      dest_path: str:</span>
-<span class="sd">        Path to write files to.</span>
-<span class="sd">        Note: this may only be a local path.</span>
-<span class="sd">      dest_datatype: Literal[&quot;parquet&quot;]:</span>
-<span class="sd">        Destination datatype to write to.</span>
-<span class="sd">      source_datatype: Optional[str]:  (Default value = None)</span>
-<span class="sd">        Source datatype to focus on during conversion.</span>
-<span class="sd">      compartments: Union[List[str], Tuple[str, str, str, str]]:</span>
-<span class="sd">        (Default value = DEFAULT_COMPARTMENTS)</span>
-<span class="sd">        Compartment names to use for conversion.</span>
-<span class="sd">      concat: bool:  (Default value = True)</span>
-<span class="sd">        Whether to concatenate similar files together.</span>
-<span class="sd">      infer_common_schema: bool (Default value = True)</span>
-<span class="sd">        Whether to infer a common schema when concatenating records.</span>
-<span class="sd">      task_runner: BaseTaskRunner (Default value = ConcurrentTaskRunner)</span>
-<span class="sd">        Prefect task runner to use with flows.</span>
+<span class="sd">        source_path: str:</span>
+<span class="sd">            str reference to read source files from.</span>
+<span class="sd">            Note: may be local or remote object-storage location</span>
+<span class="sd">            using convention &quot;s3://...&quot; or similar.</span>
+<span class="sd">        dest_path: str:</span>
+<span class="sd">            Path to write files to.</span>
+<span class="sd">            Note: this may only be a local path.</span>
+<span class="sd">        dest_datatype: Literal[&quot;parquet&quot;]:</span>
+<span class="sd">            Destination datatype to write to.</span>
+<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">            Source datatype to focus on during conversion.</span>
+<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            Metadata names to use for conversion.</span>
+<span class="sd">        compartments: Union[List[str], Tuple[str, str, str, str]]:</span>
+<span class="sd">            (Default value = DEFAULT_COMPARTMENTS)</span>
+<span class="sd">            Compartment names to use for conversion.</span>
+<span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
+<span class="sd">            ignored with regards to renaming.</span>
+<span class="sd">        concat: bool:  (Default value = True)</span>
+<span class="sd">            Whether to concatenate similar files together.</span>
+<span class="sd">        join: bool:  (Default value = True)</span>
+<span class="sd">            Whether to join the compartment data together into one dataset</span>
+<span class="sd">        joins: str: (Default value = presets.config[&quot;cellprofiler_csv&quot;][&quot;CONFIG_JOINS&quot;]):</span>
+<span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
+<span class="sd">        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]</span>
+<span class="sd">            (Default value = DEFAULT_CHUNK_COLUMNS)</span>
+<span class="sd">            Column names which appear in all compartments to use when performing join</span>
+<span class="sd">        chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)</span>
+<span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
+<span class="sd">        infer_common_schema: bool: (Default value = True)</span>
+<span class="sd">            Whether to infer a common schema when concatenating sources.</span>
+<span class="sd">        drop_null: bool (Default value = True)</span>
+<span class="sd">            Whether to drop nan/null values from results</span>
+<span class="sd">        preset: str (Default value = None)</span>
+<span class="sd">            an optional group of presets to use based on common configurations</span>
+<span class="sd">        task_runner: BaseTaskRunner: (Default value = ConcurrentTaskRunner)</span>
+<span class="sd">            Prefect task runner to use with flows.</span>
+<span class="sd">        log_level: str: (Default value = &quot;ERROR&quot;):</span>
+<span class="sd">            Log level for Prefect flow and task operations.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Dict[str, List[Dict[str, Any]]]</span>
-<span class="sd">        Grouped records which include metadata about destination filepath</span>
-<span class="sd">        where parquet file was written.</span>
-
+<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], str]</span>
+<span class="sd">            Grouped sources which include metadata about destination filepath</span>
+<span class="sd">            where parquet file was written or str of joined result filepath.</span>
 
 <span class="sd">    Example:</span>
 
-<span class="sd">      .. code-block:: python</span>
+<span class="sd">        .. code-block:: python</span>
 
-<span class="sd">        from pycytominer_transform import convert</span>
+<span class="sd">            from pycytominer_transform import convert</span>
 
-<span class="sd">        # using a local path</span>
-<span class="sd">        convert(</span>
-<span class="sd">            source_path=&quot;./tests/data/cellprofiler/csv_single&quot;,</span>
-<span class="sd">            source_datatype=&quot;csv&quot;,</span>
-<span class="sd">            dest_path=&quot;.&quot;,</span>
-<span class="sd">            dest_datatype=&quot;parquet&quot;,</span>
-<span class="sd">        )</span>
+<span class="sd">            # using a local path with cellprofiler csv presets</span>
+<span class="sd">            convert(</span>
+<span class="sd">                source_path=&quot;./tests/data/cellprofiler/csv_single&quot;,</span>
+<span class="sd">                source_datatype=&quot;csv&quot;,</span>
+<span class="sd">                dest_path=&quot;.&quot;,</span>
+<span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
+<span class="sd">                preset=&quot;cellprofiler_csv&quot;,</span>
+<span class="sd">            )</span>
 
-<span class="sd">        # using an s3-compatible path with no signature for client</span>
-<span class="sd">        convert(</span>
-<span class="sd">            source_path=&quot;s3://s3path&quot;,</span>
-<span class="sd">            source_datatype=&quot;csv&quot;,</span>
-<span class="sd">            dest_path=&quot;.&quot;,</span>
-<span class="sd">            dest_datatype=&quot;parquet&quot;,</span>
-<span class="sd">            concat=True,</span>
-<span class="sd">            no_sign_request=True,</span>
-<span class="sd">        )</span>
+<span class="sd">            # using an s3-compatible path with no signature for client</span>
+<span class="sd">            # and cellprofiler csv presets</span>
+<span class="sd">            convert(</span>
+<span class="sd">                source_path=&quot;s3://s3path&quot;,</span>
+<span class="sd">                source_datatype=&quot;csv&quot;,</span>
+<span class="sd">                dest_path=&quot;.&quot;,</span>
+<span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
+<span class="sd">                concat=True,</span>
+<span class="sd">                preset=&quot;cellprofiler_csv&quot;,</span>
+<span class="sd">                no_sign_request=True,</span>
+<span class="sd">            )</span>
+
+<span class="sd">            # using local path with cellprofiler sqlite presets</span>
+<span class="sd">            convert(</span>
+<span class="sd">                source_path=&quot;example.sqlite&quot;,</span>
+<span class="sd">                dest_path=&quot;example.parquet&quot;,</span>
+<span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
+<span class="sd">                merge=True,</span>
+<span class="sd">                preset=&quot;cellprofiler_sqlite&quot;,</span>
+<span class="sd">            )</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># send records to be written to parquet if selected</span>
+    <span class="c1"># log level overrides for prefect</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PREFECT_LOGGING_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_level</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PREFECT_LOGGING_ROOT_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_level</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PREFECT_LOGGING_HANDLERS_CONSOLE_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_level</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PREFECT_LOGGING_HANDLERS_CONSOLE_FLOW_RUNS_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_level</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PREFECT_LOGGING_HANDLERS_CONSOLE_TASK_RUNS_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_level</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s2">&quot;PREFECT_LOGGING_SERVER_LEVEL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">log_level</span>
+
+    <span class="c1"># optionally load preset configuration for arguments</span>
+    <span class="k">if</span> <span class="n">preset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_METADATA&quot;</span><span class="p">])</span>
+        <span class="n">compartments</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_COMPARTMENTS&quot;</span><span class="p">])</span>
+        <span class="n">identifying_columns</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_IDENTIFYING_COLUMNS&quot;</span><span class="p">])</span>
+        <span class="n">joins</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">])</span>
+        <span class="n">chunk_columns</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_COLUMNS&quot;</span><span class="p">])</span>
+        <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_SIZE&quot;</span><span class="p">])</span>
+
+    <span class="c1"># send sources to be written to parquet if selected</span>
     <span class="k">if</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">to_parquet</span><span class="o">.</span><span class="n">with_options</span><span class="p">(</span><span class="n">task_runner</span><span class="o">=</span><span class="n">task_runner</span><span class="p">)(</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">_to_parquet</span><span class="o">.</span><span class="n">with_options</span><span class="p">(</span><span class="n">task_runner</span><span class="o">=</span><span class="n">task_runner</span><span class="p">)(</span>
             <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
-            <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">,</span>
-            <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
-            <span class="n">concat</span><span class="o">=</span><span class="n">concat</span><span class="p">,</span>
             <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+            <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
+            <span class="n">identifying_columns</span><span class="o">=</span><span class="n">identifying_columns</span><span class="p">,</span>
+            <span class="n">concat</span><span class="o">=</span><span class="n">concat</span><span class="p">,</span>
+            <span class="n">join</span><span class="o">=</span><span class="n">join</span><span class="p">,</span>
+            <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">,</span>
+            <span class="n">chunk_columns</span><span class="o">=</span><span class="n">chunk_columns</span><span class="p">,</span>
+            <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
+            <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -622,14 +1009,23 @@
 
 
 
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
 
 
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../python-api.html">Python API</a></li>
 </ul>
 
@@ -669,7 +1065,7 @@
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
     </div>
 

@@ -164,7 +164,7 @@ We use the <a class="reference external" href="https://www.sphinx-doc.org/en/mas
 <p>Work added to this repo is automatically checked using <a class="reference external" href="https://pre-commit.com/">pre-commit</a> (managed by this repo’s poetry environment) via <a class="reference external" href="https://docs.github.com/en/actions">Github Actions</a>.
 Pre-commit can work alongside your local <a class="reference external" href="https://pre-commit.com/index.html#3-install-the-git-hook-scripts">git with hooks</a>
 The following command also can perform the same checks:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>% poetry run pre-commit run --all-files
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 </pre></div>
 </div>
 </section>
@@ -178,26 +178,36 @@ This example data is used during testing to ensure expected functionality.
 See below for an example of how to create this testing data (Dagger action <code class="docutils literal notranslate"><span class="pre">gather_data</span></code>).</p>
 <p>Dagger-based manual testing is performed using the following:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># update the dagger project</span>
-% dagger project update
+%<span class="w"> </span>dagger<span class="w"> </span>project<span class="w"> </span>update
 
 <span class="c1"># gather data for testing</span>
-% dagger <span class="k">do</span> gather_data
+%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span>gather_data
 
 <span class="c1"># perform the testing</span>
-% dagger <span class="k">do</span> <span class="nb">test</span>
+%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">test</span>
+</pre></div>
+</div>
+<p>Testing with Dagger will automatically test multiple Python versions.
+You may also provide specific Python versions for isolated testing using additional arguments with Dagger.</p>
+<p>For example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># perform all tests under Python 3.8</span>
+%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;3.8&quot;</span>
+
+<span class="c1"># perform only sphinx tests under Python 3.9</span>
+%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;3.9&quot;</span><span class="w"> </span>sphinx
 </pre></div>
 </div>
 <p>It’s also possible to test locally using Poetry.
 Testing without Dagger does not guarantee a successful automated test as environmental differences could exist.
 See below for an example of testing without Dagger:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>% poetry run pytest
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>pytest
 </pre></div>
 </div>
 <section id="test-coverage">
 <h4>Test Coverage<a class="headerlink" href="#test-coverage" title="Permalink to this heading">¶</a></h4>
 <p>Test coverage is provided via <a class="reference external" href="https://github.com/nedbat/coveragepy">coverage</a> and <a class="reference external" href="https://github.com/pytest-dev/pytest-cov">pytest-cov</a>.
 Use the following command to generate HTML coverage reports (reports made available at <code class="docutils literal notranslate"><span class="pre">./htmlcov/index.html</span></code>):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>% poetry run pytest --cov<span class="o">=</span>pycytominer_transform tests/
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>--cov<span class="o">=</span>pycytominer_transform<span class="w"> </span>tests/
 </pre></div>
 </div>
 </section>
@@ -213,7 +223,7 @@ Diagrams may be added using the <a class="reference external" href="https://gith
 <h3>Documentation Linting<a class="headerlink" href="#documentation-linting" title="Permalink to this heading">¶</a></h3>
 <p>Content is tested via Dagger actions using the <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">...</span> <span class="pre">-W</span></code> command to avoid missing autodoc members, etc.
 To check your documentation updates before pushing, use the following to trigger a related <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> (content made available at <code class="docutils literal notranslate"><span class="pre">./docs/build/index.html</span></code>):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>% dagger <span class="k">do</span> docs
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span>docs
 </pre></div>
 </div>
 </section>
@@ -244,11 +254,19 @@ Many thanks go to the developers and contributors of that repository.</p>
 
 
 
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
 
 
 <h3>Navigation</h3>
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Contributing</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#code-of-conduct">Code of conduct</a></li>
@@ -278,6 +296,7 @@ Many thanks go to the developers and contributors of that repository.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="python-api.html">Python API</a></li>
 </ul>
 
@@ -317,7 +336,7 @@ Many thanks go to the developers and contributors of that repository.</p>
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
       <a href="_sources/contributing.md.txt"

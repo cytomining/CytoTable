@@ -1,0 +1,342 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>pycytominer_transform.sources &#8212; pycytominer-transform v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+    <script>mermaid.initialize({startOnLoad:true});</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pycytominer_transform.sources</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">pycytominer-transform: sources - tasks and flows related to</span>
+<span class="sd">source data and metadata for performing conversion work.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
+<span class="kn">from</span> <span class="nn">prefect</span> <span class="kn">import</span> <span class="n">flow</span><span class="p">,</span> <span class="n">task</span>
+
+<span class="kn">from</span> <span class="nn">pycytominer_transform.exceptions</span> <span class="kn">import</span> <span class="n">DatatypeException</span><span class="p">,</span> <span class="n">NoInputDataException</span>
+<span class="kn">from</span> <span class="nn">pycytominer_transform.utils</span> <span class="kn">import</span> <span class="n">_duckdb_with_sqlite</span>
+
+
+<div class="viewcode-block" id="_build_path"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.sources._build_path">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_build_path</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a path client or return local path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: Union[pathlib.Path, Any]:</span>
+<span class="sd">            Path to seek filepaths within.</span>
+<span class="sd">        **kwargs: Any</span>
+<span class="sd">            keyword arguments to be used with</span>
+<span class="sd">            Cloudpathlib.CloudPath.client</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Union[pathlib.Path, Any]</span>
+<span class="sd">            A local pathlib.Path or Cloudpathlib.AnyPath type path.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">processed_path</span> <span class="o">=</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># set the client for a CloudPath</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processed_path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
+        <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">processed_path</span></div>
+
+
+<div class="viewcode-block" id="_get_source_filepaths"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.sources._get_source_filepaths">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_get_source_filepaths</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span>
+    <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gather dataset of filepaths from a provided directory path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: Union[pathlib.Path, Any]:</span>
+<span class="sd">            Path to seek filepaths within.</span>
+<span class="sd">        targets: List[str]:</span>
+<span class="sd">            Compartment and metadata names to seek within the provided path.</span>
+<span class="sd">        source_datatype: Optional[str]  (Default value = None)</span>
+<span class="sd">            Data type for source data files.</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">            Data structure which groups related files based on the compartments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">source_datatype</span> <span class="o">==</span> <span class="s2">&quot;sqlite&quot;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.sqlite&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">,</span> <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">}]</span>
+            <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">_duckdb_with_sqlite</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                /* perform query on sqlite_master table for metadata on tables */</span>
+<span class="sd">                SELECT name as table_name</span>
+<span class="sd">                from sqlite_scan(?, &#39;sqlite_master&#39;)</span>
+<span class="sd">                where type=&#39;table&#39;</span>
+<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
+                <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)],</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">arrow</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
+            <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">table_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">)</span>
+        <span class="p">}</span>
+
+    <span class="c1"># gathers files from provided path using compartments as a filter</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span><span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">file</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;**/*&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+        <span class="ow">and</span> <span class="p">(</span>
+            <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
+        <span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c1"># if we collected no files above, raise exception</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No input data to process at path: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">grouped_sources</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># group files together by similar filename for later data operations</span>
+    <span class="k">for</span> <span class="n">unique_source</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">):</span>
+        <span class="n">grouped_sources</span><span class="p">[</span><span class="n">unique_source</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()]</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">source</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span> <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
+        <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">grouped_sources</span></div>
+
+
+<div class="viewcode-block" id="_infer_source_datatype"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.sources._infer_source_datatype">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_infer_source_datatype</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Infers and optionally validates datatype (extension) of files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
+<span class="sd">            Grouped datasets of files which will be used by other functions.</span>
+<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">            Optional source datatype to validate within the context of</span>
+<span class="sd">            detected datatypes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str</span>
+<span class="sd">            A string of the datatype detected or validated source_datatype.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># gather file extension suffixes</span>
+    <span class="n">suffixes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">((</span><span class="n">group</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">))</span>
+
+    <span class="c1"># if we don&#39;t have a source datatype and have more than one suffix</span>
+    <span class="c1"># we can&#39;t infer which file type to read.</span>
+    <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffixes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Detected more than one inferred datatypes from source path: </span><span class="si">{</span><span class="n">suffixes</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># if we have a source datatype and it isn&#39;t within the detected suffixes</span>
+    <span class="c1"># we will have no files to process.</span>
+    <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">suffixes</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Unable to find source datatype </span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="s2">&quot;within files. Detected datatypes: </span><span class="si">{suffixes}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># if we haven&#39;t set a source datatype and need to rely on the inferred one</span>
+    <span class="c1"># set it so it may be returned</span>
+    <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">source_datatype</span> <span class="o">=</span> <span class="n">suffixes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">source_datatype</span></div>
+
+
+<div class="viewcode-block" id="_filter_source_filepaths"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.sources._filter_source_filepaths">[docs]</a><span class="nd">@task</span>
+<span class="k">def</span> <span class="nf">_filter_source_filepaths</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">source_datatype</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Filter source filepaths based on provided source_datatype</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">            Grouped datasets of files which will be used by other functions.</span>
+<span class="sd">        source_datatype: str</span>
+<span class="sd">            Source datatype to use for filtering the dataset.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">            Data structure which groups related files based on the datatype.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">filegroup</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">file</span>
+            <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span>
+            <span class="c1"># ensure the filesize is greater than 0</span>
+            <span class="k">if</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="c1"># ensure the datatype matches the source datatype</span>
+            <span class="ow">and</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">filegroup</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span></div>
+
+
+<span class="nd">@flow</span>
+<span class="k">def</span> <span class="nf">_gather_sources</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">targets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flow for gathering data sources for conversion</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source_path: str:</span>
+<span class="sd">            Where to gather file-based data from.</span>
+<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">            The source datatype (extension) to use for reading the tables.</span>
+<span class="sd">        targets: Optional[List[str]]:  (Default value = None)</span>
+<span class="sd">            The source file names to target within the provided path.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">            Data structure which groups related files based on the compartments.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">source_path</span> <span class="o">=</span> <span class="n">_build_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># gather filepaths which will be used as the basis for this work</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">_get_source_filepaths</span><span class="p">(</span>
+        <span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span>
+    <span class="p">)</span>
+
+    <span class="c1"># infer or validate the source datatype based on source filepaths</span>
+    <span class="n">source_datatype</span> <span class="o">=</span> <span class="n">_infer_source_datatype</span><span class="p">(</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span> <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span>
+    <span class="p">)</span>
+
+    <span class="c1"># filter source filepaths to inferred or source datatype</span>
+    <span class="k">return</span> <span class="n">_filter_source_filepaths</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span> <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pycytominer-transform</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
