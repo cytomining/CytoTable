@@ -193,14 +193,22 @@ def _concat_source_group(
     structure for compartments and other data. For example:
 
     Source (file tree):
-    root
-    ├── subdir_1
-    │   └── Cells.csv
-    └── subdir_2
-        └── Cells.csv
+
+    .. code-block:: bash
+
+        root
+        ├── subdir_1
+        │   └── Cells.csv
+        └── subdir_2
+            └── Cells.csv
+
 
     Becomes (list with dictionary):
-    concatted = [{"source_path" : "root/Cells"}]
+
+    .. code-block:: python
+
+        concatted = [{"source_path": "root/Cells"}]
+
 
     Args:
         source_group: List[Dict[str, Any]]:
