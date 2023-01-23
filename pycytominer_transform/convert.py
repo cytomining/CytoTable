@@ -189,6 +189,19 @@ def _concat_source_group(
     For a reference to data concatenation within Arrow see the following:
     https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
 
+    Notes: this function presumes a multi-directory, multi-file common data
+    structure for compartments and other data. For example:
+
+    Source (file tree):
+    root
+    ├── subdir_1
+    │   └── Cells.csv
+    └── subdir_2
+        └── Cells.csv
+
+    Becomes (list with dictionary):
+    concatted = [{"source_path" : "root/Cells"}]
+
     Args:
         source_group: List[Dict[str, Any]]:
             Data structure containing grouped data for concatenation.
