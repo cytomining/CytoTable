@@ -91,6 +91,7 @@ import "universe.dagger.io/docker"
 				contents: filesystem
 				source:   "./"
 				dest:     "/workdir"
+				// avoid recopying files for caching
 				exclude: ["./pyproject.toml", "./poetry.lock", "./.pre-commit-config.yaml"]
 			},
 		]
