@@ -11,7 +11,7 @@ jobs:
   run_tests:
     strategy:
       matrix:
-        python_version: [3.8, 3.9]
+        python_version: [3.8, 3.9, 3.10]
     runs-on: ubuntu-latest
     env:
       DAGGER_CACHE_FROM: type=gha,scope=pycytominer_transform

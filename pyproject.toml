@@ -26,7 +26,7 @@ bokeh = "^2.4.2"
 moto = {extras = ["s3", "server"], version = "^4.0.11"}
 cffconvert = "^2.0.0"
 cytominer-database = "^0.3.4"
-pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "ea9873d" }
+pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "afac3ea" }
 
 
 [build-system]
