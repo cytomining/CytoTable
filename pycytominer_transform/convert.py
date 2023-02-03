@@ -13,7 +13,7 @@ import pyarrow as pa
 from cloudpathlib import AnyPath
 from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
-from prefect.task_runners import BaseTaskRunner, ConcurrentTaskRunner
+from prefect.task_runners import BaseTaskRunner, SequentialTaskRunner
 from pyarrow import csv, parquet
 
 from pycytominer_transform.exceptions import SchemaException
@@ -826,7 +826,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     infer_common_schema: bool = True,
     drop_null: bool = True,
     preset: Optional[str] = None,
-    task_runner: BaseTaskRunner = ConcurrentTaskRunner,
+    task_runner: BaseTaskRunner = SequentialTaskRunner,
     log_level: str = "ERROR",
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
@@ -873,7 +873,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to drop nan/null values from results
         preset: str (Default value = None)
             an optional group of presets to use based on common configurations
-        task_runner: BaseTaskRunner: (Default value = ConcurrentTaskRunner)
+        task_runner: BaseTaskRunner: (Default value = SequentialTaskRunner)
             Prefect task runner to use with flows.
         log_level: str: (Default value = "ERROR"):
             Log level for Prefect flow and task operations.
