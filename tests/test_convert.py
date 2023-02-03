@@ -48,7 +48,7 @@ def test_config():
         ) == sorted(config_preset.keys())
 
 
-def test__get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
+def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     """
     Tests _get_source_filepaths
     """
@@ -104,7 +104,7 @@ def test_read_data(get_tempdir: str):
     assert isinstance(_read_data.fn(source={"source_path": destination_err}), Dict)
 
 
-def test__prepend_column_name():
+def test_prepend_column_name():
     """
     Tests _prepend_column_name
     """
@@ -177,7 +177,7 @@ def test__prepend_column_name():
     ]
 
 
-def test__concat_source_group(
+def test_concat_source_group(
     get_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
     example_local_sources: Dict[str, List[Dict[str, Any]]],
@@ -226,7 +226,7 @@ def test__concat_source_group(
         )
 
 
-def test__get_join_chunks(get_tempdir: str):
+def test_get_join_chunks(get_tempdir: str):
     """
     Tests _get_join_chunks
     """
@@ -264,7 +264,7 @@ def test__get_join_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test__join_source_chunk(get_tempdir: str):
+def test_join_source_chunk(get_tempdir: str):
     """
     Tests _get_join_chunks
     """
@@ -330,7 +330,7 @@ def test__join_source_chunk(get_tempdir: str):
     )
 
 
-def test__concat_join_sources(get_tempdir: str):
+def test_concat_join_sources(get_tempdir: str):
     """
     Tests _concat_join_sources
     """
@@ -412,7 +412,7 @@ def test__concat_join_sources(get_tempdir: str):
     )
 
 
-def test__write_parquet(get_tempdir: str):
+def test_write_parquet(get_tempdir: str):
     """
     Tests _write_parquet
     """
@@ -448,7 +448,7 @@ def test__write_parquet(get_tempdir: str):
     )
 
 
-def test__infer_source_datatype():
+def test_infer_source_datatype():
     """
     Tests _infer_source_datatype
     """
@@ -469,7 +469,7 @@ def test__infer_source_datatype():
         _infer_source_datatype.fn(sources=data)
 
 
-def test__to_parquet(
+def test_to_parquet(
     get_tempdir: str, example_local_sources: Dict[str, List[Dict[str, Any]]]
 ):
     """
@@ -548,7 +548,7 @@ def test_convert_s3_path(
         assert parquet_result.shape == parquet_control.shape
 
 
-def test__infer_source_group_common_schema(
+def test_infer_source_group_common_schema(
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_tables: Tuple[pa.Table, ...],
 ):
