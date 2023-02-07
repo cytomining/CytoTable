@@ -16,7 +16,7 @@ import "universe.dagger.io/docker"
 	python_ver: string | *"3.9"
 
 	// poetry version to use for build
-	poetry_ver: string | *"1.2"
+	poetry_ver: string | *"1.3"
 
 	// container image
 	output: _python_build.output
@@ -91,6 +91,8 @@ import "universe.dagger.io/docker"
 				contents: filesystem
 				source:   "./"
 				dest:     "/workdir"
+				// avoid recopying files for caching
+				exclude: ["./pyproject.toml", "./poetry.lock", "./.pre-commit-config.yaml"]
 			},
 		]
 	}
@@ -151,7 +153,7 @@ dagger.#Plan & {
 		}
 	}
 	python_version: string | *"3.9"
-	poetry_version: string | *"1.2"
+	poetry_version: string | *"1.3"
 
 	actions: {
 
@@ -260,8 +262,9 @@ dagger.#Plan & {
 		// various tests for this repo
 		test: {
 			// python versions to reference for builds
-			"3.9": _
-			"3.8": _
+			"3.8":  _
+			"3.9":  _
+			"3.10": _
 
 			[compat_python_version=string]: {
 
