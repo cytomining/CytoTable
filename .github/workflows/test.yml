@@ -21,7 +21,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Dagger
-        uses: dagger/dagger-for-github@v3
+        uses: dagger/dagger-for-github@v3.2.0
         with:
           cmds: |
             project update
