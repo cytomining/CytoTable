@@ -46,11 +46,13 @@
 In Prefect, Tasks are isolated pieces of work stored within a Python function which is decorated with the <code class="docutils literal notranslate"><span class="pre">&#64;task</span></code> decorator.
 Workflows, or flows, are collections of one or more tasks and are decorated using the <code class="docutils literal notranslate"><span class="pre">&#64;flow</span></code> decorator.
 See the following documentation for more information on how tasks and flows may be used within Prefect: <a class="reference external" href="https://docs.prefect.io/tutorials/first-steps/">Prefect Documentation: Tutorial: First steps</a></p>
-<section id="parallel-task-execution">
-<h3>Parallel Task Execution<a class="headerlink" href="#parallel-task-execution" title="Permalink to this heading">¶</a></h3>
+<section id="task-execution">
+<h3>Task Execution<a class="headerlink" href="#task-execution" title="Permalink to this heading">¶</a></h3>
 <p>Flows and tasks within pycytominer-transform may be executed using <a class="reference external" href="https://docs.prefect.io/tutorials/execution/">Prefect Task Executors</a>.
-By default, pycytominer-transform assumes local parallel task execution where possible by implementing <a class="reference external" href="https://docs.prefect.io/tutorials/execution/#concurrent-execution">ConcurrentTaskRunner</a>.
-pycytominer-transform may also optionally be used with <a class="reference external" href="https://prefecthq.github.io/prefect-dask/">prefect-dask DaskTaskRunner</a> which can further, help scale parallel execution using a <a class="reference external" href="https://docs.dask.org/en/stable/">Dask environment</a> (local or otherwise).</p>
+By default, pycytominer-transform assumes local task execution with <a class="reference external" href="https://docs.prefect.io/tutorials/execution/#sequential-execution">SequentialTaskRunner</a>.</p>
+<p>For greater scalability, pycytominer-transform may also be used with concurrent task runners.
+Please note: using concurrent task runners may require implementing a standalone <code class="docutils literal notranslate"><span class="pre">prefect</span> <span class="pre">orion</span></code> server to ensure SQLite write errors are not experienced (more information on this topic may be found under <a class="reference external" href="https://github.com/PrefectHQ/prefect/issues/7277">Prefect#7277</a>).
+Examples of concurrent task runners include <a class="reference external" href="https://docs.prefect.io/tutorials/execution/#concurrent-execution">ConcurrentTaskRunner</a>, a built-in option for concurrent operiations, and <a class="reference external" href="https://prefecthq.github.io/prefect-dask/">prefect-dask DaskTaskRunner</a> which can further help scale parallel execution using a <a class="reference external" href="https://docs.dask.org/en/stable/">Dask environment</a> (local or otherwise).</p>
 </section>
 </section>
 <section id="data-technologies">
