@@ -9,11 +9,14 @@ In Prefect, Tasks are isolated pieces of work stored within a Python function wh
 Workflows, or flows, are collections of one or more tasks and are decorated using the `@flow` decorator.
 See the following documentation for more information on how tasks and flows may be used within Prefect: [Prefect Documentation: Tutorial: First steps](https://docs.prefect.io/tutorials/first-steps/)
 
-### Parallel Task Execution
+### Task Execution
 
 Flows and tasks within pycytominer-transform may be executed using [Prefect Task Executors](https://docs.prefect.io/tutorials/execution/).
-By default, pycytominer-transform assumes local parallel task execution where possible by implementing [ConcurrentTaskRunner](https://docs.prefect.io/tutorials/execution/#concurrent-execution).
-pycytominer-transform may also optionally be used with [prefect-dask DaskTaskRunner](https://prefecthq.github.io/prefect-dask/) which can further, help scale parallel execution using a [Dask environment](https://docs.dask.org/en/stable/) (local or otherwise).
+By default, pycytominer-transform assumes local task execution with [SequentialTaskRunner](https://docs.prefect.io/tutorials/execution/#sequential-execution).
+
+For greater scalability, pycytominer-transform may also be used with concurrent task runners.
+Please note: using concurrent task runners may require implementing a standalone `prefect orion` server to ensure SQLite write errors are not experienced (more information on this topic may be found under [Prefect#7277](https://github.com/PrefectHQ/prefect/issues/7277)).
+Examples of concurrent task runners include [ConcurrentTaskRunner](https://docs.prefect.io/tutorials/execution/#concurrent-execution), a built-in option for concurrent operiations, and [prefect-dask DaskTaskRunner](https://prefecthq.github.io/prefect-dask/) which can further help scale parallel execution using a [Dask environment](https://docs.dask.org/en/stable/) (local or otherwise).
 
 ## Data Technologies
 
