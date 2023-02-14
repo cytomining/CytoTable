@@ -1,5 +1,5 @@
 """
-pycytominer-transform: convert - transforming data for use with pyctyominer.
+CytoTable: convert - transforming data for use with pyctyominer.
 """
 
 import itertools
@@ -16,10 +16,10 @@ from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, SequentialTaskRunner
 from pyarrow import csv, parquet
 
-from pycytominer_transform.exceptions import SchemaException
-from pycytominer_transform.presets import config
-from pycytominer_transform.sources import _gather_sources
-from pycytominer_transform.utils import _column_sort, _duckdb_with_sqlite
+from cytotable.exceptions import SchemaException
+from cytotable.presets import config
+from cytotable.sources import _gather_sources
+from cytotable.utils import _column_sort, _duckdb_with_sqlite
 
 
 @task
@@ -887,7 +887,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
         .. code-block:: python
 
-            from pycytominer_transform import convert
+            from cytotable import convert
 
             # using a local path with cellprofiler csv presets
             convert(

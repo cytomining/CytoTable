@@ -1,5 +1,5 @@
 """
-pycytominer-transform: sources - tasks and flows related to
+CytoTable: sources - tasks and flows related to
 source data and metadata for performing conversion work.
 """
 
@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Union
 from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task
 
-from pycytominer_transform.exceptions import DatatypeException, NoInputDataException
-from pycytominer_transform.utils import _duckdb_with_sqlite
+from cytotable.exceptions import DatatypeException, NoInputDataException
+from cytotable.utils import _duckdb_with_sqlite
 
 
 @task

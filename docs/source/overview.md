@@ -1,15 +1,15 @@
 # Overview
 
-This page provides a brief overview of pycytominer-transform topics.
-For a brief introduction on how to use pycytominer-transform, please see the [tutorial](tutorial.md) page.
+This page provides a brief overview of CytoTable topics.
+For a brief introduction on how to use CytoTable, please see the [tutorial](tutorial.md) page.
 
 ## Presets and Manual Overrides
 
 ```{eval-rst}
-Various preset configurations are available for use within pycytominer-transform which affect how data are read and produced under :data:`presets.config <pycytominer_transform.presets.config>`.
+Various preset configurations are available for use within CytoTable which affect how data are read and produced under :data:`presets.config <cytotable.presets.config>`.
 These presets are intended to assist with common data source expectations.
 Please note that these presets may not capture all possible outcomes.
-Use manual overrides within :mod:`convert() <pycytominer_transform.convert.convert>` as needed.
+Use manual overrides within :mod:`convert() <cytotable.convert.convert>` as needed.
 ```
 
 ## Data Sources
@@ -18,7 +18,7 @@ Use manual overrides within :mod:`convert() <pycytominer_transform.convert.conve
 flowchart LR
     images[("Image\nfile(s)")]:::outlined --> image-tools[Image Analysis Tools]:::outlined
     image-tools --> measurements[("Measurement\nfile(s)")]:::green
-    measurements --> pycytominer-transform:::green
+    measurements --> CytoTable:::green
 
     classDef outlined fill:#fff,stroke:#333
     classDef green fill:#97F0B4,stroke:#333
@@ -30,16 +30,16 @@ These measurement data are the focus of the data source content which follows.
 ### Data Source Locations
 
 ```{eval-rst}
-Data sources may be provided to pycytominer-transform using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
+Data sources may be provided to CytoTable using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
 We use `cloudpathlib <https://cloudpathlib.drivendata.org/~latest/>`_  under the hood to reference files in a unified way, whether they're local or remote.
 
-Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (`S3Client <https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/>`_, `AzureBlobClient <https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/>`_, `GSClient <https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/>`_) and :code:`convert(..., **kwargs)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
-For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, :code:`aws s3 ... --no-sign-request`) may be used via :code:`convert(..., no_sign_request=True)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (`S3Client <https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/>`_, `AzureBlobClient <https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/>`_, `GSClient <https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/>`_) and :code:`convert(..., **kwargs)` (:mod:`convert() <cytotable.convert.convert>`).
+For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, :code:`aws s3 ... --no-sign-request`) may be used via :code:`convert(..., no_sign_request=True)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 ### Data Source Types
 
-Data source compatibility for pycytominer-transform is focused (but not explicitly limited to) the following.
+Data source compatibility for CytoTable is focused (but not explicitly limited to) the following.
 
 #### CellProfiler Data Sources
 
@@ -47,16 +47,16 @@ Data source compatibility for pycytominer-transform is focused (but not explicit
   CellProfiler CSV data sources generally follow the format provided as output by [CellProfiler ExportToSpreadsheet](https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToSpreadsheet.html).
 
 ```{eval-rst}
-  * **Manual specification:** CSV data source types may be manually specified by using :code:`convert(..., source_datatype="csv", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
-  * **Preset specification:** CSV data sources from CellProfiler may use the configuration preset :code:`convert(..., preset="cellprofiler_csv", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+  * **Manual specification:** CSV data source types may be manually specified by using :code:`convert(..., source_datatype="csv", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+  * **Preset specification:** CSV data sources from CellProfiler may use the configuration preset :code:`convert(..., preset="cellprofiler_csv", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 - __SQLite Databases (.sqlite)__: "SQLite database files are commonly used as containers to transfer rich content between systems and as a long-term archival format for data." ([reference](https://sqlite.org/index.html))
   CellProfiler SQLite database sources may follow a format provided as output by [CellProfiler ExportToDatabase](https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToDatabase.html) or [cytominer-database](https://github.com/cytomining/cytominer-database).
 
 ```{eval-rst}
-  * **Manual specification:** SQLite data source types may be manually specified by using :code:`convert(..., source_datatype="sqlite", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
-  * **Preset specification:** SQLite data sources from CellProfiler may use the configuration preset :code:`convert(..., preset="cellprofiler_sqlite", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+  * **Manual specification:** SQLite data source types may be manually specified by using :code:`convert(..., source_datatype="sqlite", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+  * **Preset specification:** SQLite data sources from CellProfiler may use the configuration preset :code:`convert(..., preset="cellprofiler_sqlite", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 ## Data Destinations
@@ -64,8 +64,8 @@ Data source compatibility for pycytominer-transform is focused (but not explicit
 ### Data Destination Locations
 
 ```{eval-rst}
-Converted data destinations are may be provided to pycytominer-transform using only local filepaths (in contrast to data sources, which may also be remote).
-Specify the converted data destination using the  :code:`convert(..., dest_path="<a local filepath>")` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+Converted data destinations are may be provided to CytoTable using only local filepaths (in contrast to data sources, which may also be remote).
+Specify the converted data destination using the  :code:`convert(..., dest_path="<a local filepath>")` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 ### Data Destination Types
@@ -74,5 +74,5 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
   It provides efficient data compression and encoding schemes with enhanced performance to handle complex data in bulk." ([reference](https://parquet.apache.org/))
 
 ```{eval-rst}
-  Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <pycytominer_transform.convert.convert>`).
+  Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```

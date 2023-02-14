@@ -1,9 +1,9 @@
 """
-__init__.py for pycytominer_convert
+__init__.py for cytotable
 """
 from .convert import convert
 from .exceptions import (
-    CytominerException,
+    CytoTableException,
     DatatypeException,
     NoInputDataException,
     SchemaException,

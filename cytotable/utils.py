@@ -1,5 +1,5 @@
 """
-Utility functions for pycytominer-transform
+Utility functions for CytoTable
 """
 
 import duckdb

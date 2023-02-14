@@ -19,7 +19,7 @@ sys.path.insert(0, basedir)
 
 # -- Project information -----------------------------------------------------
 
-project = "pycytominer-transform"
+project = "CytoTable"
 copyright = "2022, Cytomining Community"
 author = "Cytomining Community"
 
@@ -67,7 +67,7 @@ html_theme_options = {
     "sidebar_width": "300px",
     "page_width": "1000px",
     "github_user": "cytomining",
-    "github_repo": "pycytominer-transform",
+    "github_repo": "CytoTable",
     "github_button": "true",
     "github_type": "star",
     "github_count": "false",

@@ -1,5 +1,5 @@
 """
-Tests for cyctominer_transform/convert.py
+Tests for CytoTable.convert and related.
 """
 import io
 import itertools
@@ -13,7 +13,7 @@ from cloudpathlib import AnyPath
 from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 
-from pycytominer_transform.convert import (
+from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
     _get_join_chunks,
@@ -25,8 +25,8 @@ from pycytominer_transform.convert import (
     _write_parquet,
     convert,
 )
-from pycytominer_transform.presets import config
-from pycytominer_transform.sources import _get_source_filepaths, _infer_source_datatype
+from cytotable.presets import config
+from cytotable.sources import _get_source_filepaths, _infer_source_datatype
 
 
 def test_config():
@@ -581,7 +581,7 @@ def test_convert_cytominerdatabase_csv(
         # and unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=pycytominer_merge_dir).drop(
             [
-                # tablenumber is not implemented within pycytominer-transform
+                # tablenumber is not implemented within CytoTable
                 "Metadata_TableNumber",
                 # objectnumber references are provided via cytoplasm parent object joins
                 "Metadata_ObjectNumber",
@@ -592,7 +592,7 @@ def test_convert_cytominerdatabase_csv(
         # rename column to account for minor difference in processing
         control_table = control_table.rename_columns(
             [
-                # rename based on compartment prefix name within pycytominer-transform format
+                # rename based on compartment prefix name within CytoTable format
                 col if col != "Cells_Parent_Nuclei" else "Metadata_Cells_Parent_Nuclei"
                 for col in control_table.schema.names
             ]

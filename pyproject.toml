@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "pycytominer-transform"
+name = "CytoTable"
 version = "0.0.1"
 description = "Transform data for processing image-based profiling readouts with Pycytominer."
 authors = ["Cytomining Community"]
 license = "BSD-3-Clause license"
-packages = [{include = "pycytominer_transform"}]
+packages = [{include = "cytotable"}]
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -35,7 +35,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.vulture]
 min_confidence = 80
-paths = ["pycytominer_transform"]
+paths = ["cytotable"]
 sort_by_size = true
 verbose = true
 
