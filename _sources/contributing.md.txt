@@ -1,6 +1,6 @@
 # Contributing
 
-First of all, thank you for contributing to pycytominer-transform! 🎉 💯
+First of all, thank you for contributing to CytoTable! 🎉 💯
 
 This document contains guidelines on how to most effectively contribute to the codebase.
 
@@ -14,9 +14,9 @@ Please report unacceptable behavior to cytodata.info@gmail.com.
 
 ## Quick links
 
-- Documentation: <https://cytomining.github.io/pycytominer-transform/>
-- Issue tracker: <https://github.com/cytomining/pycytominer-transform/issues>
-- Package Dependencies (via [Poetry configuration](https://python-poetry.org/docs/pyproject/)): <https://github.com/cytomining/pycytominer-transform/blob/main/pyproject.toml>
+- Documentation: <https://cytomining.github.io/CytoTable/>
+- Issue tracker: <https://github.com/cytomining/CytoTable/issues>
+- Package Dependencies (via [Poetry configuration](https://python-poetry.org/docs/pyproject/)): <https://github.com/cytomining/CytoTable/blob/main/pyproject.toml>
 
 ## Process
 
@@ -29,12 +29,12 @@ However, in order for us to fix a bug, you need to tell us exactly what went wro
 When you report a bug, please tell us as much pertinent information as possible.
 This information includes:
 
-- The pycytominer-transform version you’re using
+- The CytoTable version you’re using
 - The format of input data
 - Copy and paste two pieces of information: 1) your command and 2) the specific error message
 - What you’ve tried to overcome the bug
 
-Please provide this information as an issue in the repository: <https://github.com/cytomining/pycytominer-transform/issues>
+Please provide this information as an issue in the repository: <https://github.com/cytomining/CytoTable/issues>
 
 Please also search the issues (and documentation) for an existing solution.
 It’s possible we solved the bug already!
@@ -45,10 +45,10 @@ If you find an issue already describing the bug, please add a comment to the iss
 We’re deeply committed to a simple, intuitive user experience, and to support core profiling pipeline data processing.
 This commitment requires a good relationship, and open communication, with our users.
 
-We encourage you to propose enhancements to improve the pycytominer-transform package as an issue in the repository.
+We encourage you to propose enhancements to improve the CytoTable package as an issue in the repository.
 
 First, figure out if your proposal is already implemented by reading the documentation!
-Next, check the issues (<https://github.com/cytomining/pycytominer-transform/issues>) to see if someone else has already proposed the enhancement you have in mind.
+Next, check the issues (<https://github.com/cytomining/CytoTable/issues>) to see if someone else has already proposed the enhancement you have in mind.
 If you do find the suggestion, please comment on the existing issue noting that you are also interested in this functionality.
 If you do not find the suggestion, please open a new issue and clearly document the specific enhancement and why it would be helpful for your particular use case.
 
@@ -58,8 +58,8 @@ Contributing code for the first time can be a daunting task.
 However, in our community, we strive to be as welcoming as possible to newcomers, while ensuring rigorous software development practices.
 
 The first thing to figure out is exactly what you’re going to contribute!
-We describe all future work as individual [github issues](https://github.com/cytomining/pycytominer-transform/issues).
-For first time contributors we have specifically tagged [beginner issues](https://github.com/cytomining/pycytominer-transform/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+We describe all future work as individual [github issues](https://github.com/cytomining/CytoTable/issues).
+For first time contributors we have specifically tagged [beginner issues](https://github.com/cytomining/CytoTable/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 If you want to contribute code that we haven’t already outlined, please start a discussion in a new issue before writing any code.
 A discussion will clarify the new code and reduce merge time.
@@ -69,13 +69,13 @@ Plus, it’s possible your contribution belongs in a different code base, and we
 
 After you’ve decided to contribute code and have written it up, please file a pull request.
 We specifically follow a [forked pull request model](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request-from-a-fork).
-Please create a fork of the pycytominer-transform repository, clone the fork, and then create a new, feature-specific branch.
-Once you make the necessary changes on this branch, you should file a pull request to incorporate your changes into the main pycytominer-transform repository.
+Please create a fork of the CytoTable repository, clone the fork, and then create a new, feature-specific branch.
+Once you make the necessary changes on this branch, you should file a pull request to incorporate your changes into the main CytoTable repository.
 
-The content and description of your pull request are directly related to the speed at which we are able to review, approve, and merge your contribution into pycytominer-transform.
+The content and description of your pull request are directly related to the speed at which we are able to review, approve, and merge your contribution into CytoTable.
 To ensure an efficient review process please perform the following steps:
 
-1. Follow all instructions in the [pull request template](https://github.com/cytomining/pycytominer-transform/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
+1. Follow all instructions in the [pull request template](https://github.com/cytomining/CytoTable/blob/main/.github/PULL_REQUEST_TEMPLATE.md)
 1. Triple check that your pull request is adding _one_ specific feature. Small, bite-sized pull requests move so much faster than large pull requests.
 1. After submitting your pull request, ensure that your contribution passes all status checks (e.g. passes all tests)
 
@@ -105,7 +105,7 @@ flowchart LR
     python --> |running within| containers
 ```
 
-Pycytominer-transform is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
+CytoTable is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
 We use [Dagger](https://docs.dagger.io/) for consistent local testing and for automated tests via containers.
 
 ### Getting started
@@ -188,7 +188,7 @@ Test coverage is provided via [coverage](https://github.com/nedbat/coveragepy) a
 Use the following command to generate HTML coverage reports (reports made available at `./htmlcov/index.html`):
 
 ```sh
-% poetry run pytest --cov=pycytominer_transform tests/
+% poetry run pytest --cov=cytotable tests/
 ```
 
 ## Documentation

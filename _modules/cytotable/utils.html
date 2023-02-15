@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>pycytominer_transform.utils &#8212; pycytominer-transform v0.0.1 documentation</title>
+    <title>cytotable.utils &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
@@ -34,16 +34,16 @@
 
           <div class="body" role="main">
             
-  <h1>Source code for pycytominer_transform.utils</h1><div class="highlight"><pre>
+  <h1>Source code for cytotable.utils</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">Utility functions for pycytominer-transform</span>
+<span class="sd">Utility functions for CytoTable</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">duckdb</span>
 
 
 <span class="c1"># custom sort for resulting columns</span>
-<div class="viewcode-block" id="_column_sort"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.utils._column_sort">[docs]</a><span class="k">def</span> <span class="nf">_column_sort</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<div class="viewcode-block" id="_column_sort"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._column_sort">[docs]</a><span class="k">def</span> <span class="nf">_column_sort</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A custom sort for column values as a list.</span>
 <span class="sd">    To be used with sorted and Pyarrow tables.</span>
@@ -96,7 +96,7 @@
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_first</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_later</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span></div>
 
 
-<div class="viewcode-block" id="_duckdb_with_sqlite"><a class="viewcode-back" href="../../python-api.html#pycytominer_transform.utils._duckdb_with_sqlite">[docs]</a><span class="k">def</span> <span class="nf">_duckdb_with_sqlite</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
+<div class="viewcode-block" id="_duckdb_with_sqlite"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._duckdb_with_sqlite">[docs]</a><span class="k">def</span> <span class="nf">_duckdb_with_sqlite</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a DuckDB connection with the</span>
 <span class="sd">    sqlite_scanner installed and loaded.</span>
@@ -120,7 +120,7 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">pycytominer-transform</a></h1>
+<h1 class="logo"><a href="../../index.html">CytoTable</a></h1>
 
 
 
@@ -128,7 +128,7 @@
 
 
 <p>
-<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=pycytominer-transform&type=star&count=false&size=large&v=2"
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=CytoTable&type=star&count=false&size=large&v=2"
   allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
 </p>
 
