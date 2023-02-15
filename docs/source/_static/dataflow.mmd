@@ -9,7 +9,7 @@ flowchart LR
     sqlite[(SQLite File)]
     cp_sqlite[(SQLite File)]
     pycytominer
-    pycytominer-transform
+    CytoTable
 
     images --> CellProfiler
     images --> DeepProfiler
@@ -18,8 +18,8 @@ flowchart LR
     DeepProfiler --> npz
     csv --> cytominer-database
     cytominer-database --> sqlite
-    csv --> pycytominer-transform
-    npz --> pycytominer-transform
-    sqlite --> pycytominer-transform
-    cp_sqlite --> pycytominer-transform
-    pycytominer-transform --> pycytominer
+    csv --> CytoTable
+    npz --> CytoTable
+    sqlite --> CytoTable
+    cp_sqlite --> CytoTable
+    CytoTable --> pycytominer

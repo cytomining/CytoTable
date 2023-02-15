@@ -5,7 +5,7 @@
 Convert
 -------
 
-.. automodule:: pycytominer_transform.convert
+.. automodule:: cytotable.convert
    :members:
    :private-members:
    :undoc-members:
@@ -52,7 +52,7 @@ Convert
 Sources
 -------
 
-.. automodule:: pycytominer_transform.sources
+.. automodule:: cytotable.sources
    :members:
    :private-members:
    :undoc-members:
@@ -79,7 +79,7 @@ Sources
 Utils
 -----
 
-.. automodule:: pycytominer_transform.utils
+.. automodule:: cytotable.utils
    :members:
    :private-members:
    :undoc-members:
@@ -90,7 +90,7 @@ Utils
 Presets
 -------
 
-.. autodata:: pycytominer_transform.presets.config
+.. autodata:: cytotable.presets.config
    :no-value:
 
 |
@@ -98,7 +98,7 @@ Presets
 Exceptions
 ----------
 
-.. automodule:: pycytominer_transform.exceptions
+.. automodule:: cytotable.exceptions
    :members:
    :undoc-members:
    :show-inheritance:

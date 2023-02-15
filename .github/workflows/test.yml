@@ -15,8 +15,8 @@ jobs:
         python_version: ["3.8", "3.9", "3.10"]
     runs-on: ubuntu-latest
     env:
-      DAGGER_CACHE_FROM: type=gha,scope=pycytominer_transform
-      DAGGER_CACHE_TO: type=gha,mode=max,scope=pycytominer_transform
+      DAGGER_CACHE_FROM: type=gha,scope=cytotable
+      DAGGER_CACHE_TO: type=gha,mode=max,scope=cytotable
     steps:
       - name: Checkout
         uses: actions/checkout@v3

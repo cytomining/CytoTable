@@ -3,7 +3,7 @@ _referenced with modifications from [pycytominer](https://github.com/cytomining/
 
 # Description
 
-Thank you for your contribution to pycytominer-transform!
+Thank you for your contribution to CytoTable!
 Please _succinctly_ summarize your proposed change.
 What motivated you to make this change?
 

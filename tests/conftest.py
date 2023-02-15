@@ -17,7 +17,7 @@ from moto.server import ThreadedMotoServer
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-from pycytominer_transform.utils import _column_sort
+from cytotable.utils import _column_sort
 
 
 # note: we use name here to avoid pylint flagging W0621
