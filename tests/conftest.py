@@ -59,8 +59,7 @@ def fixture_data_dirs_cytominerdatabase() -> List[str]:
 
 @pytest.fixture(name="cytominerdatabase_sqlite")
 def fixture_cytominerdatabase_sqlite(
-    get_tempdir: str,
-    data_dirs_cytominerdatabase: List[str],
+    get_tempdir: str, data_dirs_cytominerdatabase: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test data as sqlite data
@@ -91,8 +90,7 @@ def fixture_cytominerdatabase_sqlite(
 
 @pytest.fixture()
 def pycytominer_merge_single_cells_parquet(
-    get_tempdir: str,
-    cytominerdatabase_sqlite: List[str],
+    get_tempdir: str, cytominerdatabase_sqlite: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test sqlite data as
@@ -146,24 +144,9 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
     )
     table_nuclei_1 = pa.Table.from_pydict(
         {
-            "ImageNumber": pa.array(
-                [
-                    "1",
-                    "1",
-                ]
-            ),
-            "Nuclei_ObjectNumber": pa.array(
-                [
-                    1,
-                    2,
-                ]
-            ),
-            "Nuclei_Feature_Z": pa.array(
-                [
-                    0.001,
-                    0.002,
-                ]
-            ),
+            "ImageNumber": pa.array(["1", "1",]),
+            "Nuclei_ObjectNumber": pa.array([1, 2,]),
+            "Nuclei_Feature_Z": pa.array([0.001, 0.002,]),
         }
     )
 
@@ -180,8 +163,7 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
 
 @pytest.fixture(name="example_local_sources")
 def fixture_example_local_sources(
-    get_tempdir: str,
-    example_tables: Tuple[pa.Table, ...],
+    get_tempdir: str, example_tables: Tuple[pa.Table, ...],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Provide an example source
@@ -244,9 +226,7 @@ def fixture_example_local_sources(
 
 
 @pytest.fixture(name="cellprofiler_merged_examplehuman")
-def fixture_cellprofiler_merged_examplehuman(
-    data_dir_cellprofiler: str,
-) -> pa.Table:
+def fixture_cellprofiler_merged_examplehuman(data_dir_cellprofiler: str,) -> pa.Table:
     """
     Fixture for manually configured merged/joined result from
     CellProfiler ExampleHuman CSV Data
@@ -322,9 +302,7 @@ def fixture_cellprofiler_merged_examplehuman(
 
 
 @pytest.fixture(name="cellprofiler_merged_nf1data")
-def fixture_cellprofiler_merged_nf1data(
-    data_dir_cellprofiler: str,
-) -> pa.Table:
+def fixture_cellprofiler_merged_nf1data(data_dir_cellprofiler: str,) -> pa.Table:
     """
     Fixture for manually configured merged/joined result from
     CellProfiler NF1_SchwannCell SQLite Data
@@ -344,7 +322,7 @@ def fixture_cellprofiler_merged_nf1data(
             CALL sqlite_attach(?);
             """,
             parameters=[
-                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
+                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
             ],
         )
         .execute(

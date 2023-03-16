@@ -65,10 +65,10 @@ references:
     title: Way Lab NF1_SchwannCell_data CellProfiler Data
     type: data
     repository-code: "https://github.com/WayScience/NF1_SchwannCell_data"
-    url: "https://github.com/WayScience/NF1_SchwannCell_data/blob/main/CellProfiler_pipelines/Analysis_Output/NF1_data.sqlite"
-    scope: "NF1_data.sqlite"
+    url: "https://github.com/WayScience/NF1_SchwannCell_data/blob/7b0f5a232ddaf87a92d93bc3a7d23be666cd3627/CellProfiler_pipelines/Analysis_Output/Plate1_Output/all_cellprofiler.sqlite"
+    scope: "all_cellprofiler.sqlite"
     notes: >-
-      CellProfiler generated data as NF1_data.sqlite is used to help validate
+      CellProfiler generated data from NF1_SchwannCell_data project is used to help validate
       expected results for pycytominer-transform.
     identifiers:
       - description: "Github Link with Contributors"
