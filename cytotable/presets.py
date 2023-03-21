@@ -59,7 +59,7 @@ config = {
             "ImageNumber",
             "Metadata_Well",
             "Parent_Cells",
-            "Parent_OrigNuclei",
+            "Parent_Nuclei",
         ),
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
@@ -89,7 +89,7 @@ config = {
                 AND per_cells.Cells_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Cells
             LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
                 per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
-                AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_OrigNuclei
+                AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Nuclei
             """,
     },
 }

@@ -630,7 +630,7 @@ def test_convert_cellprofiler_sqlite(
     test_result = parquet.read_table(
         convert(
             source_path=(
-                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
+                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
             ),
             dest_path=f"{get_tempdir}/NF1_data.parquet",
             dest_datatype="parquet",

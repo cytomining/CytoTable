@@ -344,7 +344,7 @@ def fixture_cellprofiler_merged_nf1data(
             CALL sqlite_attach(?);
             """,
             parameters=[
-                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/NF1_data.sqlite"
+                f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
             ],
         )
         .execute(
@@ -366,7 +366,7 @@ def fixture_cellprofiler_merged_nf1data(
                 AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
             LEFT JOIN Per_Nuclei nuclei ON
                 nuclei.ImageNumber = cytoplasm.ImageNumber
-                AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_OrigNuclei
+                AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
         """
         )
         .arrow()
