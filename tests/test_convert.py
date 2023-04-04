@@ -586,7 +586,6 @@ def test_convert_cytominerdatabase_csv(
                 # objectnumber references are provided via cytoplasm parent object joins
                 "Metadata_ObjectNumber",
                 "Metadata_ObjectNumber_cells",
-                "__index_level_0__",
             ]
         )
         # rename column to account for minor difference in processing
