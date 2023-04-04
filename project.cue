@@ -51,11 +51,6 @@ import "universe.dagger.io/docker"
 				source:   "./poetry.lock"
 				dest:     "/workdir/poetry.lock"
 			},
-			docker.#Copy & {
-				contents: filesystem
-				source:   "./.pre-commit-config.yaml"
-				dest:     "/workdir/.pre-commit-config.yaml"
-			},
 			docker.#Run & {
 				command: {
 					name: "pip"
@@ -66,19 +61,6 @@ import "universe.dagger.io/docker"
 				command: {
 					name: "poetry"
 					args: ["install", "--no-root", "--no-interaction", "--no-ansi"]
-				}
-			},
-			// init for pre-commit install
-			docker.#Run & {
-				command: {
-					name: "git"
-					args: ["init"]
-				}
-			},
-			docker.#Run & {
-				command: {
-					name: "poetry"
-					args: ["run", "pre-commit", "install-hooks"]
 				}
 			},
 		]
@@ -92,7 +74,7 @@ import "universe.dagger.io/docker"
 				source:   "./"
 				dest:     "/workdir"
 				// avoid recopying files for caching
-				exclude: ["./pyproject.toml", "./poetry.lock", "./.pre-commit-config.yaml"]
+				exclude: ["./pyproject.toml", "./poetry.lock"]
 			},
 		]
 	}
@@ -272,14 +254,6 @@ dagger.#Plan & {
 					filesystem: client.filesystem."./".read.contents
 					python_ver: compat_python_version
 					poetry_ver: poetry_version
-				}
-				// run pre-commit checks
-				pre_commit: docker.#Run & {
-					input: build.output
-					command: {
-						name: "poetry"
-						args: ["run", "pre-commit", "run", "--all-files"]
-					}
 				}
 				// check that we don't have sphinx build errors
 				sphinx: docker.#Run & {

@@ -66,14 +66,11 @@ repos:
         # pylint due to it's dynamic analysis capabilities
         # and the way pre-commit references virtual environments.
         additional_dependencies:
-          - "cloudpathlib[all]>=0.12.0"
+          - "cloudpathlib[all]>=0.13.0"
           - "pyarrow>=11.0.0"
           - "prefect>=2.7.0"
-          - "prefect-dask>=0.2.2"
+          - "prefect-dask>=0.2.3"
           - "pytest>=7.2.0"
-          - "moto[server,s3]>=4.0.11"
-          - "duckdb>=0.6.0"
-          - "git+https://github.com/cytomining/pycytominer.git@afac3ea"
-        args:
-          # adding this arg as advised by pylint:I1101
-          - --extension-pkg-allow-list=duckdb
+          - "moto[server,s3]>=4.0.0"
+          - "duckdb>=0.7.0"
+          - "git+https://github.com/cytomining/pycytominer.git@c90438fd7c11ad8b1689c21db16dab1a5280de6c"

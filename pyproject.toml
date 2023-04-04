@@ -19,7 +19,6 @@ pytest-cov = "^4.0.0"
 Sphinx = "^6.0.0"
 myst-parser = "^1.0.0"
 sphinxcontrib-mermaid = "^0.8.0"
-pre-commit = "^3.0.0"
 prefect-dask = "^0.2.3"
 moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cffconvert = "^2.0.0"
