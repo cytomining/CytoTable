@@ -144,11 +144,10 @@ dagger.#Plan & {
 
 	client: {
 		filesystem: {
-			"./": read: contents:             dagger.#FS
-			"./project.cue": write: contents: actions.clean.cue.export.files."/workdir/project.cue"
-			"./docs/build": write: contents:  actions.docs.sphinx.export.directories."/workdir/docs/build"
-			"./htmlcov": write: contents:     actions.coverage.coverage.export.directories."/workdir/htmlcov"
-
+			"./": read: contents:                         dagger.#FS
+			"./project.cue": write: contents:             actions.clean.cue.export.files."/workdir/project.cue"
+			"./docs/build": write: contents:              actions.docs.sphinx.export.directories."/workdir/docs/build"
+			"./htmlcov": write: contents:                 actions.coverage.coverage.export.directories."/workdir/htmlcov"
 			"./tests/data/cellprofiler": write: contents: actions.gather_data.cellprofiler.export.export.directories."/usr/local/src/output"
 		}
 	}
