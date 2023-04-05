@@ -7,7 +7,7 @@ license = "BSD-3-Clause license"
 packages = [{include = "cytotable"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.11"
 pyarrow = "^11.0.0"
 prefect = "^2.7.0"
 cloudpathlib = {extras = ["all"], version = "^0.13.0"}
@@ -24,6 +24,7 @@ moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cffconvert = "^2.0.0"
 cytominer-database = "^0.3.4"
 pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "c90438fd7c11ad8b1689c21db16dab1a5280de6c" }
+scipy = "~1.8.0"
 
 [build-system]
 requires = ["poetry-core"]
