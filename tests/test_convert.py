@@ -567,7 +567,7 @@ def test_infer_source_group_common_schema(
 def test_convert_cytominerdatabase_csv(
     get_tempdir: str,
     data_dirs_cytominerdatabase: List[str],
-    pycytominer_merge_single_cells_parquet: List[str],
+    cytominerdatabase_to_pycytominer_merge_single_cells_parquet: List[str],
 ):
     """
     Tests convert with cytominerdatabase csvs and processed
@@ -575,7 +575,8 @@ def test_convert_cytominerdatabase_csv(
     """
 
     for cytominerdatabase_dir, pycytominer_merge_dir in zip(
-        data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
+        data_dirs_cytominerdatabase,
+        cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
     ):
         # load control table, dropping tablenumber
         # and unlabeled objectnumber (no compartment specified)

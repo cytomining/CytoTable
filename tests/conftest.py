@@ -90,7 +90,7 @@ def fixture_cytominerdatabase_sqlite(
 
 
 @pytest.fixture()
-def pycytominer_merge_single_cells_parquet(
+def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
     get_tempdir: str,
     cytominerdatabase_sqlite: List[str],
 ) -> List[str]:
