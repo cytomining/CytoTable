@@ -12,8 +12,8 @@ jobs:
   run_pre_commit_tests:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v3
-      with:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
           python-version: 3.9
-    - uses: pre-commit/action@v3.0.0
+      - uses: pre-commit/action@v3.0.0
