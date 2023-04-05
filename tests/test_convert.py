@@ -46,7 +46,6 @@ def test_config():
                 "CONFIG_CHUNK_SIZE",
                 "CONFIG_CHUNK_COLUMNS",
                 "CONFIG_JOINS",
-                "CONFIG_SOURCE_VERSION",
             ]
         ) == sorted(config_preset.keys())
 
@@ -769,10 +768,7 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
             # perform merge_single_cells without annotation
             # and receive parquet filepath
         ).merge_single_cells(
-            sc_output_file=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".pycytominer.parquet"
-            ),
+            sc_output_file=f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}.pycytominer.parquet",
             output_type="parquet",
         )
     )
@@ -785,10 +781,7 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
     cytotable_table = parquet.read_table(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
-            dest_path=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.parquet"
-            ),
+            dest_path=f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}.cytotable.parquet",
             dest_datatype="parquet",
             merge=True,
             merge_chunk_size=100,

@@ -4,10 +4,6 @@ Presets for common pycytominer-transform configurations.
 
 config = {
     "cellprofiler_csv": {
-        # version specifications using related references
-        "CONFIG_SOURCE_VERSION": {
-            "cellprofiler": "v4.0.0",
-        },
         # names of source table compartments (for ex. cells.csv, etc.)
         "CONFIG_NAMES_COMPARTMENTS": ("cells", "nuclei", "cytoplasm"),
         # names of source table metadata (for ex. image.csv, etc.)
@@ -53,10 +49,6 @@ config = {
             """,
     },
     "cellprofiler_sqlite": {
-        # version specifications using related references
-        "CONFIG_SOURCE_VERSION": {
-            "cellprofiler": "v4.2.4",
-        },
         # names of source table compartments (for ex. cells.csv, etc.)
         "CONFIG_NAMES_COMPARTMENTS": ("cells", "nuclei", "cytoplasm"),
         # names of source table metadata (for ex. image.csv, etc.)
@@ -101,11 +93,6 @@ config = {
             """,
     },
     "cellprofiler_sqlite_pycytominer": {
-        # version specifications using related references
-        "CONFIG_SOURCE_VERSION": {
-            "cellprofiler": "v4.2.4",
-            "pycytominer": "c90438fd7c11ad8b1689c21db16dab1a5280de6c",
-        },
         # names of source table compartments (for ex. cells.csv, etc.)
         "CONFIG_NAMES_COMPARTMENTS": ("cells", "nuclei", "cytoplasm"),
         # names of source table metadata (for ex. image.csv, etc.)
