@@ -43,6 +43,16 @@ def fixture_data_dir_cellprofiler() -> str:
     return f"{pathlib.Path(__file__).parent}/data/cellprofiler"
 
 
+@pytest.fixture(name="data_dir_cellprofiler_sqlite_nf1")
+def fixture_data_dir_cellprofiler_sqlite_nf1(data_dir_cellprofiler: str) -> str:
+    """
+    Provide a data directory for cellprofiler sqlite data from
+    NF1 SchwannCell Data project.
+    """
+
+    return f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
+
+
 @pytest.fixture(name="data_dirs_cytominerdatabase")
 def fixture_data_dirs_cytominerdatabase() -> List[str]:
     """

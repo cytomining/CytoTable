@@ -133,7 +133,7 @@ def _prepend_column_name(
         #   column_name: 'AreaShape_Area'
         #   updated_column_name: 'Cells_AreaShape_Area'
         if column_name not in identifying_columns and not column_name.startswith(
-            source_group_name_stem
+            source_group_name_stem.capitalize()
         ):
             updated_column_names.append(f"{source_group_name_stem}_{column_name}")
 
@@ -166,7 +166,6 @@ def _prepend_column_name(
             and column_name in identifying_columns
         ):
             updated_column_names.append(f"Metadata_{column_name}")
-
         # else we add the existing colname to the updated list as-is
         else:
             updated_column_names.append(column_name)
