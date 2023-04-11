@@ -430,6 +430,7 @@ def fixture_s3_session() -> boto3.session.Session:
 def example_s3_endpoint(
     s3_session: boto3.session.Session,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
+    data_dir_cellprofiler_sqlite_nf1: str,
 ) -> str:
     """
     Create an mocked bucket which includes example sources
@@ -460,6 +461,14 @@ def example_s3_endpoint(
             # mock nested directory structure within bucket per each file's parent
             Key=f"{source_path.parent.name}/{source_path.name}",
         )
+
+    # upload sqlite example
+    s3_client.upload_file(
+        Filename=data_dir_cellprofiler_sqlite_nf1,
+        Bucket=bucket_name,
+        # mock nested directory structure within bucket
+        Key=f"{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).parent}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
+    )
 
     # return endpoint url for use in testing
     return endpoint_url

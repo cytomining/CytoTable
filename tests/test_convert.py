@@ -507,13 +507,13 @@ def test_to_parquet(
         assert parquet_result.shape == csv_source.shape
 
 
-def test_convert_s3_path(
+def test_convert_s3_path_csv(
     get_tempdir: str,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_s3_endpoint: str,
 ):
     """
-    Tests convert with mocked s3 object storage endpoint
+    Tests convert with mocked csv s3 object storage endpoint
     """
 
     multi_dir_nonconcat_s3_result = convert(
@@ -549,6 +549,46 @@ def test_convert_s3_path(
 
         assert parquet_result.schema.equals(parquet_control.schema)
         assert parquet_result.shape == parquet_control.shape
+
+
+def test_convert_s3_path_sqlite(
+    get_tempdir: str,
+    data_dir_cellprofiler_sqlite_nf1: str,
+    example_s3_endpoint: str,
+):
+    """
+    Tests convert with mocked sqlite s3 object storage endpoint
+    """
+
+    # use cytotable convert to produce parquet file
+    local_cytotable_table = parquet.read_table(
+        source=convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            merge=True,
+            merge_chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+    )
+
+    s3_cytotable_table = parquet.read_table(
+        source=convert(
+            source_path=f"s3://example/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).parent}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            merge=True,
+            merge_chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+            endpoint_url=example_s3_endpoint,
+        )
+    )
 
 
 def test_infer_source_group_common_schema(
