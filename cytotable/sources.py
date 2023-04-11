@@ -32,7 +32,8 @@ def _build_path(
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
-    processed_path = AnyPath(path)
+    # form a path using cloudpathlib AnyPath, stripping certain characters
+    processed_path = AnyPath(path.strip("'\" "))
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
@@ -52,7 +53,7 @@ def _get_source_filepaths(
 
     Args:
         path: Union[pathlib.Path, Any]:
-            Path to seek filepaths within.
+            Path as directory to seek filepaths within or file reference.
         targets: List[str]:
             Compartment and metadata names to seek within the provided path.
         source_datatype: Optional[str]  (Default value = None)
