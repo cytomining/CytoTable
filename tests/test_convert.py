@@ -46,6 +46,7 @@ def test_config():
                 "CONFIG_CHUNK_SIZE",
                 "CONFIG_CHUNK_COLUMNS",
                 "CONFIG_JOINS",
+                "CONFIG_SOURCE_VERSION",
             ]
         ) == sorted(config_preset.keys())
 
