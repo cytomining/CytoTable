@@ -128,7 +128,7 @@
 <span class="sd">            Name of data source source group (for common compartments, etc).</span>
 <span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
 <span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
-<span class="sd">            ignored with regards to renaming.</span>
+<span class="sd">            treated differently when renaming.</span>
 <span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
 <span class="sd">            List of source data names which are used as metadata</span>
 <span class="sd">        targets: List[str]:</span>
@@ -160,19 +160,29 @@
 
     <span class="k">for</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
         <span class="c1"># if-condition for prepending source_group_name_stem to column name</span>
-        <span class="c1"># where colname is not an identifying column</span>
+        <span class="c1"># where colname is not in identifying_columns parameter values</span>
         <span class="c1"># and where the column is not already prepended with source_group_name_stem</span>
         <span class="c1"># for example:</span>
         <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
         <span class="c1">#   column_name: &#39;AreaShape_Area&#39;</span>
         <span class="c1">#   updated_column_name: &#39;Cells_AreaShape_Area&#39;</span>
         <span class="k">if</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
-            <span class="n">source_group_name_stem</span>
+            <span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
         <span class="p">):</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        <span class="c1"># if-condition for prepending &#39;Metadata_&#39; to column name</span>
+        <span class="c1"># where colname is in identifying_columns parameter values</span>
+        <span class="c1"># and where the column is already prepended with source_group_name_stem</span>
+        <span class="c1"># for example:</span>
+        <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
+        <span class="c1">#   column_name: &#39;Cells_Number_Object_Number&#39;</span>
+        <span class="c1">#   updated_column_name: &#39;Metadata_Cells_Number_Object_Number&#39;</span>
+        <span class="k">elif</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+            <span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+        <span class="p">):</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="c1"># if-condition for prepending &#39;Metadata&#39; and source_group_name_stem to column name</span>
-        <span class="c1"># where colname is an identifying column</span>
+        <span class="c1"># where colname is in identifying_columns parameter values</span>
         <span class="c1"># and where the colname does not already start with &#39;Metadata_&#39;</span>
         <span class="c1"># and colname not in metadata list</span>
         <span class="c1"># and colname does not include &#39;ObjectNumber&#39;</span>
@@ -191,7 +201,7 @@
             <span class="p">)</span>
         <span class="c1"># if-condition for prepending &#39;Metadata&#39; to column name</span>
         <span class="c1"># where colname doesn&#39;t already start with &#39;Metadata_&#39;</span>
-        <span class="c1"># and colname is in identifying columns list</span>
+        <span class="c1"># and colname is in identifying_columns parameter values</span>
         <span class="c1"># for example:</span>
         <span class="c1">#   column_name: &#39;ObjectNumber&#39;</span>
         <span class="c1">#   updated_column_name: &#39;Metadata_ObjectNumber&#39;</span>
@@ -200,7 +210,6 @@
             <span class="ow">and</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
         <span class="p">):</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
         <span class="c1"># else we add the existing colname to the updated list as-is</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_name</span><span class="p">)</span>
