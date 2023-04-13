@@ -130,18 +130,18 @@ We use the [Google Style Python Docstrings](https://www.sphinx-doc.org/en/master
 
 ### Linting
 
-Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) (managed by this repo's poetry environment) via [Github Actions](https://docs.github.com/en/actions).
+Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) (managed independent of this project's poetry environment) via [Github Actions](https://docs.github.com/en/actions).
 Pre-commit can work alongside your local [git with hooks](https://pre-commit.com/index.html#3-install-the-git-hook-scripts)
-The following command also can perform the same checks:
+After [installing pre-commit](https://pre-commit.com/#installation) within your development environment, the following command also can perform the same checks:
 
 ```sh
-% poetry run pre-commit run --all-files
+% pre-commit run --all-files
 ```
 
 ### Testing
 
 Automated or manual testing for this repo may be performed using Dagger actions.
-The Dagger test action performs [pytest](https://pytest.org/en/latest/contents.html) testing and also pre-commit checks mentioned above.
+The Dagger test action performs [pytest](https://pytest.org/en/latest/contents.html) testing among other checks.
 Dagger actions provide testing through Github actions.
 
 Example source data is sourced from [CellProfiler Examples](https://cellprofiler.org/examples) by processing it with [CellProfiler](https://github.com/CellProfiler/CellProfiler) with Dagger.

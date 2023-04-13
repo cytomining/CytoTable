@@ -40,7 +40,7 @@ class OSPathUseChecker(BaseRawFileChecker):
         the module's content is accessible via node.stream() function
         """
         with node.stream() as stream:
-            for (lineno, line) in enumerate(stream):
+            for lineno, line in enumerate(stream):
                 # check for os.path used within a line
                 if "os.path" in str(line):
                     self.add_message("ospath-discouraged", line=lineno)
