@@ -10,12 +10,9 @@
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/sphinx_highlight.js"></script>
-    <script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://unpkg.com/mermaid@9.4.0/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({startOnLoad:true});</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -44,7 +41,7 @@
 <p>If you are stuck, please feel free to ask any questions or ask for help.</p>
 <section id="code-of-conduct">
 <h2>Code of conduct<a class="headerlink" href="#code-of-conduct" title="Permalink to this heading">¶</a></h2>
-<p>This project is governed by our <a class="reference internal" href="code_of_conduct.html"><span class="doc std std-doc">code of conduct</span></a>.
+<p>This project is governed by our <a class="reference internal" href="code_of_conduct.html"><span class="std std-doc">code of conduct</span></a>.
 By participating, you are expected to uphold this code.
 Please report unacceptable behavior to cytodata.info&#64;gmail.com.</p>
 </section>
@@ -161,17 +158,17 @@ We use the <a class="reference external" href="https://www.sphinx-doc.org/en/mas
 </section>
 <section id="linting">
 <h3>Linting<a class="headerlink" href="#linting" title="Permalink to this heading">¶</a></h3>
-<p>Work added to this repo is automatically checked using <a class="reference external" href="https://pre-commit.com/">pre-commit</a> (managed by this repo’s poetry environment) via <a class="reference external" href="https://docs.github.com/en/actions">Github Actions</a>.
+<p>Work added to this repo is automatically checked using <a class="reference external" href="https://pre-commit.com/">pre-commit</a> (managed independent of this project’s poetry environment) via <a class="reference external" href="https://docs.github.com/en/actions">Github Actions</a>.
 Pre-commit can work alongside your local <a class="reference external" href="https://pre-commit.com/index.html#3-install-the-git-hook-scripts">git with hooks</a>
-The following command also can perform the same checks:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+After <a class="reference external" href="https://pre-commit.com/#installation">installing pre-commit</a> within your development environment, the following command also can perform the same checks:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
 </pre></div>
 </div>
 </section>
 <section id="testing">
 <h3>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h3>
 <p>Automated or manual testing for this repo may be performed using Dagger actions.
-The Dagger test action performs <a class="reference external" href="https://pytest.org/en/latest/contents.html">pytest</a> testing and also pre-commit checks mentioned above.
+The Dagger test action performs <a class="reference external" href="https://pytest.org/en/latest/contents.html">pytest</a> testing among other checks.
 Dagger actions provide testing through Github actions.</p>
 <p>Example source data is sourced from <a class="reference external" href="https://cellprofiler.org/examples">CellProfiler Examples</a> by processing it with <a class="reference external" href="https://github.com/CellProfiler/CellProfiler">CellProfiler</a> with Dagger.
 This example data is used during testing to ensure expected functionality.
@@ -335,7 +332,7 @@ Many thanks go to the developers and contributors of that repository.</p>
       &copy;2022, Cytomining Community.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.1.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
       
       |
