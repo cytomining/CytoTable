@@ -94,7 +94,7 @@ def _prepend_column_name(
             Name of data source source group (for common compartments, etc).
         identifying_columns: Union[List[str], Tuple[str, ...]]:
             Column names which are used as ID's and as a result need to be
-            ignored with regards to renaming.
+            treated differently when renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
             List of source data names which are used as metadata
         targets: List[str]:
@@ -126,19 +126,29 @@ def _prepend_column_name(
 
     for column_name in source["table"].column_names:
         # if-condition for prepending source_group_name_stem to column name
-        # where colname is not an identifying column
+        # where colname is not in identifying_columns parameter values
         # and where the column is not already prepended with source_group_name_stem
         # for example:
         #   source_group_name_stem: 'Cells'
         #   column_name: 'AreaShape_Area'
         #   updated_column_name: 'Cells_AreaShape_Area'
         if column_name not in identifying_columns and not column_name.startswith(
-            source_group_name_stem
+            source_group_name_stem.capitalize()
         ):
             updated_column_names.append(f"{source_group_name_stem}_{column_name}")
-
+        # if-condition for prepending 'Metadata_' to column name
+        # where colname is in identifying_columns parameter values
+        # and where the column is already prepended with source_group_name_stem
+        # for example:
+        #   source_group_name_stem: 'Cells'
+        #   column_name: 'Cells_Number_Object_Number'
+        #   updated_column_name: 'Metadata_Cells_Number_Object_Number'
+        elif column_name in identifying_columns and column_name.startswith(
+            source_group_name_stem.capitalize()
+        ):
+            updated_column_names.append(f"Metadata_{column_name}")
         # if-condition for prepending 'Metadata' and source_group_name_stem to column name
-        # where colname is an identifying column
+        # where colname is in identifying_columns parameter values
         # and where the colname does not already start with 'Metadata_'
         # and colname not in metadata list
         # and colname does not include 'ObjectNumber'
@@ -157,7 +167,7 @@ def _prepend_column_name(
             )
         # if-condition for prepending 'Metadata' to column name
         # where colname doesn't already start with 'Metadata_'
-        # and colname is in identifying columns list
+        # and colname is in identifying_columns parameter values
         # for example:
         #   column_name: 'ObjectNumber'
         #   updated_column_name: 'Metadata_ObjectNumber'
@@ -166,7 +176,6 @@ def _prepend_column_name(
             and column_name in identifying_columns
         ):
             updated_column_names.append(f"Metadata_{column_name}")
-
         # else we add the existing colname to the updated list as-is
         else:
             updated_column_names.append(column_name)

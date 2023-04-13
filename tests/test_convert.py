@@ -12,6 +12,7 @@ import pytest
 from cloudpathlib import AnyPath
 from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
+from pycytominer.cyto_utils.cells import SingleCells
 
 from cytotable.convert import (
     _concat_join_sources,
@@ -27,6 +28,7 @@ from cytotable.convert import (
 )
 from cytotable.presets import config
 from cytotable.sources import _get_source_filepaths, _infer_source_datatype
+from cytotable.utils import _column_sort
 
 
 def test_config():
@@ -44,6 +46,7 @@ def test_config():
                 "CONFIG_CHUNK_SIZE",
                 "CONFIG_CHUNK_COLUMNS",
                 "CONFIG_JOINS",
+                "CONFIG_SOURCE_VERSION",
             ]
         ) == sorted(config_preset.keys())
 
@@ -567,7 +570,7 @@ def test_infer_source_group_common_schema(
 def test_convert_cytominerdatabase_csv(
     get_tempdir: str,
     data_dirs_cytominerdatabase: List[str],
-    pycytominer_merge_single_cells_parquet: List[str],
+    cytominerdatabase_to_pycytominer_merge_single_cells_parquet: List[str],
 ):
     """
     Tests convert with cytominerdatabase csvs and processed
@@ -575,7 +578,8 @@ def test_convert_cytominerdatabase_csv(
     """
 
     for cytominerdatabase_dir, pycytominer_merge_dir in zip(
-        data_dirs_cytominerdatabase, pycytominer_merge_single_cells_parquet
+        data_dirs_cytominerdatabase,
+        cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
     ):
         # load control table, dropping tablenumber
         # and unlabeled objectnumber (no compartment specified)
@@ -733,3 +737,78 @@ def test_convert_dask_cellprofiler_csv(
 
     assert test_result.shape == control_result.shape
     assert test_result.equals(control_result)
+
+
+def test_convert_cellprofiler_sqlite_pycytominer_merge(
+    get_tempdir: str,
+    data_dir_cellprofiler_sqlite_nf1: str,
+):
+    """
+    Tests for alignment with Pycytominer SingleCells.merge_single_cells
+    compatibility along with conversion functionality.
+    """
+
+    # use pycytominer SingleCells.merge_single_cells to produce parquet file
+    pycytominer_table = parquet.read_table(
+        source=SingleCells(
+            sql_file=f"sqlite:///{data_dir_cellprofiler_sqlite_nf1}",
+            compartments=["Per_Cells", "Per_Cytoplasm", "Per_Nuclei"],
+            compartment_linking_cols={
+                "Per_Cytoplasm": {
+                    "Per_Cells": "Cytoplasm_Parent_Cells",
+                    "Per_Nuclei": "Cytoplasm_Parent_Nuclei",
+                },
+                "Per_Cells": {"Per_Cytoplasm": "Cells_Number_Object_Number"},
+                "Per_Nuclei": {"Per_Cytoplasm": "Nuclei_Number_Object_Number"},
+            },
+            image_table_name="Per_Image",
+            strata=["Image_Metadata_Well", "Image_Metadata_Plate"],
+            merge_cols=["ImageNumber"],
+            image_cols="ImageNumber",
+            load_image_data=True,
+            # perform merge_single_cells without annotation
+            # and receive parquet filepath
+        ).merge_single_cells(
+            sc_output_file=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".pycytominer.parquet"
+            ),
+            output_type="parquet",
+        )
+    )
+    # sort the result column order by cytotable sorting preference
+    pycytominer_table = pycytominer_table.select(
+        sorted(sorted(pycytominer_table.column_names), key=_column_sort)
+    )
+
+    # use cytotable convert to produce parquet file
+    cytotable_table = parquet.read_table(
+        source=convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            merge=True,
+            merge_chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+    )
+
+    # find the difference in column names and display it as part of an assertion
+    column_diff = list(
+        set(pycytominer_table.schema.names) - set(cytotable_table.schema.names)
+    )
+    # if there are no differences in column names, we should pass the assertion
+    # (empty collections evaluate to false)
+    assert not column_diff
+
+    # check the schemas, shape, and equality between tables
+    # note: we cast into pycytominer_table's schema types in order to
+    # properly perform comparisons as pycytominer and cytotable differ in their
+    # datatyping implementations
+    assert pycytominer_table.schema.equals(
+        cytotable_table.cast(target_schema=pycytominer_table.schema).schema
+    )
+    assert pycytominer_table.shape == cytotable_table.shape
