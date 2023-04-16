@@ -467,7 +467,7 @@ def example_s3_endpoint(
         Filename=data_dir_cellprofiler_sqlite_nf1,
         Bucket=bucket_name,
         # mock nested directory structure within bucket
-        Key=f"{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).parent}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
+        Key=f"nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
     )
 
     # return endpoint url for use in testing

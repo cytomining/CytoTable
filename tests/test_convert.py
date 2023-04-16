@@ -576,7 +576,7 @@ def test_convert_s3_path_sqlite(
 
     s3_cytotable_table = parquet.read_table(
         source=convert(
-            source_path=f"s3://example/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).parent}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
+            source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
             dest_path=(
                 f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
