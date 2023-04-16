@@ -65,7 +65,7 @@ def _get_source_filepaths(
             Data structure which groups related files based on the compartments.
     """
 
-    if source_datatype == "sqlite" or (path.is_file() and path.suffix == ".sqlite"):
+    if path.is_file() and path.suffix == ".sqlite":
         return {
             f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
             for table_name in _duckdb_with_sqlite()
