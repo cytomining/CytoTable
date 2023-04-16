@@ -569,8 +569,7 @@ def test_convert_s3_path_sqlite(
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
-            merge=True,
-            merge_chunk_size=100,
+            chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
         )
     )
@@ -583,8 +582,7 @@ def test_convert_s3_path_sqlite(
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
-            merge=True,
-            merge_chunk_size=100,
+            chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
             endpoint_url=example_s3_endpoint,
         )
@@ -650,7 +648,7 @@ def test_convert_cytominerdatabase_csv(
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
-                merge=True,
+                join=True,
                 drop_null=False,
             ),
             schema=control_table.schema,
@@ -830,8 +828,8 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
-            merge=True,
-            merge_chunk_size=100,
+            join=True,
+            chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
         )
     )
