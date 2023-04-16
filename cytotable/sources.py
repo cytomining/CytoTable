@@ -66,6 +66,10 @@ def _get_source_filepaths(
     """
 
     if path.is_file() and path.suffix == ".sqlite":
+        if any(f"{cloudtype}://" in str(path) for cloudtype in ["s3", "gcp", "az"]):
+            path.read_bytes()
+            path = AnyPath(path.fspath)
+
         return {
             f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
             for table_name in _duckdb_with_sqlite()
