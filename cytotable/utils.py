@@ -2,7 +2,11 @@
 Utility functions for CytoTable
 """
 
+import pathlib
+from typing import Union
+
 import duckdb
+from cloudpathlib import AnyPath
 
 
 # custom sort for resulting columns
@@ -75,3 +79,18 @@ def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
         LOAD sqlite_scanner;
         """
     )
+
+
+def _cache_cloudpath_to_local(path: Union[str, AnyPath]):
+    """
+    Takes a cloudpath and uses cache to convert to a local copy
+    for use in scenarios where remote work is not possible.
+    """
+    if any(
+        str(path).lower().startswith(cloudtype)
+        for cloudtype in ["s3://", "gc://", "az://"]
+    ):
+        path.read_bytes()
+        path = pathlib.Path(path.fspath)
+
+    return path
