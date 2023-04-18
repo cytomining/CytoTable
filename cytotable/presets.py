@@ -204,8 +204,8 @@ config = {
             LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
                 nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-        """
-    }
+        """,
+    },
 }
 """
 Configuration presets for pycytominer-transform
