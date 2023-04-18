@@ -37,8 +37,6 @@ For example:
 ```python
 import cytotable
 
-url = "'s3://cellpainting-gallery/cpg0016-jump/source_1/workspace/backend/Batch1_20221004/UL001643/UL001643.sqlite'"
-
 # Convert CellProfiler SQLite to parquet
 cytotable.convert(
     source_path="s3://bucket-name/single-cells.sqlite",
