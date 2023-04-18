@@ -101,7 +101,7 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
             str(path).lower().startswith(cloudtype)
             for cloudtype in ["s3://", "gc://", "az://"]
         )
-        # check tha the path is a file (caching won't work with a dir)
+        # check that the path is a file (caching won't work with a dir)
         and AnyPath(path).is_file()
         # check that the file is of sqlite type
         # (other file types will be handled remotely in cloud)
@@ -110,6 +110,7 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
         # incur a read which will trigger caching of the file
         CloudPath(path).read_bytes()
         # update the path to be the local filepath for reference in CytoTable ops
-        path = pathlib.Path(CloudPath(path).fspath)
+        path = CloudPath(path).fspath
 
-    return path
+    # cast the result as a pathlib.Path
+    return pathlib.Path(path)
