@@ -27,6 +27,29 @@ Local data paths are handled using [Python's Pathlib](https://docs.python.org/3/
 Cloud-based data paths are managed by [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/).
 Reference the following page for how cloudpathlib client arguments may be used: [Overview: Data Source Locations](overview.md#data-source-locations)
 
+#### Data Paths - Cloud-based SQLite
+
+SQLite data stored in cloud-based paths are downloaded locally using cloudpathlib's [caching capabilities](https://cloudpathlib.drivendata.org/stable/caching/) to perform SQL queries.
+Using data in this way may require the use of an additional parameter for the cloud storage provider to set the cache directory explicitly to avoid storage limitations (some temporary directories are constrained to system memory, etc).
+
+For example:
+
+```python
+import cytotable
+
+url = "'s3://cellpainting-gallery/cpg0016-jump/source_1/workspace/backend/Batch1_20221004/UL001643/UL001643.sqlite'"
+
+# Convert CellProfiler SQLite to parquet
+cytotable.convert(
+    source_path="s3://bucket-name/single-cells.sqlite",
+    dest_path="test.parquet",
+    dest_datatype="parquet",
+    # set the local cache dir to `./tmpdata`
+    # this will get passed to cloudpathlib's client
+    local_cache_dir="./tmpdata",
+)
+```
+
 ### In-process Data Format
 
 In addition to using Python native data types, we also accomplish internal data management for CytoTable using [PyArrow (Apache Arrow) Tables](https://arrow.apache.org/docs/python/generated/pyarrow.Table.html).
