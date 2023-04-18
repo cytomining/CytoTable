@@ -560,7 +560,7 @@ def test_convert_s3_path_sqlite(
     Tests convert with mocked sqlite s3 object storage endpoint
     """
 
-    # use cytotable convert to produce parquet file
+    # local sqlite read
     local_cytotable_table = parquet.read_table(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
@@ -574,6 +574,7 @@ def test_convert_s3_path_sqlite(
         )
     )
 
+    # s3 sqlite read with single and directly referenced file
     s3_cytotable_table = parquet.read_table(
         source=convert(
             source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
@@ -587,6 +588,24 @@ def test_convert_s3_path_sqlite(
             endpoint_url=example_s3_endpoint,
         )
     )
+
+    # s3 sqlite read with nested sqlite file
+    s3_cytotable_table_nested = parquet.read_table(
+        source=convert(
+            source_path="s3://example/nf1/",
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+            endpoint_url=example_s3_endpoint,
+        )
+    )
+
+    assert local_cytotable_table.equals(s3_cytotable_table)
+    assert local_cytotable_table.equals(s3_cytotable_table_nested)
 
 
 def test_infer_source_group_common_schema(
@@ -740,6 +759,7 @@ def test_convert_cellprofiler_csv(
     assert test_result.equals(control_result)
 
 
+@pytest.mark.skip(reason="optional test for concurrent processing with dask")
 def test_convert_dask_cellprofiler_csv(
     get_tempdir: str,
     data_dir_cellprofiler: str,

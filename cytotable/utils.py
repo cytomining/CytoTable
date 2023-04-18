@@ -6,7 +6,7 @@ import pathlib
 from typing import Union
 
 import duckdb
-from cloudpathlib import AnyPath
+from cloudpathlib import AnyPath, CloudPath
 
 
 # custom sort for resulting columns
@@ -86,11 +86,15 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]):
     Takes a cloudpath and uses cache to convert to a local copy
     for use in scenarios where remote work is not possible.
     """
-    if any(
-        str(path).lower().startswith(cloudtype)
-        for cloudtype in ["s3://", "gc://", "az://"]
+    if (
+        any(
+            str(path).lower().startswith(cloudtype)
+            for cloudtype in ["s3://", "gc://", "az://"]
+        )
+        and AnyPath(path).is_file()
+        and AnyPath(path).suffix.lower() == ".sqlite"
     ):
-        path.read_bytes()
-        path = pathlib.Path(path.fspath)
+        CloudPath(path).read_bytes()
+        path = pathlib.Path(CloudPath(path).fspath)
 
     return path

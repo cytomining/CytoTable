@@ -10,7 +10,7 @@ from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task
 
 from cytotable.exceptions import DatatypeException, NoInputDataException
-from cytotable.utils import _duckdb_with_sqlite, _cache_cloudpath_to_local
+from cytotable.utils import _cache_cloudpath_to_local, _duckdb_with_sqlite
 
 
 @task
@@ -33,7 +33,7 @@ def _build_path(
     """
 
     # form a path using cloudpathlib AnyPath, stripping certain characters
-    processed_path = AnyPath(path.strip("'\" "))
+    processed_path = AnyPath(str(path).strip("'\" "))
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
@@ -65,35 +65,52 @@ def _get_source_filepaths(
             Data structure which groups related files based on the compartments.
     """
 
-    if path.is_file() and path.suffix == ".sqlite":
-        path = _cache_cloudpath_to_local(path)
-        return {
-            f"{table_name}.sqlite": [{"table_name": table_name, "source_path": path}]
-            for table_name in _duckdb_with_sqlite()
-            .execute(
-                """
-                /* perform query on sqlite_master table for metadata on tables */
-                SELECT name as table_name
-                from sqlite_scan(?, 'sqlite_master')
-                where type='table'
-                """,
-                parameters=[str(path)],
-            )
-            .arrow()["table_name"]
-            .to_pylist()
-            if any(target.lower() in table_name.lower() for target in targets)
-        }
-
     # gathers files from provided path using compartments as a filter
-    sources = [
-        {"source_path": file}
-        for file in path.glob("**/*")
-        if file.is_file()
-        and (
-            targets is None
-            or str(file.stem).lower() in [target.lower() for target in targets]
-        )
-    ]
+    sources = (
+        [
+            {"source_path": file}
+            if file.suffix.lower() != ".sqlite"
+            else {"source_path": _cache_cloudpath_to_local(file)}
+            for file in path.glob("**/*")
+            if file.is_file()
+            and (
+                targets is None
+                or str(file.stem).lower() in [target.lower() for target in targets]
+                or file.suffix.lower() == ".sqlite"
+            )
+        ]
+        if not path.is_file() and not path.suffix.lower() == ".sqlite"
+        else [{"source_path": _cache_cloudpath_to_local(path)}]
+    )
+
+    expanded_sources = []
+    for element in sources:
+        if element["source_path"].suffix.lower() == ".sqlite":
+            expanded_sources += [
+                {
+                    "source_path": AnyPath(
+                        f"{element['source_path']}/{table_name}.sqlite"
+                    ),
+                    "table_name": table_name,
+                }
+                for table_name in _duckdb_with_sqlite()
+                .execute(
+                    """
+                    /* perform query on sqlite_master table for metadata on tables */
+                    SELECT name as table_name
+                    from sqlite_scan(?, 'sqlite_master')
+                    where type='table'
+                    """,
+                    parameters=[str(element["source_path"])],
+                )
+                .arrow()["table_name"]
+                .to_pylist()
+                if any(target.lower() in table_name.lower() for target in targets)
+            ]
+        else:
+            expanded_sources.append(element)
+
+    sources = expanded_sources
 
     # if we collected no files above, raise exception
     if len(sources) < 1:
@@ -104,7 +121,14 @@ def _get_source_filepaths(
     # group files together by similar filename for later data operations
     for unique_source in set(source["source_path"].name for source in sources):
         grouped_sources[unique_source.capitalize()] = [
-            source for source in sources if source["source_path"].name == unique_source
+            source
+            if source["source_path"].suffix.lower() != ".sqlite"
+            else {
+                "source_path": source["source_path"].parent,
+                "table_name": source["table_name"],
+            }
+            for source in sources
+            if source["source_path"].name == unique_source
         ]
 
     return grouped_sources
@@ -182,7 +206,7 @@ def _filter_source_filepaths(
             # ensure the filesize is greater than 0
             if file["source_path"].stat().st_size > 0
             # ensure the datatype matches the source datatype
-            and file["source_path"].suffix == f".{source_datatype}"
+            if file["source_path"].suffix == f".{source_datatype}"
         ]
         for filegroup, files in sources.items()
     }
