@@ -81,20 +81,35 @@ def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
     )
 
 
-def _cache_cloudpath_to_local(path: Union[str, AnyPath]):
+def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
     """
     Takes a cloudpath and uses cache to convert to a local copy
-    for use in scenarios where remote work is not possible.
+    for use in scenarios where remote work is not possible (sqlite).
+
+    Args:
+        path: Union[str, AnyPath]
+            A filepath which will be checked and potentially
+            converted to a local filepath.
+
+    Returns:
+        pathlib.Path
+            A local pathlib.Path to cached version of cloudpath file.
     """
     if (
+        # check that the filepath includes cloud provider prefix
         any(
             str(path).lower().startswith(cloudtype)
             for cloudtype in ["s3://", "gc://", "az://"]
         )
+        # check tha the path is a file (caching won't work with a dir)
         and AnyPath(path).is_file()
+        # check that the file is of sqlite type
+        # (other file types will be handled remotely in cloud)
         and AnyPath(path).suffix.lower() == ".sqlite"
     ):
+        # incur a read which will trigger caching of the file
         CloudPath(path).read_bytes()
+        # update the path to be the local filepath for reference in CytoTable ops
         path = pathlib.Path(CloudPath(path).fspath)
 
     return path

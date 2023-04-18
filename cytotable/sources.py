@@ -46,7 +46,6 @@ def _build_path(
 def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
     targets: List[str],
-    source_datatype: Optional[str] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -56,9 +55,6 @@ def _get_source_filepaths(
             Path as directory to seek filepaths within or file reference.
         targets: List[str]:
             Compartment and metadata names to seek within the provided path.
-        source_datatype: Optional[str]  (Default value = None)
-            Data type for source data files.
-
 
     Returns:
         Dict[str, List[Dict[str, Any]]]
@@ -67,25 +63,33 @@ def _get_source_filepaths(
 
     # gathers files from provided path using compartments as a filter
     sources = (
-        [
-            {"source_path": file}
-            if file.suffix.lower() != ".sqlite"
-            else {"source_path": _cache_cloudpath_to_local(file)}
+        # case for source_path as single sqlite file
+        [{"source_path": _cache_cloudpath_to_local(path)}]
+        if path.is_file() and path.suffix.lower() == ".sqlite"
+        # case for source_path as a directory
+        else [
+            # cache the file if it is a cloudpath and sqlite type
+            # (others will be an unmodified filepath)
+            {"source_path": _cache_cloudpath_to_local(file)}
             for file in path.glob("**/*")
+            # check that we have a file and not a dir
             if file.is_file()
             and (
                 targets is None
+                # checks for name of the file from targets (compartment + metadata names)
                 or str(file.stem).lower() in [target.lower() for target in targets]
+                # checks for sqlite extension (which may include compartment + metadata names)
                 or file.suffix.lower() == ".sqlite"
             )
         ]
-        if not path.is_file() and not path.suffix.lower() == ".sqlite"
-        else [{"source_path": _cache_cloudpath_to_local(path)}]
     )
 
+    # expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []
     for element in sources:
+        # check that the path is of sqlite type
         if element["source_path"].suffix.lower() == ".sqlite":
+            # creates individual entries for each table
             expanded_sources += [
                 {
                     "source_path": AnyPath(
@@ -93,6 +97,7 @@ def _get_source_filepaths(
                     ),
                     "table_name": table_name,
                 }
+                # perform a query to find the table names from the sqlite file
                 for table_name in _duckdb_with_sqlite()
                 .execute(
                     """
@@ -105,29 +110,35 @@ def _get_source_filepaths(
                 )
                 .arrow()["table_name"]
                 .to_pylist()
+                # make sure the table names match with compartment + metadata names
                 if any(target.lower() in table_name.lower() for target in targets)
             ]
         else:
+            # if we don't have sqlite source, append the existing element
             expanded_sources.append(element)
 
+    # reset sources to expanded_sources
     sources = expanded_sources
 
     # if we collected no files above, raise exception
     if len(sources) < 1:
         raise NoInputDataException(f"No input data to process at path: {str(path)}")
 
-    grouped_sources = {}
-
     # group files together by similar filename for later data operations
+    grouped_sources = {}
     for unique_source in set(source["source_path"].name for source in sources):
         grouped_sources[unique_source.capitalize()] = [
-            source
-            if source["source_path"].suffix.lower() != ".sqlite"
+            # case for files besides sqlite
+            source if source["source_path"].suffix.lower() != ".sqlite"
+            # if we have sqlite entries, update the source_path to the parent
+            # (the parent table database file) as grouped key name will now
+            # encapsulate the table name details.
             else {
                 "source_path": source["source_path"].parent,
                 "table_name": source["table_name"],
             }
             for source in sources
+            # focus only on entries which include the unique_source name
             if source["source_path"].name == unique_source
         ]
 
