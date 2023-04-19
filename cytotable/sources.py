@@ -52,7 +52,7 @@ def _get_source_filepaths(
 
     Args:
         path: Union[pathlib.Path, Any]:
-            Path as directory to seek filepaths within or file reference.
+            Either a directory path to seek filepaths within or a path directly to a file.
         targets: List[str]:
             Compartment and metadata names to seek within the provided path.
 
