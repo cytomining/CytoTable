@@ -217,7 +217,7 @@ def _filter_source_filepaths(
             # ensure the filesize is greater than 0
             if file["source_path"].stat().st_size > 0
             # ensure the datatype matches the source datatype
-            if file["source_path"].suffix == f".{source_datatype}"
+            and file["source_path"].suffix == f".{source_datatype}"
         ]
         for filegroup, files in sources.items()
     }
