@@ -2,11 +2,15 @@
 Utility functions for CytoTable
 """
 
+import logging
 import pathlib
 from typing import Union
 
 import duckdb
 from cloudpathlib import AnyPath, CloudPath
+from cloudpathlib.exceptions import InvalidPrefixError
+
+logger = logging.getLogger(__name__)
 
 
 # custom sort for resulting columns
@@ -95,22 +99,22 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
         pathlib.Path
             A local pathlib.Path to cached version of cloudpath file.
     """
-    if (
-        # check that the filepath includes cloud provider prefix
-        any(
-            str(path).lower().startswith(cloudtype)
-            for cloudtype in ["s3://", "gc://", "az://"]
-        )
-        # check that the path is a file (caching won't work with a dir)
-        and AnyPath(path).is_file()
-        # check that the file is of sqlite type
-        # (other file types will be handled remotely in cloud)
-        and AnyPath(path).suffix.lower() == ".sqlite"
-    ):
-        # incur a read which will trigger caching of the file
-        CloudPath(path).read_bytes()
-        # update the path to be the local filepath for reference in CytoTable ops
-        path = CloudPath(path).fspath
+
+    candidate_path = AnyPath(path)
+
+    # check that the path is a file (caching won't work with a dir)
+    # and check that the file is of sqlite type
+    # (other file types will be handled remotely in cloud)
+    if candidate_path.is_file() and candidate_path.suffix.lower() == ".sqlite":
+        try:
+            # update the path to be the local filepath for reference in CytoTable ops
+            # note: incurs a data read which will trigger caching of the file
+            path = CloudPath(path).fspath
+        except InvalidPrefixError:
+            # share information about not finding a cloud path
+            logger.info(
+                "Did not detect a cloud path based on prefix. Defaulting to use local path operations."
+            )
 
     # cast the result as a pathlib.Path
     return pathlib.Path(path)
