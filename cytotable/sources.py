@@ -61,28 +61,28 @@ def _get_source_filepaths(
             Data structure which groups related files based on the compartments.
     """
 
-    # gathers files from provided path using compartments as a filter
-    sources = (
-        # case for source_path as single sqlite file
-        [{"source_path": _cache_cloudpath_to_local(path)}]
-        if path.is_file() and path.suffix.lower() == ".sqlite"
-        # case for source_path as a directory
-        else [
-            # cache the file if it is a cloudpath and sqlite type
-            # (others will be an unmodified filepath)
-            {"source_path": _cache_cloudpath_to_local(file)}
-            for file in path.glob("**/*")
-            # check that we have a file and not a dir
-            if file.is_file()
-            and (
-                targets is None
-                # checks for name of the file from targets (compartment + metadata names)
-                or str(file.stem).lower() in [target.lower() for target in targets]
-                # checks for sqlite extension (which may include compartment + metadata names)
-                or file.suffix.lower() == ".sqlite"
-            )
-        ]
-    )
+    # gathers files from provided path using compartments + metadata as a filter
+    sources = [
+        # build source_paths for all files
+        # note: builds local cache for sqlite files from cloud
+        {"source_path": _cache_cloudpath_to_local(subpath)}
+        # loop for navigating single file or subpaths
+        for subpath in (
+            (path,)
+            # used if the source path is a single file
+            if path.is_file()
+            # iterates through a source directory
+            else (x for x in path.glob("**/*") if x.is_file())
+        )
+        # ensure the subpaths meet certain specifications
+        if (
+            targets is None
+            # checks for name of the file from targets (compartment + metadata names)
+            or str(subpath.stem).lower() in [target.lower() for target in targets]
+            # checks for sqlite extension (which may include compartment + metadata names)
+            or subpath.suffix.lower() == ".sqlite"
+        )
+    ]
 
     # expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []

@@ -65,6 +65,22 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
             targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
+    # check that single sqlite file is returned as desired
+    single_file_result = _get_source_filepaths.fn(
+        path=pathlib.Path(
+            f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
+        ),
+        targets=["cells"],
+    )
+    assert len(set(single_file_result.keys())) == 1
+
+    # check that single csv file is returned as desired
+    single_file_result = _get_source_filepaths.fn(
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv"),
+        targets=["cells"],
+    )
+    assert len(set(single_file_result.keys())) == 1
+
     single_dir_result = _get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
