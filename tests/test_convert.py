@@ -65,6 +65,22 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
             targets=["image", "cells", "nuclei", "cytoplasm"],
         )
 
+    # check that single sqlite file is returned as desired
+    single_file_result = _get_source_filepaths.fn(
+        path=pathlib.Path(
+            f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
+        ),
+        targets=["cells"],
+    )
+    assert len(set(single_file_result.keys())) == 1
+
+    # check that single csv file is returned as desired
+    single_file_result = _get_source_filepaths.fn(
+        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv"),
+        targets=["cells"],
+    )
+    assert len(set(single_file_result.keys())) == 1
+
     single_dir_result = _get_source_filepaths.fn(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
@@ -507,13 +523,13 @@ def test_to_parquet(
         assert parquet_result.shape == csv_source.shape
 
 
-def test_convert_s3_path(
+def test_convert_s3_path_csv(
     get_tempdir: str,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_s3_endpoint: str,
 ):
     """
-    Tests convert with mocked s3 object storage endpoint
+    Tests convert with mocked csv s3 object storage endpoint
     """
 
     multi_dir_nonconcat_s3_result = convert(
@@ -549,6 +565,63 @@ def test_convert_s3_path(
 
         assert parquet_result.schema.equals(parquet_control.schema)
         assert parquet_result.shape == parquet_control.shape
+
+
+def test_convert_s3_path_sqlite(
+    get_tempdir: str,
+    data_dir_cellprofiler_sqlite_nf1: str,
+    example_s3_endpoint: str,
+):
+    """
+    Tests convert with mocked sqlite s3 object storage endpoint
+    """
+
+    # local sqlite read
+    local_cytotable_table = parquet.read_table(
+        source=convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+    )
+
+    # s3 sqlite read with single and directly referenced file
+    s3_cytotable_table = parquet.read_table(
+        source=convert(
+            source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+            endpoint_url=example_s3_endpoint,
+        )
+    )
+
+    # s3 sqlite read with nested sqlite file
+    s3_cytotable_table_nested = parquet.read_table(
+        source=convert(
+            source_path="s3://example/nf1/",
+            dest_path=(
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                ".cytotable.parquet"
+            ),
+            dest_datatype="parquet",
+            chunk_size=100,
+            preset="cellprofiler_sqlite_pycytominer",
+            endpoint_url=example_s3_endpoint,
+        )
+    )
+
+    assert local_cytotable_table.equals(s3_cytotable_table)
+    assert local_cytotable_table.equals(s3_cytotable_table_nested)
 
 
 def test_infer_source_group_common_schema(
@@ -610,7 +683,7 @@ def test_convert_cytominerdatabase_csv(
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
-                merge=True,
+                join=True,
                 drop_null=False,
             ),
             schema=control_table.schema,
@@ -702,6 +775,7 @@ def test_convert_cellprofiler_csv(
     assert test_result.equals(control_result)
 
 
+@pytest.mark.skip(reason="optional test for concurrent processing with dask")
 def test_convert_dask_cellprofiler_csv(
     get_tempdir: str,
     data_dir_cellprofiler: str,
@@ -790,8 +864,8 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
-            merge=True,
-            merge_chunk_size=100,
+            join=True,
+            chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
         )
     )
