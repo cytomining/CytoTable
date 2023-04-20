@@ -157,7 +157,6 @@ config = {
         # version specifications using related references
         "CONFIG_SOURCE_VERSION": {
             "cellprofiler": "v2.X",
-            "pycytominer": "c90438fd7c11ad8b1689c21db16dab1a5280de6c",
         },
         # names of source table compartments (for ex. cells.csv, etc.)
         "CONFIG_NAMES_COMPARTMENTS": ("cells", "nuclei", "cytoplasm"),
