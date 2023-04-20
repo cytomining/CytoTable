@@ -3,6 +3,7 @@ Utility functions for CytoTable
 """
 
 import logging
+import multiprocessing
 import pathlib
 from typing import Union
 
@@ -77,7 +78,9 @@ def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
     """
 
     return duckdb.connect().execute(
-        """
+        # note: we use an f-string here to
+        # dynamically configure threads as appropriate
+        f"""
         /* install and load sqlite plugin for duckdb */
         INSTALL sqlite_scanner;
         LOAD sqlite_scanner;
@@ -86,8 +89,8 @@ def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
         See the following for more information:
         https://duckdb.org/docs/sql/pragmas#memory_limit-threads
         */
-        PRAGMA threads=2
-        """
+        PRAGMA threads={multiprocessing.cpu_count()}
+        """,
     )
 
 
