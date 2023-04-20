@@ -36,7 +36,15 @@
 <span class="sd">Utility functions for CytoTable</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+
 <span class="kn">import</span> <span class="nn">duckdb</span>
+<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
+<span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <span class="c1"># custom sort for resulting columns</span>
@@ -109,6 +117,41 @@
 <span class="sd">        LOAD sqlite_scanner;</span>
 <span class="sd">        &quot;&quot;&quot;</span>
     <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_cache_cloudpath_to_local"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._cache_cloudpath_to_local">[docs]</a><span class="k">def</span> <span class="nf">_cache_cloudpath_to_local</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes a cloudpath and uses cache to convert to a local copy</span>
+<span class="sd">    for use in scenarios where remote work is not possible (sqlite).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path: Union[str, AnyPath]</span>
+<span class="sd">            A filepath which will be checked and potentially</span>
+<span class="sd">            converted to a local filepath.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pathlib.Path</span>
+<span class="sd">            A local pathlib.Path to cached version of cloudpath file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">candidate_path</span> <span class="o">=</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="c1"># check that the path is a file (caching won&#39;t work with a dir)</span>
+    <span class="c1"># and check that the file is of sqlite type</span>
+    <span class="c1"># (other file types will be handled remotely in cloud)</span>
+    <span class="k">if</span> <span class="n">candidate_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">candidate_path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># update the path to be the local filepath for reference in CytoTable ops</span>
+            <span class="c1"># note: incurs a data read which will trigger caching of the file</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">CloudPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">fspath</span>
+        <span class="k">except</span> <span class="n">InvalidPrefixError</span><span class="p">:</span>
+            <span class="c1"># share information about not finding a cloud path</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Did not detect a cloud path based on prefix. Defaulting to use local path operations.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># cast the result as a pathlib.Path</span>
+    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 </pre></div>
 
           </div>

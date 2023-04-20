@@ -44,7 +44,7 @@
 <span class="kn">from</span> <span class="nn">prefect</span> <span class="kn">import</span> <span class="n">flow</span><span class="p">,</span> <span class="n">task</span>
 
 <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">DatatypeException</span><span class="p">,</span> <span class="n">NoInputDataException</span>
-<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_with_sqlite</span>
+<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_cache_cloudpath_to_local</span><span class="p">,</span> <span class="n">_duckdb_with_sqlite</span>
 
 
 <div class="viewcode-block" id="_build_path"><a class="viewcode-back" href="../../python-api.html#cytotable.sources._build_path">[docs]</a><span class="nd">@task</span>
@@ -66,7 +66,8 @@
 <span class="sd">            A local pathlib.Path or Cloudpathlib.AnyPath type path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">processed_path</span> <span class="o">=</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="c1"># form a path using cloudpathlib AnyPath, stripping certain characters</span>
+    <span class="n">processed_path</span> <span class="o">=</span> <span class="n">AnyPath</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="se">\&quot;</span><span class="s2"> &quot;</span><span class="p">))</span>
 
     <span class="c1"># set the client for a CloudPath</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processed_path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
@@ -79,64 +80,100 @@
 <span class="k">def</span> <span class="nf">_get_source_filepaths</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span>
     <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gather dataset of filepaths from a provided directory path.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path: Union[pathlib.Path, Any]:</span>
-<span class="sd">            Path to seek filepaths within.</span>
+<span class="sd">            Either a directory path to seek filepaths within or a path directly to a file.</span>
 <span class="sd">        targets: List[str]:</span>
 <span class="sd">            Compartment and metadata names to seek within the provided path.</span>
-<span class="sd">        source_datatype: Optional[str]  (Default value = None)</span>
-<span class="sd">            Data type for source data files.</span>
-
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
 <span class="sd">            Data structure which groups related files based on the compartments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="n">source_datatype</span> <span class="o">==</span> <span class="s2">&quot;sqlite&quot;</span> <span class="ow">or</span> <span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.sqlite&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">,</span> <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">path</span><span class="p">}]</span>
-            <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">_duckdb_with_sqlite</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">                /* perform query on sqlite_master table for metadata on tables */</span>
-<span class="sd">                SELECT name as table_name</span>
-<span class="sd">                from sqlite_scan(?, &#39;sqlite_master&#39;)</span>
-<span class="sd">                where type=&#39;table&#39;</span>
-<span class="sd">                &quot;&quot;&quot;</span><span class="p">,</span>
-                <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)],</span>
-            <span class="p">)</span>
-            <span class="o">.</span><span class="n">arrow</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
-            <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">table_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">)</span>
-        <span class="p">}</span>
-
-    <span class="c1"># gathers files from provided path using compartments as a filter</span>
+    <span class="c1"># gathers files from provided path using compartments + metadata as a filter</span>
     <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">file</span><span class="p">}</span>
-        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;**/*&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="p">(</span>
+        <span class="c1"># build source_paths for all files</span>
+        <span class="c1"># note: builds local cache for sqlite files from cloud</span>
+        <span class="p">{</span><span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">_cache_cloudpath_to_local</span><span class="p">(</span><span class="n">subpath</span><span class="p">)}</span>
+        <span class="c1"># loop for navigating single file or subpaths</span>
+        <span class="k">for</span> <span class="n">subpath</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">path</span><span class="p">,)</span>
+            <span class="c1"># used if the source path is a single file</span>
+            <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
+            <span class="c1"># iterates through a source directory</span>
+            <span class="k">else</span> <span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;**/*&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">is_file</span><span class="p">())</span>
+        <span class="p">)</span>
+        <span class="c1"># ensure the subpaths meet certain specifications</span>
+        <span class="k">if</span> <span class="p">(</span>
             <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
+            <span class="c1"># checks for name of the file from targets (compartment + metadata names)</span>
+            <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">subpath</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
+            <span class="c1"># checks for sqlite extension (which may include compartment + metadata names)</span>
+            <span class="ow">or</span> <span class="n">subpath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
         <span class="p">)</span>
     <span class="p">]</span>
+
+    <span class="c1"># expand sources to include sqlite tables similarly to files (one entry per table)</span>
+    <span class="n">expanded_sources</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+        <span class="c1"># check that the path is of sqlite type</span>
+        <span class="k">if</span> <span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+            <span class="c1"># creates individual entries for each table</span>
+            <span class="n">expanded_sources</span> <span class="o">+=</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">AnyPath</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">element</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.sqlite&quot;</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="c1"># perform a query to find the table names from the sqlite file</span>
+                <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">_duckdb_with_sqlite</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                    /* perform query on sqlite_master table for metadata on tables */</span>
+<span class="sd">                    SELECT name as table_name</span>
+<span class="sd">                    from sqlite_scan(?, &#39;sqlite_master&#39;)</span>
+<span class="sd">                    where type=&#39;table&#39;</span>
+<span class="sd">                    &quot;&quot;&quot;</span><span class="p">,</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])],</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">arrow</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
+                <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+                <span class="c1"># make sure the table names match with compartment + metadata names</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">table_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># if we don&#39;t have sqlite source, append the existing element</span>
+            <span class="n">expanded_sources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">element</span><span class="p">)</span>
+
+    <span class="c1"># reset sources to expanded_sources</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">expanded_sources</span>
 
     <span class="c1"># if we collected no files above, raise exception</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No input data to process at path: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="n">grouped_sources</span> <span class="o">=</span> <span class="p">{}</span>
-
     <span class="c1"># group files together by similar filename for later data operations</span>
+    <span class="n">grouped_sources</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">unique_source</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">):</span>
         <span class="n">grouped_sources</span><span class="p">[</span><span class="n">unique_source</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()]</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">source</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span> <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
+            <span class="c1"># case for files besides sqlite</span>
+            <span class="n">source</span> <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;.sqlite&quot;</span>
+            <span class="c1"># if we have sqlite entries, update the source_path to the parent</span>
+            <span class="c1"># (the parent table database file) as grouped key name will now</span>
+            <span class="c1"># encapsulate the table name details.</span>
+            <span class="k">else</span> <span class="p">{</span>
+                <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">],</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span>
+            <span class="c1"># focus only on entries which include the unique_source name</span>
+            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
         <span class="p">]</span>
 
     <span class="k">return</span> <span class="n">grouped_sources</span></div>
@@ -246,9 +283,7 @@
     <span class="n">source_path</span> <span class="o">=</span> <span class="n">_build_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1"># gather filepaths which will be used as the basis for this work</span>
-    <span class="n">sources</span> <span class="o">=</span> <span class="n">_get_source_filepaths</span><span class="p">(</span>
-        <span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span>
-    <span class="p">)</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="n">_get_source_filepaths</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="n">targets</span><span class="p">)</span>
 
     <span class="c1"># infer or validate the source datatype based on source filepaths</span>
     <span class="n">source_datatype</span> <span class="o">=</span> <span class="n">_infer_source_datatype</span><span class="p">(</span>

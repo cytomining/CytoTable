@@ -127,7 +127,6 @@ where parquet file was written or str of joined result filepath.</p>
     <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;example.sqlite&quot;</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;example.parquet&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
-    <span class="n">merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_sqlite&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
@@ -513,17 +512,15 @@ Source datatype to use for filtering the dataset.</p></li>
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._get_source_filepaths">
-<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_get_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._get_source_filepaths" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_get_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._get_source_filepaths" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gather dataset of filepaths from a provided directory path.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>path</strong> – Union[pathlib.Path, Any]:
-Path to seek filepaths within.</p></li>
+Either a directory path to seek filepaths within or a path directly to a file.</p></li>
 <li><p><strong>targets</strong> – List[str]:
 Compartment and metadata names to seek within the provided path.</p></li>
-<li><p><strong>source_datatype</strong> – Optional[str]  (Default value = None)
-Data type for source data files.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -570,6 +567,27 @@ detected datatypes.</p></li>
 <section id="module-cytotable.utils">
 <span id="utils"></span><h2>Utils<a class="headerlink" href="#module-cytotable.utils" title="Permalink to this heading">¶</a></h2>
 <p>Utility functions for CytoTable</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._cache_cloudpath_to_local">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_cache_cloudpath_to_local</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_cache_cloudpath_to_local"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._cache_cloudpath_to_local" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a cloudpath and uses cache to convert to a local copy
+for use in scenarios where remote work is not possible (sqlite).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> – Union[str, AnyPath]
+A filepath which will be checked and potentially
+converted to a local filepath.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>pathlib.Path</dt><dd><p>A local pathlib.Path to cached version of cloudpath file.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._column_sort">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_column_sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/utils.html#_column_sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._column_sort" title="Permalink to this definition">¶</a></dt>
@@ -696,6 +714,7 @@ with CytoTable</p>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-cytotable.utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._cache_cloudpath_to_local"><code class="docutils literal notranslate"><span class="pre">_cache_cloudpath_to_local()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._column_sort"><code class="docutils literal notranslate"><span class="pre">_column_sort()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._duckdb_with_sqlite"><code class="docutils literal notranslate"><span class="pre">_duckdb_with_sqlite()</span></code></a></li>
 </ul>

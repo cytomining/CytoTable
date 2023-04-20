@@ -60,6 +60,25 @@ Examples of concurrent task runners include <a class="reference external" href="
 Local data paths are handled using <a class="reference external" href="https://docs.python.org/3/library/pathlib.html">Python’s Pathlib</a> module.
 Cloud-based data paths are managed by <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a>.
 Reference the following page for how cloudpathlib client arguments may be used: <a class="reference internal" href="overview.html#data-source-locations"><span class="std std-ref">Overview: Data Source Locations</span></a></p>
+<section id="data-paths-cloud-based-sqlite">
+<h4>Data Paths - Cloud-based SQLite<a class="headerlink" href="#data-paths-cloud-based-sqlite" title="Permalink to this heading">¶</a></h4>
+<p>SQLite data stored in cloud-based paths are downloaded locally using cloudpathlib’s <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/caching/">caching capabilities</a> to perform SQL queries.
+Using data in this way may require the use of an additional parameter for the cloud storage provider to set the cache directory explicitly to avoid storage limitations (some temporary directories are constrained to system memory, etc).</p>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cytotable</span>
+
+<span class="c1"># Convert CellProfiler SQLite to parquet</span>
+<span class="n">cytotable</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;s3://bucket-name/single-cells.sqlite&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;test.parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="c1"># set the local cache dir to `./tmpdata`</span>
+    <span class="c1"># this will get passed to cloudpathlib&#39;s client</span>
+    <span class="n">local_cache_dir</span><span class="o">=</span><span class="s2">&quot;./tmpdata&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="in-process-data-format">
 <h3>In-process Data Format<a class="headerlink" href="#in-process-data-format" title="Permalink to this heading">¶</a></h3>
