@@ -924,7 +924,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 source_path="example.sqlite",
                 dest_path="example.parquet",
                 dest_datatype="parquet",
-                merge=True,
                 preset="cellprofiler_sqlite",
             )
     """
