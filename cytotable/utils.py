@@ -81,6 +81,12 @@ def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
         /* install and load sqlite plugin for duckdb */
         INSTALL sqlite_scanner;
         LOAD sqlite_scanner;
+
+        /* set threads available to duckdb 
+        See the following for more information:
+        https://duckdb.org/docs/sql/pragmas#memory_limit-threads
+        */
+        PRAGMA threads=2
         """
     )
 
