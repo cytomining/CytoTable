@@ -75,4 +75,5 @@ repos:
           - "pytest>=7.2.0"
           - "moto[server,s3]>=4.0.0"
           - "duckdb>=0.7.0"
+          - "adbc-driver-sqlite>=0.3.0"
           - "git+https://github.com/cytomining/pycytominer.git@c90438fd7c11ad8b1689c21db16dab1a5280de6c"
