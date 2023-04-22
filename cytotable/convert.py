@@ -23,9 +23,16 @@ from cytotable.utils import _column_sort, _duckdb_with_sqlite
 
 
 @task
-def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
+def _read_and_prep_data(
+    source: Dict[str, Any],
+    dest_path: str,
+    source_group_name: str,
+    identifying_columns: Union[List[str], Tuple[str, ...]],
+    metadata: Union[List[str], Tuple[str, ...]],
+    targets: List[str],
+) -> Dict[str, Any]:
     """
-    Read data from source.
+    Read and prepare data from source.
 
     Args:
         source: Dict[str, Any]:
@@ -37,7 +44,9 @@ def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
     """
 
     # attempt to build dest_path
-    source_dest_path = f"{dest_path}/{str(source['source_path'])}.parquet"
+    source_dest_path = (
+        f"{dest_path}/{source_group_name}/{str(source['source_path'].parent)}"
+    )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
     # pylint: disable=no-member
@@ -53,14 +62,22 @@ def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
 
         # read csv using pyarrow lib and attach table data to source
         csv_source_dest_path = (
-            f"{source_dest_path}/{str(source['source_path'])}.parquet"
+            f"{source_dest_path}/{str(source['source_path'].stem)}.parquet"
         )
 
-        parquet.write_table(
+        renamed_columns_table = _prepend_column_name(
             table=csv.read_csv(
                 input_file=source["source_path"],
                 parse_options=parse_options,
             ),
+            targets=targets,
+            source_group_name=source_group_name,
+            identifying_columns=identifying_columns,
+            metadata=metadata,
+        )
+
+        parquet.write_table(
+            table=renamed_columns_table,
             where=csv_source_dest_path,
         )
 
@@ -69,10 +86,10 @@ def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
     # pylint: disable=no-member
     elif AnyPath(source["source_path"]).suffix == ".sqlite":
         sqlite_source_dest_path = (
-            f"{source_dest_path}/{str(source['source_path'])}.parquet"
+            f"{source_dest_path}/{str(source['source_path'].stem)}.parquet"
         )
 
-        parquet.write_table(
+        renamed_columns_table = _prepend_column_name(
             table=_duckdb_with_sqlite()
             .execute(
                 """
@@ -82,6 +99,14 @@ def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
                 parameters=[str(source["source_path"]), str(source["table_name"])],
             )
             .arrow(),
+            targets=targets,
+            source_group_name=source_group_name,
+            identifying_columns=identifying_columns,
+            metadata=metadata,
+        )
+
+        parquet.write_table(
+            table=renamed_columns_table,
             where=sqlite_source_dest_path,
         )
 
@@ -91,7 +116,7 @@ def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
 
 
 def _prepend_column_name(
-    source: Dict[str, Any],
+    table: pa.Table,
     source_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
@@ -143,7 +168,7 @@ def _prepend_column_name(
     # capture updated column names as new variable
     updated_column_names = []
 
-    for column_name in source["table"].column_names:
+    for column_name in table.column_names:
         # if-condition for prepending source_group_name_stem to column name
         # where colname is not in identifying_columns parameter values
         # and where the column is not already prepended with source_group_name_stem
@@ -200,9 +225,9 @@ def _prepend_column_name(
             updated_column_names.append(column_name)
 
     # perform table column name updates
-    source["table"] = source["table"].rename_columns(updated_column_names)
+    table = table.rename_columns(updated_column_names)
 
-    return source
+    return table
 
 
 @task
@@ -679,25 +704,14 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # for each group of sources, map writing parquet per file
     for source_group_name, source_group in sources.items():
         # read data from source groups
-        source_group = _read_data.map(source=source_group, dest_path=dest_path)
-
-        # rename cols to include compartment or meta names
-        """renamed_source_group = _prepend_column_name.map(
+        source_group = _read_and_prep_data.map(
             source=source_group,
+            dest_path=dest_path,
             targets=unmapped(list(metadata) + list(compartments)),
             source_group_name=unmapped(source_group_name),
             identifying_columns=unmapped(identifying_columns),
             metadata=unmapped(metadata),
-        )"""
-
-        """# map for writing parquet files with list of files via sources
-        results[source_group_name] = _write_parquet.map(
-            source=renamed_source_group,
-            dest_path=unmapped(dest_path),
-            # if the source group has more than one source, we will need a unique name
-            # arg set to true or false based on evaluation of len(source_group)
-            unique_name=unmapped(len(renamed_source_group) >= 2),
-        )"""
+        )
 
         if concat and infer_common_schema:
             common_schema = _infer_source_group_common_schema(
