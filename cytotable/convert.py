@@ -23,7 +23,7 @@ from cytotable.utils import _column_sort, _duckdb_with_sqlite
 
 
 @task
-def _read_data(source: Dict[str, Any]) -> Dict[str, Any]:
+def _read_data(source: Dict[str, Any], dest_path=str) -> Dict[str, Any]:
     """
     Read data from source.
 
@@ -35,6 +35,10 @@ def _read_data(source: Dict[str, Any]) -> Dict[str, Any]:
         source: Dict[str, Any]
             Updated source (Dict[str, Any]) with source data in-memory
     """
+
+    # attempt to build dest_path
+    source_dest_path = f"{dest_path}/{str(source['source_path'])}.parquet"
+    pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
     # pylint: disable=no-member
     if AnyPath(source["source_path"]).suffix == ".csv":
@@ -48,15 +52,28 @@ def _read_data(source: Dict[str, Any]) -> Dict[str, Any]:
         parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
 
         # read csv using pyarrow lib and attach table data to source
-        source["table"] = csv.read_csv(
-            input_file=source["source_path"],
-            parse_options=parse_options,
+        csv_source_dest_path = (
+            f"{source_dest_path}/{str(source['source_path'])}.parquet"
         )
+
+        parquet.write_table(
+            table=csv.read_csv(
+                input_file=source["source_path"],
+                parse_options=parse_options,
+            ),
+            where=csv_source_dest_path,
+        )
+
+        source["table"] = [csv_source_dest_path]
 
     # pylint: disable=no-member
     elif AnyPath(source["source_path"]).suffix == ".sqlite":
-        source["table"] = (
-            _duckdb_with_sqlite()
+        sqlite_source_dest_path = (
+            f"{source_dest_path}/{str(source['source_path'])}.parquet"
+        )
+
+        parquet.write_table(
+            table=_duckdb_with_sqlite()
             .execute(
                 """
                 /* perform query on sqlite_master table for metadata on tables */
@@ -64,13 +81,15 @@ def _read_data(source: Dict[str, Any]) -> Dict[str, Any]:
                 """,
                 parameters=[str(source["source_path"]), str(source["table_name"])],
             )
-            .arrow()
+            .arrow(),
+            where=sqlite_source_dest_path,
         )
+
+        source["table"] = [sqlite_source_dest_path]
 
     return source
 
 
-@task
 def _prepend_column_name(
     source: Dict[str, Any],
     source_group_name: str,
@@ -290,61 +309,6 @@ def _concat_source_group(
     # return the concatted parquet filename
     concatted[0]["destination_path"] = destination_path
     return concatted
-
-
-@task
-def _write_parquet(
-    source: Dict[str, Any], dest_path: str, unique_name: bool = False
-) -> Dict[str, Any]:
-    """
-    Write parquet data using in-memory data.
-
-    Args:
-        source: Dict:
-            Dictionary including in-memory data which will be written to parquet.
-        dest_path: str:
-            Destination path to write the parquet file to.
-        unique_name: bool:  (Default value = False)
-            Determines whether a unique name is necessary for the file.
-
-    Returns:
-        Dict[str, Any]
-            Updated dictionary containing the destination path where parquet file
-            was written.
-    """
-
-    # unlink the file if it exists
-    if pathlib.Path(dest_path).is_file():
-        pathlib.Path(dest_path).unlink()
-
-    # make the dest_path dir if it doesn't already exist
-    pathlib.Path(dest_path).mkdir(parents=True, exist_ok=True)
-
-    # build a default destination path for the parquet output
-    stub_name = str(source["source_path"].stem)
-    if "table_name" in source.keys():
-        stub_name = f"{source['table_name']}"
-    destination_path = pathlib.Path(f"{dest_path}/{stub_name}.parquet")
-
-    # build unique names to avoid overlaps
-    if unique_name:
-        destination_path = pathlib.Path(
-            (
-                f"{dest_path}/{str(source['source_path'].parent.name)}"
-                f".{str(source['source_path'].stem)}.parquet"
-            )
-        )
-
-    # write the table to destination path output
-    parquet.write_table(table=source["table"], where=destination_path)
-
-    # unset table
-    del source["table"]
-
-    # update the source to include the destination path
-    source["destination_path"] = destination_path
-
-    return source
 
 
 @task
@@ -715,25 +679,25 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # for each group of sources, map writing parquet per file
     for source_group_name, source_group in sources.items():
         # read data from source groups
-        source_group = _read_data.map(source=source_group)
+        source_group = _read_data.map(source=source_group, dest_path=dest_path)
 
         # rename cols to include compartment or meta names
-        renamed_source_group = _prepend_column_name.map(
+        """renamed_source_group = _prepend_column_name.map(
             source=source_group,
             targets=unmapped(list(metadata) + list(compartments)),
             source_group_name=unmapped(source_group_name),
             identifying_columns=unmapped(identifying_columns),
             metadata=unmapped(metadata),
-        )
+        )"""
 
-        # map for writing parquet files with list of files via sources
+        """# map for writing parquet files with list of files via sources
         results[source_group_name] = _write_parquet.map(
             source=renamed_source_group,
             dest_path=unmapped(dest_path),
             # if the source group has more than one source, we will need a unique name
             # arg set to true or false based on evaluation of len(source_group)
             unique_name=unmapped(len(renamed_source_group) >= 2),
-        )
+        )"""
 
         if concat and infer_common_schema:
             common_schema = _infer_source_group_common_schema(
