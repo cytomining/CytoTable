@@ -45,7 +45,7 @@ def _read_and_prep_data(
 
     # attempt to build dest_path
     source_dest_path = (
-        f"{dest_path}/{source_group_name}/{str(source['source_path'].parent)}"
+        f"{dest_path}/{source_group_name}/{str(source['source_path'].parent.name)}"
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
@@ -85,9 +85,7 @@ def _read_and_prep_data(
 
     # pylint: disable=no-member
     elif AnyPath(source["source_path"]).suffix == ".sqlite":
-        sqlite_source_dest_path = (
-            f"{source_dest_path}/{str(source['source_path'].stem)}.parquet"
-        )
+        sqlite_source_dest_path = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}.parquet"
 
         renamed_columns_table = _prepend_column_name(
             table=_duckdb_with_sqlite()
@@ -311,7 +309,7 @@ def _concat_source_group(
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
     with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
-        for table in [source["destination_path"] for source in source_group]:
+        for table in [source["table"] for source in source_group]:
             # if we haven't inferred the common schema
             # check that our file matches the expected schema, otherwise raise an error
             if common_schema is None and not writer_schema.equals(
@@ -320,7 +318,7 @@ def _concat_source_group(
                 raise SchemaException(
                     (
                         f"Detected mismatching schema for target concatenation group members:"
-                        f" {str(source_group[0]['destination_path'])} and {str(table)}"
+                        f" {str(source_group[0]['table'])} and {str(table)}"
                     )
                 )
 
@@ -376,7 +374,7 @@ def _get_join_chunks(
 
     # read only the table's chunk_columns
     join_column_rows = parquet.read_table(
-        source=basis[0]["destination_path"], columns=chunk_columns
+        source=basis[0]["table"], columns=chunk_columns
     ).to_pylist()
 
     # build and return the chunked join column rows
@@ -579,12 +577,10 @@ def _infer_source_group_common_schema(
     """
 
     # read first file for basis of schema and column order for all others
-    common_schema = parquet.read_schema(source_group[0]["destination_path"])
+    common_schema = parquet.read_schema(source_group[0]["table"][0])
 
     # infer common basis of schema and column order for all others
-    for schema in [
-        parquet.read_schema(source["destination_path"]) for source in source_group
-    ]:
+    for schema in [parquet.read_schema(source["table"][0]) for source in source_group]:
         # account for completely equal schema
         if schema.equals(common_schema):
             continue
@@ -714,16 +710,14 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         )
 
         if concat and infer_common_schema:
-            common_schema = _infer_source_group_common_schema(
-                source_group=results[source_group_name]
-            )
+            common_schema = _infer_source_group_common_schema(source_group=source_group)
 
         # if concat or join, concat the source groups
         # note: join implies a concat, but concat does not imply a join
         if concat or join:
             # build a new concatenated source group
             results[source_group_name] = _concat_source_group.submit(
-                source_group=results[source_group_name],
+                source_group=source_group,
                 dest_path=dest_path,
                 common_schema=common_schema,
             )
