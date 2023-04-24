@@ -113,6 +113,7 @@ def _read_and_prep_data(
 
 @task
 def _concat_source_group(
+    source_group_name: str,
     source_group: List[Dict[str, Any]],
     dest_path: str = ".",
     common_schema: Optional[List[Tuple[str, str]]] = None,
@@ -132,7 +133,7 @@ def _concat_source_group(
 
         root
         ├── subdir_1
-        │   └── Cells.csv
+        │  └── Cells.csv
         └── subdir_2
             └── Cells.csv
 
@@ -179,7 +180,10 @@ def _concat_source_group(
     ]
 
     destination_path = pathlib.Path(
-        (f"{dest_path}/" f"{source_group[0]['source_path'].stem}" ".parquet")
+        (
+            f"{dest_path}/{str(pathlib.Path(source_group_name).stem)}/"
+            f"{str(pathlib.Path(source_group_name).stem)}.parquet"
+        )
     )
 
     # if there's already a file remove it
@@ -192,7 +196,7 @@ def _concat_source_group(
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
     with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
-        for table in [source["table"] for source in source_group]:
+        for table in [table for source in source_group for table in source["table"]]:
             # if we haven't inferred the common schema
             # check that our file matches the expected schema, otherwise raise an error
             if common_schema is None and not writer_schema.equals(
@@ -211,6 +215,7 @@ def _concat_source_group(
             writer.write_table(parquet.read_table(table, schema=writer_schema))
             # remove the file which was written in the concatted parquet file (we no longer need it)
             pathlib.Path(table).unlink()
+            pathlib.Path(pathlib.Path(table).parent).rmdir()
 
     # return the concatted parquet filename
     concatted[0]["destination_path"] = destination_path
@@ -600,6 +605,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         if concat or join:
             # build a new concatenated source group
             results[source_group_name] = _concat_source_group.submit(
+                source_group_name=source_group_name,
                 source_group=source_group,
                 dest_path=dest_path,
                 common_schema=common_schema,
