@@ -218,7 +218,7 @@ def _concat_source_group(
             pathlib.Path(pathlib.Path(table).parent).rmdir()
 
     # return the concatted parquet filename
-    concatted[0]["destination_path"] = destination_path
+    concatted[0]["table"] = [destination_path]
     return concatted
 
 
@@ -307,10 +307,11 @@ def _join_source_chunk(
 
     # replace with real location of sources for join sql
     for key, val in sources.items():
+        get_run_logger().info(pathlib.Path(key).stem.lower())
         if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
-                str(pathlib.Path(val[0]["destination_path"]).name.lower()),
-                str(val[0]["destination_path"]),
+                f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
+                str(val[0]["table"]),
             )
 
     # update the join groups to include unique values per table
