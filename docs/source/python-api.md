@@ -33,10 +33,6 @@ Convert
 
 |
 
-.. autofunction:: _prepend_column_name
-
-|
-
 .. autofunction:: _read_data
 
 |
