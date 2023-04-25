@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath
-from prefect import flow, task, unmapped, get_run_logger
+from prefect import flow, task, unmapped
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, SequentialTaskRunner
 from pyarrow import csv, parquet
@@ -44,18 +44,16 @@ def _read_and_prep_data(
             Updated source (Dict[str, Any]) with source data in-memory
     """
 
-    get_run_logger().info(source_group)
-
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
 
     for source in source_group:
-        get_run_logger().info(source)
         # attempt to build dest_path
-        source_dest_path = f"{dest_path}/{str(pathlib.Path(source_group_name).stem)}/{str(pathlib.Path(source['source_path']).parent.name)}"
+        source_dest_path = (
+            f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
+            f"{str(pathlib.Path(source['source_path']).parent.name).lower()}"
+        )
         pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
-
-        get_run_logger().info(source_dest_path)
 
         offset_list = _get_table_chunk_offsets(
             ddb=_duckdb_reader(),
@@ -70,7 +68,7 @@ def _read_and_prep_data(
                 base_query=unmapped(
                     # perform query on sqlite_master table for metadata on tables
                     f"""
-                    SELECT * from read_csv_auto('{str(source["source_path"])}', header=0, ignore_errors=TRUE)
+                    SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)
                     """
                 ),
                 result_filepath_base=unmapped(
@@ -346,8 +344,8 @@ def _concat_source_group(
 
     destination_path = pathlib.Path(
         (
-            f"{dest_path}/{str(pathlib.Path(source_group_name).stem)}/"
-            f"{str(pathlib.Path(source_group_name).stem)}.parquet"
+            f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
+            f"{str(pathlib.Path(source_group_name).stem).lower()}.parquet"
         )
     )
 
@@ -476,7 +474,7 @@ def _join_source_chunk(
         if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
                 f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
-                str([str(table) for table in val[0]["table"]]),
+                str([str(table).lower() for table in val[0]["table"]]),
             )
 
     # update the join groups to include unique values per table
@@ -606,9 +604,15 @@ def _concat_join_sources(
         where=dest_path,
     )
 
-    # remove join chunks as we have the final result
-    for table_path in join_sources:
-        pathlib.Path(table_path).unlink()
+    # build a parquet file writer which will be used to append files
+    # as a single concatted parquet file, referencing the first file's schema
+    # (all must be the same schema)
+    writer_schema = parquet.read_schema(join_sources[0])
+    with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
+        for table_path in join_sources:
+            writer.write_table(parquet.read_table(table_path, schema=writer_schema))
+            # remove the file which was written in the concatted parquet file (we no longer need it)
+            pathlib.Path(table_path).unlink()
 
     # return modified sources format to indicate the final result
     # and retain the other source data for reference as needed
@@ -635,13 +639,17 @@ def _infer_source_group_common_schema(
             This data will later be used as the basis for forming a PyArrow schema.
     """
 
-    get_run_logger().info(source_group)
-
     # read first file for basis of schema and column order for all others
     common_schema = parquet.read_schema(source_group[0]["table"][0])
 
     # infer common basis of schema and column order for all others
-    for schema in [parquet.read_schema(source["table"][0]) for source in source_group]:
+    for schema, metadata in [
+        (
+            parquet.read_schema(source["table"][0]),
+            parquet.read_metadata(source["table"][0]),
+        )
+        for source in source_group
+    ]:
         # account for completely equal schema
         if schema.equals(common_schema):
             continue
@@ -993,10 +1001,16 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             if identifying_columns is None
             else identifying_columns
         )
-        joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
+        joins = (
+            cast(str, config[preset]["CONFIG_JOINS"])
+            if joins is None or joins == config["cellprofiler_csv"]["CONFIG_JOINS"]
+            else joins
+        )
         chunk_columns = (
             cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
             if chunk_columns is None
+            or chunk_columns
+            == cast(int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"])
             else chunk_columns
         )
         chunk_size = (
