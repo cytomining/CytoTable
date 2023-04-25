@@ -2,6 +2,7 @@
 CytoTable: convert - transforming data for use with pyctyominer.
 """
 
+import asyncio
 import itertools
 import os
 import pathlib
@@ -12,14 +13,15 @@ import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath
 from prefect import flow, task, unmapped
+
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, SequentialTaskRunner
-from pyarrow import csv, parquet
+from pyarrow import parquet
 
 from cytotable.exceptions import SchemaException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
-from cytotable.utils import _column_sort, _duckdb_reader
+from cytotable.utils import _column_sort, _duckdb_reader, _set_prefect_concurrency_limit
 
 
 @flow
@@ -64,35 +66,27 @@ def _read_and_prep_data(
 
         # pylint: disable=no-member
         if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-            chunk_results = _source_chunk_to_parquet.map(
-                base_query=unmapped(
-                    # perform query on sqlite_master table for metadata on tables
-                    f"""
-                    SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)
-                    """
-                ),
-                result_filepath_base=unmapped(
-                    f"{source_dest_path}/{str(source['source_path'].stem)}"
-                ),
-                chunk_size=unmapped(chunk_size),
-                offset=offset_list,
-            )
+            for offset in offset_list:
+                chunk_results = _source_chunk_to_parquet_csv(
+                    base_query=f"""
+                        SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)
+                        """,
+                    result_filepath_base=f"{source_dest_path}/{str(source['source_path'].stem)}",
+                    chunk_size=chunk_size,
+                    offset=offset,
+                )
 
         # pylint: disable=no-member
         elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
-            chunk_results = _source_chunk_to_parquet.map(
-                base_query=unmapped(
-                    # perform query on sqlite_master table for metadata on tables
-                    f"""
-                    SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
-                    """
-                ),
-                result_filepath_base=unmapped(
-                    f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
-                ),
-                chunk_size=unmapped(chunk_size),
-                offset=offset_list,
-            )
+            for offset in offset_list:
+                chunk_results = _source_chunk_to_parquet_sqlite(
+                    base_query=f"""
+                        SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+                        """,
+                    result_filepath_base=f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}",
+                    chunk_size=chunk_size,
+                    offset=offset_list,
+                )
 
         renamed_columns_table = _prepend_column_name.map(
             table_path=chunk_results,
@@ -110,7 +104,6 @@ def _read_and_prep_data(
     return source_group
 
 
-@task
 def _get_table_chunk_offsets(
     ddb: duckdb.DuckDBPyConnection,
     source_path: str,
@@ -134,8 +127,8 @@ def _get_table_chunk_offsets(
     )
 
 
-@task
-def _source_chunk_to_parquet(
+@task(tags=["chunk_concurrency"])
+def _source_chunk_to_parquet_csv(
     base_query: str, result_filepath_base: str, chunk_size: int, offset: int
 ):
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
@@ -154,7 +147,27 @@ def _source_chunk_to_parquet(
     return result_filepath
 
 
-@task
+@task(tags=["chunk_concurrency"])
+def _source_chunk_to_parquet_sqlite(
+    base_query: str, result_filepath_base: str, chunk_size: int, offset: int
+):
+    result_filepath = f"{result_filepath_base}-{offset}.parquet"
+
+    # isolate connection to read data and export directly to parquet
+    _duckdb_reader().execute(
+        f"""
+        COPY (
+            {base_query} 
+            LIMIT {chunk_size} OFFSET {offset}
+        ) TO '{result_filepath}' 
+        (FORMAT PARQUET);
+        """
+    )
+
+    return result_filepath
+
+
+@task(tags=["chunk_concurrency"])
 def _prepend_column_name(
     table_path: str,
     source_group_name: str,
@@ -981,6 +994,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_FLOW_RUNS_LEVEL"] = log_level
     os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_TASK_RUNS_LEVEL"] = log_level
     os.environ["PREFECT_LOGGING_SERVER_LEVEL"] = log_level
+
+    asyncio.run(_set_prefect_concurrency_limit())
 
     # optionally load preset configuration for arguments
     # note: defer to overrides from parameters whose values

@@ -2,17 +2,27 @@
 Utility functions for CytoTable
 """
 
+import asyncio
 import logging
 import multiprocessing
 import pathlib
-from typing import Any, Dict, List, Tuple, Union, Optional
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
+from prefect.client import get_client
 
 logger = logging.getLogger(__name__)
+
+
+async def _set_prefect_concurrency_limit() -> asyncio.coroutine:
+    async with get_client() as client:
+        # set a concurrency limit of 10 on the 'small_instance' tag
+        limit_id = await client.create_concurrency_limit(
+            tag="chunk_concurrency", concurrency_limit=5
+        )
 
 
 # custom sort for resulting columns
