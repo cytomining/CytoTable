@@ -307,11 +307,10 @@ def _join_source_chunk(
 
     # replace with real location of sources for join sql
     for key, val in sources.items():
-        get_run_logger().info(pathlib.Path(key).stem.lower())
         if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
                 f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
-                str(val[0]["table"]),
+                str([str(table) for table in val[0]["table"]]),
             )
 
     # update the join groups to include unique values per table
@@ -419,7 +418,12 @@ def _concat_join_sources(
     # (we now have joined results)
     flattened_sources = list(itertools.chain(*list(sources.values())))
     for source in flattened_sources:
-        pathlib.Path(source["destination_path"]).unlink(missing_ok=True)
+        for table in source["table"]:
+            pathlib.Path(table).unlink(missing_ok=True)
+            if pathlib.Path(table).parent != pathlib.Path(dest_path):
+                pathlib.Path(table).parent.rmdir()
+            if pathlib.Path(table).parent.parent != pathlib.Path(dest_path):
+                pathlib.Path(table).parent.parent.rmdir()
 
     # remove dir if we have it
     if pathlib.Path(dest_path).is_dir():
