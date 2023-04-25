@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 import duckdb
 import pyarrow as pa
 from cloudpathlib import AnyPath
-from prefect import flow, task, unmapped
+from prefect import flow, task, unmapped, get_run_logger
 from prefect.futures import PrefectFuture
 from prefect.task_runners import BaseTaskRunner, SequentialTaskRunner
 from pyarrow import csv, parquet
@@ -19,17 +19,18 @@ from pyarrow import csv, parquet
 from cytotable.exceptions import SchemaException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
-from cytotable.utils import _column_sort, _duckdb_with_sqlite, _prepend_column_name
+from cytotable.utils import _column_sort, _duckdb_reader
 
 
-@task
+@flow
 def _read_and_prep_data(
-    source: Dict[str, Any],
+    source_group: List[Dict[str, Any]],
     dest_path: str,
     source_group_name: str,
     identifying_columns: Union[List[str], Tuple[str, ...]],
     metadata: Union[List[str], Tuple[str, ...]],
     targets: List[str],
+    chunk_size: Optional[int],
 ) -> Dict[str, Any]:
     """
     Read and prepare data from source.
@@ -43,72 +44,236 @@ def _read_and_prep_data(
             Updated source (Dict[str, Any]) with source data in-memory
     """
 
-    # attempt to build dest_path
-    source_dest_path = f"{dest_path}/{str(pathlib.Path(source_group_name).stem)}/{str(source['source_path'].parent.name)}"
-    pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
+    get_run_logger().info(source_group)
 
-    # pylint: disable=no-member
-    if AnyPath(source["source_path"]).suffix == ".csv":
-        # define invalid row handler for rows which may be
-        # somehow erroneous. See below for more details:
-        # https://arrow.apache.org/docs/python/generated/pyarrow.csv.ParseOptions.html#pyarrow-csv-parseoptions
-        def skip_erroneous_colcount(row):
-            return "skip" if row.actual_columns != row.expected_columns else "error"
+    if pathlib.Path(dest_path).is_file():
+        pathlib.Path(dest_path).unlink()
 
-        # setup parse options
-        parse_options = csv.ParseOptions(invalid_row_handler=skip_erroneous_colcount)
+    for source in source_group:
+        get_run_logger().info(source)
+        # attempt to build dest_path
+        source_dest_path = f"{dest_path}/{str(pathlib.Path(source_group_name).stem)}/{str(pathlib.Path(source['source_path']).parent.name)}"
+        pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
-        # read csv using pyarrow lib and attach table data to source
-        csv_source_dest_path = (
-            f"{source_dest_path}/{str(source['source_path'].stem)}.parquet"
+        get_run_logger().info(source_dest_path)
+
+        offset_list = _get_table_chunk_offsets(
+            ddb=_duckdb_reader(),
+            table_name=source["table_name"] if "table_name" in source.keys() else None,
+            source_path=source["source_path"],
+            chunk_size=chunk_size,
         )
 
-        renamed_columns_table = _prepend_column_name(
-            table=csv.read_csv(
-                input_file=source["source_path"],
-                parse_options=parse_options,
-            ),
-            targets=targets,
-            source_group_name=source_group_name,
-            identifying_columns=identifying_columns,
-            metadata=metadata,
-        )
-
-        parquet.write_table(
-            table=renamed_columns_table,
-            where=csv_source_dest_path,
-        )
-
-        source["table"] = [csv_source_dest_path]
-
-    # pylint: disable=no-member
-    elif AnyPath(source["source_path"]).suffix == ".sqlite":
-        sqlite_source_dest_path = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}.parquet"
-
-        renamed_columns_table = _prepend_column_name(
-            table=_duckdb_with_sqlite()
-            .execute(
-                """
-                /* perform query on sqlite_master table for metadata on tables */
-                SELECT * from sqlite_scan(?, ?)
-                """,
-                parameters=[str(source["source_path"]), str(source["table_name"])],
+        # pylint: disable=no-member
+        if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
+            chunk_results = _source_chunk_to_parquet.map(
+                base_query=unmapped(
+                    # perform query on sqlite_master table for metadata on tables
+                    f"""
+                    SELECT * from read_csv_auto('{str(source["source_path"])}', header=0, ignore_errors=TRUE)
+                    """
+                ),
+                result_filepath_base=unmapped(
+                    f"{source_dest_path}/{str(source['source_path'].stem)}"
+                ),
+                chunk_size=unmapped(chunk_size),
+                offset=offset_list,
             )
-            .arrow(),
-            targets=targets,
-            source_group_name=source_group_name,
-            identifying_columns=identifying_columns,
-            metadata=metadata,
+
+        # pylint: disable=no-member
+        elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
+            chunk_results = _source_chunk_to_parquet.map(
+                base_query=unmapped(
+                    # perform query on sqlite_master table for metadata on tables
+                    f"""
+                    SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+                    """
+                ),
+                result_filepath_base=unmapped(
+                    f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
+                ),
+                chunk_size=unmapped(chunk_size),
+                offset=offset_list,
+            )
+
+        renamed_columns_table = _prepend_column_name.map(
+            table_path=chunk_results,
+            targets=unmapped(targets),
+            source_group_name=unmapped(source_group_name),
+            identifying_columns=unmapped(identifying_columns),
+            metadata=unmapped(metadata),
         )
 
-        parquet.write_table(
-            table=renamed_columns_table,
-            where=sqlite_source_dest_path,
+        source["table"] = [
+            table.result() if isinstance(table, PrefectFuture) else table
+            for table in renamed_columns_table
+        ]
+
+    return source_group
+
+
+@task
+def _get_table_chunk_offsets(
+    ddb: duckdb.DuckDBPyConnection,
+    source_path: str,
+    table_name: Optional[str] = None,
+    chunk_size=int,
+):
+    return list(
+        range(
+            0,
+            # gather rowcount from table and use as maximum for range
+            int(
+                ddb.execute(
+                    f"SELECT COUNT(*) from read_csv_auto('{source_path}', ignore_errors=TRUE)"
+                    if str(pathlib.Path(source_path).suffix).lower() == ".csv"
+                    else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
+                ).fetchone()[0]
+            ),
+            # step through using chunk size
+            chunk_size,
         )
+    )
 
-        source["table"] = [sqlite_source_dest_path]
 
-    return source
+@task
+def _source_chunk_to_parquet(
+    base_query: str, result_filepath_base: str, chunk_size: int, offset: int
+):
+    result_filepath = f"{result_filepath_base}-{offset}.parquet"
+
+    # isolate connection to read data and export directly to parquet
+    _duckdb_reader().execute(
+        f"""
+        COPY (
+            {base_query} 
+            LIMIT {chunk_size} OFFSET {offset}
+        ) TO '{result_filepath}' 
+        (FORMAT PARQUET);
+        """
+    )
+
+    return result_filepath
+
+
+@task
+def _prepend_column_name(
+    table_path: str,
+    source_group_name: str,
+    identifying_columns: Union[List[str], Tuple[str, ...]],
+    metadata: Union[List[str], Tuple[str, ...]],
+    targets: List[str],
+) -> Dict[str, Any]:
+    """
+    Rename columns using the source group name, avoiding identifying columns.
+
+    Notes:
+    * A source_group_name represents a filename referenced as part of what
+    is specified within targets.
+    * Target list values are used to reference source_group_names.
+
+    Args:
+        source: Dict[str, Any]:
+            Individual data source source which includes meta about source
+            as well as Arrow table with data.
+        source_group_name: str:
+            Name of data source source group (for common compartments, etc).
+        identifying_columns: Union[List[str], Tuple[str, ...]]:
+            Column names which are used as ID's and as a result need to be
+            treated differently when renaming.
+        metadata: Union[List[str], Tuple[str, ...]]:
+            List of source data names which are used as metadata
+        targets: List[str]:
+            List of source data names which are used as compartments
+
+    Returns:
+        Dict[str, Any]
+            Updated source which includes the updated table column names
+    """
+
+    table = parquet.read_table(source=table_path)
+
+    # stem of source group name
+    # for example:
+    #   targets: ['cytoplasm']
+    #   source_group_name: 'Per_Cytoplasm.sqlite'
+    #   source_group_name_stem: 'Cytoplasm'
+    source_group_name_stem = targets[
+        # return first result from generator below as index to targets
+        next(
+            i
+            for i, val in enumerate(targets)
+            # compare if value from targets in source_group_name stem
+            if val.lower() in str(pathlib.Path(source_group_name).stem).lower()
+        )
+        # capitalize the result
+    ].capitalize()
+
+    # capture updated column names as new variable
+    updated_column_names = []
+
+    for column_name in table.column_names:
+        # if-condition for prepending source_group_name_stem to column name
+        # where colname is not in identifying_columns parameter values
+        # and where the column is not already prepended with source_group_name_stem
+        # for example:
+        #   source_group_name_stem: 'Cells'
+        #   column_name: 'AreaShape_Area'
+        #   updated_column_name: 'Cells_AreaShape_Area'
+        if column_name not in identifying_columns and not column_name.startswith(
+            source_group_name_stem.capitalize()
+        ):
+            updated_column_names.append(f"{source_group_name_stem}_{column_name}")
+        # if-condition for prepending 'Metadata_' to column name
+        # where colname is in identifying_columns parameter values
+        # and where the column is already prepended with source_group_name_stem
+        # for example:
+        #   source_group_name_stem: 'Cells'
+        #   column_name: 'Cells_Number_Object_Number'
+        #   updated_column_name: 'Metadata_Cells_Number_Object_Number'
+        elif column_name in identifying_columns and column_name.startswith(
+            source_group_name_stem.capitalize()
+        ):
+            updated_column_names.append(f"Metadata_{column_name}")
+        # if-condition for prepending 'Metadata' and source_group_name_stem to column name
+        # where colname is in identifying_columns parameter values
+        # and where the colname does not already start with 'Metadata_'
+        # and colname not in metadata list
+        # and colname does not include 'ObjectNumber'
+        # for example:
+        #   source_group_name_stem: 'Cells'
+        #   column_name: 'Parent_Nuclei'
+        #   updated_column_name: 'Metadata_Cells_Parent_Nuclei'
+        elif (
+            column_name in identifying_columns
+            and not column_name.startswith("Metadata_")
+            and not any(item.capitalize() in column_name for item in metadata)
+            and not "ObjectNumber" in column_name
+        ):
+            updated_column_names.append(
+                f"Metadata_{source_group_name_stem}_{column_name}"
+            )
+        # if-condition for prepending 'Metadata' to column name
+        # where colname doesn't already start with 'Metadata_'
+        # and colname is in identifying_columns parameter values
+        # for example:
+        #   column_name: 'ObjectNumber'
+        #   updated_column_name: 'Metadata_ObjectNumber'
+        elif (
+            not column_name.startswith("Metadata_")
+            and column_name in identifying_columns
+        ):
+            updated_column_names.append(f"Metadata_{column_name}")
+        # else we add the existing colname to the updated list as-is
+        else:
+            updated_column_names.append(column_name)
+
+    # perform table column name updates
+    parquet.write_table(
+        table=table.rename_columns(updated_column_names), where=table_path
+    )
+
+    return table_path
 
 
 @task
@@ -160,8 +325,8 @@ def _concat_source_group(
     """
 
     # if we have nothing to concat, return the source group
-    if len(source_group) < 2:
-        return source_group
+    # if len(source_group) < 2:
+    #    return source_group
 
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
@@ -196,26 +361,27 @@ def _concat_source_group(
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
     with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
-        for table in [table for source in source_group for table in source["table"]]:
-            # if we haven't inferred the common schema
-            # check that our file matches the expected schema, otherwise raise an error
-            if common_schema is None and not writer_schema.equals(
-                parquet.read_schema(table)
-            ):
-                raise SchemaException(
-                    (
-                        f"Detected mismatching schema for target concatenation group members:"
-                        f" {str(source_group[0]['table'])} and {str(table)}"
+        for source in source_group:
+            for table in [table for table in source["table"]]:
+                # if we haven't inferred the common schema
+                # check that our file matches the expected schema, otherwise raise an error
+                if common_schema is None and not writer_schema.equals(
+                    parquet.read_schema(table)
+                ):
+                    raise SchemaException(
+                        (
+                            f"Detected mismatching schema for target concatenation group members:"
+                            f" {str(source_group[0]['table'])} and {str(table)}"
+                        )
                     )
-                )
 
-            # read the file from the list and write to the concatted parquet file
-            # note: we pass column order based on the first chunk file to help ensure schema
-            # compatibility for the writer
-            writer.write_table(parquet.read_table(table, schema=writer_schema))
-            # remove the file which was written in the concatted parquet file (we no longer need it)
-            pathlib.Path(table).unlink()
-            pathlib.Path(pathlib.Path(table).parent).rmdir()
+                # read the file from the list and write to the concatted parquet file
+                # note: we pass column order based on the first chunk file to help ensure schema
+                # compatibility for the writer
+                writer.write_table(parquet.read_table(table, schema=writer_schema))
+                # remove the file which was written in the concatted parquet file (we no longer need it)
+                pathlib.Path(table).unlink()
+            pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
 
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]
@@ -469,6 +635,8 @@ def _infer_source_group_common_schema(
             This data will later be used as the basis for forming a PyArrow schema.
     """
 
+    get_run_logger().info(source_group)
+
     # read first file for basis of schema and column order for all others
     common_schema = parquet.read_schema(source_group[0]["table"][0])
 
@@ -593,13 +761,15 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # for each group of sources, map writing parquet per file
     for source_group_name, source_group in sources.items():
         # read data from source groups
-        source_group = _read_and_prep_data.map(
-            source=source_group,
+
+        source_group = _read_and_prep_data(
+            source_group=source_group,
             dest_path=dest_path,
-            targets=unmapped(list(metadata) + list(compartments)),
-            source_group_name=unmapped(source_group_name),
-            identifying_columns=unmapped(identifying_columns),
-            metadata=unmapped(metadata),
+            targets=list(metadata) + list(compartments),
+            source_group_name=source_group_name,
+            identifying_columns=identifying_columns,
+            metadata=metadata,
+            chunk_size=chunk_size,
         )
 
         if concat and infer_common_schema:
@@ -615,6 +785,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 dest_path=dest_path,
                 common_schema=common_schema,
             )
+        else:
+            results[source_group_name] = source_group
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
@@ -803,13 +975,35 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     os.environ["PREFECT_LOGGING_SERVER_LEVEL"] = log_level
 
     # optionally load preset configuration for arguments
+    # note: defer to overrides from parameters whose values
+    # are not None (allows intermixing of presets and overrides)
     if preset is not None:
-        metadata = cast(list, config[preset]["CONFIG_NAMES_METADATA"])
-        compartments = cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
-        identifying_columns = cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
-        joins = cast(str, config[preset]["CONFIG_JOINS"])
-        chunk_columns = cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
-        chunk_size = cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
+        metadata = (
+            cast(list, config[preset]["CONFIG_NAMES_METADATA"])
+            if metadata is None
+            else metadata
+        )
+        compartments = (
+            cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
+            if compartments is None
+            else compartments
+        )
+        identifying_columns = (
+            cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
+            if identifying_columns is None
+            else identifying_columns
+        )
+        joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
+        chunk_columns = (
+            cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
+            if chunk_columns is None
+            else chunk_columns
+        )
+        chunk_size = (
+            cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
+            if chunk_size is None
+            else chunk_size
+        )
 
     # send sources to be written to parquet if selected
     if dest_datatype == "parquet":

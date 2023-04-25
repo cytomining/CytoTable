@@ -10,7 +10,7 @@ from cloudpathlib import AnyPath, CloudPath
 from prefect import flow, task
 
 from cytotable.exceptions import DatatypeException, NoInputDataException
-from cytotable.utils import _cache_cloudpath_to_local, _duckdb_with_sqlite
+from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
 
 
 @task
@@ -98,7 +98,7 @@ def _get_source_filepaths(
                     "table_name": table_name,
                 }
                 # perform a query to find the table names from the sqlite file
-                for table_name in _duckdb_with_sqlite()
+                for table_name in _duckdb_reader()
                 .execute(
                     """
                     /* perform query on sqlite_master table for metadata on tables */
