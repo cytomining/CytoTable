@@ -69,7 +69,7 @@ def _read_and_prep_data(
         if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
             for offset in offset_list:
                 chunk_results.append(
-                    _source_chunk_to_parquet_csv(
+                    _source_chunk_to_parquet(
                         base_query=f"""
                         SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)
                         """,
@@ -83,7 +83,7 @@ def _read_and_prep_data(
         elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
             for offset in offset_list:
                 chunk_results.append(
-                    _source_chunk_to_parquet_sqlite(
+                    _source_chunk_to_parquet(
                         base_query=f"""
                         SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
                         """,
@@ -133,27 +133,7 @@ def _get_table_chunk_offsets(
 
 
 @task(tags=["chunk_concurrency"])
-def _source_chunk_to_parquet_csv(
-    base_query: str, result_filepath_base: str, chunk_size: int, offset: int
-):
-    result_filepath = f"{result_filepath_base}-{offset}.parquet"
-
-    # isolate connection to read data and export directly to parquet
-    _duckdb_reader().execute(
-        f"""
-        COPY (
-            {base_query} 
-            LIMIT {chunk_size} OFFSET {offset}
-        ) TO '{result_filepath}' 
-        (FORMAT PARQUET);
-        """
-    )
-
-    return result_filepath
-
-
-@task(tags=["chunk_concurrency"])
-def _source_chunk_to_parquet_sqlite(
+def _source_chunk_to_parquet(
     base_query: str, result_filepath_base: str, chunk_size: int, offset: int
 ):
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
