@@ -67,31 +67,31 @@ def _read_and_prep_data(
         # pylint: disable=no-member
         chunk_results = []
         if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-            for offset in offset_list:
-                chunk_results.append(
-                    _source_chunk_to_parquet(
-                        base_query=f"""
-                        SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)
-                        """,
-                        result_filepath_base=f"{source_dest_path}/{str(source['source_path'].stem)}",
-                        chunk_size=chunk_size,
-                        offset=offset,
-                    )
-                )
+            chunk_results = _source_chunk_to_parquet.map(
+                base_query=unmapped(
+                    f"""SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)"""
+                ),
+                result_filepath_base=unmapped(
+                    f"{source_dest_path}/{str(source['source_path'].stem)}"
+                ),
+                chunk_size=unmapped(chunk_size),
+                offset=offset_list,
+            )
 
         # pylint: disable=no-member
         elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
-            for offset in offset_list:
-                chunk_results.append(
-                    _source_chunk_to_parquet(
-                        base_query=f"""
-                        SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
-                        """,
-                        result_filepath_base=f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}",
-                        chunk_size=chunk_size,
-                        offset=offset,
-                    )
-                )
+            chunk_results = _source_chunk_to_parquet.map(
+                base_query=unmapped(
+                    f"""
+                    SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+                    """
+                ),
+                result_filepath_base=unmapped(
+                    f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
+                ),
+                chunk_size=unmapped(chunk_size),
+                offset=offset_list,
+            )
 
         renamed_columns_table = _prepend_column_name.map(
             table_path=chunk_results,
