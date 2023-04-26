@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 async def _set_prefect_concurrency_limit() -> asyncio.coroutine:
     async with get_client() as client:
         # set a concurrency limit of 10 on the 'small_instance' tag
-        limit_id = await client.create_concurrency_limit(
+        await client.create_concurrency_limit(
             tag="chunk_concurrency", concurrency_limit=2
         )
 
