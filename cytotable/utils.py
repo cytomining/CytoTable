@@ -67,6 +67,10 @@ def hosted_api_server():
     """
     port = unused_tcp_port_factory()()
 
+    print(port)
+
+    env_values = get_current_settings().to_environment_variables()
+    env_values["PREFECT_SERVER_API_PORT"] = str(port)
     # Will connect to the same database as normal test clients
     with subprocess.Popen(
         [
@@ -82,9 +86,11 @@ def hosted_api_server():
         ],
         stdout=sys.stdout,
         stderr=sys.stderr,
-        env={**os.environ, **get_current_settings().to_environment_variables()},
+        env={**os.environ, **env_values},
     ) as process:
         api_url = f"http://localhost:{port}/api"
+
+        print(port)
 
         # Yield to the consuming tests
         yield api_url
