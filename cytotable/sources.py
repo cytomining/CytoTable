@@ -7,13 +7,13 @@ import pathlib
 from typing import Any, Dict, List, Optional, Union
 
 from cloudpathlib import AnyPath, CloudPath
-from prefect import flow, task
+from parsl.app.app import join_app, python_app
 
 from cytotable.exceptions import DatatypeException, NoInputDataException
 from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
 
 
-@task
+@python_app
 def _build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
 ) -> Union[pathlib.Path, Any]:
@@ -42,7 +42,7 @@ def _build_path(
     return processed_path
 
 
-@task
+@python_app
 def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
     targets: List[str],
@@ -145,7 +145,7 @@ def _get_source_filepaths(
     return grouped_sources
 
 
-@task
+@python_app
 def _infer_source_datatype(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
 ) -> str:
@@ -192,7 +192,7 @@ def _infer_source_datatype(
     return source_datatype
 
 
-@task
+@python_app
 def _filter_source_filepaths(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -223,7 +223,7 @@ def _filter_source_filepaths(
     }
 
 
-@flow
+@join_app
 def _gather_sources(
     source_path: str,
     source_datatype: Optional[str] = None,

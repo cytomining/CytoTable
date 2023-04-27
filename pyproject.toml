@@ -9,10 +9,10 @@ packages = [{include = "cytotable"}]
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
 pyarrow = "^11.0.0"
-prefect = "^2.7.0"
 cloudpathlib = {extras = ["all"], version = "^0.13.0"}
 duckdb = "^0.7.0"
 adbc-driver-sqlite = "^0.3.0"
+parsl = "^2023.4.24"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.2.0"

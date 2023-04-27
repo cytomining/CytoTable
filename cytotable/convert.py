@@ -10,26 +10,111 @@ import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import duckdb
+import parsl
 import pyarrow as pa
 from cloudpathlib import AnyPath
-from prefect import flow, task, unmapped
-
-from prefect.futures import PrefectFuture
-from prefect.task_runners import BaseTaskRunner, SequentialTaskRunner
+from parsl.app.app import join_app, python_app
 from pyarrow import parquet
 
 from cytotable.exceptions import SchemaException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
-from cytotable.utils import (
-    _column_sort,
-    _duckdb_reader,
-    _set_prefect_concurrency_limit,
-    hosted_api_server,
-    unused_tcp_port_factory,
-)
+from cytotable.utils import _column_sort, _duckdb_reader
 
 
+def _prepare_sources(
+    sources: Dict[str, List[Dict[str, Any]]],
+    dest_path: str,
+    identifying_columns: Union[List[str], Tuple[str, ...]],
+    metadata: Union[List[str], Tuple[str, ...]],
+    targets: List[str],
+    chunk_size: Optional[int],
+    concat: bool,
+    join: bool,
+    infer_common_schema: bool,
+):
+    results = {}
+    # for each group of sources, map writing parquet per file
+    for source_group_name, source_group in sources.items():
+        # read data from source groups
+
+        for source in source_group:
+            # attempt to build dest_path
+            source_dest_path = (
+                f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
+                f"{str(pathlib.Path(source['source_path']).parent.name).lower()}"
+            )
+            pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
+
+            offset_list = _get_table_chunk_offsets(
+                ddb=_duckdb_reader(),
+                table_name=source["table_name"]
+                if "table_name" in source.keys()
+                else None,
+                source_path=source["source_path"],
+                chunk_size=chunk_size,
+            ).result()
+
+            # pylint: disable=no-member
+
+            if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
+                base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)"""
+                result_filepath_base = (
+                    f"{source_dest_path}/{str(source['source_path'].stem)}"
+                )
+
+            # pylint: disable=no-member
+            elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
+                base_query = f"""
+                        SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+                        """
+                result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
+
+            chunk_results = [
+                _source_chunk_to_parquet(
+                    base_query=base_query,
+                    result_filepath_base=result_filepath_base,
+                    chunk_size=chunk_size,
+                    offset=offset,
+                ).result()
+                for offset in offset_list
+            ]
+
+            renamed_columns_table = [
+                _prepend_column_name(
+                    table_path=chunk,
+                    targets=targets,
+                    source_group_name=source_group_name,
+                    identifying_columns=identifying_columns,
+                    metadata=metadata,
+                ).result()
+                for chunk in chunk_results
+            ]
+
+            source["table"] = renamed_columns_table
+
+        if concat and infer_common_schema:
+            common_schema = _infer_source_group_common_schema(
+                source_group=source_group
+            ).result()
+
+        # if concat or join, concat the source groups
+        # note: join implies a concat, but concat does not imply a join
+        if concat or join:
+            # build a new concatenated source group
+            results[source_group_name] = _concat_source_group(
+                source_group_name=source_group_name,
+                source_group=source_group,
+                dest_path=dest_path,
+                common_schema=common_schema,
+            ).result()
+        else:
+            results[source_group_name] = source_group
+
+    return results
+
+
+@python_app
 def _get_table_chunk_offsets(
     ddb: duckdb.DuckDBPyConnection,
     source_path: str,
@@ -53,7 +138,7 @@ def _get_table_chunk_offsets(
     )
 
 
-@task(tags=["chunk_concurrency"])
+@python_app
 def _source_chunk_to_parquet(
     base_query: str, result_filepath_base: str, chunk_size: int, offset: int
 ):
@@ -73,7 +158,7 @@ def _source_chunk_to_parquet(
     return result_filepath
 
 
-@task(tags=["chunk_concurrency"])
+@python_app
 def _prepend_column_name(
     table_path: str,
     source_group_name: str,
@@ -193,7 +278,7 @@ def _prepend_column_name(
     return table_path
 
 
-@task
+@python_app
 def _concat_source_group(
     source_group_name: str,
     source_group: List[Dict[str, Any]],
@@ -305,7 +390,7 @@ def _concat_source_group(
     return concatted
 
 
-@task
+@python_app
 def _get_join_chunks(
     sources: Dict[str, List[Dict[str, Any]]],
     metadata: Union[List[str], Tuple[str, ...]],
@@ -337,11 +422,7 @@ def _get_join_chunks(
             break
 
     # gather the workflow result for basis if it's not yet returned
-    basis = (
-        first_result.result()
-        if isinstance(first_result, PrefectFuture)
-        else first_result
-    )
+    basis = first_result
 
     # read only the table's chunk_columns
     join_column_rows = parquet.read_table(
@@ -355,7 +436,7 @@ def _get_join_chunks(
     ]
 
 
-@task
+@python_app
 def _join_source_chunk(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
@@ -470,7 +551,7 @@ def _join_source_chunk(
     return result_file_path
 
 
-@task
+@python_app
 def _concat_join_sources(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
@@ -538,7 +619,7 @@ def _concat_join_sources(
     return dest_path
 
 
-@task
+@python_app
 def _infer_source_group_common_schema(
     source_group: List[Dict[str, Any]]
 ) -> List[Tuple[str, str]]:
@@ -558,6 +639,7 @@ def _infer_source_group_common_schema(
             This data will later be used as the basis for forming a PyArrow schema.
     """
 
+    print(source_group)
     # read first file for basis of schema and column order for all others
     common_schema = parquet.read_schema(source_group[0]["table"][0])
 
@@ -614,7 +696,6 @@ def _infer_source_group_common_schema(
     )
 
 
-@flow
 def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
@@ -679,151 +760,58 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         source_datatype=source_datatype,
         targets=list(metadata) + list(compartments),
         **kwargs,
-    )
-
-    if not isinstance(sources, Dict):
-        sources = sources.result()
+    ).result()
 
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
 
-    results = {}
-    # for each group of sources, map writing parquet per file
-    for source_group_name, source_group in sources.items():
-        # read data from source groups
-
-        for source in source_group:
-            # attempt to build dest_path
-            source_dest_path = (
-                f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
-                f"{str(pathlib.Path(source['source_path']).parent.name).lower()}"
-            )
-            pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
-
-            offset_list = _get_table_chunk_offsets(
-                ddb=_duckdb_reader(),
-                table_name=source["table_name"]
-                if "table_name" in source.keys()
-                else None,
-                source_path=source["source_path"],
-                chunk_size=chunk_size,
-            )
-
-            # pylint: disable=no-member
-            chunk_results = []
-            if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-                chunk_results = _source_chunk_to_parquet.map(
-                    base_query=unmapped(
-                        f"""SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)"""
-                    ),
-                    result_filepath_base=unmapped(
-                        f"{source_dest_path}/{str(source['source_path'].stem)}"
-                    ),
-                    chunk_size=unmapped(chunk_size),
-                    offset=offset_list,
-                )
-
-            # pylint: disable=no-member
-            elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
-                chunk_results = _source_chunk_to_parquet.map(
-                    base_query=unmapped(
-                        f"""
-                        SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
-                        """
-                    ),
-                    result_filepath_base=unmapped(
-                        f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
-                    ),
-                    chunk_size=unmapped(chunk_size),
-                    offset=offset_list,
-                )
-
-            renamed_columns_table = _prepend_column_name.map(
-                table_path=chunk_results,
-                targets=unmapped(list(metadata) + list(compartments)),
-                source_group_name=unmapped(source_group_name),
-                identifying_columns=unmapped(identifying_columns),
-                metadata=unmapped(metadata),
-            )
-
-            source["table"] = [
-                table.result() if isinstance(table, PrefectFuture) else table
-                for table in renamed_columns_table
-            ]
-
-        if concat and infer_common_schema:
-            common_schema = _infer_source_group_common_schema(source_group=source_group)
-
-        # if concat or join, concat the source groups
-        # note: join implies a concat, but concat does not imply a join
-        if concat or join:
-            # build a new concatenated source group
-            results[source_group_name] = _concat_source_group.submit(
-                source_group_name=source_group_name,
-                source_group=source_group,
-                dest_path=dest_path,
-                common_schema=common_schema,
-            )
-        else:
-            results[source_group_name] = source_group
+    results = _prepare_sources(
+        sources=sources,
+        dest_path=dest_path,
+        targets=list(metadata) + list(compartments),
+        identifying_columns=identifying_columns,
+        metadata=metadata,
+        chunk_size=chunk_size,
+        concat=concat,
+        join=join,
+        infer_common_schema=infer_common_schema,
+    )
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
     if join:
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
-        join_sources_result = _join_source_chunk.map(
-            # gather the result of concatted sources prior to
-            # join group merging as each mapped task run will need
-            # full concat results
-            sources=unmapped(
-                {
-                    key: value.result() if isinstance(value, PrefectFuture) else value
-                    for key, value in results.items()
-                }
-            ),
-            dest_path=unmapped(dest_path),
-            joins=unmapped(joins),
-            # get merging chunks by join columns
-            join_group=_get_join_chunks(
+        join_sources_result = [
+            _join_source_chunk(
+                # gather the result of concatted sources prior to
+                # join group merging as each mapped task run will need
+                # full concat results
+                sources=results,
+                dest_path=dest_path,
+                joins=joins,
+                # get merging chunks by join columns
+                join_group=join_group,
+                drop_null=drop_null,
+            ).result()
+            for join_group in _get_join_chunks(
                 sources=results,
                 chunk_columns=chunk_columns,
                 chunk_size=chunk_size,
                 metadata=metadata,
-            ),
-            drop_null=unmapped(drop_null),
-        )
+            ).result()
+        ]
 
         # concat our join chunks together as one cohesive dataset
         # return results in common format which includes metadata
         # for lineage and debugging
         results = _concat_join_sources(
             dest_path=dest_path,
-            join_sources=(
-                join_sources_result.result()
-                if isinstance(join_sources_result, PrefectFuture)
-                else join_sources_result
-            ),
+            join_sources=join_sources_result,
             sources=results,
         )
 
-    return (
-        {
-            key: value.result()
-            if isinstance(value, PrefectFuture)
-            else [
-                inner_result.result()
-                if isinstance(inner_result, PrefectFuture)
-                else inner_result
-                for inner_result in value
-            ]
-            if not isinstance(value, Dict)
-            else value
-            for key, value in results.items()
-        }
-        if isinstance(results, dict)
-        else results
-    )
+    return results
 
 
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
@@ -852,8 +840,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     infer_common_schema: bool = True,
     drop_null: bool = True,
     preset: Optional[str] = None,
-    task_runner: BaseTaskRunner = SequentialTaskRunner,
-    log_level: str = "ERROR",
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -945,15 +931,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
-    # log level overrides for prefect
-    os.environ["PREFECT_LOGGING_LEVEL"] = log_level
-    os.environ["PREFECT_LOGGING_ROOT_LEVEL"] = log_level
-    os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_LEVEL"] = log_level
-    os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_FLOW_RUNS_LEVEL"] = log_level
-    os.environ["PREFECT_LOGGING_HANDLERS_CONSOLE_TASK_RUNS_LEVEL"] = log_level
-    os.environ["PREFECT_LOGGING_SERVER_LEVEL"] = log_level
-
-    asyncio.run(_set_prefect_concurrency_limit())
+    parsl.load()
 
     # optionally load preset configuration for arguments
     # note: defer to overrides from parameters whose values
@@ -993,27 +971,22 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         )
 
     # send sources to be written to parquet if selected
-    with hosted_api_server() as api_url:
-        os.environ["PREFECT_API_URL"] = api_url
-        print(f"Running server from: {api_url}")
-        asyncio.run(_set_prefect_concurrency_limit())
-        # send sources to be written to parquet if selected
-        if dest_datatype == "parquet":
-            output = _to_parquet.with_options(task_runner=task_runner)(
-                source_path=source_path,
-                dest_path=dest_path,
-                source_datatype=source_datatype,
-                metadata=metadata,
-                compartments=compartments,
-                identifying_columns=identifying_columns,
-                concat=concat,
-                join=join,
-                joins=joins,
-                chunk_columns=chunk_columns,
-                chunk_size=chunk_size,
-                infer_common_schema=infer_common_schema,
-                drop_null=drop_null,
-                **kwargs,
-            )
+    if dest_datatype == "parquet":
+        output = _to_parquet(
+            source_path=source_path,
+            dest_path=dest_path,
+            source_datatype=source_datatype,
+            metadata=metadata,
+            compartments=compartments,
+            identifying_columns=identifying_columns,
+            concat=concat,
+            join=join,
+            joins=joins,
+            chunk_columns=chunk_columns,
+            chunk_size=chunk_size,
+            infer_common_schema=infer_common_schema,
+            drop_null=drop_null,
+            **kwargs,
+        )
 
     return output
