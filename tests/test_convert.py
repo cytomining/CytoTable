@@ -1,7 +1,7 @@
 """
 Tests for CytoTable.convert and related.
 """
-import io
+
 import itertools
 import pathlib
 from shutil import copy
@@ -9,7 +9,6 @@ from typing import Any, Dict, List, Tuple, cast
 
 import pyarrow as pa
 import pytest
-from cloudpathlib import AnyPath
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
@@ -91,33 +90,6 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
-
-
-def test_read_data(get_tempdir: str):
-    """
-    Tests read_csv
-    """
-
-    # valid csv data (last row invalid rowcount)
-    data = io.BytesIO("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False".encode())
-    table = csv.read_csv(input_file=data)
-    destination = f"{get_tempdir}/sample.csv"
-
-    csv.write_csv(data=table, output_file=destination)
-
-    result = _read_data.fn(source={"source_path": destination})
-
-    assert isinstance(result, dict)
-    assert sorted(list(result.keys())) == sorted(["source_path", "table"])
-    assert result["table"].schema.equals(table.schema)
-    assert result["table"].shape == table.shape
-
-    # cover invalid number of rows read ignores
-    destination_err = f"{get_tempdir}/sample.csv"
-    with open(destination_err, "w", encoding="utf-8") as wfile:
-        wfile.write("col_1,col_2,col_3,col_4\n1,0.1,a,True\n2,0.2,b,False,1")
-
-    assert isinstance(_read_data.fn(source={"source_path": destination_err}), Dict)
 
 
 def test_prepend_column_name():
@@ -428,42 +400,6 @@ def test_concat_join_sources(get_tempdir: str):
     )
 
 
-def test_write_parquet(get_tempdir: str):
-    """
-    Tests _write_parquet
-    """
-
-    table = pa.Table.from_pydict(
-        {"color": pa.array(["blue", "red", "green", "orange"])}
-    )
-
-    result = _write_parquet.fn(
-        source={
-            "source_path": AnyPath(f"{get_tempdir}/example/colors.csv"),
-            "table": table,
-        },
-        dest_path=f"{get_tempdir}/new_path",
-        unique_name=False,
-    )
-    result_table = parquet.read_table(result["destination_path"])
-
-    assert sorted(list(result.keys())) == sorted(["destination_path", "source_path"])
-    assert result_table.schema == table.schema
-    assert result_table.shape == table.shape
-    result = _write_parquet.fn(
-        source={
-            "source_path": pathlib.Path(f"{get_tempdir}/example/colors.csv"),
-            "table": table,
-        },
-        dest_path=f"{get_tempdir}/new_path",
-        unique_name=True,
-    )
-    assert (
-        result["destination_path"].stem
-        != pathlib.Path(f"{get_tempdir}/example/colors.csv").stem
-    )
-
-
 def test_infer_source_datatype():
     """
     Tests _infer_source_datatype
@@ -496,21 +432,27 @@ def test_to_parquet(
         itertools.chain(*list(example_local_sources.values()))
     )
 
-    result = _to_parquet(
-        source_path=str(example_local_sources["image.csv"][0]["source_path"].parent),
-        dest_path=get_tempdir,
-        source_datatype=None,
-        compartments=["cytoplasm", "cells", "nuclei"],
-        metadata=["image"],
-        identifying_columns=["imagenumber"],
-        concat=False,
-        join=False,
-        joins=None,
-        chunk_columns=None,
-        chunk_size=None,
-        infer_common_schema=False,
-        drop_null=True,
-    )  # type: Dict[str, List[Dict[str, Any]]]
+    # note: we cast here for mypy linting (dict and str treatment differ)
+    result: Dict[str, List[Dict[str, Any]]] = cast(
+        dict,
+        _to_parquet(
+            source_path=str(
+                example_local_sources["image.csv"][0]["source_path"].parent
+            ),
+            dest_path=get_tempdir,
+            source_datatype=None,
+            compartments=["cytoplasm", "cells", "nuclei"],
+            metadata=["image"],
+            identifying_columns=["imagenumber"],
+            concat=False,
+            join=False,
+            joins=None,
+            chunk_columns=None,
+            chunk_size=None,
+            infer_common_schema=False,
+            drop_null=True,
+        ),
+    )
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):

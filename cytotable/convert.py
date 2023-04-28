@@ -243,7 +243,7 @@ def _concat_source_group(
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink(missing_ok=True)
 
-    concatted = [
+    concatted: List[Dict[str, Any]] = [
         {
             # source path becomes parent's parent dir with the same filename
             "source_path": pathlib.Path(
@@ -253,7 +253,7 @@ def _concat_source_group(
                 )
             )
         }
-    ]  # type: List[Dict[str, Any]]
+    ]
 
     destination_path = pathlib.Path(
         (
