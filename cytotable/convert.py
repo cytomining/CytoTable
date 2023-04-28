@@ -14,11 +14,13 @@ import pyarrow as pa
 from cloudpathlib import AnyPath
 from parsl.app.app import python_app
 from pyarrow import parquet
-
+import shutil
 from cytotable.exceptions import SchemaException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
 from cytotable.utils import _column_sort, _default_parsl_config, _duckdb_reader
+
+logger = logging.getLogger(__name__)
 
 
 @python_app
@@ -241,9 +243,6 @@ def _concat_source_group(
     # if len(source_group) < 2:
     #    return source_group
 
-    print(source_group)
-    print(pathlib.Path(source_group[0]["table"][0]).is_file())
-
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink(missing_ok=True)
@@ -300,7 +299,7 @@ def _concat_source_group(
                 writer.write_table(parquet.read_table(table, schema=writer_schema))
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
-            print(list(pathlib.Path(source["table"][0]).parent.glob("**/*")))
+
             # pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
 
     # return the concatted parquet filename
@@ -503,14 +502,10 @@ def _concat_join_sources(
     for source in flattened_sources:
         for table in source["table"]:
             pathlib.Path(table).unlink(missing_ok=True)
-            if pathlib.Path(table).parent != pathlib.Path(dest_path):
-                pathlib.Path(table).parent.rmdir()
-            if pathlib.Path(table).parent.parent != pathlib.Path(dest_path):
-                pathlib.Path(table).parent.parent.rmdir()
 
     # remove dir if we have it
     if pathlib.Path(dest_path).is_dir():
-        pathlib.Path(dest_path).rmdir()
+        shutil.rmtree(path=dest_path)
 
     # also remove any pre-existing files which may already be at file destination
     pathlib.Path(dest_path).unlink(missing_ok=True)
@@ -910,10 +905,14 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
-    if parsl_config is None:
-        parsl.load(_default_parsl_config())
-    else:
-        parsl.load(parsl_config)
+    try:
+        if parsl_config is None:
+            parsl.load(_default_parsl_config())
+        else:
+            parsl.load(parsl_config)
+    except RuntimeError as runtime_exc:
+        if str(runtime_exc) == "Config has already been loaded":
+            logger.info("")
 
     # optionally load preset configuration for arguments
     # note: defer to overrides from parameters whose values

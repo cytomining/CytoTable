@@ -26,7 +26,7 @@ from cytotable.convert import (
 )
 from cytotable.presets import config
 from cytotable.sources import _get_source_filepaths, _infer_source_datatype
-from cytotable.utils import _column_sort
+from cytotable.utils import _column_sort, _duckdb_reader
 
 
 def test_config():
@@ -246,11 +246,11 @@ def test_get_join_chunks(get_tempdir: str):
     )
 
     result = _get_join_chunks(
-        sources={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
+        sources={"merge_chunks_test.parquet": [{"table": [test_path]}]},
         metadata=["merge_chunks_test"],
         chunk_columns=["id1", "id2"],
         chunk_size=2,
-    )
+    ).result()
 
     # test that we have 3 chunks of merge columns
     assert len(result) == 3
@@ -297,20 +297,20 @@ def test_join_source_chunk(get_tempdir: str):
 
     result = _join_source_chunk(
         sources={
-            "example_a": [{"destination_path": test_path_a}],
-            "example_b": [{"destination_path": test_path_b}],
+            "example_a": [{"table": [test_path_a]}],
+            "example_b": [{"table": [test_path_b]}],
         },
         dest_path=f"{get_tempdir}/destination.parquet",
-        joins="""
+        joins=f"""
             SELECT *
-            FROM read_parquet('example_a_merged.parquet') as example_a
-            JOIN read_parquet('example_b_merged.parquet') as example_b ON
+            FROM read_parquet('{get_tempdir}/example_a_merged.parquet') as example_a
+            JOIN read_parquet('{get_tempdir}/example_b_merged.parquet') as example_b ON
                 example_b.id1 = example_a.id1
                 AND example_b.id2 = example_a.id2
         """,
         join_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
         drop_null=True,
-    )
+    ).result()
 
     assert isinstance(result, str)
     result_table = parquet.read_table(source=result)
@@ -390,14 +390,18 @@ def test_concat_join_sources(get_tempdir: str):
     copy(test_path_a, test_path_a_join_chunk)
     copy(test_path_b, test_path_b_join_chunk)
 
+    pathlib.Path(f"{get_tempdir}/test_concat_join_sources").mkdir(
+        parents=True, exist_ok=True
+    )
+
     result = _concat_join_sources(
-        dest_path=f"{get_tempdir}/example_concat_join.parquet",
+        dest_path=f"{get_tempdir}/test_concat_join_sources/example_concat_join.parquet",
         join_sources=[test_path_a_join_chunk, test_path_b_join_chunk],
         sources={
-            "join_chunks_test_a.parquet": [{"destination_path": test_path_a}],
-            "join_chunks_test_b.parquet": [{"destination_path": test_path_b}],
+            "join_chunks_test_a.parquet": [{"table": [test_path_a]}],
+            "join_chunks_test_b.parquet": [{"table": [test_path_b]}],
         },
-    )
+    ).result()
 
     # ensure the concatted result is what we expect
     assert parquet.read_table(source=result).equals(
@@ -419,14 +423,17 @@ def test_infer_source_datatype():
         "sample_1.csv": [{"source_path": "stub"}],
         "sample_2.CSV": [{"source_path": "stub"}],
     }
-    assert _infer_source_datatype(sources=data) == "csv"
+    assert _infer_source_datatype(sources=data).result() == "csv"
     with pytest.raises(Exception):
-        _infer_source_datatype(sources=data, source_datatype="parquet")
+        _infer_source_datatype(sources=data, source_datatype="parquet").result()
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
-    assert _infer_source_datatype(sources=data, source_datatype="parquet") == "parquet"
+    assert (
+        _infer_source_datatype(sources=data, source_datatype="parquet").result()
+        == "parquet"
+    )
     with pytest.raises(Exception):
-        _infer_source_datatype(sources=data)
+        _infer_source_datatype(sources=data).result()
 
 
 def test_to_parquet(
@@ -456,7 +463,7 @@ def test_to_parquet(
             join=False,
             joins=None,
             chunk_columns=None,
-            chunk_size=None,
+            chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
         ),
@@ -464,8 +471,20 @@ def test_to_parquet(
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
-        parquet_result = parquet.read_table(source=flattened_result["destination_path"])
-        csv_source = csv.read_csv(flattened_example_sources[i]["source_path"])
+        parquet_result = parquet.ParquetDataset(
+            path_or_paths=flattened_result["table"]
+        ).read()
+        csv_source = (
+            _duckdb_reader()
+            .execute(
+                f"""
+                select * from
+                read_csv_auto('{str(flattened_example_sources[i]["source_path"])}',
+                ignore_errors=TRUE)
+                """
+            )
+            .arrow()
+        )
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape
 
