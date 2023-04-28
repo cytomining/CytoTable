@@ -24,7 +24,6 @@ from cytotable.utils import _column_sort, _duckdb_reader, _default_parsl_config
 
 @python_app
 def _get_table_chunk_offsets(
-    ddb: duckdb.DuckDBPyConnection,
     source_path: str,
     table_name: Optional[str] = None,
     chunk_size=int,
@@ -34,11 +33,13 @@ def _get_table_chunk_offsets(
             0,
             # gather rowcount from table and use as maximum for range
             int(
-                ddb.execute(
+                _duckdb_reader()
+                .execute(
                     f"SELECT COUNT(*) from read_csv_auto('{source_path}', ignore_errors=TRUE)"
                     if str(pathlib.Path(source_path).suffix).lower() == ".csv"
                     else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
-                ).fetchone()[0]
+                )
+                .fetchone()[0]
             ),
             # step through using chunk size
             chunk_size,
@@ -681,7 +682,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
             offset_list = _get_table_chunk_offsets(
-                ddb=_duckdb_reader(),
                 table_name=source["table_name"]
                 if "table_name" in source.keys()
                 else None,
