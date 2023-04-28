@@ -10,8 +10,20 @@ from typing import Union
 import duckdb
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
+from parsl.config import Config
+from parsl.executors.threads import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+
+def _default_parsl_config():
+    return Config(
+        executors=[
+            ThreadPoolExecutor(
+                max_threads=multiprocessing.cpu_count(), label="local_threads"
+            )
+        ]
+    )
 
 
 # custom sort for resulting columns
