@@ -10,6 +10,7 @@ from typing import Any, Dict, Generator, List, Tuple
 import boto3
 import boto3.session
 import duckdb
+import parsl
 import pyarrow as pa
 import pytest
 from moto import mock_s3
@@ -17,7 +18,15 @@ from moto.server import ThreadedMotoServer
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-from cytotable.utils import _column_sort
+from cytotable.utils import _column_sort, _default_parsl_config
+
+
+@pytest.fixture(name="load_parsl", scope="session", autouse=True)
+def fixture_load_parsl() -> None:
+    """
+    Fixture for loading parsl for tests
+    """
+    parsl.load(_default_parsl_config())
 
 
 # note: we use name here to avoid pylint flagging W0621
@@ -206,48 +215,45 @@ def fixture_example_local_sources(
         pathlib.Path(f"{get_tempdir}/example/{number}").mkdir(
             parents=True, exist_ok=True
         )
+        pathlib.Path(f"{get_tempdir}/example_dest/{number}").mkdir(
+            parents=True, exist_ok=True
+        )
         # write example input
         csv.write_csv(table, f"{get_tempdir}/example/{number}/{name}.csv")
         # write example output
-        parquet.write_table(table, f"{get_tempdir}/example/{number}.{name}.parquet")
+        parquet.write_table(
+            table, f"{get_tempdir}/example_dest/{number}.{name}.parquet"
+        )
 
     return {
         "image.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/0/image.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/0.image.parquet"
-                ),
+                "table": [pathlib.Path(f"{get_tempdir}/example_dest/0.image.parquet")],
             },
         ],
         "cytoplasm.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/1/cytoplasm.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/1.cytoplasm.parquet"
-                ),
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/1.cytoplasm.parquet")
+                ],
             }
         ],
         "cells.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/2/cells.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/2.cells.parquet"
-                ),
+                "table": [pathlib.Path(f"{get_tempdir}/example_dest/2.cells.parquet")],
             }
         ],
         "nuclei.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/3/nuclei.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/3.nuclei.parquet"
-                ),
+                "table": [pathlib.Path(f"{get_tempdir}/example_dest/3.nuclei.parquet")],
             },
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/4/nuclei.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/4.nuclei.parquet"
-                ),
+                "table": [pathlib.Path(f"{get_tempdir}/example_dest/4.nuclei.parquet")],
             },
         ],
     }

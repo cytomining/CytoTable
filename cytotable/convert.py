@@ -12,7 +12,7 @@ import duckdb
 import parsl
 import pyarrow as pa
 from cloudpathlib import AnyPath
-from parsl.app.app import join_app, python_app
+from parsl.app.app import python_app
 from pyarrow import parquet
 
 from cytotable.exceptions import SchemaException
@@ -73,7 +73,7 @@ def _prepend_column_name(
     source_group_name: str,
     identifying_columns: List[str],
     metadata: Union[List[str], Tuple[str, ...]],
-    targets: List[str],
+    compartments: List[str],
 ) -> str:
     """
     Rename columns using the source group name, avoiding identifying columns.
@@ -101,6 +101,8 @@ def _prepend_column_name(
         Dict[str, Any]
             Updated source which includes the updated table column names
     """
+
+    targets = tuple(metadata) + tuple(compartments)
 
     table = parquet.read_table(source=table_path)
 
@@ -239,6 +241,9 @@ def _concat_source_group(
     # if len(source_group) < 2:
     #    return source_group
 
+    print(source_group)
+    print(pathlib.Path(source_group[0]["table"][0]).is_file())
+
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink(missing_ok=True)
@@ -264,6 +269,9 @@ def _concat_source_group(
 
     # if there's already a file remove it
     destination_path.unlink(missing_ok=True)
+
+    # ensure the parent directories exist:
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
 
     if common_schema is not None:
         writer_schema = pa.schema(common_schema)
@@ -292,7 +300,8 @@ def _concat_source_group(
                 writer.write_table(parquet.read_table(table, schema=writer_schema))
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
-            pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
+            print(list(pathlib.Path(source["table"][0]).parent.glob("**/*")))
+            # pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
 
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]
@@ -720,6 +729,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                     source_group_name=source_group_name,
                     identifying_columns=identifying_columns,
                     metadata=metadata,
+                    compartments=compartments,
                 ).result()
                 for chunk in chunk_results
             ]

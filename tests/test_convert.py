@@ -2,6 +2,8 @@
 Tests for CytoTable.convert and related.
 """
 
+# pylint: disable=no-member
+
 import itertools
 import pathlib
 from shutil import copy
@@ -56,61 +58,64 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     empty_dir = pathlib.Path(f"{get_tempdir}/temp")
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
-        single_dir_result = _get_source_filepaths.fn(
+        single_dir_result = _get_source_filepaths(
             path=empty_dir,
             targets=["image", "cells", "nuclei", "cytoplasm"],
-        )
+        ).result()
 
     # check that single sqlite file is returned as desired
-    single_file_result = _get_source_filepaths.fn(
+    single_file_result = _get_source_filepaths(
         path=pathlib.Path(
             f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
         ),
         targets=["cells"],
-    )
+    ).result()
     assert len(set(single_file_result.keys())) == 1
 
     # check that single csv file is returned as desired
-    single_file_result = _get_source_filepaths.fn(
+    single_file_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv"),
         targets=["cells"],
-    )
+    ).result()
     assert len(set(single_file_result.keys())) == 1
 
-    single_dir_result = _get_source_filepaths.fn(
+    single_dir_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
-    )
+    ).result()
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
 
-    single_dir_result = _get_source_filepaths.fn(
+    single_dir_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
-    )
+    ).result()
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
 
 
-def test_prepend_column_name():
+def test_prepend_column_name(get_tempdir: str):
     """
     Tests _prepend_column_name
     """
 
     # example cytoplasm csv table run
-    result = _prepend_column_name.fn(
-        source={
-            "table": pa.Table.from_pydict(
-                {
-                    "ImageNumber": [1, 2, 3, 1, 2, 3],
-                    "ObjectNumber": [1, 1, 1, 2, 2, 2],
-                    "Parent_Cells": [1, 1, 1, 2, 2, 2],
-                    "Parent_Nuclei": [1, 1, 1, 2, 2, 2],
-                    "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
-                    "field2": [True, False, True, True, False, True],
-                }
-            )
-        },
+    prepend_testpath_1 = f"{get_tempdir}/prepend_testpath_1.parquet"
+    parquet.write_table(
+        table=pa.Table.from_pydict(
+            {
+                "ImageNumber": [1, 2, 3, 1, 2, 3],
+                "ObjectNumber": [1, 1, 1, 2, 2, 2],
+                "Parent_Cells": [1, 1, 1, 2, 2, 2],
+                "Parent_Nuclei": [1, 1, 1, 2, 2, 2],
+                "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+                "field2": [True, False, True, True, False, True],
+            }
+        ),
+        where=prepend_testpath_1,
+    )
+    result = _prepend_column_name(
+        table_path=prepend_testpath_1,
         source_group_name="Cytoplasm.csv",
         identifying_columns=[
             "ImageNumber",
@@ -119,11 +124,11 @@ def test_prepend_column_name():
             "Parent_Nuclei",
         ],
         metadata=["image"],
-        targets=["image", "cells", "nuclei", "cytoplasm"],
-    )
+        compartments=["image", "cells", "nuclei", "cytoplasm"],
+    ).result()
 
     # compare the results with what's expected for column names
-    assert result["table"].column_names == [
+    assert parquet.read_table(source=result).column_names == [
         "Metadata_ImageNumber",
         "Metadata_ObjectNumber",
         "Metadata_Cytoplasm_Parent_Cells",
@@ -133,18 +138,21 @@ def test_prepend_column_name():
     ]
 
     # example cells sqlite table run
-    result = _prepend_column_name.fn(
-        source={
-            "table": pa.Table.from_pydict(
-                {
-                    "ImageNumber": [1, 2, 3, 1, 2, 3],
-                    "Cells_Number_Object_Number": [1, 1, 1, 2, 2, 2],
-                    "Parent_OrigNuclei": [1, 1, 1, 2, 2, 2],
-                    "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
-                    "field2": [True, False, True, True, False, True],
-                }
-            )
-        },
+    repend_testpath_2 = f"{get_tempdir}/prepend_testpath_2.parquet"
+    parquet.write_table(
+        table=pa.Table.from_pydict(
+            {
+                "ImageNumber": [1, 2, 3, 1, 2, 3],
+                "Cells_Number_Object_Number": [1, 1, 1, 2, 2, 2],
+                "Parent_OrigNuclei": [1, 1, 1, 2, 2, 2],
+                "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
+                "field2": [True, False, True, True, False, True],
+            }
+        ),
+        where=repend_testpath_2,
+    )
+    result = _prepend_column_name(
+        table_path=repend_testpath_2,
         source_group_name="Per_Cells.sqlite",
         identifying_columns=[
             "ImageNumber",
@@ -152,11 +160,11 @@ def test_prepend_column_name():
             "Parent_OrigNuclei",
         ],
         metadata=["image"],
-        targets=["image", "cells", "nuclei", "cytoplasm"],
-    )
+        compartments=["image", "cells", "nuclei", "cytoplasm"],
+    ).result()
 
     # compare the results with what's expected for column names
-    assert result["table"].column_names == [
+    assert parquet.read_table(source=result).column_names == [
         "Metadata_ImageNumber",
         "Cells_Number_Object_Number",
         "Metadata_Cells_Parent_OrigNuclei",
@@ -179,16 +187,17 @@ def test_concat_source_group(
     # simulate concat
     concat_table = pa.concat_tables([table_nuclei_1, table_nuclei_2])
 
-    result = _concat_source_group.fn(
+    result = _concat_source_group(
+        source_group_name="nuclei",
         source_group=example_local_sources["nuclei.csv"],
         dest_path=get_tempdir,
         common_schema=table_nuclei_1.schema,
-    )
+    ).result()
     assert len(result) == 1
-    assert parquet.read_schema(result[0]["destination_path"]) == concat_table.schema
+    assert parquet.read_schema(result[0]["table"][0]) == concat_table.schema
     assert (
-        parquet.read_metadata(result[0]["destination_path"]).num_rows,
-        parquet.read_metadata(result[0]["destination_path"]).num_columns,
+        parquet.read_metadata(result[0]["table"][0]).num_rows,
+        parquet.read_metadata(result[0]["table"][0]).num_columns,
     ) == concat_table.shape
 
     # add a mismatching source to group
@@ -208,10 +217,11 @@ def test_concat_source_group(
     )
 
     with pytest.raises(Exception):
-        _concat_source_group.fn(
+        _concat_source_group(
+            source_group_name="nuclei",
             source_group=example_local_sources["nuclei.csv"],
             dest_path=get_tempdir,
-        )
+        ).result()
 
 
 def test_get_join_chunks(get_tempdir: str):
@@ -235,7 +245,7 @@ def test_get_join_chunks(get_tempdir: str):
         where=test_path,
     )
 
-    result = _get_join_chunks.fn(
+    result = _get_join_chunks(
         sources={"merge_chunks_test.parquet": [{"destination_path": test_path}]},
         metadata=["merge_chunks_test"],
         chunk_columns=["id1", "id2"],
@@ -285,7 +295,7 @@ def test_join_source_chunk(get_tempdir: str):
         where=test_path_b,
     )
 
-    result = _join_source_chunk.fn(
+    result = _join_source_chunk(
         sources={
             "example_a": [{"destination_path": test_path_a}],
             "example_b": [{"destination_path": test_path_b}],
@@ -380,7 +390,7 @@ def test_concat_join_sources(get_tempdir: str):
     copy(test_path_a, test_path_a_join_chunk)
     copy(test_path_b, test_path_b_join_chunk)
 
-    result = _concat_join_sources.fn(
+    result = _concat_join_sources(
         dest_path=f"{get_tempdir}/example_concat_join.parquet",
         join_sources=[test_path_a_join_chunk, test_path_b_join_chunk],
         sources={
@@ -409,16 +419,14 @@ def test_infer_source_datatype():
         "sample_1.csv": [{"source_path": "stub"}],
         "sample_2.CSV": [{"source_path": "stub"}],
     }
-    assert _infer_source_datatype.fn(sources=data) == "csv"
+    assert _infer_source_datatype(sources=data) == "csv"
     with pytest.raises(Exception):
-        _infer_source_datatype.fn(sources=data, source_datatype="parquet")
+        _infer_source_datatype(sources=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
-    assert (
-        _infer_source_datatype.fn(sources=data, source_datatype="parquet") == "parquet"
-    )
+    assert _infer_source_datatype(sources=data, source_datatype="parquet") == "parquet"
     with pytest.raises(Exception):
-        _infer_source_datatype.fn(sources=data)
+        _infer_source_datatype(sources=data)
 
 
 def test_to_parquet(
@@ -572,7 +580,7 @@ def test_infer_source_group_common_schema(
     """
     _, _, _, table_nuclei_1, _ = example_tables
 
-    result = _infer_source_group_common_schema.fn(
+    result = _infer_source_group_common_schema(
         source_group=example_local_sources["nuclei.csv"],
     )
 

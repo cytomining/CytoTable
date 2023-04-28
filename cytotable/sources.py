@@ -70,9 +70,9 @@ def _get_source_filepaths(
         for subpath in (
             (path,)
             # used if the source path is a single file
-            if path.is_file()
+            if AnyPath(path).is_file()
             # iterates through a source directory
-            else (x for x in path.glob("**/*") if x.is_file())
+            else (x for x in AnyPath(path).glob("**/*") if AnyPath(x).is_file())
         )
         # ensure the subpaths meet certain specifications
         if (
