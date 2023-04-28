@@ -98,20 +98,20 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         LOAD sqlite_scanner;
 
         /*
-        Set threads available to duckdb 
+        Set threads available to duckdb
         See the following for more information:
         https://duckdb.org/docs/sql/pragmas#memory_limit-threads
         */
         PRAGMA threads={multiprocessing.cpu_count()};
 
-        /* 
+        /*
         Allow unordered results for performance increase possibilities
         See the following for more information:
         https://duckdb.org/docs/sql/configuration#configuration-reference
         */
         PRAGMA preserve_insertion_order=FALSE;
 
-        /* 
+        /*
         Allow parallel csv reads for performance increase possibilities
         See the following for more information:
         https://duckdb.org/docs/sql/configuration#configuration-reference

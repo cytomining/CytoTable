@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Tuple, cast
 import pyarrow as pa
 import pytest
 from cloudpathlib import AnyPath
-from prefect_dask.task_runners import DaskTaskRunner
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
@@ -21,9 +20,7 @@ from cytotable.convert import (
     _infer_source_group_common_schema,
     _join_source_chunk,
     _prepend_column_name,
-    _read_data,
     _to_parquet,
-    _write_parquet,
     convert,
 )
 from cytotable.presets import config
@@ -513,7 +510,7 @@ def test_to_parquet(
         chunk_size=None,
         infer_common_schema=False,
         drop_null=True,
-    )
+    )  # type: Dict[str, List[Dict[str, Any]]]
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
@@ -796,7 +793,6 @@ def test_convert_dask_cellprofiler_csv(
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
-            task_runner=DaskTaskRunner,
         )
     )
 

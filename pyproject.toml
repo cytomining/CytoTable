@@ -42,3 +42,7 @@ profile = "black"
 
 [tool.bandit]
 exclude_dirs = ["tests"]
+skips = ["B608"]
+
+[tool.codespell]
+ignore-words=".codespell-ignore"

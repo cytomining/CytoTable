@@ -2,9 +2,8 @@
 CytoTable: convert - transforming data for use with pyctyominer.
 """
 
-import asyncio
+
 import itertools
-import os
 import pathlib
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
@@ -19,7 +18,7 @@ from pyarrow import parquet
 from cytotable.exceptions import SchemaException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
-from cytotable.utils import _column_sort, _duckdb_reader, _default_parsl_config
+from cytotable.utils import _column_sort, _default_parsl_config, _duckdb_reader
 
 
 @python_app
@@ -35,6 +34,7 @@ def _get_table_chunk_offsets(
             int(
                 _duckdb_reader()
                 .execute(
+                    # nosec
                     f"SELECT COUNT(*) from read_csv_auto('{source_path}', ignore_errors=TRUE)"
                     if str(pathlib.Path(source_path).suffix).lower() == ".csv"
                     else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
@@ -57,9 +57,9 @@ def _source_chunk_to_parquet(
     _duckdb_reader().execute(
         f"""
         COPY (
-            {base_query} 
+            {base_query}
             LIMIT {chunk_size} OFFSET {offset}
-        ) TO '{result_filepath}' 
+        ) TO '{result_filepath}'
         (FORMAT PARQUET);
         """
     )
@@ -71,10 +71,10 @@ def _source_chunk_to_parquet(
 def _prepend_column_name(
     table_path: str,
     source_group_name: str,
-    identifying_columns: Union[List[str], Tuple[str, ...]],
+    identifying_columns: List[str],
     metadata: Union[List[str], Tuple[str, ...]],
     targets: List[str],
-) -> Dict[str, Any]:
+) -> str:
     """
     Rename columns using the source group name, avoiding identifying columns.
 
@@ -253,7 +253,7 @@ def _concat_source_group(
                 )
             )
         }
-    ]
+    ]  # type: List[Dict[str, Any]]
 
     destination_path = pathlib.Path(
         (
@@ -717,7 +717,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             renamed_columns_table = [
                 _prepend_column_name(
                     table_path=chunk,
-                    targets=compartments + metadata,
                     source_group_name=source_group_name,
                     identifying_columns=identifying_columns,
                     metadata=metadata,
