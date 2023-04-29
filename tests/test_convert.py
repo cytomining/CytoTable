@@ -516,18 +516,20 @@ def test_convert_s3_path_csv(
     # compare each of the results using files from the source
     for control_path, test_path in zip(
         [
-            source["destination_path"]
+            source["table"]
             for group in cast(Dict, multi_dir_nonconcat_s3_result).values()
             for source in group
         ],
         [
-            source["destination_path"]
+            source["table"]
             for group in example_local_sources.values()
             for source in group
         ],
     ):
-        parquet_control = parquet.read_table(control_path)
-        parquet_result = parquet.read_table(test_path, schema=parquet_control.schema)
+        parquet_control = parquet.ParquetDataset(path_or_paths=control_path).read()
+        parquet_result = parquet.ParquetDataset(
+            path_or_paths=test_path, schema=parquet_control.schema
+        ).read()
 
         assert parquet_result.schema.equals(parquet_control.schema)
         assert parquet_result.shape == parquet_control.shape

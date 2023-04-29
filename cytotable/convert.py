@@ -7,7 +7,7 @@ import itertools
 import pathlib
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
-
+import logging
 import duckdb
 import parsl
 import pyarrow as pa
@@ -912,7 +912,9 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             parsl.load(parsl_config)
     except RuntimeError as runtime_exc:
         if str(runtime_exc) == "Config has already been loaded":
-            logger.info("")
+            logger.warn(str(runtime_exc))
+        else:
+            raise
 
     # optionally load preset configuration for arguments
     # note: defer to overrides from parameters whose values
