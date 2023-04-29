@@ -4,17 +4,19 @@ CytoTable: convert - transforming data for use with pyctyominer.
 
 
 import itertools
+import logging
 import pathlib
+import shutil
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
-import logging
+
 import duckdb
 import parsl
 import pyarrow as pa
 from cloudpathlib import AnyPath
-from parsl.app.app import python_app
+from parsl.app.app import join_app, python_app
 from pyarrow import parquet
-import shutil
+
 from cytotable.exceptions import SchemaException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
@@ -603,6 +605,12 @@ def _infer_source_group_common_schema(
     )
 
 
+@python_app
+def _pre_join_work(results):
+    return {key: val.result() for key, val in results.items()}
+
+
+@join_app
 def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
@@ -718,7 +726,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 for offset in offset_list
             ]
 
-            renamed_columns_table = [
+            source["table"] = [
                 _prepend_column_name(
                     table_path=chunk,
                     source_group_name=source_group_name,
@@ -729,9 +737,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 for chunk in chunk_results
             ]
 
-            source["table"] = renamed_columns_table
-
-        if concat and infer_common_schema:
+        if (concat or join) and infer_common_schema:
             common_schema = _infer_source_group_common_schema(
                 source_group=source_group
             ).result()
@@ -745,9 +751,11 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 source_group=source_group,
                 dest_path=dest_path,
                 common_schema=common_schema,
-            ).result()
+            )
         else:
             results[source_group_name] = source_group
+
+    results = _pre_join_work(results)
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
@@ -782,7 +790,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             dest_path=dest_path,
             join_sources=join_sources_result,
             sources=results,
-        ).result()
+        )
 
     return results
 
@@ -970,6 +978,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
             **kwargs,
-        )
+        ).result()
 
     return output
