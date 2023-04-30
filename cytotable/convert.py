@@ -9,7 +9,9 @@ import pathlib
 import shutil
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
+import pprint
 
+pp = pprint.PrettyPrinter(depth=4)
 import duckdb
 import parsl
 import pyarrow as pa
@@ -628,6 +630,26 @@ def _infer_source_group_common_schema(
     )
 
 
+@python_app
+def _return_future(input: Any) -> Any:
+    """
+    This is a simple wrapper python_app to allow
+    the return of join_app-compliant output (must be future)
+
+    Args:
+        input: Any
+            Any input which will be used within the context of a
+            Parsl join_app future return.
+
+    Returns:
+        Any
+            Returns the input as provided wrapped within the context
+            of a python_app for the purpose of a join_app.
+    """
+
+    return input
+
+
 @join_app
 def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
@@ -693,60 +715,106 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         source_datatype=source_datatype,
         targets=list(metadata) + list(compartments),
         **kwargs,
-    )
+    ).result()
 
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
 
-    results = {}
+    pp.pprint(sources)
 
     offsets_prepared = {
-        source_group: dict(
-            source,
-            **{
-                "offsets": _get_table_chunk_offsets(
-                    source=source,
-                    chunk_size=chunk_size,
-                )
-            },
-        )
-        for source_group in sources.keys()
-        for source in sources[source_group]
+        source_group_name: [
+            dict(
+                source,
+                **{
+                    "offsets": _get_table_chunk_offsets(
+                        source=source,
+                        chunk_size=chunk_size,
+                    ).result()
+                },
+            )
+            for source in source_group_vals
+        ]
+        for source_group_name, source_group_vals in sources.items()
     }
 
-    chunked_sources = _source_chunk_to_parquet(
-        source_group_name= source_group_name,
-        source=source,
-        chunk_size=chunk_size,
-        offset=offset,
-        dest_path=dest_path,)
+    pp.pprint(offsets_prepared)
 
-        source["table"] = [
-            _prepend_column_name(
-                table_path=chunk,
-                source_group_name=source_group_name,
-                identifying_columns=identifying_columns,
-                metadata=metadata,
-                compartments=compartments,
+    chunked_source_tables = {
+        source_group_name: [
+            dict(
+                source,
+                **{
+                    "table": [
+                        _source_chunk_to_parquet(
+                            source_group_name=source_group_name,
+                            source=source,
+                            chunk_size=chunk_size,
+                            offset=offset,
+                            dest_path=dest_path,
+                        )
+                        for offset in source["offsets"]
+                    ]
+                },
             )
-            for chunk in chunk_results
+            for source in source_group_vals
         ]
+        for source_group_name, source_group_vals in offsets_prepared.items()
+    }
 
-        if (concat or join) and infer_common_schema:
-            common_schema = _infer_source_group_common_schema(source_group=source_group)
+    pp.pprint(chunked_source_tables)
 
-        # if concat or join, concat the source groups
-        # note: join implies a concat, but concat does not imply a join
-        if concat or join:
-            # build a new concatenated source group
-            results[source_group_name] = _concat_source_group(
-                source_group_name=source_group_name,
-                source_group=source_group,
-                dest_path=dest_path,
-                common_schema=common_schema,
+    results = {
+        source_group_name: [
+            dict(
+                source,
+                **{
+                    "table": [
+                        _prepend_column_name(
+                            table_path=table,
+                            source_group_name=source_group_name,
+                            identifying_columns=identifying_columns,
+                            metadata=metadata,
+                            compartments=compartments,
+                        ).result()
+                        for table in source["table"]
+                    ]
+                },
             )
-        else:
-            results[source_group_name] = source_group
+            for source in source_group_vals
+        ]
+        for source_group_name, source_group_vals in chunked_source_tables.items()
+    }
+
+    pp.pprint(results)
+
+    if (concat or join) and infer_common_schema:
+        common_schema_determined = {
+            source_group_name: {
+                "sources": source_group_vals,
+                "common_schema": _infer_source_group_common_schema(
+                    source_group=source_group_vals
+                ),
+            }
+            for source_group_name, source_group_vals in results.items()
+        }
+
+    # if concat or join, concat the source groups
+    # note: join implies a concat, but concat does not imply a join
+    if concat or join:
+        # build a new concatenated source group
+
+        results = {
+            source_group_name: _concat_source_group(
+                source_group_name=source_group_name,
+                source_group=source_group_vals["sources"],
+                dest_path=dest_path,
+                common_schema=source_group_vals["common_schema"],
+            ).result()
+            for source_group_name, source_group_vals in common_schema_determined.items()
+        }
+
+        pp.pprint(results)
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
@@ -765,13 +833,13 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 # get merging chunks by join columns
                 join_group=join_group,
                 drop_null=drop_null,
-            )
+            ).result()
             for join_group in _get_join_chunks(
                 sources=results,
                 chunk_columns=chunk_columns,
                 chunk_size=chunk_size,
                 metadata=metadata,
-            )
+            ).result()
         ]
 
         # concat our join chunks together as one cohesive dataset
@@ -781,9 +849,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             dest_path=dest_path,
             join_sources=join_sources_result,
             sources=results,
-        )
+        ).result()
 
-    return results
+    return _return_future(results)
 
 
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
