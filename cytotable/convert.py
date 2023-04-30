@@ -27,10 +27,11 @@ logger = logging.getLogger(__name__)
 
 @python_app
 def _get_table_chunk_offsets(
-    source_path: str,
-    table_name: Optional[str] = None,
+    source: Dict[str, Any],
     chunk_size=int,
 ):
+    table_name = source["table_name"] if "table_name" in source.keys() else None
+    source_path = source["source_path"]
     return list(
         range(
             0,
@@ -53,8 +54,30 @@ def _get_table_chunk_offsets(
 
 @python_app
 def _source_chunk_to_parquet(
-    base_query: str, result_filepath_base: str, chunk_size: int, offset: int
+    source_group_name: str,
+    source: Dict[str, Any],
+    chunk_size: int,
+    offset: int,
+    dest_path,
 ):
+    # attempt to build dest_path
+    source_dest_path = (
+        f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
+        f"{str(pathlib.Path(source['source_path']).parent.name).lower()}"
+    )
+    pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
+
+    if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
+        base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)"""
+        result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
+
+    # pylint: disable=no-member
+    elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
+        base_query = f"""
+                SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+                """
+        result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
+
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
 
     # isolate connection to read data and export directly to parquet
@@ -605,11 +628,6 @@ def _infer_source_group_common_schema(
     )
 
 
-@python_app
-def _pre_join_work(results):
-    return {key: val.result() for key, val in results.items()}
-
-
 @join_app
 def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
@@ -675,72 +693,47 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         source_datatype=source_datatype,
         targets=list(metadata) + list(compartments),
         **kwargs,
-    ).result()
+    )
 
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
 
     results = {}
-    # for each group of sources, map writing parquet per file
-    for source_group_name, source_group in sources.items():
-        # read data from source groups
 
-        for source in source_group:
-            # attempt to build dest_path
-            source_dest_path = (
-                f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
-                f"{str(pathlib.Path(source['source_path']).parent.name).lower()}"
-            )
-            pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
-
-            offset_list = _get_table_chunk_offsets(
-                table_name=source["table_name"]
-                if "table_name" in source.keys()
-                else None,
-                source_path=source["source_path"],
-                chunk_size=chunk_size,
-            ).result()
-
-            # pylint: disable=no-member
-
-            if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-                base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)"""
-                result_filepath_base = (
-                    f"{source_dest_path}/{str(source['source_path'].stem)}"
-                )
-
-            # pylint: disable=no-member
-            elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
-                base_query = f"""
-                        SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
-                        """
-                result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
-
-            chunk_results = [
-                _source_chunk_to_parquet(
-                    base_query=base_query,
-                    result_filepath_base=result_filepath_base,
+    offsets_prepared = {
+        source_group: dict(
+            source,
+            **{
+                "offsets": _get_table_chunk_offsets(
+                    source=source,
                     chunk_size=chunk_size,
-                    offset=offset,
-                ).result()
-                for offset in offset_list
-            ]
+                )
+            },
+        )
+        for source_group in sources.keys()
+        for source in sources[source_group]
+    }
 
-            source["table"] = [
-                _prepend_column_name(
-                    table_path=chunk,
-                    source_group_name=source_group_name,
-                    identifying_columns=identifying_columns,
-                    metadata=metadata,
-                    compartments=compartments,
-                ).result()
-                for chunk in chunk_results
-            ]
+    chunked_sources = _source_chunk_to_parquet(
+        source_group_name= source_group_name,
+        source=source,
+        chunk_size=chunk_size,
+        offset=offset,
+        dest_path=dest_path,)
+
+        source["table"] = [
+            _prepend_column_name(
+                table_path=chunk,
+                source_group_name=source_group_name,
+                identifying_columns=identifying_columns,
+                metadata=metadata,
+                compartments=compartments,
+            )
+            for chunk in chunk_results
+        ]
 
         if (concat or join) and infer_common_schema:
-            common_schema = _infer_source_group_common_schema(
-                source_group=source_group
-            ).result()
+            common_schema = _infer_source_group_common_schema(source_group=source_group)
 
         # if concat or join, concat the source groups
         # note: join implies a concat, but concat does not imply a join
@@ -754,8 +747,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             )
         else:
             results[source_group_name] = source_group
-
-    results = _pre_join_work(results)
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
@@ -774,13 +765,13 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 # get merging chunks by join columns
                 join_group=join_group,
                 drop_null=drop_null,
-            ).result()
+            )
             for join_group in _get_join_chunks(
                 sources=results,
                 chunk_columns=chunk_columns,
                 chunk_size=chunk_size,
                 metadata=metadata,
-            ).result()
+            )
         ]
 
         # concat our join chunks together as one cohesive dataset
