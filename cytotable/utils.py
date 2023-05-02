@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import os
 import pathlib
-from typing import Union
+from typing import Union, cast
 
 import duckdb
 from cloudpathlib import AnyPath, CloudPath
@@ -17,10 +17,12 @@ from parsl.executors.threads import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
 
+# read max threads from environment if necessary
+# max threads will be used with default Parsl config and Duckdb
 MAX_THREADS = (
     multiprocessing.cpu_count()
     if "CYTOTABLE_MAX_THREADS" not in os.environ
-    else int(os.environ.get("CYTOTABLE_MAX_THREADS"))
+    else int(cast(int, os.environ.get("CYTOTABLE_MAX_THREADS")))
 )
 
 # reference the original init
