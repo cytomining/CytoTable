@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def _get_table_chunk_offsets(
     source: Dict[str, Any],
     chunk_size: int,
-) -> List[int]:
+) -> Union[List[int], None]:
     """
     Get table data chunk offsets for later use in capturing segments
     of values. This work also provides a chance to catch problematic
@@ -44,7 +44,7 @@ def _get_table_chunk_offsets(
 
     Returns:
         List[int]
-            List of integers which represet offsets to use for reading
+            List of integers which represent offsets to use for reading
             the data later on.
     """
 

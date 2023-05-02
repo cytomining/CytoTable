@@ -4,16 +4,43 @@ Utility functions for CytoTable
 
 import logging
 import multiprocessing
+import os
 import pathlib
 from typing import Union
 
 import duckdb
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
+from parsl.app.app import AppBase
 from parsl.config import Config
 from parsl.executors.threads import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+MAX_THREADS = (
+    multiprocessing.cpu_count()
+    if "CYTOTABLE_MAX_THREADS" not in os.environ
+    else int(os.environ.get("CYTOTABLE_MAX_THREADS"))
+)
+
+# reference the original init
+original_init = AppBase.__init__
+
+
+def Parsl_AppBase_init_for_docs(self, func, *args, **kwargs):
+    """
+    A function to extend Parsl.app.app.AppBase with
+    docstring from decorated functions rather than
+    the decorators from Parsl. Used for
+    Sphinx documentation purposes.
+    """
+    original_init(self, func, *args, **kwargs)
+    # add function doc as the app doc
+    self.__doc__ = func.__doc__
+
+
+# set the AppBase to the new init for the docstring.
+AppBase.__init__ = Parsl_AppBase_init_for_docs
 
 
 def _default_parsl_config():
@@ -21,11 +48,7 @@ def _default_parsl_config():
     Return a default Parsl configuration for use with CytoTable
     """
     return Config(
-        executors=[
-            ThreadPoolExecutor(
-                max_threads=multiprocessing.cpu_count(), label="local_threads"
-            )
-        ]
+        executors=[ThreadPoolExecutor(max_threads=MAX_THREADS, label="local_threads")]
     )
 
 
@@ -105,7 +128,7 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         See the following for more information:
         https://duckdb.org/docs/sql/pragmas#memory_limit-threads
         */
-        PRAGMA threads={multiprocessing.cpu_count()};
+        PRAGMA threads={MAX_THREADS};
 
         /*
         Allow unordered results for performance increase possibilities

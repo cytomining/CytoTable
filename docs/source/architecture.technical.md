@@ -14,6 +14,10 @@ See the following documentation for more information on how apps may be used wit
 Procedures within CytoTable are executed using [Parsl Executors](https://parsl.readthedocs.io/en/stable/userguide/execution.html).
 Parsl Executors may be configured through [Parsl Configuration's](https://parsl.readthedocs.io/en/stable/userguide/execution.html#configuration).
 
+```{eval-rst}
+Parsl configurations may be passed to :code:`convert(..., parsl_config=parsl.Config)` (:mod:`convert() <cytotable.convert.convert>`)
+```
+
 By default, CytoTable assumes local task execution with [LocalProvider](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.LocalProvider.html#parsl.providers.LocalProvider).
 For greater scalability, CytoTable may be used with a [HighThroughputExecutor](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor) (See [Parsl's scalability documentation](https://parsl.readthedocs.io/en/stable/userguide/performance.html) for more information).
 
