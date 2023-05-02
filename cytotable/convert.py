@@ -28,13 +28,32 @@ logger = logging.getLogger(__name__)
 @python_app
 def _get_table_chunk_offsets(
     source: Dict[str, Any],
-    chunk_size=int,
-):
+    chunk_size: int,
+) -> List[int]:
+    """
+    Get table data chunk offsets for later use in capturing segments
+    of values. This work also provides a chance to catch problematic
+    input data which will be ignored with warnings.
+
+    Args:
+        source: Dict[str, Any]
+            Contains the source data to be chunked. Represents a single
+            file or table of some kind.
+        chunk_size: int
+            The size in rowcount of the chunks to create
+
+    Returns:
+        List[int]
+            List of integers which represet offsets to use for reading
+            the data later on.
+    """
+
     table_name = source["table_name"] if "table_name" in source.keys() else None
     source_path = source["source_path"]
     source_type = str(pathlib.Path(source_path).suffix).lower()
 
     try:
+        # for csv's, check that we have more than one row (a header and data values)
         if (
             source_type == ".csv"
             and sum(1 for _ in AnyPath(source_path).open("r")) <= 1
@@ -43,6 +62,7 @@ def _get_table_chunk_offsets(
                 f"Data file has 0 rows of values. Error in file: {source_path}"
             )
 
+        # gather the total rowcount from csv or sqlite data input sources
         rowcount = int(
             _duckdb_reader()
             .execute(
@@ -54,8 +74,9 @@ def _get_table_chunk_offsets(
             .fetchone()[0]
         )
 
+    # catch input errors which will result in skipped files
     except (duckdb.InvalidInputException, NoInputDataException) as invalid_input_exc:
-        logger.warning(
+        logger.warn(
             msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
         )
 
@@ -78,8 +99,28 @@ def _source_chunk_to_parquet(
     source: Dict[str, Any],
     chunk_size: int,
     offset: int,
-    dest_path,
-):
+    dest_path: str,
+) -> str:
+    """
+    Export source data to chunked parquet file using chunk size and offsets.
+
+    Args:
+        source_group_name: str
+            Name of the source group (for ex. compartment or metadata table name)
+        source: Dict[str, Any]
+            Contains the source data to be chunked. Represents a single
+            file or table of some kind along with collected information about table.
+        chunk_size: int
+            Row count to use for chunked output
+        offset: int
+            The offset for chunking the data from source.
+        dest_path: str
+            Path to store the output data.
+
+    Returns:
+        str
+            A string of the output filepath
+    """
     # attempt to build dest_path
     source_dest_path = (
         f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
@@ -87,11 +128,11 @@ def _source_chunk_to_parquet(
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
+    # build output query and filepath base
+    # (chunked output will append offset to keep output paths unique)
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
         base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}')"""
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
-
-    # pylint: disable=no-member
     elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
         base_query = f"""
                 SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
@@ -100,7 +141,8 @@ def _source_chunk_to_parquet(
 
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
 
-    # isolate connection to read data and export directly to parquet
+    # isolate using new connection to read data with chunk size + offset
+    # and export directly to parquet via duckdb (avoiding need to return data to python)
     _duckdb_reader().execute(
         f"""
         COPY (
@@ -111,6 +153,7 @@ def _source_chunk_to_parquet(
         """
     )
 
+    # return the filepath for the chunked output file
     return result_filepath
 
 
@@ -128,7 +171,6 @@ def _prepend_column_name(
     Notes:
     * A source_group_name represents a filename referenced as part of what
     is specified within targets.
-    * Target list values are used to reference source_group_names.
 
     Args:
         source: Dict[str, Any]:
@@ -141,12 +183,12 @@ def _prepend_column_name(
             treated differently when renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
             List of source data names which are used as metadata
-        targets: List[str]:
+        compartments: List[str]:
             List of source data names which are used as compartments
 
     Returns:
-        Dict[str, Any]
-            Updated source which includes the updated table column names
+        str
+            Path to the modified file
     """
 
     targets = tuple(metadata) + tuple(compartments)
@@ -244,7 +286,7 @@ def _concat_source_group(
     common_schema: Optional[List[Tuple[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Concatenate group of sources together as unified dataset.
+    Concatenate group of source data together as single file.
 
     For a reference to data concatenation within Arrow see the following:
     https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
@@ -263,14 +305,24 @@ def _concat_source_group(
             └── Cells.csv
 
 
-    Becomes (list with dictionary):
+    Becomes:
 
     .. code-block:: python
 
-        concatted = [{"source_path": "root/Cells"}]
+        # earlier data read into parquet chunks from multiple
+        # data source files.
+        read_data = [
+            {"table": ["cells-1.parquet", "cells-2.parquet"]},
+            {"table": ["cells-1.parquet", "cells-2.parquet"]},
+        ]
+
+        # focus of this function
+        concatted = [{"table": ["cells.parquet"]}]
 
 
     Args:
+        source_group_name: str
+            Name of data source source group (for common compartments, etc).
         source_group: List[Dict[str, Any]]:
             Data structure containing grouped data for concatenation.
         dest_path: Optional[str] (Default value = None)
@@ -288,6 +340,7 @@ def _concat_source_group(
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink(missing_ok=True)
 
+    # build a result placeholder
     concatted: List[Dict[str, Any]] = [
         {
             # source path becomes parent's parent dir with the same filename
@@ -300,6 +353,7 @@ def _concat_source_group(
         }
     ]
 
+    # build destination path for file to land
     destination_path = pathlib.Path(
         (
             f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
@@ -313,8 +367,8 @@ def _concat_source_group(
     # ensure the parent directories exist:
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if common_schema is not None:
-        writer_schema = pa.schema(common_schema)
+    # build the schema for concatenation writer
+    writer_schema = pa.schema(common_schema)
 
     # build a parquet file writer which will be used to append files
     # as a single concatted parquet file, referencing the first file's schema
@@ -345,6 +399,7 @@ def _concat_source_group(
 
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]
+
     return concatted
 
 
@@ -383,7 +438,6 @@ def _get_join_chunks(
     basis = first_result
 
     # read only the table's chunk_columns
-
     join_column_rows = parquet.read_table(
         source=basis[0]["table"], columns=list(chunk_columns)
     ).to_pylist()
@@ -421,7 +475,6 @@ def _join_source_chunk(
         drop_null: bool:
             Whether to drop rows with null values within the resulting
             joined data.
-
 
     Returns:
         str
@@ -471,9 +524,10 @@ def _join_source_chunk(
         + ")"
     )
 
-    # perform compartment joins
+    # perform compartment joins using duckdb over parquet files
     result = duckdb.connect().execute(joins).arrow()
 
+    # drop nulls if specified
     if drop_null:
         result = result.drop_null()
 
@@ -652,7 +706,7 @@ def _infer_source_group_common_schema(
 def _return_future(input: Any) -> Any:
     """
     This is a simple wrapper python_app to allow
-    the return of join_app-compliant output (must be future)
+    the return of join_app-compliant output (must be a Parsl future)
 
     Args:
         input: Any
@@ -719,6 +773,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
             Whether to drop null results.
+        **kwargs: Any:
+            Keyword args used for gathering source data, primarily relevant for
+            Cloudpathlib cloud-based client configuration.
 
     Returns:
         Union[Dict[str, List[Dict[str, Any]]], str]:
@@ -735,9 +792,11 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         **kwargs,
     ).result()
 
+    # if we already have a file in dest_path, remove it
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
 
+    # prepare offsets for chunked data export from source tables
     offsets_prepared = {
         source_group_name: [
             dict(
@@ -758,12 +817,17 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # were input formatting errors which will create challenges downstream
     invalid_files_dropped = {
         source_group_name: [
-            source for source in source_group_vals if source["offsets"] is not None
+            # ensure we have offsets
+            source
+            for source in source_group_vals
+            if source["offsets"] is not None
         ]
         for source_group_name, source_group_vals in offsets_prepared.items()
+        # ensure we have source_groups with at least one source table
         if len(source_group_vals) > 0
     }
 
+    # perform chunked data export to parquet using offsets
     chunked_source_tables = {
         source_group_name: [
             dict(
@@ -786,6 +850,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in invalid_files_dropped.items()
     }
 
+    # perform column renaming and create potential return result
     results = {
         source_group_name: [
             dict(
@@ -808,7 +873,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in chunked_source_tables.items()
     }
 
+    # if we're concatting or joining and need to infer the common schema
     if (concat or join) and infer_common_schema:
+        # create a common schema for concatenation work
         common_schema_determined = {
             source_group_name: {
                 "sources": source_group_vals,
@@ -821,9 +888,10 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 
     # if concat or join, concat the source groups
     # note: join implies a concat, but concat does not imply a join
+    # We concat to join in order to create a common schema for join work
+    # performed after concatenation.
     if concat or join:
-        # build a new concatenated source group
-
+        # create a potential return result for concatenation output
         results = {
             source_group_name: _concat_source_group(
                 source_group_name=source_group_name,
@@ -839,7 +907,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     if join:
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
-
         join_sources_result = [
             _join_source_chunk(
                 # gather the result of concatted sources prior to
@@ -852,6 +919,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 join_group=join_group,
                 drop_null=drop_null,
             ).result()
+            # create join group for querying the concatenated
+            # data in order to perform memory-safe joining
+            # per user chunk size specification.
             for join_group in _get_join_chunks(
                 sources=results,
                 chunk_columns=chunk_columns,
@@ -869,6 +939,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             sources=results,
         ).result()
 
+    # wrap the final result as a future and return
     return _return_future(results)
 
 
@@ -944,10 +1015,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to drop nan/null values from results
         preset: str (Default value = None)
             an optional group of presets to use based on common configurations
-        task_runner: BaseTaskRunner: (Default value = SequentialTaskRunner)
-            Prefect task runner to use with flows.
-        log_level: str: (Default value = "ERROR"):
-            Log level for Prefect flow and task operations.
+        parsl_config: Optional[parsl.Config] (Default value = None)
+            Optional Parsl configuration to use for running CytoTable operations.
 
     Returns:
         Union[Dict[str, List[Dict[str, Any]]], str]
@@ -990,14 +1059,20 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
+    # attempt to load parsl configuration
     try:
+        # if we don't have a parsl configuration provided, load the default
         if parsl_config is None:
             parsl.load(_default_parsl_config())
         else:
+            # else we attempt to load the given parsl configuration
             parsl.load(parsl_config)
     except RuntimeError as runtime_exc:
+        # catch cases where parsl has already been loaded and defer to
+        # previously loaded configuration with a warning
         if str(runtime_exc) == "Config has already been loaded":
             logger.warn(str(runtime_exc))
+        # for other potential runtime errors besides config already being loaded
         else:
             raise
 

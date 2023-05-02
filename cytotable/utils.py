@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 def _default_parsl_config():
+    """
+    Return a default Parsl configuration for use with CytoTable
+    """
     return Config(
         executors=[
             ThreadPoolExecutor(
