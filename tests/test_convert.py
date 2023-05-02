@@ -8,7 +8,10 @@ import itertools
 import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
-
+from parsl.providers import LocalProvider
+from parsl.channels import LocalChannel
+from parsl.config import Config
+from parsl.executors import HighThroughputExecutor
 import pyarrow as pa
 import pytest
 from pyarrow import csv, parquet
@@ -466,7 +469,7 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
-        ),
+        ).result(),
     )
 
     flattened_results = list(itertools.chain(*list(result.values())))
@@ -603,7 +606,7 @@ def test_infer_source_group_common_schema(
 
     result = _infer_source_group_common_schema(
         source_group=example_local_sources["nuclei.csv"],
-    )
+    ).result()
 
     assert table_nuclei_1.schema.equals(pa.schema(result))
 
@@ -743,17 +746,34 @@ def test_convert_cellprofiler_csv(
     assert test_result.equals(control_result)
 
 
-@pytest.mark.skip(reason="optional test for concurrent processing with dask")
-def test_convert_dask_cellprofiler_csv(
+@pytest.mark.skip(reason="optional test using Parsl HighThroughputExecutor")
+def test_convert_hte_cellprofiler_csv(
     get_tempdir: str,
     data_dir_cellprofiler: str,
     cellprofiler_merged_examplehuman: pa.Table,
 ):
     """
-    Tests convert
+    Tests convert with Parsl HighThroughputExecutor
 
-    Note: dedicated test for prefect-dask runner
+    See the following for more details.
+    https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor
     """
+
+    local_htex = Config(
+        executors=[
+            HighThroughputExecutor(
+                label="htex_Local",
+                worker_debug=True,
+                cores_per_worker=1,
+                provider=LocalProvider(
+                    channel=LocalChannel(),
+                    init_blocks=1,
+                    max_blocks=1,
+                ),
+            )
+        ],
+        strategy=None,
+    )
 
     control_result = cellprofiler_merged_examplehuman
 
@@ -764,6 +784,7 @@ def test_convert_dask_cellprofiler_csv(
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
+            parsl_config=local_htex,
         )
     )
 

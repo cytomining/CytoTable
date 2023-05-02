@@ -9,9 +9,8 @@ import pathlib
 import shutil
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
-import pprint
 
-pp = pprint.PrettyPrinter(depth=4)
+
 import duckdb
 import parsl
 import pyarrow as pa
@@ -19,7 +18,7 @@ from cloudpathlib import AnyPath
 from parsl.app.app import join_app, python_app
 from pyarrow import parquet
 
-from cytotable.exceptions import SchemaException
+from cytotable.exceptions import SchemaException, NoInputDataException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
 from cytotable.utils import _column_sort, _default_parsl_config, _duckdb_reader
@@ -34,20 +33,40 @@ def _get_table_chunk_offsets(
 ):
     table_name = source["table_name"] if "table_name" in source.keys() else None
     source_path = source["source_path"]
+    source_type = str(pathlib.Path(source_path).suffix).lower()
+
+    try:
+        if (
+            source_type == ".csv"
+            and sum(1 for _ in AnyPath(source_path).open("r")) <= 1
+        ):
+            raise NoInputDataException(
+                f"Data file has 0 rows of values. Error in file: {source_path}"
+            )
+
+        rowcount = int(
+            _duckdb_reader()
+            .execute(
+                # nosec
+                f"SELECT COUNT(*) from read_csv_auto('{source_path}')"
+                if source_type == ".csv"
+                else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
+            )
+            .fetchone()[0]
+        )
+
+    except (duckdb.InvalidInputException, NoInputDataException) as invalid_input_exc:
+        logger.warning(
+            msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
+        )
+
+        return None
+
     return list(
         range(
             0,
             # gather rowcount from table and use as maximum for range
-            int(
-                _duckdb_reader()
-                .execute(
-                    # nosec
-                    f"SELECT COUNT(*) from read_csv_auto('{source_path}', ignore_errors=TRUE)"
-                    if str(pathlib.Path(source_path).suffix).lower() == ".csv"
-                    else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
-                )
-                .fetchone()[0]
-            ),
+            rowcount,
             # step through using chunk size
             chunk_size,
         )
@@ -70,7 +89,7 @@ def _source_chunk_to_parquet(
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-        base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}', ignore_errors=TRUE)"""
+        base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}')"""
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
 
     # pylint: disable=no-member
@@ -265,10 +284,6 @@ def _concat_source_group(
         List[Dict[str, Any]]
             Updated dictionary containing concatenated sources.
     """
-
-    # if we have nothing to concat, return the source group
-    # if len(source_group) < 2:
-    #    return source_group
 
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
@@ -584,7 +599,11 @@ def _infer_source_group_common_schema(
     common_schema = parquet.read_schema(source_group[0]["table"][0])
 
     # infer common basis of schema and column order for all others
-    for schema in [parquet.read_schema(source["table"][0]) for source in source_group]:
+    for schema in [
+        parquet.read_schema(table)
+        for source in source_group
+        for table in source["table"]
+    ]:
         # account for completely equal schema
         if schema.equals(common_schema):
             continue
@@ -720,8 +739,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
 
-    pp.pprint(sources)
-
     offsets_prepared = {
         source_group_name: [
             dict(
@@ -738,7 +755,15 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in sources.items()
     }
 
-    pp.pprint(offsets_prepared)
+    # if offsets is none and we haven't halted, remove the file as there
+    # were input formatting errors which will create challenges downstream
+    invalid_files_dropped = {
+        source_group_name: [
+            source for source in source_group_vals if source["offsets"] is not None
+        ]
+        for source_group_name, source_group_vals in offsets_prepared.items()
+        if len(source_group_vals) > 0
+    }
 
     chunked_source_tables = {
         source_group_name: [
@@ -759,10 +784,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             )
             for source in source_group_vals
         ]
-        for source_group_name, source_group_vals in offsets_prepared.items()
+        for source_group_name, source_group_vals in invalid_files_dropped.items()
     }
-
-    pp.pprint(chunked_source_tables)
 
     results = {
         source_group_name: [
@@ -785,8 +808,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         ]
         for source_group_name, source_group_vals in chunked_source_tables.items()
     }
-
-    pp.pprint(results)
 
     if (concat or join) and infer_common_schema:
         common_schema_determined = {
@@ -813,8 +834,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             ).result()
             for source_group_name, source_group_vals in common_schema_determined.items()
         }
-
-        pp.pprint(results)
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
@@ -989,34 +1008,32 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     if preset is not None:
         metadata = (
             cast(list, config[preset]["CONFIG_NAMES_METADATA"])
-            if metadata is None
+            if metadata is None or preset != "cellprofiler_csv"
             else metadata
         )
         compartments = (
             cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
-            if compartments is None
+            if compartments is None or preset != "cellprofiler_csv"
             else compartments
         )
         identifying_columns = (
             cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
-            if identifying_columns is None
+            if identifying_columns is None or preset != "cellprofiler_csv"
             else identifying_columns
         )
         joins = (
             cast(str, config[preset]["CONFIG_JOINS"])
-            if joins is None or joins == config["cellprofiler_csv"]["CONFIG_JOINS"]
+            if joins is None or preset != "cellprofiler_csv"
             else joins
         )
         chunk_columns = (
             cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
-            if chunk_columns is None
-            or chunk_columns
-            == cast(int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"])
+            if chunk_columns is None or preset != "cellprofiler_csv"
             else chunk_columns
         )
         chunk_size = (
             cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
-            if chunk_size is None
+            if chunk_size is None or preset != "cellprofiler_csv"
             else chunk_size
         )
 
