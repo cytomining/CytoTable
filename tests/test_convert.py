@@ -8,12 +8,13 @@ import itertools
 import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
-from parsl.providers import LocalProvider
+
+import pyarrow as pa
+import pytest
 from parsl.channels import LocalChannel
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
-import pyarrow as pa
-import pytest
+from parsl.providers import LocalProvider
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
