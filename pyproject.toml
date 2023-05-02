@@ -11,7 +11,6 @@ python = ">=3.9,<3.11"
 pyarrow = "^11.0.0"
 cloudpathlib = {extras = ["all"], version = "^0.13.0"}
 duckdb = "^0.7.0"
-adbc-driver-sqlite = "^0.3.0"
 parsl = "^2023.4.24"
 
 [tool.poetry.dev-dependencies]
@@ -20,7 +19,6 @@ pytest-cov = "^4.0.0"
 Sphinx = "^6.0.0"
 myst-parser = "^1.0.0"
 sphinxcontrib-mermaid = "^0.8.0"
-prefect-dask = "^0.2.3"
 moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cffconvert = "^2.0.0"
 cytominer-database = "^0.3.4"
