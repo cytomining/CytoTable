@@ -76,7 +76,7 @@ def _get_table_chunk_offsets(
 
     # catch input errors which will result in skipped files
     except (duckdb.InvalidInputException, NoInputDataException) as invalid_input_exc:
-        logger.warn(
+        logger.warning(
             msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
         )
 
@@ -486,7 +486,7 @@ def _join_source_chunk(
         if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
                 f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
-                str([str(table).lower() for table in val[0]["table"]]),
+                str([str(table) for table in val[0]["table"]]),
             )
 
     # update the join groups to include unique values per table
@@ -1071,7 +1071,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         # catch cases where parsl has already been loaded and defer to
         # previously loaded configuration with a warning
         if str(runtime_exc) == "Config has already been loaded":
-            logger.warn(str(runtime_exc))
+            logger.warning(str(runtime_exc))
         # for other potential runtime errors besides config already being loaded
         else:
             raise
