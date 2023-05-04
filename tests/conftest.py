@@ -215,45 +215,55 @@ def fixture_example_local_sources(
         pathlib.Path(f"{get_tempdir}/example/{number}").mkdir(
             parents=True, exist_ok=True
         )
-        pathlib.Path(f"{get_tempdir}/example_dest/{number}").mkdir(
+        pathlib.Path(f"{get_tempdir}/example_dest/{name}/{number}").mkdir(
             parents=True, exist_ok=True
         )
         # write example input
         csv.write_csv(table, f"{get_tempdir}/example/{number}/{name}.csv")
         # write example output
         parquet.write_table(
-            table, f"{get_tempdir}/example_dest/{number}.{name}.parquet"
+            table, f"{get_tempdir}/example_dest/{name}/{number}/{name}.parquet"
         )
 
     return {
         "image.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/0/image.csv"),
-                "table": [pathlib.Path(f"{get_tempdir}/example_dest/0.image.parquet")],
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/image/0/image.parquet")
+                ],
             },
         ],
         "cytoplasm.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/1/cytoplasm.csv"),
                 "table": [
-                    pathlib.Path(f"{get_tempdir}/example_dest/1.cytoplasm.parquet")
+                    pathlib.Path(
+                        f"{get_tempdir}/example_dest/cytoplasm/1/cytoplasm.parquet"
+                    )
                 ],
             }
         ],
         "cells.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/2/cells.csv"),
-                "table": [pathlib.Path(f"{get_tempdir}/example_dest/2.cells.parquet")],
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/cells/2/cells.parquet")
+                ],
             }
         ],
         "nuclei.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/3/nuclei.csv"),
-                "table": [pathlib.Path(f"{get_tempdir}/example_dest/3.nuclei.parquet")],
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/nuclei/3/nuclei.parquet")
+                ],
             },
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/4/nuclei.csv"),
-                "table": [pathlib.Path(f"{get_tempdir}/example_dest/4.nuclei.parquet")],
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/nuclei/4/nuclei.parquet")
+                ],
             },
         ],
     }

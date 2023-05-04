@@ -394,7 +394,13 @@ def _concat_source_group(
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
 
-            # pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
+            # attempt to clean up dir containing original table(s) only if it's empty
+            try:
+                pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
+            except OSError as os_err:
+                # raise only if we don't have a dir not empty errno
+                if os_err.errno != 66:
+                    raise
 
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]
