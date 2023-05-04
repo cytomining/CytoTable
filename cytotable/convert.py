@@ -173,12 +173,11 @@ def _prepend_column_name(
     is specified within targets.
 
     Args:
-        source: Dict[str, Any]:
-            Individual data source source which includes meta about source
-            as well as Arrow table with data.
+        table_path: str:
+            Path to a parquet file which will be modified.
         source_group_name: str:
             Name of data source source group (for common compartments, etc).
-        identifying_columns: Union[List[str], Tuple[str, ...]]:
+        identifying_columns: List[str]:
             Column names which are used as ID's and as a result need to be
             treated differently when renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
