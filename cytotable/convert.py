@@ -690,7 +690,8 @@ def _concat_join_sources(
 
 @python_app
 def _infer_source_group_common_schema(
-    source_group: List[Dict[str, Any]]
+    source_group: List[Dict[str, Any]],
+    data_type_cast_map: Optional[Dict[str, str]] = None,
 ) -> List[Tuple[str, str]]:
     """
     Infers a common schema for group of parquet files which may have
@@ -701,6 +702,10 @@ def _infer_source_group_common_schema(
         source_group: List[Dict[str, Any]]:
             Group of one or more data sources which includes metadata about
             path to parquet data.
+        data_type_cast_map: Optional[Dict[str, str]], default None
+            A dictionary mapping data type groups to specific types.
+            Roughly includes to Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
 
     Returns:
         List[Tuple[str, str]]
@@ -743,7 +748,17 @@ def _infer_source_group_common_schema(
             elif pa.types.is_integer(field.type) and pa.types.is_floating(
                 schema.field(field.name).type
             ):
-                common_schema = common_schema.set(index, field.with_type(pa.float64()))
+                common_schema = common_schema.set(
+                    index,
+                    field.with_type(
+                        # use float64 as a default here if we aren't casting floats
+                        pa.float64()
+                        if data_type_cast_map is None
+                        or "float" not in data_type_cast_map.keys()
+                        # otherwise use the float data type cast type
+                        else pa.type_for_alias(data_type_cast_map["float"])
+                    ),
+                )
 
     if len(list(common_schema.names)) == 0:
         raise SchemaException(
@@ -966,7 +981,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             source_group_name: {
                 "sources": source_group_vals,
                 "common_schema": _infer_source_group_common_schema(
-                    source_group=source_group_vals
+                    source_group=source_group_vals,
+                    data_type_cast_map=data_type_cast_map,
                 ),
             }
             for source_group_name, source_group_vals in results.items()
