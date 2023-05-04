@@ -278,6 +278,61 @@ def _prepend_column_name(
 
 
 @python_app
+def _cast_data_types(table_path: str, data_type_cast_map: Dict[str, str]) -> str:
+    """
+    Cast data types per what is received in cast_map.
+
+    Example:
+    - table_path: parquet file
+    - data_type_cast_map: {"float": "float32"}
+
+    The above passed through this function will rewrite the parquet file
+    with float32 columns where any float-like column are encountered.
+
+    Args:
+        table_path: str:
+            Path to a parquet file which will be modified.
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes to Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
+
+    Returns:
+        str
+            Path to the modified file
+    """
+
+    parquet.write_table(
+        # build a new table which casts the data types
+        # as per the specification below
+        table=parquet.read_table(source=table_path).cast(
+            # build a new schema
+            pa.schema(
+                [
+                    # for casting to new float type
+                    field.with_type(pa.type_for_alias(data_type_cast_map["float"]))
+                    if "float" in data_type_cast_map.keys()
+                    and pa.types.is_floating(field.type)
+                    # for casting to new int type
+                    else field.with_type(
+                        pa.type_for_alias(data_type_cast_map["integer"])
+                    )
+                    if "integer" in data_type_cast_map.keys()
+                    and pa.types.is_integer(field.type)
+                    # else we retain the existing data field type
+                    else field
+                    for field in parquet.read_schema(where=table_path)
+                ]
+            )
+        ),
+        # rewrite to the same location
+        where=table_path,
+    )
+
+    return table_path
+
+
+@python_app
 def _concat_source_group(
     source_group_name: str,
     source_group: List[Dict[str, Any]],
@@ -742,6 +797,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     chunk_size: Optional[int],
     infer_common_schema: bool,
     drop_null: bool,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -778,6 +834,11 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
             Whether to drop null results.
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes to Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
+
         **kwargs: Any:
             Keyword args used for gathering source data, primarily relevant for
             Cloudpathlib cloud-based client configuration.
@@ -878,6 +939,26 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in chunked_source_tables.items()
     }
 
+    # perform data type casting work
+    if data_type_cast_map is not None:
+        results = {
+            source_group_name: [
+                dict(
+                    source,
+                    **{
+                        "table": [
+                            _cast_data_types(
+                                table_path=table, data_type_cast_map=data_type_cast_map
+                            ).result()
+                            for table in source["table"]
+                        ]
+                    },
+                )
+                for source in source_group_vals
+            ]
+            for source_group_name, source_group_vals in chunked_source_tables.items()
+        }
+
     # if we're concatting or joining and need to infer the common schema
     if (concat or join) and infer_common_schema:
         # create a common schema for concatenation work
@@ -973,6 +1054,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     ),
     infer_common_schema: bool = True,
     drop_null: bool = True,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
     preset: Optional[str] = None,
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
@@ -1132,6 +1214,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             chunk_size=chunk_size,
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
+            data_type_cast_map=data_type_cast_map,
             **kwargs,
         ).result()
 
