@@ -931,6 +931,26 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in invalid_files_dropped.items()
     }
 
+    # perform data type casting work
+    if data_type_cast_map is not None:
+        results = {
+            source_group_name: [
+                dict(
+                    source,
+                    **{
+                        "table": [
+                            _cast_data_types(
+                                table_path=table, data_type_cast_map=data_type_cast_map
+                            ).result()
+                            for table in source["table"]
+                        ]
+                    },
+                )
+                for source in source_group_vals
+            ]
+            for source_group_name, source_group_vals in chunked_source_tables.items()
+        }
+
     # perform column renaming and create potential return result
     results = {
         source_group_name: [
@@ -953,26 +973,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         ]
         for source_group_name, source_group_vals in chunked_source_tables.items()
     }
-
-    # perform data type casting work
-    if data_type_cast_map is not None:
-        results = {
-            source_group_name: [
-                dict(
-                    source,
-                    **{
-                        "table": [
-                            _cast_data_types(
-                                table_path=table, data_type_cast_map=data_type_cast_map
-                            ).result()
-                            for table in source["table"]
-                        ]
-                    },
-                )
-                for source in source_group_vals
-            ]
-            for source_group_name, source_group_vals in chunked_source_tables.items()
-        }
 
     # if we're concatting or joining and need to infer the common schema
     if (concat or join) and infer_common_schema:
