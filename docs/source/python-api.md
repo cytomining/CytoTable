@@ -13,6 +13,10 @@ Convert
 
 |
 
+.. autofunction:: _cast_data_types
+
+|
+
 .. autofunction:: _concat_join_sources
 
 |
