@@ -48,6 +48,17 @@ def _get_table_chunk_offsets(
             the data later on.
     """
 
+    import logging
+    import pathlib
+
+    import duckdb
+    from cloudpathlib import AnyPath
+
+    from cytotable.exceptions import NoInputDataException
+    from cytotable.utils import _duckdb_reader
+
+    logger = logging.getLogger(__name__)
+
     table_name = source["table_name"] if "table_name" in source.keys() else None
     source_path = source["source_path"]
     source_type = str(pathlib.Path(source_path).suffix).lower()
@@ -121,6 +132,13 @@ def _source_chunk_to_parquet(
         str
             A string of the output filepath
     """
+
+    import pathlib
+
+    from cloudpathlib import AnyPath
+
+    from cytotable.utils import _duckdb_reader
+
     # attempt to build dest_path
     source_dest_path = (
         f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
@@ -189,6 +207,10 @@ def _prepend_column_name(
         str
             Path to the modified file
     """
+
+    import pathlib
+
+    import pyarrow.parquet as parquet
 
     targets = tuple(metadata) + tuple(compartments)
 
@@ -334,6 +356,12 @@ def _concat_source_group(
         List[Dict[str, Any]]
             Updated dictionary containing concatenated sources.
     """
+
+    import pathlib
+
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+    from cytotable.exceptions import SchemaException
 
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
