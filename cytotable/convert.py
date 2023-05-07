@@ -293,7 +293,9 @@ def _prepend_column_name(
 
 
 @python_app
-def _cast_data_types(table_path: str, data_type_cast_map: Dict[str, str]) -> str:
+def _cast_data_types(
+    table_path: str, data_type_cast_map: Optional[Dict[str, str]] = None
+) -> str:
     """
     Cast data types per what is received in cast_map.
 
@@ -316,6 +318,12 @@ def _cast_data_types(table_path: str, data_type_cast_map: Dict[str, str]) -> str
         str
             Path to the modified file
     """
+
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    if data_type_cast_map is None:
+        return table_path
 
     parquet.write_table(
         # build a new table which casts the data types
@@ -919,6 +927,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _prepend_column_name,
         _return_future,
         _source_chunk_to_parquet,
+        _cast_data_types,
     )
     from cytotable.sources import _gather_sources
 
@@ -973,13 +982,17 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                     "table": [
                         # perform column renaming and create potential return result
                         _prepend_column_name(
-                            # perform chunked data export to parquet using offsets
-                            table_path=_source_chunk_to_parquet(
-                                source_group_name=source_group_name,
-                                source=source,
-                                chunk_size=chunk_size,
-                                offset=offset,
-                                dest_path=dest_path,
+                            # perform data type casting work
+                            table_path=_cast_data_types(
+                                # perform chunked data export to parquet using offsets
+                                table_path=_source_chunk_to_parquet(
+                                    source_group_name=source_group_name,
+                                    source=source,
+                                    chunk_size=chunk_size,
+                                    offset=offset,
+                                    dest_path=dest_path,
+                                ),
+                                data_type_cast_map=data_type_cast_map,
                             ),
                             source_group_name=source_group_name,
                             identifying_columns=identifying_columns,
@@ -993,49 +1006,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             for source in source_group_vals
         ]
         for source_group_name, source_group_vals in invalid_files_dropped.items()
-    }
-
-    # perform data type casting work
-    if data_type_cast_map is not None:
-        results = {
-            source_group_name: [
-                dict(
-                    source,
-                    **{
-                        "table": [
-                            _cast_data_types(
-                                table_path=table, data_type_cast_map=data_type_cast_map
-                            ).result()
-                            for table in source["table"]
-                        ]
-                    },
-                )
-                for source in source_group_vals
-            ]
-            for source_group_name, source_group_vals in chunked_source_tables.items()
-        }
-
-    # perform column renaming and create potential return result
-    results = {
-        source_group_name: [
-            dict(
-                source,
-                **{
-                    "table": [
-                        _prepend_column_name(
-                            table_path=table,
-                            source_group_name=source_group_name,
-                            identifying_columns=identifying_columns,
-                            metadata=metadata,
-                            compartments=compartments,
-                        ).result()
-                        for table in source["table"]
-                    ]
-                },
-            )
-            for source in source_group_vals
-        ]
-        for source_group_name, source_group_vals in chunked_source_tables.items()
     }
 
     # if we're concatting or joining and need to infer the common schema
