@@ -361,6 +361,7 @@ def _concat_source_group(
 
     import pyarrow as pa
     import pyarrow.parquet as parquet
+
     from cytotable.exceptions import SchemaException
 
     # check whether we already have a file as dest_path
@@ -461,6 +462,10 @@ def _get_join_chunks(
             A list of lists with at most chunk size length that contain join keys
     """
 
+    import pathlib
+
+    import pyarrow.parquet as parquet
+
     # fetch the compartment concat result as the basis for join groups
     for key, source in sources.items():
         if any(name.lower() in pathlib.Path(key).stem.lower() for name in metadata):
@@ -514,6 +519,12 @@ def _join_source_chunk(
             Path to joined file which is created as a result of this function.
     """
 
+    import pathlib
+
+    import pyarrow.parquet as parquet
+
+    from cytotable.utils import _duckdb_reader
+
     # replace with real location of sources for join sql
     for key, val in sources.items():
         if pathlib.Path(key).stem.lower() in joins.lower():
@@ -558,7 +569,7 @@ def _join_source_chunk(
     )
 
     # perform compartment joins using duckdb over parquet files
-    result = duckdb.connect().execute(joins).arrow()
+    result = _duckdb_reader().execute(joins).arrow()
 
     # drop nulls if specified
     if drop_null:
@@ -624,6 +635,11 @@ def _concat_join_sources(
             Path to concatenated file which is created as a result of this function.
     """
 
+    import pathlib
+    import shutil
+
+    import pyarrow.parquet as parquet
+
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
     flattened_sources = list(itertools.chain(*list(sources.values())))
@@ -680,6 +696,11 @@ def _infer_source_group_common_schema(
             A list of tuples which includes column name and PyArrow datatype.
             This data will later be used as the basis for forming a PyArrow schema.
     """
+
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    from cytotable.exceptions import SchemaException
 
     # read first file for basis of schema and column order for all others
     common_schema = parquet.read_schema(source_group[0]["table"][0])
@@ -817,6 +838,21 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             result.
     """
 
+    import pathlib
+
+    from cytotable.convert import (
+        _concat_join_sources,
+        _concat_source_group,
+        _get_join_chunks,
+        _get_table_chunk_offsets,
+        _infer_source_group_common_schema,
+        _join_source_chunk,
+        _prepend_column_name,
+        _return_future,
+        _source_chunk_to_parquet,
+    )
+    from cytotable.sources import _gather_sources
+
     # gather sources to be processed
     sources = _gather_sources(
         source_path=source_path,
@@ -860,20 +896,27 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         if len(source_group_vals) > 0
     }
 
-    # perform chunked data export to parquet using offsets
-    chunked_source_tables = {
+    results = {
         source_group_name: [
             dict(
                 source,
                 **{
                     "table": [
-                        _source_chunk_to_parquet(
+                        # perform column renaming and create potential return result
+                        _prepend_column_name(
+                            # perform chunked data export to parquet using offsets
+                            table_path=_source_chunk_to_parquet(
+                                source_group_name=source_group_name,
+                                source=source,
+                                chunk_size=chunk_size,
+                                offset=offset,
+                                dest_path=dest_path,
+                            ),
                             source_group_name=source_group_name,
-                            source=source,
-                            chunk_size=chunk_size,
-                            offset=offset,
-                            dest_path=dest_path,
-                        )
+                            identifying_columns=identifying_columns,
+                            metadata=metadata,
+                            compartments=compartments,
+                        ).result()
                         for offset in source["offsets"]
                     ]
                 },
@@ -881,29 +924,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             for source in source_group_vals
         ]
         for source_group_name, source_group_vals in invalid_files_dropped.items()
-    }
-
-    # perform column renaming and create potential return result
-    results = {
-        source_group_name: [
-            dict(
-                source,
-                **{
-                    "table": [
-                        _prepend_column_name(
-                            table_path=table,
-                            source_group_name=source_group_name,
-                            identifying_columns=identifying_columns,
-                            metadata=metadata,
-                            compartments=compartments,
-                        ).result()
-                        for table in source["table"]
-                    ]
-                },
-            )
-            for source in source_group_vals
-        ]
-        for source_group_name, source_group_vals in chunked_source_tables.items()
     }
 
     # if we're concatting or joining and need to infer the common schema
