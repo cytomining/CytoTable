@@ -6,11 +6,8 @@ source data and metadata for performing conversion work.
 import pathlib
 from typing import Any, Dict, List, Optional, Union
 
-from cloudpathlib import AnyPath, CloudPath
+from cloudpathlib import AnyPath
 from parsl.app.app import join_app, python_app
-
-from cytotable.exceptions import DatatypeException, NoInputDataException
-from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
 
 
 @python_app
@@ -31,6 +28,10 @@ def _build_path(
         Union[pathlib.Path, Any]
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
+
+    import pathlib
+
+    from cloudpathlib import AnyPath, CloudPath
 
     # form a path using cloudpathlib AnyPath, stripping certain characters
     processed_path = AnyPath(str(path).strip("'\" "))
@@ -60,6 +61,13 @@ def _get_source_filepaths(
         Dict[str, List[Dict[str, Any]]]
             Data structure which groups related files based on the compartments.
     """
+
+    import pathlib
+
+    from cloudpathlib import AnyPath
+
+    from cytotable.exceptions import NoInputDataException
+    from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
 
     # gathers files from provided path using compartments + metadata as a filter
     sources = [
@@ -164,6 +172,8 @@ def _infer_source_datatype(
             A string of the datatype detected or validated source_datatype.
     """
 
+    from cytotable.exceptions import DatatypeException
+
     # gather file extension suffixes
     suffixes = list(set((group.split(".")[-1]).lower() for group in sources))
 
@@ -210,6 +220,10 @@ def _filter_source_filepaths(
             Data structure which groups related files based on the datatype.
     """
 
+    import pathlib
+
+    from cloudpathlib import AnyPath, CloudPath
+
     return {
         filegroup: [
             file
@@ -245,6 +259,13 @@ def _gather_sources(
         Dict[str, List[Dict[str, Any]]]
             Data structure which groups related files based on the compartments.
     """
+
+    from cytotable.sources import (
+        _build_path,
+        _filter_source_filepaths,
+        _get_source_filepaths,
+        _infer_source_datatype,
+    )
 
     source_path = _build_path(path=source_path, **kwargs)
 

@@ -5,22 +5,15 @@ CytoTable: convert - transforming data for use with pyctyominer.
 
 import itertools
 import logging
-import pathlib
-import shutil
 import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
-import duckdb
 import parsl
 import pyarrow as pa
-from cloudpathlib import AnyPath
 from parsl.app.app import join_app, python_app
-from pyarrow import parquet
 
-from cytotable.exceptions import NoInputDataException, SchemaException
 from cytotable.presets import config
-from cytotable.sources import _gather_sources
-from cytotable.utils import _column_sort, _default_parsl_config, _duckdb_reader
+from cytotable.utils import _column_sort, _default_parsl_config
 
 logger = logging.getLogger(__name__)
 
