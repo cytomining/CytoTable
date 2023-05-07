@@ -918,6 +918,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     import pathlib
 
     from cytotable.convert import (
+        _cast_data_types,
         _concat_join_sources,
         _concat_source_group,
         _get_join_chunks,
@@ -927,7 +928,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _prepend_column_name,
         _return_future,
         _source_chunk_to_parquet,
-        _cast_data_types,
     )
     from cytotable.sources import _gather_sources
 
