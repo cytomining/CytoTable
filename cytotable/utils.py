@@ -162,19 +162,19 @@ def _sqlite_mixed_type_query_to_parquet(
     such that the data may be exported to Arrow and a Parquet file.
 
     Args:
-        source_path: str
+        source_path: str:
             A str which is a path to a SQLite database file
-        table_name: str
+        table_name: str:
             The name of the table being queried
-        chunk_size: int
+        chunk_size: int:
             Row count to use for chunked output
-        offset: int
+        offset: int:
             The offset for chunking the data from source.
-        dest_path: str
+        dest_path: str:
             Path to store the output data.
 
     Returns:
-        str
+        str:
            The resulting filepath for the table exported to parquet
     """
     import sqlite3
