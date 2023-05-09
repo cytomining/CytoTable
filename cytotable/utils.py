@@ -149,6 +149,73 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     )
 
 
+def sqlite_mixed_type_query_to_parquet(
+    source_path: str,
+    table_name: str,
+    chunk_size: int,
+    offset: int,
+    result_filepath: str,
+) -> str:
+    import sqlite3
+
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    # open sqlite3 connection
+    with sqlite3.connect(source_path) as conn:
+        cursor = conn.cursor()
+
+        # gather table column details including datatype
+        cursor.execute(
+            f"""
+            SELECT :table_name as table_name,
+                    name as column_name,
+                    type as column_type
+            FROM pragma_table_info(:table_name);
+            """,
+            {"table_name": table_name},
+        )
+
+        # gather column metadata details as list of dictionaries
+        column_info = [
+            dict(zip([desc[0] for desc in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
+
+        # create cases for mixed-type handling in each column discovered above
+        query_parts = [
+            f"""
+            CASE
+                /* when the storage class type doesn't match the column, return nulltype */
+                WHEN typeof({col['column_name']}) != '{col['column_type'].lower()}' THEN NULL
+                /* else, return the normal value */
+                ELSE {col['column_name']}
+            END AS {col['column_name']}
+            """
+            for col in column_info
+        ]
+
+        # perform the select using the cases built above and using chunksize + offset
+        cursor.execute(
+            f'SELECT {", ".join(query_parts)} FROM {table_name} LIMIT {chunk_size} OFFSET {offset};'
+        )
+        results = cursor.fetchall()
+
+    # write results to a parquet file
+    parquet.write_table(
+        table=pa.Table.from_pylist(
+            [
+                dict(zip([desc[0] for desc in cursor.description], row))
+                for row in results
+            ]
+        ),
+        where=result_filepath,
+    )
+
+    # return filepath
+    return result_filepath
+
+
 def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
     """
     Takes a cloudpath and uses cache to convert to a local copy
