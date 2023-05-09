@@ -128,9 +128,10 @@ def _source_chunk_to_parquet(
 
     import pathlib
 
+    import duckdb
     from cloudpathlib import AnyPath
 
-    from cytotable.utils import _duckdb_reader
+    from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
     # attempt to build dest_path
     source_dest_path = (
@@ -152,17 +153,36 @@ def _source_chunk_to_parquet(
 
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
 
-    # isolate using new connection to read data with chunk size + offset
-    # and export directly to parquet via duckdb (avoiding need to return data to python)
-    _duckdb_reader().execute(
-        f"""
-        COPY (
-            {base_query}
-            LIMIT {chunk_size} OFFSET {offset}
-        ) TO '{result_filepath}'
-        (FORMAT PARQUET);
-        """
-    )
+    # attempt to read the data to parquet from duckdb
+    # with exception handling to read mixed-type data
+    # using sqlite3 and special utility function
+    try:
+        # isolate using new connection to read data with chunk size + offset
+        # and export directly to parquet via duckdb (avoiding need to return data to python)
+        _duckdb_reader().execute(
+            f"""
+            COPY (
+                {base_query}
+                LIMIT {chunk_size} OFFSET {offset}
+            ) TO '{result_filepath}'
+            (FORMAT PARQUET);
+            """
+        )
+    except duckdb.Error as e:
+        # if we see a mismatched type error
+        # run a more nuanced query through sqlite
+        # to handle the mixed types
+        if (
+            "Mismatch Type Error" in str(e)
+            and str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite"
+        ):
+            result_filepath = _sqlite_mixed_type_query_to_parquet(
+                source_path=str(source["source_path"]),
+                table_name=str(source["table_name"]),
+                chunk_size=chunk_size,
+                offset=offset,
+                result_filepath=result_filepath,
+            )
 
     # return the filepath for the chunked output file
     return result_filepath

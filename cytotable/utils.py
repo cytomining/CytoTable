@@ -149,7 +149,7 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     )
 
 
-def sqlite_mixed_type_query_to_parquet(
+def _sqlite_mixed_type_query_to_parquet(
     source_path: str,
     table_name: str,
     chunk_size: int,
