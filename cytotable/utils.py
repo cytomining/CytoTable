@@ -156,6 +156,27 @@ def _sqlite_mixed_type_query_to_parquet(
     offset: int,
     result_filepath: str,
 ) -> str:
+    """
+    Performs SQLite table data extraction where one or many
+    columns include data values of potentially mismatched type
+    such that the data may be exported to Arrow and a Parquet file.
+
+    Args:
+        source_path: str
+            A str which is a path to a SQLite database file
+        table_name: str
+            The name of the table being queried
+        chunk_size: int
+            Row count to use for chunked output
+        offset: int
+            The offset for chunking the data from source.
+        dest_path: str
+            Path to store the output data.
+
+    Returns:
+        str
+           The resulting filepath for the table exported to parquet
+    """
     import sqlite3
 
     import pyarrow as pa
@@ -199,16 +220,15 @@ def _sqlite_mixed_type_query_to_parquet(
         cursor.execute(
             f'SELECT {", ".join(query_parts)} FROM {table_name} LIMIT {chunk_size} OFFSET {offset};'
         )
-        results = cursor.fetchall()
+        # collect the results and include the column name with values
+        results = [
+            dict(zip([desc[0] for desc in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
 
     # write results to a parquet file
     parquet.write_table(
-        table=pa.Table.from_pylist(
-            [
-                dict(zip([desc[0] for desc in cursor.description], row))
-                for row in results
-            ]
-        ),
+        table=pa.Table.from_pylist(results),
         where=result_filepath,
     )
 
