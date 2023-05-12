@@ -9,6 +9,7 @@ import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
 
+import parsl
 import pyarrow as pa
 import pytest
 from parsl.channels import LocalChannel
@@ -747,61 +748,6 @@ def test_convert_cellprofiler_csv(
     assert test_result.equals(control_result)
 
 
-@pytest.mark.skip(reason="optional test using Parsl HighThroughputExecutor")
-def test_convert_hte_cellprofiler_csv(
-    get_tempdir: str,
-    data_dir_cellprofiler: str,
-    cellprofiler_merged_examplehuman: pa.Table,
-):
-    """
-    Tests convert with Parsl HighThroughputExecutor
-
-    See the following for more details.
-    https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor
-    """
-
-    local_htex = Config(
-        executors=[
-            HighThroughputExecutor(
-                label="htex_Local",
-                worker_debug=True,
-                cores_per_worker=1,
-                provider=LocalProvider(
-                    channel=LocalChannel(),
-                    init_blocks=1,
-                    max_blocks=1,
-                ),
-            )
-        ],
-        strategy=None,
-    )
-
-    control_result = cellprofiler_merged_examplehuman
-
-    test_result = parquet.read_table(
-        convert(
-            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-            dest_path=f"{get_tempdir}/ExampleHuman",
-            dest_datatype="parquet",
-            source_datatype="csv",
-            preset="cellprofiler_csv",
-            parsl_config=local_htex,
-        )
-    )
-
-    # sort all values by the same columns
-    # we do this due to the potential for inconsistently ordered results
-    control_result = control_result.sort_by(
-        [(colname, "ascending") for colname in control_result.column_names]
-    )
-    test_result = test_result.sort_by(
-        [(colname, "ascending") for colname in test_result.column_names]
-    )
-
-    assert test_result.shape == control_result.shape
-    assert test_result.equals(control_result)
-
-
 def test_convert_cellprofiler_sqlite_pycytominer_merge(
     get_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
@@ -875,3 +821,60 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
         cytotable_table.cast(target_schema=pycytominer_table.schema).schema
     )
     assert pycytominer_table.shape == cytotable_table.shape
+
+
+def test_convert_hte_cellprofiler_csv(
+    get_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_examplehuman: pa.Table,
+):
+    """
+    Tests convert with Parsl HighThroughputExecutor
+
+    See the following for more details.
+    https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor
+    """
+
+    local_htex = Config(
+        executors=[
+            HighThroughputExecutor(
+                label="htex_Local",
+                worker_debug=True,
+                cores_per_worker=1,
+                provider=LocalProvider(
+                    channel=LocalChannel(),
+                    init_blocks=1,
+                    max_blocks=1,
+                ),
+            )
+        ],
+        strategy=None,
+    )
+
+    control_result = cellprofiler_merged_examplehuman
+
+    test_result = parquet.read_table(
+        convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{get_tempdir}/ExampleHuman",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+            parsl_config=local_htex,
+        )
+    )
+
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+    )
+
+    assert test_result.shape == control_result.shape
+    assert test_result.equals(control_result)
+
+    # clean up the parsl config for other tests
+    parsl.clear()
