@@ -41,26 +41,10 @@ import "universe.dagger.io/docker"
 					}
 				}
 			},
-			docker.#Copy & {
-				contents: filesystem
-				source:   "./pyproject.toml"
-				dest:     "/workdir/pyproject.toml"
-			},
-			docker.#Copy & {
-				contents: filesystem
-				source:   "./poetry.lock"
-				dest:     "/workdir/poetry.lock"
-			},
 			docker.#Run & {
 				command: {
 					name: "pip"
 					args: ["install", "--no-cache-dir", "poetry==" + poetry_ver]
-				}
-			},
-			docker.#Run & {
-				command: {
-					name: "poetry"
-					args: ["install", "--no-root", "--no-interaction", "--no-ansi"]
 				}
 			},
 		]
@@ -73,8 +57,12 @@ import "universe.dagger.io/docker"
 				contents: filesystem
 				source:   "./"
 				dest:     "/workdir"
-				// avoid recopying files for caching
-				exclude: ["./pyproject.toml", "./poetry.lock"]
+			},
+			docker.#Run & {
+				command: {
+					name: "poetry"
+					args: ["install", "--no-interaction", "--no-ansi"]
+				}
 			},
 		]
 	}

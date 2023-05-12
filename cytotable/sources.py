@@ -6,14 +6,11 @@ source data and metadata for performing conversion work.
 import pathlib
 from typing import Any, Dict, List, Optional, Union
 
-from cloudpathlib import AnyPath, CloudPath
-from prefect import flow, task
-
-from cytotable.exceptions import DatatypeException, NoInputDataException
-from cytotable.utils import _cache_cloudpath_to_local, _duckdb_with_sqlite
+from cloudpathlib import AnyPath
+from parsl.app.app import join_app, python_app
 
 
-@task
+@python_app
 def _build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
 ) -> Union[pathlib.Path, Any]:
@@ -32,6 +29,10 @@ def _build_path(
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
+    import pathlib
+
+    from cloudpathlib import AnyPath, CloudPath
+
     # form a path using cloudpathlib AnyPath, stripping certain characters
     processed_path = AnyPath(str(path).strip("'\" "))
 
@@ -42,7 +43,7 @@ def _build_path(
     return processed_path
 
 
-@task
+@python_app
 def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
     targets: List[str],
@@ -61,6 +62,13 @@ def _get_source_filepaths(
             Data structure which groups related files based on the compartments.
     """
 
+    import pathlib
+
+    from cloudpathlib import AnyPath
+
+    from cytotable.exceptions import NoInputDataException
+    from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
+
     # gathers files from provided path using compartments + metadata as a filter
     sources = [
         # build source_paths for all files
@@ -70,9 +78,9 @@ def _get_source_filepaths(
         for subpath in (
             (path,)
             # used if the source path is a single file
-            if path.is_file()
+            if AnyPath(path).is_file()
             # iterates through a source directory
-            else (x for x in path.glob("**/*") if x.is_file())
+            else (x for x in AnyPath(path).glob("**/*") if AnyPath(x).is_file())
         )
         # ensure the subpaths meet certain specifications
         if (
@@ -98,7 +106,7 @@ def _get_source_filepaths(
                     "table_name": table_name,
                 }
                 # perform a query to find the table names from the sqlite file
-                for table_name in _duckdb_with_sqlite()
+                for table_name in _duckdb_reader()
                 .execute(
                     """
                     /* perform query on sqlite_master table for metadata on tables */
@@ -145,7 +153,7 @@ def _get_source_filepaths(
     return grouped_sources
 
 
-@task
+@python_app
 def _infer_source_datatype(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
 ) -> str:
@@ -163,6 +171,8 @@ def _infer_source_datatype(
         str
             A string of the datatype detected or validated source_datatype.
     """
+
+    from cytotable.exceptions import DatatypeException
 
     # gather file extension suffixes
     suffixes = list(set((group.split(".")[-1]).lower() for group in sources))
@@ -192,7 +202,7 @@ def _infer_source_datatype(
     return source_datatype
 
 
-@task
+@python_app
 def _filter_source_filepaths(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -210,6 +220,10 @@ def _filter_source_filepaths(
             Data structure which groups related files based on the datatype.
     """
 
+    import pathlib
+
+    from cloudpathlib import AnyPath, CloudPath
+
     return {
         filegroup: [
             file
@@ -223,7 +237,7 @@ def _filter_source_filepaths(
     }
 
 
-@flow
+@join_app
 def _gather_sources(
     source_path: str,
     source_datatype: Optional[str] = None,
@@ -245,6 +259,13 @@ def _gather_sources(
         Dict[str, List[Dict[str, Any]]]
             Data structure which groups related files based on the compartments.
     """
+
+    from cytotable.sources import (
+        _build_path,
+        _filter_source_filepaths,
+        _get_source_filepaths,
+        _infer_source_datatype,
+    )
 
     source_path = _build_path(path=source_path, **kwargs)
 

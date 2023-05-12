@@ -3,14 +3,55 @@ Utility functions for CytoTable
 """
 
 import logging
+import multiprocessing
+import os
 import pathlib
-from typing import Union
+from typing import Union, cast
 
 import duckdb
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
+from parsl.app.app import AppBase
+from parsl.config import Config
+from parsl.executors.threads import ThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+# read max threads from environment if necessary
+# max threads will be used with default Parsl config and Duckdb
+MAX_THREADS = (
+    multiprocessing.cpu_count()
+    if "CYTOTABLE_MAX_THREADS" not in os.environ
+    else int(cast(int, os.environ.get("CYTOTABLE_MAX_THREADS")))
+)
+
+# reference the original init
+original_init = AppBase.__init__
+
+
+def Parsl_AppBase_init_for_docs(self, func, *args, **kwargs):
+    """
+    A function to extend Parsl.app.app.AppBase with
+    docstring from decorated functions rather than
+    the decorators from Parsl. Used for
+    Sphinx documentation purposes.
+    """
+    original_init(self, func, *args, **kwargs)
+    # add function doc as the app doc
+    self.__doc__ = func.__doc__
+
+
+# set the AppBase to the new init for the docstring.
+AppBase.__init__ = Parsl_AppBase_init_for_docs
+
+
+def _default_parsl_config():
+    """
+    Return a default Parsl configuration for use with CytoTable
+    """
+    return Config(
+        executors=[ThreadPoolExecutor(max_threads=MAX_THREADS, label="local_threads")]
+    )
 
 
 # custom sort for resulting columns
@@ -67,7 +108,7 @@ def _column_sort(value: str):
     return len(sort_first) + len(sort_later) + 1
 
 
-def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
+def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     """
     Creates a DuckDB connection with the
     sqlite_scanner installed and loaded.
@@ -77,11 +118,34 @@ def _duckdb_with_sqlite() -> duckdb.DuckDBPyConnection:
     """
 
     return duckdb.connect().execute(
-        """
-        /* install and load sqlite plugin for duckdb */
+        # note: we use an f-string here to
+        # dynamically configure threads as appropriate
+        f"""
+        /* Install and load sqlite plugin for duckdb */
         INSTALL sqlite_scanner;
         LOAD sqlite_scanner;
-        """
+
+        /*
+        Set threads available to duckdb
+        See the following for more information:
+        https://duckdb.org/docs/sql/pragmas#memory_limit-threads
+        */
+        PRAGMA threads={MAX_THREADS};
+
+        /*
+        Allow unordered results for performance increase possibilities
+        See the following for more information:
+        https://duckdb.org/docs/sql/configuration#configuration-reference
+        */
+        PRAGMA preserve_insertion_order=FALSE;
+
+        /*
+        Allow parallel csv reads for performance increase possibilities
+        See the following for more information:
+        https://duckdb.org/docs/sql/configuration#configuration-reference
+        */
+        PRAGMA experimental_parallel_csv=TRUE;
+        """,
     )
 
 
