@@ -37,14 +37,55 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">duckdb</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
+<span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">AppBase</span>
+<span class="kn">from</span> <span class="nn">parsl.config</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">parsl.executors.threads</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># read max threads from environment if necessary</span>
+<span class="c1"># max threads will be used with default Parsl config and Duckdb</span>
+<span class="n">MAX_THREADS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
+    <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span><span class="p">)))</span>
+<span class="p">)</span>
+
+<span class="c1"># reference the original init</span>
+<span class="n">original_init</span> <span class="o">=</span> <span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span>
+
+
+<div class="viewcode-block" id="Parsl_AppBase_init_for_docs"><a class="viewcode-back" href="../../python-api.html#cytotable.utils.Parsl_AppBase_init_for_docs">[docs]</a><span class="k">def</span> <span class="nf">Parsl_AppBase_init_for_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to extend Parsl.app.app.AppBase with</span>
+<span class="sd">    docstring from decorated functions rather than</span>
+<span class="sd">    the decorators from Parsl. Used for</span>
+<span class="sd">    Sphinx documentation purposes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">original_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="c1"># add function doc as the app doc</span>
+    <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span></div>
+
+
+<span class="c1"># set the AppBase to the new init for the docstring.</span>
+<span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">Parsl_AppBase_init_for_docs</span>
+
+
+<div class="viewcode-block" id="_default_parsl_config"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._default_parsl_config">[docs]</a><span class="k">def</span> <span class="nf">_default_parsl_config</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a default Parsl configuration for use with CytoTable</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">Config</span><span class="p">(</span>
+        <span class="n">executors</span><span class="o">=</span><span class="p">[</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_threads</span><span class="o">=</span><span class="n">MAX_THREADS</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;local_threads&quot;</span><span class="p">)]</span>
+    <span class="p">)</span></div>
 
 
 <span class="c1"># custom sort for resulting columns</span>
@@ -101,7 +142,7 @@
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_first</span><span class="p">)</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">sort_later</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span></div>
 
 
-<div class="viewcode-block" id="_duckdb_with_sqlite"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._duckdb_with_sqlite">[docs]</a><span class="k">def</span> <span class="nf">_duckdb_with_sqlite</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
+<div class="viewcode-block" id="_duckdb_reader"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._duckdb_reader">[docs]</a><span class="k">def</span> <span class="nf">_duckdb_reader</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Creates a DuckDB connection with the</span>
 <span class="sd">    sqlite_scanner installed and loaded.</span>
@@ -111,11 +152,34 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">return</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        /* install and load sqlite plugin for duckdb */</span>
-<span class="sd">        INSTALL sqlite_scanner;</span>
-<span class="sd">        LOAD sqlite_scanner;</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># note: we use an f-string here to</span>
+        <span class="c1"># dynamically configure threads as appropriate</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        /* Install and load sqlite plugin for duckdb */</span>
+<span class="s2">        INSTALL sqlite_scanner;</span>
+<span class="s2">        LOAD sqlite_scanner;</span>
+
+<span class="s2">        /*</span>
+<span class="s2">        Set threads available to duckdb</span>
+<span class="s2">        See the following for more information:</span>
+<span class="s2">        https://duckdb.org/docs/sql/pragmas#memory_limit-threads</span>
+<span class="s2">        */</span>
+<span class="s2">        PRAGMA threads=</span><span class="si">{</span><span class="n">MAX_THREADS</span><span class="si">}</span><span class="s2">;</span>
+
+<span class="s2">        /*</span>
+<span class="s2">        Allow unordered results for performance increase possibilities</span>
+<span class="s2">        See the following for more information:</span>
+<span class="s2">        https://duckdb.org/docs/sql/configuration#configuration-reference</span>
+<span class="s2">        */</span>
+<span class="s2">        PRAGMA preserve_insertion_order=FALSE;</span>
+
+<span class="s2">        /*</span>
+<span class="s2">        Allow parallel csv reads for performance increase possibilities</span>
+<span class="s2">        See the following for more information:</span>
+<span class="s2">        https://duckdb.org/docs/sql/configuration#configuration-reference</span>
+<span class="s2">        */</span>
+<span class="s2">        PRAGMA experimental_parallel_csv=TRUE;</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 

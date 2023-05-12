@@ -37,19 +37,19 @@
   <section id="technical-architecture">
 <h1>Technical Architecture<a class="headerlink" href="#technical-architecture" title="Permalink to this heading">¶</a></h1>
 <p>Documentation covering technical architecture for CytoTable.</p>
-<section id="workflow-technologies">
-<h2>Workflow Technologies<a class="headerlink" href="#workflow-technologies" title="Permalink to this heading">¶</a></h2>
-<p>CytoTable uses <a class="reference external" href="https://docs.prefect.io/">Prefect</a> to execute collections of tasks as workflows.
-In Prefect, Tasks are isolated pieces of work stored within a Python function which is decorated with the <code class="docutils literal notranslate"><span class="pre">&#64;task</span></code> decorator.
-Workflows, or flows, are collections of one or more tasks and are decorated using the <code class="docutils literal notranslate"><span class="pre">&#64;flow</span></code> decorator.
-See the following documentation for more information on how tasks and flows may be used within Prefect: <a class="reference external" href="https://docs.prefect.io/tutorials/first-steps/">Prefect Documentation: Tutorial: First steps</a></p>
-<section id="task-execution">
-<h3>Task Execution<a class="headerlink" href="#task-execution" title="Permalink to this heading">¶</a></h3>
-<p>Flows and tasks within CytoTable may be executed using <a class="reference external" href="https://docs.prefect.io/tutorials/execution/">Prefect Task Executors</a>.
-By default, CytoTable assumes local task execution with <a class="reference external" href="https://docs.prefect.io/tutorials/execution/#sequential-execution">SequentialTaskRunner</a>.</p>
-<p>For greater scalability, CytoTable may also be used with concurrent task runners.
-Please note: using concurrent task runners may require implementing a standalone <code class="docutils literal notranslate"><span class="pre">prefect</span> <span class="pre">orion</span></code> server to ensure SQLite write errors are not experienced (more information on this topic may be found under <a class="reference external" href="https://github.com/PrefectHQ/prefect/issues/7277">Prefect#7277</a>).
-Examples of concurrent task runners include <a class="reference external" href="https://docs.prefect.io/tutorials/execution/#concurrent-execution">ConcurrentTaskRunner</a>, a built-in option for concurrent operiations, and <a class="reference external" href="https://prefecthq.github.io/prefect-dask/">prefect-dask DaskTaskRunner</a> which can further help scale parallel execution using a <a class="reference external" href="https://docs.dask.org/en/stable/">Dask environment</a> (local or otherwise).</p>
+<section id="workflows">
+<h2>Workflows<a class="headerlink" href="#workflows" title="Permalink to this heading">¶</a></h2>
+<p>CytoTable uses <a class="reference external" href="https://parsl.readthedocs.io/">Parsl</a> to execute collections of tasks as <a class="reference external" href="https://parsl.readthedocs.io/en/stable/quickstart.html#application-types"><code class="docutils literal notranslate"><span class="pre">python_app</span></code>’s</a>.
+In Parsl, work may be isolated using Python functions decorated with the <code class="docutils literal notranslate"><span class="pre">&#64;python_app</span></code> decorator.
+<a class="reference external" href="https://parsl.readthedocs.io/en/stable/1-parsl-introduction.html#Dynamic-workflows-with-apps-that-generate-other-apps"><code class="docutils literal notranslate"><span class="pre">join_app</span></code>’s</a> are collections of one or more other apps and are decorated using the <code class="docutils literal notranslate"><span class="pre">&#64;join_app</span></code> decorator.
+See the following documentation for more information on how apps may be used within Parsl: <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/apps.html">Parsl: Apps</a></p>
+<section id="workflow-execution">
+<h3>Workflow Execution<a class="headerlink" href="#workflow-execution" title="Permalink to this heading">¶</a></h3>
+<p>Procedures within CytoTable are executed using <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/execution.html">Parsl Executors</a>.
+Parsl Executors may be configured through <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/execution.html#configuration">Parsl Configuration’s</a>.</p>
+<p>Parsl configurations may be passed to <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">parsl_config=parsl.Config)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>)</p>
+<p>By default, CytoTable assumes local task execution with <a class="reference external" href="https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.LocalProvider.html#parsl.providers.LocalProvider">LocalProvider</a>.
+For greater scalability, CytoTable may be used with a <a class="reference external" href="https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor">HighThroughputExecutor</a> (See <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/performance.html">Parsl’s scalability documentation</a> for more information).</p>
 </section>
 </section>
 <section id="data-technologies">
@@ -125,7 +125,7 @@ We use DuckDB SQL statements to organize joined datasets or tables as Arrow form
 <li class="toctree-l1"><a class="reference internal" href="code_of_conduct.html">Code of Conduct</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="architecture.html">Architecture</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Technical Architecture</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#workflow-technologies">Workflow Technologies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#workflows">Workflows</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#data-technologies">Data Technologies</a></li>
 </ul>
 </li>

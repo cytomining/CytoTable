@@ -2,21 +2,24 @@
 
 Documentation covering technical architecture for CytoTable.
 
-## Workflow Technologies
+## Workflows
 
-CytoTable uses [Prefect](https://docs.prefect.io/) to execute collections of tasks as workflows.
-In Prefect, Tasks are isolated pieces of work stored within a Python function which is decorated with the `@task` decorator.
-Workflows, or flows, are collections of one or more tasks and are decorated using the `@flow` decorator.
-See the following documentation for more information on how tasks and flows may be used within Prefect: [Prefect Documentation: Tutorial: First steps](https://docs.prefect.io/tutorials/first-steps/)
+CytoTable uses [Parsl](https://parsl.readthedocs.io/) to execute collections of tasks as [`python_app`'s](https://parsl.readthedocs.io/en/stable/quickstart.html#application-types).
+In Parsl, work may be isolated using Python functions decorated with the `@python_app` decorator.
+[`join_app`'s](https://parsl.readthedocs.io/en/stable/1-parsl-introduction.html#Dynamic-workflows-with-apps-that-generate-other-apps) are collections of one or more other apps and are decorated using the `@join_app` decorator.
+See the following documentation for more information on how apps may be used within Parsl: [Parsl: Apps](https://parsl.readthedocs.io/en/stable/userguide/apps.html)
 
-### Task Execution
+### Workflow Execution
 
-Flows and tasks within CytoTable may be executed using [Prefect Task Executors](https://docs.prefect.io/tutorials/execution/).
-By default, CytoTable assumes local task execution with [SequentialTaskRunner](https://docs.prefect.io/tutorials/execution/#sequential-execution).
+Procedures within CytoTable are executed using [Parsl Executors](https://parsl.readthedocs.io/en/stable/userguide/execution.html).
+Parsl Executors may be configured through [Parsl Configuration's](https://parsl.readthedocs.io/en/stable/userguide/execution.html#configuration).
 
-For greater scalability, CytoTable may also be used with concurrent task runners.
-Please note: using concurrent task runners may require implementing a standalone `prefect orion` server to ensure SQLite write errors are not experienced (more information on this topic may be found under [Prefect#7277](https://github.com/PrefectHQ/prefect/issues/7277)).
-Examples of concurrent task runners include [ConcurrentTaskRunner](https://docs.prefect.io/tutorials/execution/#concurrent-execution), a built-in option for concurrent operiations, and [prefect-dask DaskTaskRunner](https://prefecthq.github.io/prefect-dask/) which can further help scale parallel execution using a [Dask environment](https://docs.dask.org/en/stable/) (local or otherwise).
+```{eval-rst}
+Parsl configurations may be passed to :code:`convert(..., parsl_config=parsl.Config)` (:mod:`convert() <cytotable.convert.convert>`)
+```
+
+By default, CytoTable assumes local task execution with [LocalProvider](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.LocalProvider.html#parsl.providers.LocalProvider).
+For greater scalability, CytoTable may be used with a [HighThroughputExecutor](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor) (See [Parsl's scalability documentation](https://parsl.readthedocs.io/en/stable/userguide/performance.html) for more information).
 
 ## Data Technologies
 

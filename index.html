@@ -130,7 +130,7 @@ The Parquet files will have a unified and documented data model, including refer
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="architecture.technical.html">Technical Architecture</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="architecture.technical.html#workflow-technologies">Workflow Technologies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="architecture.technical.html#workflows">Workflows</a></li>
 <li class="toctree-l3"><a class="reference internal" href="architecture.technical.html#data-technologies">Data Technologies</a></li>
 </ul>
 </li>
@@ -148,12 +148,13 @@ The Parquet files will have a unified and documented data model, including refer
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._concat_join_sources"><code class="docutils literal notranslate"><span class="pre">_concat_join_sources()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._concat_source_group"><code class="docutils literal notranslate"><span class="pre">_concat_source_group()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._get_join_chunks"><code class="docutils literal notranslate"><span class="pre">_get_join_chunks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._get_table_chunk_offsets"><code class="docutils literal notranslate"><span class="pre">_get_table_chunk_offsets()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._infer_source_group_common_schema"><code class="docutils literal notranslate"><span class="pre">_infer_source_group_common_schema()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._join_source_chunk"><code class="docutils literal notranslate"><span class="pre">_join_source_chunk()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._prepend_column_name"><code class="docutils literal notranslate"><span class="pre">_prepend_column_name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._read_data"><code class="docutils literal notranslate"><span class="pre">_read_data()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._return_future"><code class="docutils literal notranslate"><span class="pre">_return_future()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._source_chunk_to_parquet"><code class="docutils literal notranslate"><span class="pre">_source_chunk_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._to_parquet"><code class="docutils literal notranslate"><span class="pre">_to_parquet()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._write_parquet"><code class="docutils literal notranslate"><span class="pre">_write_parquet()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.sources">Sources</a><ul>
@@ -164,9 +165,11 @@ The Parquet files will have a unified and documented data model, including refer
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.utils">Utils</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils.Parsl_AppBase_init_for_docs"><code class="docutils literal notranslate"><span class="pre">Parsl_AppBase_init_for_docs()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._cache_cloudpath_to_local"><code class="docutils literal notranslate"><span class="pre">_cache_cloudpath_to_local()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._column_sort"><code class="docutils literal notranslate"><span class="pre">_column_sort()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._duckdb_with_sqlite"><code class="docutils literal notranslate"><span class="pre">_duckdb_with_sqlite()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._default_parsl_config"><code class="docutils literal notranslate"><span class="pre">_default_parsl_config()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._duckdb_reader"><code class="docutils literal notranslate"><span class="pre">_duckdb_reader()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="python-api.html#presets">Presets</a><ul>
