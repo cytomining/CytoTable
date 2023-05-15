@@ -1138,6 +1138,15 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         # previously loaded configuration with a warning
         if str(runtime_exc) == "Config has already been loaded":
             logger.warning(str(runtime_exc))
+
+            # if we're supplying a new config, attempt to clear current config
+            # and use the new configuration instead. Otherwise, use existing.
+            if parsl_config is not None:
+                # clears the existing parsl configuration
+                parsl.clear()
+                # then load the supplied configuration
+                parsl.load(parsl_config)
+
         # for other potential runtime errors besides config already being loaded
         else:
             raise
