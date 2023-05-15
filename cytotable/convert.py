@@ -866,53 +866,56 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
-    Export data to parquet.
+        Export data to parquet.
 
-    Args:
-        source_path: str:
-            str reference to read source files from.
-            Note: may be local or remote object-storage
-            location using convention "s3://..." or similar.
-        dest_path: str:
-            Path to write files to.
-            Note: this may only be a local path.
-        source_datatype: Optional[str]: (Default value = None)
-            Source datatype to focus on during conversion.
-        metadata: Union[List[str], Tuple[str, ...]]:
-            Metadata names to use for conversion.
-        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
-            Compartment names to use for conversion.
-        identifying_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which are used as ID's and as a result need to be
-            ignored with regards to renaming.
-        concat: bool:
-            Whether to concatenate similar files together.
-        join: bool:
-            Whether to join the compartment data together into one dataset
-        joins: str:
-            DuckDB-compatible SQL which will be used to perform the join operations.
-        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
-            Column names which appear in all compartments to use when performing join
-        chunk_size: Optional[int],
-            Size of join chunks which is used to limit data size during join ops
-        infer_common_schema: bool:  (Default value = True)
-            Whether to infer a common schema when concatenating sources.
-        drop_null: bool:
-            Whether to drop null results.
-        data_type_cast_map: Dict[str, str]
-            A dictionary mapping data type groups to specific types.
-            Roughly includes to Arrow data types language from:
-            https://arrow.apache.org/docs/python/api/datatypes.html
+        Args:
+            source_path: str:
+                str reference to read source files from.
+                Note: may be local or remote object-storage
+                location using convention "s3://..." or similar.
+            dest_path: str:
+                Path to write files to.
+                Note: this may only be a local path.
+            source_datatype: Optional[str]: (Default value = None)
+                Source datatype to focus on during conversion.
+            metadata: Union[List[str], Tuple[str, ...]]:
+                Metadata names to use for conversion.
+            compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
+                Compartment names to use for conversion.
+            identifying_columns: Union[List[str], Tuple[str, ...]]:
+                Column names which are used as ID's and as a result need to be
+                ignored with regards to renaming.
+            concat: bool:
+                Whether to concatenate similar files together.
+            join: bool:
+                Whether to join the compartment data together into one dataset
+            joins: str:
+                DuckDB-compatible SQL which will be used to perform the join operations.
+            chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
+                Column names which appear in all compartments to use when performing join
+            chunk_size: Optional[int],
+                Size of join chunks which is used to limit data size during join ops
+            infer_common_schema: bool:  (Default value = True)
+                Whether to infer a common schema when concatenating sources.
+            drop_null: bool:
+                Whether to drop null results.
+    <<<<<<< HEAD
+            data_type_cast_map: Dict[str, str]
+                A dictionary mapping data type groups to specific types.
+                Roughly includes to Arrow data types language from:
+                https://arrow.apache.org/docs/python/api/datatypes.html
 
-        **kwargs: Any:
-            Keyword args used for gathering source data, primarily relevant for
-            Cloudpathlib cloud-based client configuration.
+    =======
+    >>>>>>> upstream/main
+            **kwargs: Any:
+                Keyword args used for gathering source data, primarily relevant for
+                Cloudpathlib cloud-based client configuration.
 
-    Returns:
-        Union[Dict[str, List[Dict[str, Any]]], str]:
-            Grouped sources which include metadata about destination filepath
-            where parquet file was written or a string filepath for the joined
-            result.
+        Returns:
+            Union[Dict[str, List[Dict[str, Any]]], str]:
+                Grouped sources which include metadata about destination filepath
+                where parquet file was written or a string filepath for the joined
+                result.
     """
 
     import pathlib
@@ -1209,6 +1212,15 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         # previously loaded configuration with a warning
         if str(runtime_exc) == "Config has already been loaded":
             logger.warning(str(runtime_exc))
+
+            # if we're supplying a new config, attempt to clear current config
+            # and use the new configuration instead. Otherwise, use existing.
+            if parsl_config is not None:
+                # clears the existing parsl configuration
+                parsl.clear()
+                # then load the supplied configuration
+                parsl.load(parsl_config)
+
         # for other potential runtime errors besides config already being loaded
         else:
             raise
