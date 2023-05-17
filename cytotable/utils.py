@@ -138,13 +138,6 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         https://duckdb.org/docs/sql/configuration#configuration-reference
         */
         PRAGMA preserve_insertion_order=FALSE;
-
-        /*
-        Allow parallel csv reads for performance increase possibilities
-        See the following for more information:
-        https://duckdb.org/docs/sql/configuration#configuration-reference
-        */
-        PRAGMA experimental_parallel_csv=TRUE;
         """,
     )
 
