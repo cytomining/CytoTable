@@ -41,6 +41,7 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
+            add_tablenumber=True,
         ).result(),
     )
 

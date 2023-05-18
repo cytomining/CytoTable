@@ -12,6 +12,34 @@ logger = logging.getLogger(__name__)
 
 
 @python_app
+def _gather_tablenumber(source_group_name: str, source: Dict[str, Any]) -> str:
+    """
+    Gathers a "TableNumber" for the table which is a unique identifier intended
+    to help differentiate between imagenumbers to create distinct results.
+
+    We use the following steps for this process:
+    1. Check if a TableNumber already exists.
+        - If it does, we return None (indicating no additional action necessary)
+        - If it does not, we proceed below.
+    2. Build a hash based on the table data.
+    3. Return this hash for later use.
+
+    Args:
+        source_group_name: str
+            Name of the source group (for ex. compartment or metadata table name)
+        source: Dict[str, Any]
+            Contains the source data to be chunked. Represents a single
+            file or table of some kind along with collected information about table.
+
+    Returns:
+        str or None
+            If string, a hash of the table
+    """
+
+    return None
+
+
+@python_app
 def _get_table_chunk_offsets(
     source: Dict[str, Any],
     chunk_size: int,

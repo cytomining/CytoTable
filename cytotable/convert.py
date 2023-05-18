@@ -40,6 +40,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     ),
     infer_common_schema: bool = True,
     drop_null: bool = True,
+    add_tablenumber: bool = True,
     preset: Optional[str] = None,
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
@@ -85,6 +86,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to infer a common schema when concatenating sources.
         drop_null: bool (Default value = True)
             Whether to drop nan/null values from results
+        add_tablenumber: bool (Default value = True)
+            Whether to attempt to add TableNumber to resulting data
         preset: str (Default value = None)
             an optional group of presets to use based on common configurations
         parsl_config: Optional[parsl.Config] (Default value = None)
@@ -208,6 +211,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             chunk_size=chunk_size,
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
+            add_tablenumber=add_tablenumber,
             **kwargs,
         ).result()
 

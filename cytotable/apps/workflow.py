@@ -20,6 +20,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     chunk_size: Optional[int],
     infer_common_schema: bool,
     drop_null: bool,
+    add_tablenumber: bool,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -56,6 +57,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
             Whether to drop null results.
+        add_tablenumber: bool
+            Whether to attempt to add TableNumber to resulting data
         **kwargs: Any:
             Keyword args used for gathering source data, primarily relevant for
             Cloudpathlib cloud-based client configuration.
@@ -77,7 +80,11 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _join_source_chunk,
     )
     from cytotable.apps.modify import _prepend_column_name
-    from cytotable.apps.source import _get_table_chunk_offsets, _source_chunk_to_parquet
+    from cytotable.apps.source import (
+        _get_table_chunk_offsets,
+        _source_chunk_to_parquet,
+        _gather_tablenumber,
+    )
     from cytotable.apps.workflow import _gather_paths, _return_future
 
     # gather sources to be processed
@@ -123,6 +130,26 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         if len(source_group_vals) > 0
     }
 
+    # add tablenumber details (providing a placeholder if add_tablenumber == False)
+    tablenumber_prepared = {
+        source_group_name: [
+            dict(
+                source,
+                **{
+                    "tablenumber": _gather_tablenumber(
+                        source=source,
+                        source_group_name=source_group_name,
+                    ).result()
+                    # only add the tablenumber if parameter tells us so
+                    if add_tablenumber
+                    else None
+                },
+            )
+            for source in source_group_vals
+        ]
+        for source_group_name, source_group_vals in invalid_files_dropped.items()
+    }
+
     results = {
         source_group_name: [
             dict(
@@ -150,7 +177,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             )
             for source in source_group_vals
         ]
-        for source_group_name, source_group_vals in invalid_files_dropped.items()
+        for source_group_name, source_group_vals in tablenumber_prepared.items()
     }
 
     # if we're concatting or joining and need to infer the common schema
