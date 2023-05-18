@@ -328,6 +328,8 @@ def _cast_data_types(
     parquet.write_table(
         # build a new table which casts the data types
         # as per the specification below
+        # reference arrow type information for more details:
+        # https://arrow.apache.org/docs/python/api/datatypes.html
         table=parquet.read_table(source=table_path).cast(
             # build a new schema
             pa.schema(
@@ -342,6 +344,17 @@ def _cast_data_types(
                     )
                     if "integer" in data_type_cast_map.keys()
                     and pa.types.is_integer(field.type)
+                    # for casting to new string type
+                    else field.with_type(
+                        pa.type_for_alias(data_type_cast_map["string"])
+                    )
+                    if "string" in data_type_cast_map.keys()
+                    and (
+                        # we check for both large_string and string here
+                        # as there is no "any string" type checking built-in
+                        pa.types.is_string(field.type)
+                        or pa.types.is_large_string(field.type)
+                    )
                     # else we retain the existing data field type
                     else field
                     for field in parquet.read_schema(where=table_path)
