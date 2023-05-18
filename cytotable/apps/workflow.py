@@ -21,6 +21,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     infer_common_schema: bool,
     drop_null: bool,
     add_tablenumber: bool,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -59,6 +60,10 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to drop null results.
         add_tablenumber: bool
             Whether to attempt to add TableNumber to resulting data
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes to Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
         **kwargs: Any:
             Keyword args used for gathering source data, primarily relevant for
             Cloudpathlib cloud-based client configuration.
@@ -79,7 +84,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _infer_source_group_common_schema,
         _join_source_chunk,
     )
-    from cytotable.apps.modify import _prepend_column_name
+    from cytotable.apps.modify import _prepend_column_name, _cast_data_types
     from cytotable.apps.source import (
         _gather_tablenumber,
         _get_table_chunk_offsets,
@@ -158,13 +163,16 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                     "table": [
                         # perform column renaming and create potential return result
                         _prepend_column_name(
-                            # perform chunked data export to parquet using offsets
-                            table_path=_source_chunk_to_parquet(
-                                source_group_name=source_group_name,
-                                source=source,
-                                chunk_size=chunk_size,
-                                offset=offset,
-                                dest_path=dest_path,
+                            table_path=_cast_data_types(
+                                # perform chunked data export to parquet using offsets
+                                table_path=_source_chunk_to_parquet(
+                                    source_group_name=source_group_name,
+                                    source=source,
+                                    chunk_size=chunk_size,
+                                    offset=offset,
+                                    dest_path=dest_path,
+                                ),
+                                data_type_cast_map=data_type_cast_map,
                             ),
                             source_group_name=source_group_name,
                             identifying_columns=identifying_columns,

@@ -40,6 +40,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     ),
     infer_common_schema: bool = True,
     drop_null: bool = True,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
     add_tablenumber: bool = True,
     preset: Optional[str] = None,
     parsl_config: Optional[parsl.Config] = None,
@@ -88,6 +89,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to drop nan/null values from results
         add_tablenumber: bool (Default value = True)
             Whether to attempt to add TableNumber to resulting data
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes to Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
         preset: str (Default value = None)
             an optional group of presets to use based on common configurations
         parsl_config: Optional[parsl.Config] (Default value = None)
@@ -212,6 +217,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
             add_tablenumber=add_tablenumber,
+            data_type_cast_map=data_type_cast_map,
             **kwargs,
         ).result()
 
