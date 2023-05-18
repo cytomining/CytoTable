@@ -22,7 +22,6 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import convert
 from cytotable.utils import (
     _column_sort,
-    _default_parsl_config,
     _duckdb_reader,
     _sqlite_mixed_type_query_to_parquet,
 )

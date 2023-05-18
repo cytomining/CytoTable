@@ -4,7 +4,7 @@ cytotable.apps.source : work related to source data (CSV's, SQLite tables, etc)
 
 
 import logging
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from parsl.app.app import python_app
 
@@ -12,7 +12,9 @@ logger = logging.getLogger(__name__)
 
 
 @python_app
-def _gather_tablenumber(source_group_name: str, source: Dict[str, Any]) -> str:
+def _gather_tablenumber(
+    source_group_name: str, source: Dict[str, Any]
+) -> Optional[str]:
     """
     Gathers a "TableNumber" for the table which is a unique identifier intended
     to help differentiate between imagenumbers to create distinct results.

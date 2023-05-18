@@ -81,9 +81,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     )
     from cytotable.apps.modify import _prepend_column_name
     from cytotable.apps.source import (
+        _gather_tablenumber,
         _get_table_chunk_offsets,
         _source_chunk_to_parquet,
-        _gather_tablenumber,
     )
     from cytotable.apps.workflow import _gather_paths, _return_future
 
