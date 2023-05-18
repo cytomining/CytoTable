@@ -1,8 +1,11 @@
+"""
+Tests for cytotable.apps.modify
+"""
+
 import pyarrow as pa
 from pyarrow import parquet
 
 from cytotable.apps.modify import _prepend_column_name
-from pyarrow import parquet
 
 
 def test_prepend_column_name(get_tempdir: str):

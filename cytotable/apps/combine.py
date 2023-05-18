@@ -3,8 +3,8 @@ cytotable.apps.combine : work related to combining table data together (concaten
 """
 
 import logging
-
 from typing import Any, Dict, List, Optional, Tuple, Union
+
 from parsl.app.app import python_app
 
 logger = logging.getLogger(__name__)
@@ -231,10 +231,11 @@ def _join_source_chunk(
     """
 
     import pathlib
+    import uuid
 
     import pyarrow.parquet as parquet
-    import uuid
-    from cytotable.utils import _duckdb_reader, _column_sort
+
+    from cytotable.utils import _column_sort, _duckdb_reader
 
     # replace with real location of sources for join sql
     for key, val in sources.items():
@@ -346,9 +347,10 @@ def _concat_join_sources(
             Path to concatenated file which is created as a result of this function.
     """
 
+    import itertools
     import pathlib
     import shutil
-    import itertools
+
     import pyarrow as pa
     import pyarrow.parquet as parquet
 

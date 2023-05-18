@@ -1,6 +1,5 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
-
 import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 from parsl.app.app import join_app, python_app
@@ -70,9 +69,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 
     import pathlib
 
-    from cytotable.apps.source import _get_table_chunk_offsets, _source_chunk_to_parquet
-    from cytotable.apps.modify import _prepend_column_name
-    from cytotable.apps.workflow import _gather_paths, _return_future
     from cytotable.apps.combine import (
         _concat_join_sources,
         _concat_source_group,
@@ -80,6 +76,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _infer_source_group_common_schema,
         _join_source_chunk,
     )
+    from cytotable.apps.modify import _prepend_column_name
+    from cytotable.apps.source import _get_table_chunk_offsets, _source_chunk_to_parquet
+    from cytotable.apps.workflow import _gather_paths, _return_future
 
     # gather sources to be processed
     sources = _gather_paths(

@@ -1,3 +1,7 @@
+"""
+Tests for cytotable.presets
+"""
+
 from cytotable.presets import config
 
 

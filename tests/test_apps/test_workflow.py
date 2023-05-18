@@ -1,12 +1,14 @@
-from cytotable.apps.workflow import _to_parquet
+"""
+Tests for cytotable.apps.workflow
+"""
+
 import itertools
 from typing import Any, Dict, List, cast
 
 from pyarrow import parquet
 
-from cytotable.utils import (
-    _duckdb_reader,
-)
+from cytotable.apps.workflow import _to_parquet
+from cytotable.utils import _duckdb_reader
 
 
 def test_to_parquet(

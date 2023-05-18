@@ -1,3 +1,7 @@
+"""
+Tests for cytotable.apps.combine
+"""
+
 import itertools
 import pathlib
 from shutil import copy
@@ -14,7 +18,6 @@ from cytotable.apps.combine import (
     _infer_source_group_common_schema,
     _join_source_chunk,
 )
-from pyarrow import csv, parquet
 
 
 def test_concat_source_group(
@@ -31,12 +34,13 @@ def test_concat_source_group(
     # simulate concat
     concat_table = pa.concat_tables([table_nuclei_1, table_nuclei_2])
 
-    result = _concat_source_group(
+    result = _concat_source_group(  # pylint: disable=no-member
         source_group_name="nuclei",
         source_group=example_local_sources["nuclei.csv"],
         dest_path=get_tempdir,
         common_schema=table_nuclei_1.schema,
     ).result()
+
     assert len(result) == 1
     assert parquet.read_schema(result[0]["table"][0]) == concat_table.schema
     assert (
@@ -61,7 +65,7 @@ def test_concat_source_group(
     )
 
     with pytest.raises(Exception):
-        _concat_source_group(
+        _concat_source_group(  # pylint: disable=no-member
             source_group_name="nuclei",
             source_group=example_local_sources["nuclei.csv"],
             dest_path=get_tempdir,
@@ -267,7 +271,7 @@ def test_infer_source_group_common_schema(
     """
     _, _, _, table_nuclei_1, _ = example_tables
 
-    result = _infer_source_group_common_schema(
+    result = _infer_source_group_common_schema(  # pylint: disable=no-member
         source_group=example_local_sources["nuclei.csv"],
     ).result()
 

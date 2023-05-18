@@ -4,11 +4,9 @@ cytotable.apps.source : work related to source data (CSV's, SQLite tables, etc)
 
 
 import logging
-
 from typing import Any, Dict, List, Union
 
 from parsl.app.app import python_app
-
 
 logger = logging.getLogger(__name__)
 
