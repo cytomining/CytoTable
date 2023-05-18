@@ -27,7 +27,15 @@ def fixture_load_parsl() -> None:
     """
     Fixture for loading parsl for tests
     """
-    parsl.load(_default_parsl_config())
+    parsl_dir = tempfile.mkdtemp()
+
+    default_config = _default_parsl_config()
+
+    default_config.run_dir = parsl_dir
+
+    yield parsl.load(default_config)
+
+    shutil.rmtree(path=parsl_dir, ignore_errors=True)
 
 
 # note: we use name here to avoid pylint flagging W0621
