@@ -15,6 +15,7 @@ config = {
         # column names in any compartment or metadata tables which contain
         # unique names to avoid renaming
         "CONFIG_IDENTIFYING_COLUMNS": (
+            "TableNumber",
             "ImageNumber",
             "ObjectNumber",
             "Metadata_Well",
@@ -64,6 +65,7 @@ config = {
         # column names in any compartment or metadata tables which contain
         # unique names to avoid renaming
         "CONFIG_IDENTIFYING_COLUMNS": (
+            "TableNumber",
             "ImageNumber",
             "Metadata_Well",
             "Parent_Cells",
@@ -113,6 +115,7 @@ config = {
         # column names in any compartment or metadata tables which contain
         # unique names to avoid renaming
         "CONFIG_IDENTIFYING_COLUMNS": (
+            "TableNumber",
             "ImageNumber",
             "Metadata_Well",
             "Parent_Cells",
