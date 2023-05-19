@@ -3,8 +3,7 @@ Tests for cytotable.apps.source
 """
 
 import itertools
-
-from typing import Dict, List, Any
+from typing import Any, Dict, List
 
 from cytotable.apps.source import _gather_tablenumber
 

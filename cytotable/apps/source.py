@@ -201,9 +201,15 @@ def _source_chunk_to_parquet(
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
     # build tablenumber segment addition (if necessary)
-    tablenumber_sql = ""
-    if source["tablenumber"] is not None:
-        tablenumber_sql = f"{source['tablenumber']} as TableNumber, "
+    tablenumber_sql = (
+        # to become tablenumber in sql select later with bigint (8-byte integer)
+        # we cast here to bigint to avoid concat or join conflicts later due to
+        # misaligned automatic data typing.
+        f"CAST({source['tablenumber']} AS BIGINT) as TableNumber, "
+        if source["tablenumber"] is not None
+        # if we don't have a tablenumber value, don't introduce the column
+        else ""
+    )
 
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)

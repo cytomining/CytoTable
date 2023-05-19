@@ -144,12 +144,9 @@ def test_convert_cytominerdatabase_csv(
         data_dirs_cytominerdatabase,
         cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
     ):
-        # load control table, dropping tablenumber
-        # and unlabeled objectnumber (no compartment specified)
+        # load control table, dropping unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=pycytominer_merge_dir).drop(
             [
-                # tablenumber is not implemented within CytoTable
-                "Metadata_TableNumber",
                 # objectnumber references are provided via cytoplasm parent object joins
                 "Metadata_ObjectNumber",
                 "Metadata_ObjectNumber_cells",
@@ -175,7 +172,6 @@ def test_convert_cytominerdatabase_csv(
                 source_datatype="csv",
                 join=True,
                 drop_null=False,
-                add_tablenumber=False,
             ),
             schema=control_table.schema,
         )
