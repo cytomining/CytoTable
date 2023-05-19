@@ -23,8 +23,8 @@ def _gather_tablenumber(
     1. Check if a TableNumber already exists.
         - If it does, we return None (indicating no additional action necessary)
         - If it does not, we proceed below.
-    2. Build a hash based on the table data.
-    3. Return this hash for later use.
+    2. Build a checksum based on the table data.
+    3. Return this checksum for later use.
 
     Args:
         source_group_name: str
@@ -35,10 +35,45 @@ def _gather_tablenumber(
 
     Returns:
         str or None
-            If string, a hash of the table
+            If string, a checksum of the table
     """
 
-    return None
+    from cloudpathlib import AnyPath
+    import zlib
+    from cytotable.utils import _duckdb_reader
+
+    BUFFER_SIZE = 65536
+
+    # select column names from table
+    if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
+        query = f"""
+            SELECT * 
+            FROM read_csv_auto('{str(source["source_path"])}')
+            LIMIT 1
+            """
+
+    elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
+        query = f"""
+            SELECT * 
+            FROM sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+            LIMIT 1
+            """
+    # determine if TableNumber is already in the result
+    if "TableNumber" in _duckdb_reader().execute(query).arrow().column_names:
+        return None
+
+    # build and return a checksum
+    # referenced from cytominer-database:
+    # https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129
+    with open(str(source["source_path"]), "rb") as stream:
+        result = zlib.crc32(bytes(0))
+        while True:
+            buffer = stream.read(BUFFER_SIZE)
+            if not buffer:
+                break
+            result = zlib.crc32(buffer, result)
+
+    return result & 0xFFFFFFFF
 
 
 @python_app
