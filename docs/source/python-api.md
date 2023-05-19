@@ -13,7 +13,15 @@ Convert
 
 |
 
-.. autofunction:: _concat_join_sources
+
+Apps.Combine
+------------
+
+.. automodule:: cytotable.apps.combine
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
 
 |
 
@@ -25,15 +33,18 @@ Convert
 
 |
 
-.. autofunction:: _get_table_chunk_offsets
+.. autofunction:: _concat_join_sources
 
 |
 
-.. autofunction:: _infer_source_group_common_schema
+Apps.Modify
+-----------
 
-|
-
-.. autofunction:: _join_source_chunk
+.. automodule:: cytotable.apps.modify
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
 
 |
 
@@ -41,22 +52,11 @@ Convert
 
 |
 
-.. autofunction:: _return_future
 
-|
+Apps.Path
+---------
 
-.. autofunction:: _source_chunk_to_parquet
-
-|
-
-.. autofunction:: _to_parquet
-
-|
-
-Sources
--------
-
-.. automodule:: cytotable.sources
+.. automodule:: cytotable.apps.path
    :members:
    :private-members:
    :undoc-members:
@@ -68,17 +68,64 @@ Sources
 
 |
 
-.. autofunction:: _filter_source_filepaths
+.. autofunction:: _filter_filepaths
 
 |
 
-.. autofunction:: _get_source_filepaths
+.. autofunction:: _get_filepaths
 
 |
 
-.. autofunction:: _infer_source_datatype
+.. autofunction:: _infer_path_datatype
 
 |
+
+Apps.Source
+-----------
+
+.. automodule:: cytotable.apps.source
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
+.. autofunction:: _gather_tablenumber
+
+|
+
+.. autofunction:: _get_table_chunk_offsets
+
+|
+
+.. autofunction:: _source_chunk_to_parquet
+
+|
+
+Apps.Workflow
+-------------
+
+.. automodule:: cytotable.apps.workflow
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
+.. autofunction:: _to_parquet
+
+|
+
+.. autofunction:: _gather_paths
+
+|
+
+.. autofunction:: _return_future
+
+|
+
 
 Utils
 -----

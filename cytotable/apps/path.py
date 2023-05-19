@@ -204,7 +204,7 @@ def _infer_path_datatype(
 
 
 @python_app
-def _filter_source_filepaths(
+def _filter_filepaths(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     """

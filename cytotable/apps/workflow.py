@@ -275,7 +275,7 @@ def _gather_paths(
 
     from cytotable.apps.path import (
         _build_path,
-        _filter_source_filepaths,
+        _filter_filepaths,
         _get_filepaths,
         _infer_path_datatype,
     )
@@ -291,7 +291,7 @@ def _gather_paths(
     )
 
     # filter source filepaths to inferred or source datatype
-    return _filter_source_filepaths(sources=sources, source_datatype=source_datatype)
+    return _filter_filepaths(sources=sources, source_datatype=source_datatype)
 
 
 @python_app

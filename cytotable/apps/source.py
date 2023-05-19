@@ -21,8 +21,8 @@ def _gather_tablenumber(
 
     We use the following steps for this process:
     1. Check if a TableNumber already exists.
-        - If it does, we return None (indicating no additional action necessary)
-        - If it does not, we proceed below.
+    - If it does, we return None (indicating no additional action necessary)
+    - If it does not, we proceed below.
     2. Build a checksum based on the table data.
     3. Return this checksum for later use.
 
