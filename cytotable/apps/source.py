@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 @python_app
 def _gather_tablenumber(
     source_group_name: str, source: Dict[str, Any]
-) -> Optional[str]:
+) -> Optional[int]:
     """
     Gathers a "TableNumber" for the table which is a unique identifier intended
     to help differentiate between imagenumbers to create distinct results.
@@ -38,8 +38,10 @@ def _gather_tablenumber(
             If string, a checksum of the table
     """
 
-    from cloudpathlib import AnyPath
     import zlib
+
+    from cloudpathlib import AnyPath
+
     from cytotable.utils import _duckdb_reader
 
     BUFFER_SIZE = 65536
@@ -47,14 +49,14 @@ def _gather_tablenumber(
     # select column names from table
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
         query = f"""
-            SELECT * 
+            SELECT *
             FROM read_csv_auto('{str(source["source_path"])}')
             LIMIT 1
             """
 
     elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
         query = f"""
-            SELECT * 
+            SELECT *
             FROM sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
             LIMIT 1
             """
