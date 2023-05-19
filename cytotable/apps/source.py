@@ -200,14 +200,19 @@ def _source_chunk_to_parquet(
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
+    # build tablenumber segment addition (if necessary)
+    tablenumber_sql = ""
+    if source["tablenumber"] is not None:
+        tablenumber_sql = f"{source['tablenumber']} as TableNumber, "
+
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-        base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}')"""
+        base_query = f"""SELECT {tablenumber_sql} * from read_csv_auto('{str(source["source_path"])}')"""
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
     elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
         base_query = f"""
-                SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
+                SELECT {tablenumber_sql} * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
                 """
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
 

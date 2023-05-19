@@ -175,6 +175,7 @@ def test_convert_cytominerdatabase_csv(
                 source_datatype="csv",
                 join=True,
                 drop_null=False,
+                add_tablenumber=False,
             ),
             schema=control_table.schema,
         )
@@ -202,6 +203,7 @@ def test_convert_cellprofiler_sqlite(
             dest_datatype="parquet",
             source_datatype="sqlite",
             preset="cellprofiler_sqlite",
+            add_tablenumber=False,
         )
     )
 
@@ -249,6 +251,7 @@ def test_convert_cellprofiler_csv(
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
+            add_tablenumber=False,
         )
     )
 
@@ -319,6 +322,7 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
             join=True,
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
+            add_tablenumber=False,
         )
     )
 
@@ -434,6 +438,7 @@ def test_convert_hte_cellprofiler_csv(
             source_datatype="csv",
             preset="cellprofiler_csv",
             parsl_config=local_htex,
+            add_tablenumber=False,
         )
     )
 
