@@ -34,4 +34,3 @@ jobs:
         run: poetry run cffconvert --validate
       - name: Run pytest
         run: poetry run pytest
-
