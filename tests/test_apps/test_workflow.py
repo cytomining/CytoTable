@@ -2,6 +2,8 @@
 Tests for cytotable.apps.workflow
 """
 
+# pylint: disable=unused-argument
+
 import itertools
 from typing import Any, Dict, List, cast
 
@@ -12,7 +14,9 @@ from cytotable.utils import _duckdb_reader
 
 
 def test_to_parquet(
-    get_tempdir: str, example_local_sources: Dict[str, List[Dict[str, Any]]]
+    load_parsl: None,
+    get_tempdir: str,
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
     Tests _to_parquet

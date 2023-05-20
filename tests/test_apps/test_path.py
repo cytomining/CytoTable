@@ -2,6 +2,8 @@
 Tests for cytotable.apps.path
 """
 
+# pylint: disable=unused-argument
+
 import pathlib
 
 import pytest
@@ -9,7 +11,7 @@ import pytest
 from cytotable.apps.path import _get_filepaths, _infer_path_datatype
 
 
-def test_get_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
+def test_get_filepaths(load_parsl: None, get_tempdir: str, data_dir_cellprofiler: str):
     """
     Tests _get_filepaths
     """
@@ -54,7 +56,9 @@ def test_get_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     assert len(set(single_dir_result.keys())) == 4
 
 
-def test_infer_path_datatype():
+def test_infer_path_datatype(
+    load_parsl: None,
+):
     """
     Tests _infer_path_datatype
     """

@@ -2,7 +2,7 @@
 Tests for CytoTable.convert and related.
 """
 
-# pylint: disable=no-member
+# pylint: disable=no-member,unused-argument
 
 
 import pathlib
@@ -28,6 +28,7 @@ from cytotable.utils import (
 
 
 def test_convert_s3_path_csv(
+    load_parsl: None,
     get_tempdir: str,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_s3_endpoint: str,
@@ -74,6 +75,7 @@ def test_convert_s3_path_csv(
 
 
 def test_convert_s3_path_sqlite(
+    load_parsl: None,
     get_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
     example_s3_endpoint: str,
@@ -131,6 +133,7 @@ def test_convert_s3_path_sqlite(
 
 
 def test_convert_cytominerdatabase_csv(
+    load_parsl: None,
     get_tempdir: str,
     data_dirs_cytominerdatabase: List[str],
     cytominerdatabase_to_pycytominer_merge_single_cells_parquet: List[str],
@@ -182,7 +185,10 @@ def test_convert_cytominerdatabase_csv(
 
 
 def test_convert_cellprofiler_sqlite(
-    get_tempdir: str, data_dir_cellprofiler: str, cellprofiler_merged_nf1data: pa.Table
+    load_parsl: None,
+    get_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_nf1data: pa.Table,
 ):
     """
     Tests convert with cellprofiler sqlite exports
@@ -217,6 +223,7 @@ def test_convert_cellprofiler_sqlite(
 
 
 def test_convert_cellprofiler_csv(
+    load_parsl: None,
     get_tempdir: str,
     data_dir_cellprofiler: str,
     cellprofiler_merged_examplehuman: pa.Table,
@@ -265,6 +272,7 @@ def test_convert_cellprofiler_csv(
 
 
 def test_convert_cellprofiler_sqlite_pycytominer_merge(
+    load_parsl: None,
     get_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
 ):
@@ -341,7 +349,7 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
 
 
 def test_sqlite_mixed_type_query_to_parquet(
-    get_tempdir: str, example_sqlite_mixed_types_database: str
+    load_parsl: None, get_tempdir: str, example_sqlite_mixed_types_database: str
 ):
     """
     Testing _sqlite_mixed_type_query_to_parquet

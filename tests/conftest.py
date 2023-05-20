@@ -22,7 +22,7 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.utils import _column_sort, _default_parsl_config
 
 
-@pytest.fixture(name="load_parsl", scope="session", autouse=True)
+@pytest.fixture(name="load_parsl", scope="session")
 def fixture_load_parsl() -> Generator:
     """
     Fixture for loading parsl for tests

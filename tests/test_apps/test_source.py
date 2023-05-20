@@ -2,13 +2,17 @@
 Tests for cytotable.apps.source
 """
 
+# pylint: disable=unused-argument
+
 import itertools
 from typing import Any, Dict, List
 
 from cytotable.apps.source import _gather_tablenumber
 
 
-def test_gather_tablenumber(example_local_sources: Dict[str, List[Dict[str, Any]]]):
+def test_gather_tablenumber(
+    load_parsl: None, example_local_sources: Dict[str, List[Dict[str, Any]]]
+):
     """
     Tests _gather_tablenumber
     """

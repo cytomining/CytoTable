@@ -2,13 +2,15 @@
 Tests for cytotable.apps.modify
 """
 
+# pylint: disable=unused-argument
+
 import pyarrow as pa
 from pyarrow import parquet
 
 from cytotable.apps.modify import _prepend_column_name
 
 
-def test_prepend_column_name(get_tempdir: str):
+def test_prepend_column_name(load_parsl: None, get_tempdir: str):
     """
     Tests _prepend_column_name
     """

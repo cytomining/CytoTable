@@ -2,6 +2,8 @@
 Tests for cytotable.apps.combine
 """
 
+# pylint: disable=unused-argument
+
 import itertools
 import pathlib
 from shutil import copy
@@ -21,6 +23,7 @@ from cytotable.apps.combine import (
 
 
 def test_concat_source_group(
+    load_parsl: None,
     get_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
     example_local_sources: Dict[str, List[Dict[str, Any]]],
@@ -72,7 +75,7 @@ def test_concat_source_group(
         ).result()
 
 
-def test_get_join_chunks(get_tempdir: str):
+def test_get_join_chunks(load_parsl: None, get_tempdir: str):
     """
     Tests _get_join_chunks
     """
@@ -110,7 +113,7 @@ def test_get_join_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test_join_source_chunk(get_tempdir: str):
+def test_join_source_chunk(load_parsl: None, get_tempdir: str):
     """
     Tests _get_join_chunks
     """
@@ -176,7 +179,7 @@ def test_join_source_chunk(get_tempdir: str):
     )
 
 
-def test_concat_join_sources(get_tempdir: str):
+def test_concat_join_sources(load_parsl: None, get_tempdir: str):
     """
     Tests _concat_join_sources
     """
@@ -263,6 +266,7 @@ def test_concat_join_sources(get_tempdir: str):
 
 
 def test_infer_source_group_common_schema(
+    load_parsl: None,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_tables: Tuple[pa.Table, ...],
 ):
