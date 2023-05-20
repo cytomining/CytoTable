@@ -33,7 +33,9 @@ def fixture_load_parsl() -> Generator:
 
     default_config.run_dir = parsl_dir
 
-    yield parsl.load(default_config)
+    parsl.load(default_config)
+
+    yield
 
     shutil.rmtree(path=parsl_dir, ignore_errors=True)
 

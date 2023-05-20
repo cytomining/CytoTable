@@ -33,4 +33,4 @@ jobs:
       - name: Run citation file test
         run: poetry run cffconvert --validate
       - name: Run pytest
-        run: poetry run pytest
+        run: poetry run pytest -n 1

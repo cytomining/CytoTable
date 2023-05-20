@@ -22,6 +22,7 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import convert
 from cytotable.utils import (
     _column_sort,
+    _default_parsl_config,
     _duckdb_reader,
     _sqlite_mixed_type_query_to_parquet,
 )
@@ -460,3 +461,4 @@ def test_convert_hte_cellprofiler_csv(
 
     # clean up the parsl config for other tests
     parsl.clear()
+    parsl.load(_default_parsl_config())
