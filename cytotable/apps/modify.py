@@ -2,7 +2,7 @@
 cytotable.apps.modify : work related to modifying table data.
 """
 import logging
-from typing import List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from parsl.app.app import python_app
 

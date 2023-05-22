@@ -21,7 +21,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     infer_common_schema: bool,
     drop_null: bool,
     add_tablenumber: bool,
-    data_type_cast_map: Optional[Dict[str, str]] = None,
+    data_type_cast_map: Optional[Dict[str, str]],
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -84,7 +84,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _infer_source_group_common_schema,
         _join_source_chunk,
     )
-    from cytotable.apps.modify import _prepend_column_name, _cast_data_types
+    from cytotable.apps.modify import _cast_data_types, _prepend_column_name
     from cytotable.apps.source import (
         _gather_tablenumber,
         _get_table_chunk_offsets,
@@ -223,16 +223,20 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
         join_sources_result = [
-            _join_source_chunk(
-                # gather the result of concatted sources prior to
-                # join group merging as each mapped task run will need
-                # full concat results
-                sources=results,
-                dest_path=dest_path,
-                joins=joins,
-                # get merging chunks by join columns
-                join_group=join_group,
-                drop_null=drop_null,
+            _cast_data_types(
+                # recast to avoid duckdb type inference
+                table_path=_join_source_chunk(
+                    # gather the result of concatted sources prior to
+                    # join group merging as each mapped task run will need
+                    # full concat results
+                    sources=results,
+                    dest_path=dest_path,
+                    joins=joins,
+                    # get merging chunks by join columns
+                    join_group=join_group,
+                    drop_null=drop_null,
+                ),
+                data_type_cast_map=data_type_cast_map,
             ).result()
             # create join group for querying the concatenated
             # data in order to perform memory-safe joining

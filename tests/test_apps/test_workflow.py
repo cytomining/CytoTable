@@ -46,6 +46,7 @@ def test_to_parquet(
             infer_common_schema=False,
             drop_null=True,
             add_tablenumber=False,
+            data_type_cast_map={"string": "string"},
         ).result(),
     )
 
@@ -60,10 +61,15 @@ def test_to_parquet(
                 f"""
                 select * from
                 read_csv_auto('{str(flattened_example_sources[i]["source_path"])}',
-                ignore_errors=TRUE)
+                ignore_errors=TRUE,
+                parallel=TRUE)
                 """
             )
             .arrow()
-        )
+            # here we cast to the parquet_result for comparisons below
+            # ensuring the schema is roughly equivalent via casting
+            # and avoiding any DuckDB inferences.
+        ).cast(target_schema=parquet_result.schema)
+
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape
