@@ -131,7 +131,7 @@ def _get_table_chunk_offsets(
             _duckdb_reader()
             .execute(
                 # nosec
-                f"SELECT COUNT(*) from read_csv_auto('{source_path}', parallel=TRUE)"
+                f"SELECT COUNT(*) from read_csv_auto('{source_path}', header=TRUE, delim=',', parallel=TRUE)"
                 if source_type == ".csv"
                 else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
             )
@@ -146,14 +146,18 @@ def _get_table_chunk_offsets(
 
         return None
 
-    return list(
-        range(
-            0,
-            # gather rowcount from table and use as maximum for range
-            rowcount,
-            # step through using chunk size
-            chunk_size,
+    return (
+        list(
+            range(
+                0,
+                # gather rowcount from table and use as maximum for range
+                rowcount,
+                # step through using chunk size
+                chunk_size,
+            )
         )
+        if rowcount >= 1
+        else None
     )
 
 
@@ -214,7 +218,7 @@ def _source_chunk_to_parquet(
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-        base_query = f"""SELECT {tablenumber_sql} * from read_csv_auto('{str(source["source_path"])}', parallel=TRUE)"""
+        base_query = f"""SELECT {tablenumber_sql} * from read_csv_auto('{str(source["source_path"])}', header=TRUE, delim=',', parallel=TRUE)"""
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
     elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
         base_query = f"""
