@@ -13,7 +13,6 @@ jobs:
       matrix:
         # matrixed execution for parallel gh-action performance increases
         python_version: ["3.8", "3.9", "3.10"]
-        test_type: ["sphinx", "citation", "pytest"]
     runs-on: ubuntu-latest
     env:
       DAGGER_CACHE_FROM: type=gha,scope=cytotable
@@ -21,9 +20,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Dagger
-        uses: dagger/dagger-for-github@v3.2.0
+      - name: Python setup
+        uses: actions/setup-python@v4
         with:
-          cmds: |
-            project update
-            do test ${{ matrix.python_version }} ${{ matrix.test_type }}
+          python-version: ${{ matrix.python_version }}
+      - name: Install poetry
+        run: pip install poetry
+      - name: Install environment
+        run: poetry install --no-interaction --no-ansi
+      - name: Run sphinx-docs build test
+        run: poetry run sphinx-build docs/source doctest -W
+      - name: Run citation file test
+        run: poetry run cffconvert --validate
+      - name: Run pytest
+        run: poetry run pytest -n 1

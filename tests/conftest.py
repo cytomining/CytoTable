@@ -3,6 +3,7 @@ conftest.py for pytest
 """
 import pathlib
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 from typing import Any, Dict, Generator, List, Tuple
@@ -21,12 +22,22 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.utils import _column_sort, _default_parsl_config
 
 
-@pytest.fixture(name="load_parsl", scope="session", autouse=True)
-def fixture_load_parsl() -> None:
+@pytest.fixture(name="load_parsl", scope="session")
+def fixture_load_parsl() -> Generator:
     """
     Fixture for loading parsl for tests
     """
-    parsl.load(_default_parsl_config())
+    parsl_dir = tempfile.mkdtemp()
+
+    default_config = _default_parsl_config()
+
+    default_config.run_dir = parsl_dir
+
+    parsl.load(default_config)
+
+    yield
+
+    shutil.rmtree(path=parsl_dir, ignore_errors=True)
 
 
 # note: we use name here to avoid pylint flagging W0621
@@ -488,3 +499,58 @@ def example_s3_endpoint(
 
     # return endpoint url for use in testing
     return endpoint_url
+
+
+@pytest.fixture()
+def example_sqlite_mixed_types_database(
+    get_tempdir: str,
+) -> Generator:
+    """
+    Creates a database which includes mixed type columns
+    for testing specific functionality within CytoTable
+    """
+
+    # create a temporary sqlite connection
+    filepath = f"{get_tempdir}/example_mixed_types.sqlite"
+
+    # statements for creating database with simple structure
+    create_stmts = [
+        "DROP TABLE IF EXISTS tbl_a;",
+        """
+        CREATE TABLE tbl_a (
+        col_integer INTEGER NOT NULL
+        ,col_text TEXT
+        ,col_blob BLOB
+        ,col_real REAL
+        );
+        """,
+    ]
+
+    # some example values to insert into the database
+    insert_vals = [1, "sample", b"sample_blob", 0.5]
+    err_values = ["nan", "sample", b"another_blob", "nan"]
+
+    # create the database and insert some data into it
+    with sqlite3.connect(filepath) as connection:
+        for stmt in create_stmts:
+            connection.execute(stmt)
+
+        connection.execute(
+            (
+                "INSERT INTO tbl_a (col_integer, col_text, col_blob, col_real)"
+                "VALUES (?, ?, ?, ?);"
+            ),
+            insert_vals,
+        )
+        connection.execute(
+            (
+                "INSERT INTO tbl_a (col_integer, col_text, col_blob, col_real)"
+                "VALUES (?, ?, ?, ?);"
+            ),
+            err_values,
+        )
+
+    yield filepath
+
+    # after completing the tests, remove the file
+    pathlib.Path(filepath).unlink()
