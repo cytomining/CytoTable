@@ -311,7 +311,7 @@ def _cast_data_types(
             Path to a parquet file which will be modified.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
-            Roughly includes to Arrow data types language from:
+            Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
 
     Returns:
@@ -762,7 +762,7 @@ def _infer_source_group_common_schema(
             path to parquet data.
         data_type_cast_map: Optional[Dict[str, str]], default None
             A dictionary mapping data type groups to specific types.
-            Roughly includes to Arrow data types language from:
+            Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
 
     Returns:
@@ -914,7 +914,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to drop null results.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
-            Roughly includes to Arrow data types language from:
+            Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
         **kwargs: Any:
             Keyword args used for gathering source data, primarily relevant for
