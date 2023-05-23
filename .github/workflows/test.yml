@@ -3,7 +3,7 @@ name: run tests
 
 on:
   push:
-    branches: [main, "*"]
+    branches: [main]
   pull_request:
     branches: [main]
 
@@ -11,7 +11,6 @@ jobs:
   run_tests:
     strategy:
       matrix:
-        # matrixed execution for parallel gh-action performance increases
         python_version: ["3.8", "3.9", "3.10"]
         os_version: ["ubuntu-latest", "macos-latest", "macos-11"]
     runs-on: ${{ matrix.os_version }}
