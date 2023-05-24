@@ -6,9 +6,10 @@ import logging
 import multiprocessing
 import os
 import pathlib
-from typing import Union, cast
+from typing import Dict, Union, cast
 
 import duckdb
+import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
@@ -182,3 +183,43 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
 
     # cast the result as a pathlib.Path
     return pathlib.Path(path)
+
+
+def _arrow_type_cast_if_specified(
+    field: pa.field, data_type_cast_map: Dict[str, str]
+) -> pa.field:
+    """
+    Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.
+
+    Args:
+        field: pa.field
+            A pyarrow field
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
+            Example: {"float": "float32"}
+
+    Returns:
+        pa.field
+            A potentially data type updated field
+    """
+    # for casting to new float type
+    if "float" in data_type_cast_map.keys() and pa.types.is_floating(field.type):
+        return field.with_type(pa.type_for_alias(data_type_cast_map["float"]))
+
+    # for casting to new int type
+    elif "integer" in data_type_cast_map.keys() and pa.types.is_integer(field.type):
+        return field.with_type(pa.type_for_alias(data_type_cast_map["integer"]))
+
+    # for casting to new string type
+    elif "string" in data_type_cast_map.keys() and (
+        # we check for both large_string and string here
+        # as there is no "any string" type checking built-in
+        pa.types.is_string(field.type)
+        or pa.types.is_large_string(field.type)
+    ):
+        return field.with_type(pa.type_for_alias(data_type_cast_map["string"]))
+
+    # else we retain the existing data field type
+    return field

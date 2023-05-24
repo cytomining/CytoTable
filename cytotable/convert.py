@@ -319,8 +319,12 @@ def _cast_data_types(
             Path to the modified file
     """
 
+    from functools import partial
+
     import pyarrow as pa
     import pyarrow.parquet as parquet
+
+    from cytotable.utils import _arrow_type_cast_if_specified
 
     if data_type_cast_map is not None:
         parquet.write_table(
@@ -331,32 +335,21 @@ def _cast_data_types(
             table=parquet.read_table(source=table_path).cast(
                 # build a new schema
                 pa.schema(
-                    [
-                        # for casting to new float type
-                        field.with_type(pa.type_for_alias(data_type_cast_map["float"]))
-                        if "float" in data_type_cast_map.keys()
-                        and pa.types.is_floating(field.type)
-                        # for casting to new int type
-                        else field.with_type(
-                            pa.type_for_alias(data_type_cast_map["integer"])
+                    # compile a list for use with pa.schema
+                    list(
+                        # map across all schema fields
+                        map(
+                            partial(
+                                # attempts to cast the arrow fields provided
+                                _arrow_type_cast_if_specified,
+                                # set static data_type_case_map arg for
+                                # use with all fields
+                                data_type_cast_map=data_type_cast_map,
+                            ),
+                            # provides schema as list of fields to map
+                            parquet.read_schema(where=table_path),
                         )
-                        if "integer" in data_type_cast_map.keys()
-                        and pa.types.is_integer(field.type)
-                        # for casting to new string type
-                        else field.with_type(
-                            pa.type_for_alias(data_type_cast_map["string"])
-                        )
-                        if "string" in data_type_cast_map.keys()
-                        and (
-                            # we check for both large_string and string here
-                            # as there is no "any string" type checking built-in
-                            pa.types.is_string(field.type)
-                            or pa.types.is_large_string(field.type)
-                        )
-                        # else we retain the existing data field type
-                        else field
-                        for field in parquet.read_schema(where=table_path)
-                    ]
+                    )
                 )
             ),
             # rewrite to the same location
