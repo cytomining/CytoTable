@@ -47,7 +47,7 @@ AppBase.__init__ = Parsl_AppBase_init_for_docs
 
 def _default_parsl_config():
     """
-    Return a default Parsl configuration for use with CytoTable
+    Return a default Parsl configuration for use with CytoTable.
     """
     return Config(
         executors=[ThreadPoolExecutor(max_threads=MAX_THREADS, label="local_threads")]
@@ -163,11 +163,11 @@ def _sqlite_mixed_type_query_to_parquet(
 
     Args:
         source_path: str:
-            A str which is a path to a SQLite database file
+            A str which is a path to a SQLite database file.
         table_name: str:
-            The name of the table being queried
+            The name of the table being queried.
         chunk_size: int:
-            Row count to use for chunked output
+            Row count to use for chunked output.
         offset: int:
             The offset for chunking the data from source.
         dest_path: str:
@@ -175,7 +175,7 @@ def _sqlite_mixed_type_query_to_parquet(
 
     Returns:
         str:
-           The resulting filepath for the table exported to parquet
+           The resulting filepath for the table exported to parquet.
     """
     import sqlite3
 

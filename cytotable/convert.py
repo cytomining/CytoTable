@@ -33,7 +33,7 @@ def _get_table_chunk_offsets(
             Contains the source data to be chunked. Represents a single
             file or table of some kind.
         chunk_size: int
-            The size in rowcount of the chunks to create
+            The size in rowcount of the chunks to create.
 
     Returns:
         List[int]
@@ -110,12 +110,12 @@ def _source_chunk_to_parquet(
 
     Args:
         source_group_name: str
-            Name of the source group (for ex. compartment or metadata table name)
+            Name of the source group (for ex. compartment or metadata table name).
         source: Dict[str, Any]
             Contains the source data to be chunked. Represents a single
             file or table of some kind along with collected information about table.
         chunk_size: int
-            Row count to use for chunked output
+            Row count to use for chunked output.
         offset: int
             The offset for chunking the data from source.
         dest_path: str
@@ -123,7 +123,7 @@ def _source_chunk_to_parquet(
 
     Returns:
         str
-            A string of the output filepath
+            A string of the output filepath.
     """
 
     import pathlib
@@ -212,13 +212,13 @@ def _prepend_column_name(
             Column names which are used as ID's and as a result need to be
             treated differently when renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
-            List of source data names which are used as metadata
+            List of source data names which are used as metadata.
         compartments: List[str]:
-            List of source data names which are used as compartments
+            List of source data names which are used as compartments.
 
     Returns:
         str
-            Path to the modified file
+            Path to the modified file.
     """
 
     import pathlib
@@ -464,15 +464,15 @@ def _get_join_chunks(
         sources: Dict[List[Dict[str, Any]]]:
             Grouped datasets of files which will be used by other functions.
         metadata: Union[List[str], Tuple[str, ...]]:
-            List of source data names which are used as metadata
+            List of source data names which are used as metadata.
         chunk_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which appear in all compartments to use when performing join
+            Column names which appear in all compartments to use when performing join.
         chunk_size: int:
-            Size of join chunks which is used to limit data size during join ops
+            Size of join chunks which is used to limit data size during join ops.
 
     Returns:
         List[List[Dict[str, Any]]]]:
-            A list of lists with at most chunk size length that contain join keys
+            A list of lists with at most chunk size length that contain join keys.
     """
 
     import pathlib
@@ -829,13 +829,13 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         concat: bool:
             Whether to concatenate similar files together.
         join: bool:
-            Whether to join the compartment data together into one dataset
+            Whether to join the compartment data together into one dataset.
         joins: str:
             DuckDB-compatible SQL which will be used to perform the join operations.
         chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
-            Column names which appear in all compartments to use when performing join
+            Column names which appear in all compartments to use when performing join.
         chunk_size: Optional[int],
-            Size of join chunks which is used to limit data size during join ops
+            Size of join chunks which is used to limit data size during join ops.
         infer_common_schema: bool:  (Default value = True)
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
@@ -1067,20 +1067,20 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         concat: bool:  (Default value = True)
             Whether to concatenate similar files together.
         join: bool:  (Default value = True)
-            Whether to join the compartment data together into one dataset
+            Whether to join the compartment data together into one dataset.
         joins: str: (Default value = presets.config["cellprofiler_csv"]["CONFIG_JOINS"]):
             DuckDB-compatible SQL which will be used to perform the join operations.
         chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
             (Default value = DEFAULT_CHUNK_COLUMNS)
-            Column names which appear in all compartments to use when performing join
+            Column names which appear in all compartments to use when performing join.
         chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
-            Size of join chunks which is used to limit data size during join ops
+            Size of join chunks which is used to limit data size during join ops.
         infer_common_schema: bool: (Default value = True)
             Whether to infer a common schema when concatenating sources.
         drop_null: bool (Default value = True)
-            Whether to drop nan/null values from results
+            Whether to drop nan/null values from results.
         preset: str (Default value = None)
-            an optional group of presets to use based on common configurations
+            an optional group of presets to use based on common configurations.
         parsl_config: Optional[parsl.Config] (Default value = None)
             Optional Parsl configuration to use for running CytoTable operations.
 
