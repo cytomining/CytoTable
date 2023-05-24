@@ -540,7 +540,8 @@ def example_sqlite_mixed_types_database(
             err_values,
         )
 
-    yield filepath
-
-    # after completing the tests, remove the file
-    pathlib.Path(filepath).unlink()
+    try:
+        yield filepath
+    finally:
+        # after completing the tests, remove the file
+        pathlib.Path(filepath).unlink()
