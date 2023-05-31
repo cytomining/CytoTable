@@ -994,24 +994,14 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    metadata: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_NAMES_METADATA"]
-    ),
-    compartments: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_NAMES_COMPARTMENTS"]
-    ),
-    identifying_columns: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_IDENTIFYING_COLUMNS"]
-    ),
+    metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    identifying_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
     concat: bool = True,
     join: bool = True,
-    joins: Optional[str] = cast(str, config["cellprofiler_csv"]["CONFIG_JOINS"]),
-    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_CHUNK_COLUMNS"]
-    ),
-    chunk_size: Optional[int] = cast(
-        int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"]
-    ),
+    joins: Optional[str] = None,
+    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    chunk_size: Optional[int] = None,
     infer_common_schema: bool = True,
     drop_null: bool = True,
     preset: Optional[str] = None,
@@ -1137,32 +1127,28 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     if preset is not None:
         metadata = (
             cast(list, config[preset]["CONFIG_NAMES_METADATA"])
-            if metadata is None or preset != "cellprofiler_csv"
+            if metadata is None
             else metadata
         )
         compartments = (
             cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
-            if compartments is None or preset != "cellprofiler_csv"
+            if compartments is None
             else compartments
         )
         identifying_columns = (
             cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
-            if identifying_columns is None or preset != "cellprofiler_csv"
+            if identifying_columns is None
             else identifying_columns
         )
-        joins = (
-            cast(str, config[preset]["CONFIG_JOINS"])
-            if joins is None or preset != "cellprofiler_csv"
-            else joins
-        )
+        joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
         chunk_columns = (
             cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
-            if chunk_columns is None or preset != "cellprofiler_csv"
+            if chunk_columns is None
             else chunk_columns
         )
         chunk_size = (
             cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
-            if chunk_size is None or preset != "cellprofiler_csv"
+            if chunk_size is None
             else chunk_size
         )
 
