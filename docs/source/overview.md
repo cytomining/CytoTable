@@ -8,6 +8,7 @@ For a brief introduction on how to use CytoTable, please see the [tutorial](tuto
 ```{eval-rst}
 Various preset configurations are available for use within CytoTable which affect how data are read and produced under :data:`presets.config <cytotable.presets.config>`.
 These presets are intended to assist with common data source expectations.
+By default, CytoTable will use the "cellprofiler_csv" preset.
 Please note that these presets may not capture all possible outcomes.
 Use manual overrides within :mod:`convert() <cytotable.convert.convert>` as needed.
 ```

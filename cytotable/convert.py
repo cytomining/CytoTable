@@ -1029,7 +1029,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         metadata: Union[List[str], Tuple[str, ...]]:
             Metadata names to use for conversion.
         compartments: Union[List[str], Tuple[str, str, str, str]]:
-            (Default value = DEFAULT_COMPARTMENTS)
+            (Default value = None)
             Compartment names to use for conversion.
         identifying_columns: Union[List[str], Tuple[str, ...]]:
             Column names which are used as ID's and as a result need to be
@@ -1038,18 +1038,18 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to concatenate similar files together.
         join: bool:  (Default value = True)
             Whether to join the compartment data together into one dataset
-        joins: str: (Default value = presets.config["cellprofiler_csv"]["CONFIG_JOINS"]):
+        joins: str: (Default value = None):
             DuckDB-compatible SQL which will be used to perform the join operations.
         chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
-            (Default value = DEFAULT_CHUNK_COLUMNS)
+            (Default value = None)
             Column names which appear in all compartments to use when performing join
-        chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
+        chunk_size: Optional[int] (Default value = None)
             Size of join chunks which is used to limit data size during join ops
         infer_common_schema: bool: (Default value = True)
             Whether to infer a common schema when concatenating sources.
         drop_null: bool (Default value = True)
             Whether to drop nan/null values from results
-        preset: str (Default value = None)
+        preset: str (Default value = "cellprofiler_csv")
             an optional group of presets to use based on common configurations
         parsl_config: Optional[parsl.Config] (Default value = None)
             Optional Parsl configuration to use for running CytoTable operations.
