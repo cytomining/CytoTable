@@ -1004,7 +1004,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     chunk_size: Optional[int] = None,
     infer_common_schema: bool = True,
     drop_null: bool = True,
-    preset: Optional[str] = None,
+    preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
