@@ -1014,27 +1014,17 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_path: str,
     dest_datatype: Literal["parquet"],
     source_datatype: Optional[str] = None,
-    metadata: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_NAMES_METADATA"]
-    ),
-    compartments: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_NAMES_COMPARTMENTS"]
-    ),
-    identifying_columns: Union[List[str], Tuple[str, ...]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_IDENTIFYING_COLUMNS"]
-    ),
+    metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    identifying_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
     concat: bool = True,
     join: bool = True,
-    joins: Optional[str] = cast(str, config["cellprofiler_csv"]["CONFIG_JOINS"]),
-    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = cast(
-        list, config["cellprofiler_csv"]["CONFIG_CHUNK_COLUMNS"]
-    ),
-    chunk_size: Optional[int] = cast(
-        int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"]
-    ),
+    joins: Optional[str] = None,
+    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
+    chunk_size: Optional[int] = None,
     infer_common_schema: bool = True,
     drop_null: bool = True,
-    preset: Optional[str] = None,
+    preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
@@ -1059,7 +1049,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         metadata: Union[List[str], Tuple[str, ...]]:
             Metadata names to use for conversion.
         compartments: Union[List[str], Tuple[str, str, str, str]]:
-            (Default value = DEFAULT_COMPARTMENTS)
+            (Default value = None)
             Compartment names to use for conversion.
         identifying_columns: Union[List[str], Tuple[str, ...]]:
             Column names which are used as ID's and as a result need to be
@@ -1067,20 +1057,20 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         concat: bool:  (Default value = True)
             Whether to concatenate similar files together.
         join: bool:  (Default value = True)
-            Whether to join the compartment data together into one dataset.
-        joins: str: (Default value = presets.config["cellprofiler_csv"]["CONFIG_JOINS"]):
+            Whether to join the compartment data together into one dataset
+        joins: str: (Default value = None):
             DuckDB-compatible SQL which will be used to perform the join operations.
         chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
-            (Default value = DEFAULT_CHUNK_COLUMNS)
-            Column names which appear in all compartments to use when performing join.
-        chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)
-            Size of join chunks which is used to limit data size during join ops.
+            (Default value = None)
+            Column names which appear in all compartments to use when performing join
+        chunk_size: Optional[int] (Default value = None)
+            Size of join chunks which is used to limit data size during join ops
         infer_common_schema: bool: (Default value = True)
             Whether to infer a common schema when concatenating sources.
         drop_null: bool (Default value = True)
-            Whether to drop nan/null values from results.
-        preset: str (Default value = None)
-            an optional group of presets to use based on common configurations.
+            Whether to drop nan/null values from results
+        preset: str (Default value = "cellprofiler_csv")
+            an optional group of presets to use based on common configurations
         parsl_config: Optional[parsl.Config] (Default value = None)
             Optional Parsl configuration to use for running CytoTable operations.
 
@@ -1157,32 +1147,28 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     if preset is not None:
         metadata = (
             cast(list, config[preset]["CONFIG_NAMES_METADATA"])
-            if metadata is None or preset != "cellprofiler_csv"
+            if metadata is None
             else metadata
         )
         compartments = (
             cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
-            if compartments is None or preset != "cellprofiler_csv"
+            if compartments is None
             else compartments
         )
         identifying_columns = (
             cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
-            if identifying_columns is None or preset != "cellprofiler_csv"
+            if identifying_columns is None
             else identifying_columns
         )
-        joins = (
-            cast(str, config[preset]["CONFIG_JOINS"])
-            if joins is None or preset != "cellprofiler_csv"
-            else joins
-        )
+        joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
         chunk_columns = (
             cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
-            if chunk_columns is None or preset != "cellprofiler_csv"
+            if chunk_columns is None
             else chunk_columns
         )
         chunk_size = (
             cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
-            if chunk_size is None or preset != "cellprofiler_csv"
+            if chunk_size is None
             else chunk_size
         )
 

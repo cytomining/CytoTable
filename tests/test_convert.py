@@ -598,8 +598,20 @@ def test_convert_s3_path_sqlite(
         )
     )
 
-    assert local_cytotable_table.equals(s3_cytotable_table)
-    assert local_cytotable_table.equals(s3_cytotable_table_nested)
+    assert local_cytotable_table.sort_by(
+        [(name, "ascending") for name in local_cytotable_table.schema.names]
+    ).equals(
+        s3_cytotable_table.sort_by(
+            [(name, "ascending") for name in s3_cytotable_table.schema.names]
+        )
+    )
+    assert local_cytotable_table.sort_by(
+        [(name, "ascending") for name in local_cytotable_table.schema.names]
+    ).equals(
+        s3_cytotable_table_nested.sort_by(
+            [(name, "ascending") for name in s3_cytotable_table_nested.schema.names]
+        )
+    )
 
 
 def test_infer_source_group_common_schema(
