@@ -1028,27 +1028,17 @@
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">],</span>
     <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_METADATA&quot;</span><span class="p">]</span>
-    <span class="p">),</span>
-    <span class="n">compartments</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_COMPARTMENTS&quot;</span><span class="p">]</span>
-    <span class="p">),</span>
-    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_IDENTIFYING_COLUMNS&quot;</span><span class="p">]</span>
-    <span class="p">),</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">]),</span>
-    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-        <span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_COLUMNS&quot;</span><span class="p">]</span>
-    <span class="p">),</span>
-    <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
-        <span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_SIZE&quot;</span><span class="p">]</span>
-    <span class="p">),</span>
+    <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">]:</span>
@@ -1073,7 +1063,7 @@
 <span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
 <span class="sd">            Metadata names to use for conversion.</span>
 <span class="sd">        compartments: Union[List[str], Tuple[str, str, str, str]]:</span>
-<span class="sd">            (Default value = DEFAULT_COMPARTMENTS)</span>
+<span class="sd">            (Default value = None)</span>
 <span class="sd">            Compartment names to use for conversion.</span>
 <span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
 <span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
@@ -1082,18 +1072,18 @@
 <span class="sd">            Whether to concatenate similar files together.</span>
 <span class="sd">        join: bool:  (Default value = True)</span>
 <span class="sd">            Whether to join the compartment data together into one dataset</span>
-<span class="sd">        joins: str: (Default value = presets.config[&quot;cellprofiler_csv&quot;][&quot;CONFIG_JOINS&quot;]):</span>
+<span class="sd">        joins: str: (Default value = None):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
 <span class="sd">        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]</span>
-<span class="sd">            (Default value = DEFAULT_CHUNK_COLUMNS)</span>
+<span class="sd">            (Default value = None)</span>
 <span class="sd">            Column names which appear in all compartments to use when performing join</span>
-<span class="sd">        chunk_size: Optional[int] (Default value = DEFAULT_CHUNK_SIZE)</span>
+<span class="sd">        chunk_size: Optional[int] (Default value = None)</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
 <span class="sd">        infer_common_schema: bool: (Default value = True)</span>
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
 <span class="sd">        drop_null: bool (Default value = True)</span>
 <span class="sd">            Whether to drop nan/null values from results</span>
-<span class="sd">        preset: str (Default value = None)</span>
+<span class="sd">        preset: str (Default value = &quot;cellprofiler_csv&quot;)</span>
 <span class="sd">            an optional group of presets to use based on common configurations</span>
 <span class="sd">        parsl_config: Optional[parsl.Config] (Default value = None)</span>
 <span class="sd">            Optional Parsl configuration to use for running CytoTable operations.</span>
@@ -1171,32 +1161,28 @@
     <span class="k">if</span> <span class="n">preset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">metadata</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_METADATA&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">preset</span> <span class="o">!=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span>
+            <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">metadata</span>
         <span class="p">)</span>
         <span class="n">compartments</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_COMPARTMENTS&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">compartments</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">preset</span> <span class="o">!=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span>
+            <span class="k">if</span> <span class="n">compartments</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">compartments</span>
         <span class="p">)</span>
         <span class="n">identifying_columns</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_IDENTIFYING_COLUMNS&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">identifying_columns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">preset</span> <span class="o">!=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span>
+            <span class="k">if</span> <span class="n">identifying_columns</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">identifying_columns</span>
         <span class="p">)</span>
-        <span class="n">joins</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">joins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">preset</span> <span class="o">!=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span>
-            <span class="k">else</span> <span class="n">joins</span>
-        <span class="p">)</span>
+        <span class="n">joins</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">joins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">joins</span>
         <span class="n">chunk_columns</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_COLUMNS&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">chunk_columns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">preset</span> <span class="o">!=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span>
+            <span class="k">if</span> <span class="n">chunk_columns</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">chunk_columns</span>
         <span class="p">)</span>
         <span class="n">chunk_size</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_SIZE&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">preset</span> <span class="o">!=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span>
+            <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">chunk_size</span>
         <span class="p">)</span>
 
