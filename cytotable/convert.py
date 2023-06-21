@@ -19,6 +19,85 @@ logger = logging.getLogger(__name__)
 
 
 @python_app
+def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str:str]]:
+    import pathlib
+    from cytotable.utils import _duckdb_reader
+
+    source_path = source["source_path"]
+    source_type = str(pathlib.Path(source_path).suffix).lower()
+
+    select_source = (
+        f"read_csv_auto('{source_path}')"
+        if source_type == ".csv"
+        else f"sqlite_scan('{source_path}', '{source['table_name']}')"
+    )
+    select_query = f"""
+        CREATE TABLE column_details AS 
+            (SELECT * 
+            FROM {select_source}
+            LIMIT 5
+            );
+        SELECT DISTINCT 
+            column_id,
+            column_name, 
+            segment_type as column_dtype
+        FROM pragma_storage_info('column_details')
+        WHERE segment_type != 'VALIDITY';
+        """
+
+    return _duckdb_reader().execute(select_query).arrow().to_pylist()
+
+
+@python_app
+def _cast_column_data_types(
+    columns: List[Dict[str:str]], data_type_cast_map: Dict[str, str]
+) -> str:
+    """
+    Cast data types per what is received in cast_map.
+
+    Example:
+    - table_path: parquet file
+    - data_type_cast_map: {"float": "float32"}
+
+    The above passed through this function will rewrite the parquet file
+    with float32 columns where any float-like column are encountered.
+
+    Args:
+        table_path: str:
+            Path to a parquet file which will be modified.
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
+
+    Returns:
+        str
+            Path to the modified file
+    """
+
+    from functools import partial
+
+    from cytotable.utils import _arrow_type_cast_if_specified
+
+    if data_type_cast_map is not None:
+        return list(
+            # map across all columns
+            map(
+                partial(
+                    # attempts to cast the columns provided
+                    _arrow_type_cast_if_specified,
+                    # set static data_type_case_map arg for
+                    # use with all fields
+                    data_type_cast_map=data_type_cast_map,
+                ),
+                columns,
+            )
+        )
+
+    return columns
+
+
+@python_app
 def _get_table_chunk_offsets(
     source: Dict[str, Any],
     chunk_size: int,
@@ -104,6 +183,7 @@ def _source_chunk_to_parquet(
     chunk_size: int,
     offset: int,
     dest_path: str,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Export source data to chunked parquet file using chunk size and offsets.
@@ -288,73 +368,6 @@ def _prepend_column_name(
     parquet.write_table(
         table=table.rename_columns(updated_column_names), where=table_path
     )
-
-    return table_path
-
-
-@python_app
-def _cast_data_types(
-    table_path: str, data_type_cast_map: Optional[Dict[str, str]] = None
-) -> str:
-    """
-    Cast data types per what is received in cast_map.
-
-    Example:
-    - table_path: parquet file
-    - data_type_cast_map: {"float": "float32"}
-
-    The above passed through this function will rewrite the parquet file
-    with float32 columns where any float-like column are encountered.
-
-    Args:
-        table_path: str:
-            Path to a parquet file which will be modified.
-        data_type_cast_map: Dict[str, str]
-            A dictionary mapping data type groups to specific types.
-            Roughly includes Arrow data types language from:
-            https://arrow.apache.org/docs/python/api/datatypes.html
-
-    Returns:
-        str
-            Path to the modified file
-    """
-
-    from functools import partial
-
-    import pyarrow as pa
-    import pyarrow.parquet as parquet
-
-    from cytotable.utils import _arrow_type_cast_if_specified
-
-    if data_type_cast_map is not None:
-        parquet.write_table(
-            # build a new table which casts the data types
-            # as per the specification below
-            # reference arrow type information for more details:
-            # https://arrow.apache.org/docs/python/api/datatypes.html
-            table=parquet.read_table(source=table_path).cast(
-                # build a new schema
-                pa.schema(
-                    # compile a list for use with pa.schema
-                    list(
-                        # map across all schema fields
-                        map(
-                            partial(
-                                # attempts to cast the arrow fields provided
-                                _arrow_type_cast_if_specified,
-                                # set static data_type_case_map arg for
-                                # use with all fields
-                                data_type_cast_map=data_type_cast_map,
-                            ),
-                            # provides schema as list of fields to map
-                            parquet.read_schema(where=table_path),
-                        )
-                    )
-                )
-            ),
-            # rewrite to the same location
-            where=table_path,
-        )
 
     return table_path
 
@@ -977,6 +990,22 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         if len(source_group_vals) > 0
     }
 
+    # gather column names and types from source tables
+    column_names_and_types_gathered = {
+        source_group_name: [
+            dict(
+                source,
+                **{
+                    "columns": _get_table_columns_and_types(
+                        source=source,
+                    )
+                },
+            )
+            for source in source_group_vals
+        ]
+        for source_group_name, source_group_vals in invalid_files_dropped.items()
+    }
+
     results = {
         source_group_name: [
             dict(
@@ -985,16 +1014,13 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                     "table": [
                         # perform column renaming and create potential return result
                         _prepend_column_name(
-                            # perform data type casting work
-                            table_path=_cast_data_types(
-                                # perform chunked data export to parquet using offsets
-                                table_path=_source_chunk_to_parquet(
-                                    source_group_name=source_group_name,
-                                    source=source,
-                                    chunk_size=chunk_size,
-                                    offset=offset,
-                                    dest_path=dest_path,
-                                ),
+                            # perform chunked data export to parquet using offsets
+                            table_path=_source_chunk_to_parquet(
+                                source_group_name=source_group_name,
+                                source=source,
+                                chunk_size=chunk_size,
+                                offset=offset,
+                                dest_path=dest_path,
                                 data_type_cast_map=data_type_cast_map,
                             ),
                             source_group_name=source_group_name,
@@ -1008,7 +1034,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             )
             for source in source_group_vals
         ]
-        for source_group_name, source_group_vals in invalid_files_dropped.items()
+        for source_group_name, source_group_vals in column_names_and_types_gathered.items()
     }
 
     # if we're concatting or joining and need to infer the common schema

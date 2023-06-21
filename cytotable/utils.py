@@ -186,8 +186,8 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
 
 
 def _arrow_type_cast_if_specified(
-    field: pa.field, data_type_cast_map: Dict[str, str]
-) -> pa.field:
+    column: Dict[str:str], data_type_cast_map: Dict[str, str]
+) -> Dict[str, str]:
     """
     Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.
 
@@ -205,21 +205,33 @@ def _arrow_type_cast_if_specified(
             A potentially data type updated field
     """
     # for casting to new float type
-    if "float" in data_type_cast_map.keys() and pa.types.is_floating(field.type):
-        return field.with_type(pa.type_for_alias(data_type_cast_map["float"]))
+    if "float" in data_type_cast_map.keys() and column["column_type"] in [
+        "REAL",
+        "DOUBLE",
+    ]:
+        return {
+            "column_id": column["column_id"],
+            "column_name": column["column_name"],
+            "column_type": data_type_cast_map["float"],
+        }
 
     # for casting to new int type
-    elif "integer" in data_type_cast_map.keys() and pa.types.is_integer(field.type):
-        return field.with_type(pa.type_for_alias(data_type_cast_map["integer"]))
-
-    # for casting to new string type
-    elif "string" in data_type_cast_map.keys() and (
-        # we check for both large_string and string here
-        # as there is no "any string" type checking built-in
-        pa.types.is_string(field.type)
-        or pa.types.is_large_string(field.type)
-    ):
-        return field.with_type(pa.type_for_alias(data_type_cast_map["string"]))
+    elif "integer" in data_type_cast_map.keys() and column["column_type"] in [
+        "TINYINT",
+        "SMALLINT",
+        "INTEGER",
+        "BIGINT",
+        "HUGEINT",
+        "UTINYINT",
+        "USMALLINT",
+        "UINTEGER",
+        "UBIGINT",
+    ]:
+        return {
+            "column_id": column["column_id"],
+            "column_name": column["column_name"],
+            "column_type": data_type_cast_map["integer"],
+        }
 
     # else we retain the existing data field type
-    return field
+    return column
