@@ -22,6 +22,15 @@ logger = logging.getLogger(__name__)
 def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]:
     """
     Gather column data from table through duckdb.
+
+    Args:
+        source: Dict[str, Any]
+            Contains the source data to be chunked. Represents a single
+            file or table of some kind.
+
+    Returns:
+        List[Dict[str, str]]
+            list of dictionaries which each include column level information
     """
 
     import pathlib
@@ -41,16 +50,22 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
     # query top 5 results from table and use pragma_storage_info() to
     # gather duckdb interpreted data typing
     select_query = f"""
+        /* we create an in-mem table for later use with the pragma_storage_info call 
+        as this call only functions with materialized tables and not views or related */
         CREATE TABLE column_details AS
             (SELECT *
             FROM {select_source}
             LIMIT 5
             );
+            
+        /* selects specific column metadata from pragma_storage_info */
         SELECT DISTINCT
             column_id,
             column_name,
             segment_type as column_dtype
         FROM pragma_storage_info('column_details')
+
+        /* avoid duplicate entries in the form of VALIDITY segment_types */
         WHERE segment_type != 'VALIDITY';
         """
 
