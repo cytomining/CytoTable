@@ -50,14 +50,14 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
     # query top 5 results from table and use pragma_storage_info() to
     # gather duckdb interpreted data typing
     select_query = f"""
-        /* we create an in-mem table for later use with the pragma_storage_info call 
+        /* we create an in-mem table for later use with the pragma_storage_info call
         as this call only functions with materialized tables and not views or related */
         CREATE TABLE column_details AS
             (SELECT *
             FROM {select_source}
             LIMIT 5
             );
-            
+
         /* selects specific column metadata from pragma_storage_info */
         SELECT DISTINCT
             column_id,
