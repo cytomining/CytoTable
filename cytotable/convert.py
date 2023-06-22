@@ -19,60 +19,73 @@ logger = logging.getLogger(__name__)
 
 
 @python_app
-def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str:str]]:
+def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]:
+    """
+    Gather column data from table through duckdb.
+    """
+
     import pathlib
+
     from cytotable.utils import _duckdb_reader
 
     source_path = source["source_path"]
     source_type = str(pathlib.Path(source_path).suffix).lower()
 
+    # prepare the data source in the form of a duckdb query
     select_source = (
         f"read_csv_auto('{source_path}')"
         if source_type == ".csv"
         else f"sqlite_scan('{source_path}', '{source['table_name']}')"
     )
+
+    # query top 5 results from table and use pragma_storage_info() to
+    # gather duckdb interpreted data typing
     select_query = f"""
-        CREATE TABLE column_details AS 
-            (SELECT * 
+        CREATE TABLE column_details AS
+            (SELECT *
             FROM {select_source}
             LIMIT 5
             );
-        SELECT DISTINCT 
+        SELECT DISTINCT
             column_id,
-            column_name, 
+            column_name,
             segment_type as column_dtype
         FROM pragma_storage_info('column_details')
         WHERE segment_type != 'VALIDITY';
         """
 
+    # perform the query and create a list of dictionaries with the column data for table
     return _duckdb_reader().execute(select_query).arrow().to_pylist()
 
 
 @python_app
-def _cast_column_data_types(
-    columns: List[Dict[str:str]], data_type_cast_map: Dict[str, str]
-) -> str:
+def _prep_cast_column_data_types(
+    columns: List[Dict[str, str]], data_type_cast_map: Dict[str, str]
+) -> List[Dict[str, str]]:
     """
     Cast data types per what is received in cast_map.
 
     Example:
-    - table_path: parquet file
+    - columns: [{"column_id":0, "column_name":"colname", "column_dtype":"DOUBLE"}]
     - data_type_cast_map: {"float": "float32"}
 
-    The above passed through this function will rewrite the parquet file
-    with float32 columns where any float-like column are encountered.
+    The above passed through this function will set the "column_dtype" value
+    to a "REAL" dtype ("REAL" in duckdb is roughly equivalent to "float32")
 
     Args:
         table_path: str:
             Path to a parquet file which will be modified.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
-            Roughly includes Arrow data types language from:
-            https://arrow.apache.org/docs/python/api/datatypes.html
+            Roughly to eventually align with DuckDB types:
+            https://duckdb.org/docs/sql/data_types/overview
+
+            Note: includes synonym matching for common naming convention
+            use in Pandas and/or PyArrow via cytotable.utils.DATA_TYPE_SYNONYMS
 
     Returns:
-        str
-            Path to the modified file
+        List[Dict[str, str]]
+            list of dictionaries which each include column level information
     """
 
     from functools import partial
@@ -219,15 +232,23 @@ def _source_chunk_to_parquet(
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
+    # build the column selection block of query
+    select_columns = ",".join(
+        [
+            # here we cast the column to the specified type ensure the colname remains the same
+            f"CAST({column['column_name']} AS {column['column_dtype']}) AS {column['column_name']}"
+            for column in source["columns"]
+        ]
+    )
+
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-        base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}')"""
+        base_query = f"SELECT {select_columns} FROM read_csv_auto('{str(source['source_path'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
+
     elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
-        base_query = f"""
-                SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
-                """
+        base_query = f"SELECT {select_columns} FROM sqlite_scan('{str(source['source_path'])}', '{str(source['table_name'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
 
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
@@ -934,7 +955,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     import pathlib
 
     from cytotable.convert import (
-        _cast_data_types,
         _concat_join_sources,
         _concat_source_group,
         _get_join_chunks,
@@ -996,9 +1016,12 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             dict(
                 source,
                 **{
-                    "columns": _get_table_columns_and_types(
-                        source=source,
-                    )
+                    "columns": _prep_cast_column_data_types(
+                        columns=_get_table_columns_and_types(
+                            source=source,
+                        ),
+                        data_type_cast_map=data_type_cast_map,
+                    ).result()
                 },
             )
             for source in source_group_vals

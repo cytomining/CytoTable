@@ -26,6 +26,13 @@ MAX_THREADS = (
     else int(cast(int, os.environ.get("CYTOTABLE_MAX_THREADS")))
 )
 
+DATA_TYPE_SYNONYMS = {
+    "real": ["float32", "float4", "float"],
+    "double": ["float64", "float8", "numeric", "decimal"],
+    "integer": ["int32", "int4", "int", "signed"],
+    "bigint": ["int64", "int8", "long"],
+}
+
 # reference the original init
 original_init = AppBase.__init__
 
@@ -186,14 +193,14 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
 
 
 def _arrow_type_cast_if_specified(
-    column: Dict[str:str], data_type_cast_map: Dict[str, str]
+    column: Dict[str, str], data_type_cast_map: Dict[str, str]
 ) -> Dict[str, str]:
     """
     Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.
 
     Args:
-        field: pa.field
-            A pyarrow field
+        column: Dict[str, str]:
+            Dictionary which includes a column idx, name, and dtype
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
@@ -201,22 +208,26 @@ def _arrow_type_cast_if_specified(
             Example: {"float": "float32"}
 
     Returns:
-        pa.field
-            A potentially data type updated field
+        Dict[str, str]
+            A potentially data type updated dictionary of column information
     """
     # for casting to new float type
-    if "float" in data_type_cast_map.keys() and column["column_type"] in [
+    if "float" in data_type_cast_map.keys() and column["column_dtype"] in [
         "REAL",
         "DOUBLE",
     ]:
         return {
             "column_id": column["column_id"],
             "column_name": column["column_name"],
-            "column_type": data_type_cast_map["float"],
+            "column_dtype": [
+                key
+                for key, value in DATA_TYPE_SYNONYMS.items()
+                if data_type_cast_map["float"] in value
+            ][0],
         }
 
     # for casting to new int type
-    elif "integer" in data_type_cast_map.keys() and column["column_type"] in [
+    elif "integer" in data_type_cast_map.keys() and column["column_dtype"] in [
         "TINYINT",
         "SMALLINT",
         "INTEGER",
@@ -230,7 +241,11 @@ def _arrow_type_cast_if_specified(
         return {
             "column_id": column["column_id"],
             "column_name": column["column_name"],
-            "column_type": data_type_cast_map["integer"],
+            "column_dtype": [
+                key
+                for key, value in DATA_TYPE_SYNONYMS.items()
+                if data_type_cast_map["integer"] in value
+            ][0],
         }
 
     # else we retain the existing data field type

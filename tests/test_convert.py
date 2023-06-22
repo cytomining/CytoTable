@@ -790,7 +790,6 @@ def test_cast_data_types(
         data_type_cast_map={
             "float": "float32",
             "integer": "int32",
-            "string": "string",
         },
     )
 
