@@ -22,7 +22,7 @@ def _build_path(
             Path to seek filepaths within.
         **kwargs: Any
             keyword arguments to be used with
-            Cloudpathlib.CloudPath.client
+            Cloudpathlib.CloudPath.client .
 
     Returns:
         Union[pathlib.Path, Any]
@@ -207,7 +207,7 @@ def _filter_source_filepaths(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Filter source filepaths based on provided source_datatype
+    Filter source filepaths based on provided source_datatype.
 
     Args:
         sources: Dict[str, List[Dict[str, Any]]]
@@ -245,7 +245,7 @@ def _gather_sources(
     **kwargs,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Flow for gathering data sources for conversion
+    Flow for gathering data sources for conversion.
 
     Args:
         source_path: str:

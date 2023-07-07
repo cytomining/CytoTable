@@ -47,7 +47,7 @@ AppBase.__init__ = Parsl_AppBase_init_for_docs
 
 def _default_parsl_config():
     """
-    Return a default Parsl configuration for use with CytoTable
+    Return a default Parsl configuration for use with CytoTable.
     """
     return Config(
         executors=[ThreadPoolExecutor(max_threads=MAX_THREADS, label="local_threads")]
@@ -147,6 +147,93 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         PRAGMA experimental_parallel_csv=TRUE;
         """,
     )
+
+
+def _sqlite_mixed_type_query_to_parquet(
+    source_path: str,
+    table_name: str,
+    chunk_size: int,
+    offset: int,
+    result_filepath: str,
+) -> str:
+    """
+    Performs SQLite table data extraction where one or many
+    columns include data values of potentially mismatched type
+    such that the data may be exported to Arrow and a Parquet file.
+
+    Args:
+        source_path: str:
+            A str which is a path to a SQLite database file.
+        table_name: str:
+            The name of the table being queried.
+        chunk_size: int:
+            Row count to use for chunked output.
+        offset: int:
+            The offset for chunking the data from source.
+        dest_path: str:
+            Path to store the output data.
+
+    Returns:
+        str:
+           The resulting filepath for the table exported to parquet.
+    """
+    import sqlite3
+
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    # open sqlite3 connection
+    with sqlite3.connect(source_path) as conn:
+        cursor = conn.cursor()
+
+        # gather table column details including datatype
+        cursor.execute(
+            f"""
+            SELECT :table_name as table_name,
+                    name as column_name,
+                    type as column_type
+            FROM pragma_table_info(:table_name);
+            """,
+            {"table_name": table_name},
+        )
+
+        # gather column metadata details as list of dictionaries
+        column_info = [
+            dict(zip([desc[0] for desc in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
+
+        # create cases for mixed-type handling in each column discovered above
+        query_parts = [
+            f"""
+            CASE
+                /* when the storage class type doesn't match the column, return nulltype */
+                WHEN typeof({col['column_name']}) != '{col['column_type'].lower()}' THEN NULL
+                /* else, return the normal value */
+                ELSE {col['column_name']}
+            END AS {col['column_name']}
+            """
+            for col in column_info
+        ]
+
+        # perform the select using the cases built above and using chunksize + offset
+        cursor.execute(
+            f'SELECT {", ".join(query_parts)} FROM {table_name} LIMIT {chunk_size} OFFSET {offset};'
+        )
+        # collect the results and include the column name with values
+        results = [
+            dict(zip([desc[0] for desc in cursor.description], row))
+            for row in cursor.fetchall()
+        ]
+
+    # write results to a parquet file
+    parquet.write_table(
+        table=pa.Table.from_pylist(results),
+        where=result_filepath,
+    )
+
+    # return filepath
+    return result_filepath
 
 
 def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
