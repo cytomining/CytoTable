@@ -67,7 +67,7 @@
 <span class="sd">            Contains the source data to be chunked. Represents a single</span>
 <span class="sd">            file or table of some kind.</span>
 <span class="sd">        chunk_size: int</span>
-<span class="sd">            The size in rowcount of the chunks to create</span>
+<span class="sd">            The size in rowcount of the chunks to create.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[int]</span>
@@ -144,12 +144,12 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        source_group_name: str</span>
-<span class="sd">            Name of the source group (for ex. compartment or metadata table name)</span>
+<span class="sd">            Name of the source group (for ex. compartment or metadata table name).</span>
 <span class="sd">        source: Dict[str, Any]</span>
 <span class="sd">            Contains the source data to be chunked. Represents a single</span>
 <span class="sd">            file or table of some kind along with collected information about table.</span>
 <span class="sd">        chunk_size: int</span>
-<span class="sd">            Row count to use for chunked output</span>
+<span class="sd">            Row count to use for chunked output.</span>
 <span class="sd">        offset: int</span>
 <span class="sd">            The offset for chunking the data from source.</span>
 <span class="sd">        dest_path: str</span>
@@ -157,14 +157,15 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str</span>
-<span class="sd">            A string of the output filepath</span>
+<span class="sd">            A string of the output filepath.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
+    <span class="kn">import</span> <span class="nn">duckdb</span>
     <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
 
     <span class="c1"># attempt to build dest_path</span>
     <span class="n">source_dest_path</span> <span class="o">=</span> <span class="p">(</span>
@@ -186,17 +187,36 @@
 
     <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
 
-    <span class="c1"># isolate using new connection to read data with chunk size + offset</span>
-    <span class="c1"># and export directly to parquet via duckdb (avoiding need to return data to python)</span>
-    <span class="n">_duckdb_reader</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">        COPY (</span>
-<span class="s2">            </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
-<span class="s2">            LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
-<span class="s2">        ) TO &#39;</span><span class="si">{</span><span class="n">result_filepath</span><span class="si">}</span><span class="s2">&#39;</span>
-<span class="s2">        (FORMAT PARQUET);</span>
-<span class="s2">        &quot;&quot;&quot;</span>
-    <span class="p">)</span>
+    <span class="c1"># attempt to read the data to parquet from duckdb</span>
+    <span class="c1"># with exception handling to read mixed-type data</span>
+    <span class="c1"># using sqlite3 and special utility function</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># isolate using new connection to read data with chunk size + offset</span>
+        <span class="c1"># and export directly to parquet via duckdb (avoiding need to return data to python)</span>
+        <span class="n">_duckdb_reader</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            COPY (</span>
+<span class="s2">                </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
+<span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">            ) TO &#39;</span><span class="si">{</span><span class="n">result_filepath</span><span class="si">}</span><span class="s2">&#39;</span>
+<span class="s2">            (FORMAT PARQUET);</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># if we see a mismatched type error</span>
+        <span class="c1"># run a more nuanced query through sqlite</span>
+        <span class="c1"># to handle the mixed types</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="s2">&quot;Mismatch Type Error&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
+        <span class="p">):</span>
+            <span class="n">result_filepath</span> <span class="o">=</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
+                <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
+                <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
+                <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+                <span class="n">result_filepath</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
+            <span class="p">)</span>
 
     <span class="c1"># return the filepath for the chunked output file</span>
     <span class="k">return</span> <span class="n">result_filepath</span>
@@ -226,13 +246,13 @@
 <span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
 <span class="sd">            treated differently when renaming.</span>
 <span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
-<span class="sd">            List of source data names which are used as metadata</span>
+<span class="sd">            List of source data names which are used as metadata.</span>
 <span class="sd">        compartments: List[str]:</span>
-<span class="sd">            List of source data names which are used as compartments</span>
+<span class="sd">            List of source data names which are used as compartments.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str</span>
-<span class="sd">            Path to the modified file</span>
+<span class="sd">            Path to the modified file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span> <span class="nn">pathlib</span>
@@ -478,15 +498,15 @@
 <span class="sd">        sources: Dict[List[Dict[str, Any]]]:</span>
 <span class="sd">            Grouped datasets of files which will be used by other functions.</span>
 <span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
-<span class="sd">            List of source data names which are used as metadata</span>
+<span class="sd">            List of source data names which are used as metadata.</span>
 <span class="sd">        chunk_columns: Union[List[str], Tuple[str, ...]]:</span>
-<span class="sd">            Column names which appear in all compartments to use when performing join</span>
+<span class="sd">            Column names which appear in all compartments to use when performing join.</span>
 <span class="sd">        chunk_size: int:</span>
-<span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
+<span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[List[Dict[str, Any]]]]:</span>
-<span class="sd">            A list of lists with at most chunk size length that contain join keys</span>
+<span class="sd">            A list of lists with at most chunk size length that contain join keys.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span> <span class="nn">pathlib</span>
@@ -843,13 +863,13 @@
 <span class="sd">        concat: bool:</span>
 <span class="sd">            Whether to concatenate similar files together.</span>
 <span class="sd">        join: bool:</span>
-<span class="sd">            Whether to join the compartment data together into one dataset</span>
+<span class="sd">            Whether to join the compartment data together into one dataset.</span>
 <span class="sd">        joins: str:</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
 <span class="sd">        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],</span>
-<span class="sd">            Column names which appear in all compartments to use when performing join</span>
+<span class="sd">            Column names which appear in all compartments to use when performing join.</span>
 <span class="sd">        chunk_size: Optional[int],</span>
-<span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
+<span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
 <span class="sd">        infer_common_schema: bool:  (Default value = True)</span>
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
 <span class="sd">        drop_null: bool:</span>

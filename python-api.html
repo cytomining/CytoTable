@@ -231,15 +231,15 @@ which may have slightly different but compatible schema.</p></li>
 <li><p><strong>sources</strong> – Dict[List[Dict[str, Any]]]:
 Grouped datasets of files which will be used by other functions.</p></li>
 <li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
-List of source data names which are used as metadata</p></li>
+List of source data names which are used as metadata.</p></li>
 <li><p><strong>chunk_columns</strong> – Union[List[str], Tuple[str, …]]:
-Column names which appear in all compartments to use when performing join</p></li>
+Column names which appear in all compartments to use when performing join.</p></li>
 <li><p><strong>chunk_size</strong> – int:
-Size of join chunks which is used to limit data size during join ops</p></li>
+Size of join chunks which is used to limit data size during join ops.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A list of lists with at most chunk size length that contain join keys</p>
+<dd class="field-even"><p>A list of lists with at most chunk size length that contain join keys.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>List[List[Dict[str, Any]]]]</p>
@@ -263,7 +263,7 @@ input data which will be ignored with warnings.</p>
 Contains the source data to be chunked. Represents a single
 file or table of some kind.</p></li>
 <li><p><strong>chunk_size</strong> – int
-The size in rowcount of the chunks to create</p></li>
+The size in rowcount of the chunks to create.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -360,14 +360,14 @@ Name of data source source group (for common compartments, etc).</p></li>
 Column names which are used as ID’s and as a result need to be
 treated differently when renaming.</p></li>
 <li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
-List of source data names which are used as metadata</p></li>
+List of source data names which are used as metadata.</p></li>
 <li><p><strong>compartments</strong> – List[str]:
-List of source data names which are used as compartments</p></li>
+List of source data names which are used as compartments.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>str</dt><dd><p>Path to the modified file</p>
+<dt>str</dt><dd><p>Path to the modified file.</p>
 </dd>
 </dl>
 </p>
@@ -411,12 +411,12 @@ of a python_app for the purpose of a join_app.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>source_group_name</strong> – str
-Name of the source group (for ex. compartment or metadata table name)</p></li>
+Name of the source group (for ex. compartment or metadata table name).</p></li>
 <li><p><strong>source</strong> – Dict[str, Any]
 Contains the source data to be chunked. Represents a single
 file or table of some kind along with collected information about table.</p></li>
 <li><p><strong>chunk_size</strong> – int
-Row count to use for chunked output</p></li>
+Row count to use for chunked output.</p></li>
 <li><p><strong>offset</strong> – int
 The offset for chunking the data from source.</p></li>
 <li><p><strong>dest_path</strong> – str
@@ -425,7 +425,7 @@ Path to store the output data.</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>str</dt><dd><p>A string of the output filepath</p>
+<dt>str</dt><dd><p>A string of the output filepath.</p>
 </dd>
 </dl>
 </p>
@@ -462,13 +462,13 @@ ignored with regards to renaming.</p></li>
 <li><p><strong>concat</strong> – bool:
 Whether to concatenate similar files together.</p></li>
 <li><p><strong>join</strong> – bool:
-Whether to join the compartment data together into one dataset</p></li>
+Whether to join the compartment data together into one dataset.</p></li>
 <li><p><strong>joins</strong> – str:
 DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
 <li><p><strong>chunk_columns</strong> – Optional[Union[List[str], Tuple[str, …]]],
-Column names which appear in all compartments to use when performing join</p></li>
+Column names which appear in all compartments to use when performing join.</p></li>
 <li><p><strong>chunk_size</strong> – Optional[int],
-Size of join chunks which is used to limit data size during join ops</p></li>
+Size of join chunks which is used to limit data size during join ops.</p></li>
 <li><p><strong>infer_common_schema</strong> – bool:  (Default value = True)
 Whether to infer a common schema when concatenating sources.</p></li>
 <li><p><strong>drop_null</strong> – bool:
@@ -511,7 +511,7 @@ source data and metadata for performing conversion work.</p>
 Path to seek filepaths within.</p></li>
 <li><p><strong>**kwargs</strong> – Any
 keyword arguments to be used with
-Cloudpathlib.CloudPath.client</p></li>
+Cloudpathlib.CloudPath.client .</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -530,7 +530,7 @@ Cloudpathlib.CloudPath.client</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._filter_source_filepaths">
 <span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_filter_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._filter_source_filepaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Filter source filepaths based on provided source_datatype</p>
+<dd><p>Filter source filepaths based on provided source_datatype.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -650,7 +650,7 @@ To be used with sorted and Pyarrow tables.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._default_parsl_config">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_default_parsl_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/utils.html#_default_parsl_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._default_parsl_config" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a default Parsl configuration for use with CytoTable</p>
+<dd><p>Return a default Parsl configuration for use with CytoTable.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -661,6 +661,36 @@ sqlite_scanner installed and loaded.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>duckdb.DuckDBPyConnection</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._sqlite_mixed_type_query_to_parquet">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_sqlite_mixed_type_query_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">result_filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_sqlite_mixed_type_query_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs SQLite table data extraction where one or many
+columns include data values of potentially mismatched type
+such that the data may be exported to Arrow and a Parquet file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_path</strong> – str:
+A str which is a path to a SQLite database file.</p></li>
+<li><p><strong>table_name</strong> – str:
+The name of the table being queried.</p></li>
+<li><p><strong>chunk_size</strong> – int:
+Row count to use for chunked output.</p></li>
+<li><p><strong>offset</strong> – int:
+The offset for chunking the data from source.</p></li>
+<li><p><strong>dest_path</strong> – str:
+Path to store the output data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resulting filepath for the table exported to parquet.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
 </dd>
 </dl>
 </dd></dl>
@@ -689,28 +719,28 @@ sqlite_scanner installed and loaded.</p>
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.exceptions.</span></span><span class="sig-name descname"><span class="pre">CytoTableException</span></span><a class="reference internal" href="_modules/cytotable/exceptions.html#CytoTableException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.exceptions.CytoTableException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
 <p>Root exception for custom hierarchy of exceptions
-with CytoTable</p>
+with CytoTable.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="cytotable.exceptions.DatatypeException">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.exceptions.</span></span><span class="sig-name descname"><span class="pre">DatatypeException</span></span><a class="reference internal" href="_modules/cytotable/exceptions.html#DatatypeException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.exceptions.DatatypeException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytoTableException</span></code></a></p>
-<p>Exception for datatype challenges</p>
+<p>Exception for datatype challenges.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="cytotable.exceptions.NoInputDataException">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.exceptions.</span></span><span class="sig-name descname"><span class="pre">NoInputDataException</span></span><a class="reference internal" href="_modules/cytotable/exceptions.html#NoInputDataException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.exceptions.NoInputDataException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytoTableException</span></code></a></p>
-<p>Exception for no input data</p>
+<p>Exception for no input data.</p>
 </dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="cytotable.exceptions.SchemaException">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.exceptions.</span></span><span class="sig-name descname"><span class="pre">SchemaException</span></span><a class="reference internal" href="_modules/cytotable/exceptions.html#SchemaException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.exceptions.SchemaException" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytoTableException</span></code></a></p>
-<p>Exception for schema challenges</p>
+<p>Exception for schema challenges.</p>
 </dd></dl>
 
 <div class="line-block">
@@ -778,6 +808,7 @@ with CytoTable</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._column_sort"><code class="docutils literal notranslate"><span class="pre">_column_sort()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._default_parsl_config"><code class="docutils literal notranslate"><span class="pre">_default_parsl_config()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._duckdb_reader"><code class="docutils literal notranslate"><span class="pre">_duckdb_reader()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#presets">Presets</a><ul>
