@@ -1,3 +1,5 @@
+<img height="200" src="https://raw.githubusercontent.com/cytomining/cytotable/main/logo/with-text-for-light-bg.png?raw=true">
+
 # CytoTable
 
 ![dataflow](docs/source/_static/dataflow.svg)
