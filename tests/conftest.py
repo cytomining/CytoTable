@@ -31,7 +31,7 @@ def fixture_load_parsl() -> None:
 
 
 # note: we use name here to avoid pylint flagging W0621
-@pytest.fixture(name="get_tempdir", scope="session")
+@pytest.fixture(name="get_tempdir", scope="function")
 def fixture_get_tempdir() -> Generator:
     """
     Provide temporary directory for testing
