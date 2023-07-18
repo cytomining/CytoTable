@@ -140,7 +140,7 @@ def _get_table_chunk_offsets(
             Contains the source data to be chunked. Represents a single
             file or table of some kind.
         chunk_size: int
-            The size in rowcount of the chunks to create
+            The size in rowcount of the chunks to create.
 
     Returns:
         List[int]
@@ -218,12 +218,12 @@ def _source_chunk_to_parquet(
 
     Args:
         source_group_name: str
-            Name of the source group (for ex. compartment or metadata table name)
+            Name of the source group (for ex. compartment or metadata table name).
         source: Dict[str, Any]
             Contains the source data to be chunked. Represents a single
             file or table of some kind along with collected information about table.
         chunk_size: int
-            Row count to use for chunked output
+            Row count to use for chunked output.
         offset: int
             The offset for chunking the data from source.
         dest_path: str
@@ -231,14 +231,15 @@ def _source_chunk_to_parquet(
 
     Returns:
         str
-            A string of the output filepath
+            A string of the output filepath.
     """
 
     import pathlib
 
+    import duckdb
     from cloudpathlib import AnyPath
 
-    from cytotable.utils import _duckdb_reader
+    from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
     # attempt to build dest_path
     source_dest_path = (
@@ -268,17 +269,36 @@ def _source_chunk_to_parquet(
 
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
 
-    # isolate using new connection to read data with chunk size + offset
-    # and export directly to parquet via duckdb (avoiding need to return data to python)
-    _duckdb_reader().execute(
-        f"""
-        COPY (
-            {base_query}
-            LIMIT {chunk_size} OFFSET {offset}
-        ) TO '{result_filepath}'
-        (FORMAT PARQUET);
-        """
-    )
+    # attempt to read the data to parquet from duckdb
+    # with exception handling to read mixed-type data
+    # using sqlite3 and special utility function
+    try:
+        # isolate using new connection to read data with chunk size + offset
+        # and export directly to parquet via duckdb (avoiding need to return data to python)
+        _duckdb_reader().execute(
+            f"""
+            COPY (
+                {base_query}
+                LIMIT {chunk_size} OFFSET {offset}
+            ) TO '{result_filepath}'
+            (FORMAT PARQUET);
+            """
+        )
+    except duckdb.Error as e:
+        # if we see a mismatched type error
+        # run a more nuanced query through sqlite
+        # to handle the mixed types
+        if (
+            "Mismatch Type Error" in str(e)
+            and str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite"
+        ):
+            result_filepath = _sqlite_mixed_type_query_to_parquet(
+                source_path=str(source["source_path"]),
+                table_name=str(source["table_name"]),
+                chunk_size=chunk_size,
+                offset=offset,
+                result_filepath=result_filepath,
+            )
 
     # return the filepath for the chunked output file
     return result_filepath
@@ -308,13 +328,13 @@ def _prepend_column_name(
             Column names which are used as ID's and as a result need to be
             treated differently when renaming.
         metadata: Union[List[str], Tuple[str, ...]]:
-            List of source data names which are used as metadata
+            List of source data names which are used as metadata.
         compartments: List[str]:
-            List of source data names which are used as compartments
+            List of source data names which are used as compartments.
 
     Returns:
         str
-            Path to the modified file
+            Path to the modified file.
     """
 
     import pathlib
@@ -560,15 +580,15 @@ def _get_join_chunks(
         sources: Dict[List[Dict[str, Any]]]:
             Grouped datasets of files which will be used by other functions.
         metadata: Union[List[str], Tuple[str, ...]]:
-            List of source data names which are used as metadata
+            List of source data names which are used as metadata.
         chunk_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which appear in all compartments to use when performing join
+            Column names which appear in all compartments to use when performing join.
         chunk_size: int:
-            Size of join chunks which is used to limit data size during join ops
+            Size of join chunks which is used to limit data size during join ops.
 
     Returns:
         List[List[Dict[str, Any]]]]:
-            A list of lists with at most chunk size length that contain join keys
+            A list of lists with at most chunk size length that contain join keys.
     """
 
     import pathlib
@@ -941,13 +961,13 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         concat: bool:
             Whether to concatenate similar files together.
         join: bool:
-            Whether to join the compartment data together into one dataset
+            Whether to join the compartment data together into one dataset.
         joins: str:
             DuckDB-compatible SQL which will be used to perform the join operations.
         chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
-            Column names which appear in all compartments to use when performing join
+            Column names which appear in all compartments to use when performing join.
         chunk_size: Optional[int],
-            Size of join chunks which is used to limit data size during join ops
+            Size of join chunks which is used to limit data size during join ops.
         infer_common_schema: bool:  (Default value = True)
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
