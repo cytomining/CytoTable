@@ -2,7 +2,7 @@
 Tests for CytoTable.convert and related.
 """
 
-# pylint: disable=no-member
+# pylint: disable=no-member,too-many-lines
 
 import itertools
 import pathlib
