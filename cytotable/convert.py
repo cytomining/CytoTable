@@ -19,6 +19,113 @@ logger = logging.getLogger(__name__)
 
 
 @python_app
+def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]:
+    """
+    Gather column data from table through duckdb.
+
+    Args:
+        source: Dict[str, Any]
+            Contains the source data to be chunked. Represents a single
+            file or table of some kind.
+
+    Returns:
+        List[Dict[str, str]]
+            list of dictionaries which each include column level information
+    """
+
+    import pathlib
+
+    from cytotable.utils import _duckdb_reader
+
+    source_path = source["source_path"]
+    source_type = str(pathlib.Path(source_path).suffix).lower()
+
+    # prepare the data source in the form of a duckdb query
+    select_source = (
+        f"read_csv_auto('{source_path}')"
+        if source_type == ".csv"
+        else f"sqlite_scan('{source_path}', '{source['table_name']}')"
+    )
+
+    # query top 5 results from table and use pragma_storage_info() to
+    # gather duckdb interpreted data typing
+    select_query = f"""
+        /* we create an in-mem table for later use with the pragma_storage_info call
+        as this call only functions with materialized tables and not views or related */
+        CREATE TABLE column_details AS
+            (SELECT *
+            FROM {select_source}
+            LIMIT 5
+            );
+
+        /* selects specific column metadata from pragma_storage_info */
+        SELECT DISTINCT
+            column_id,
+            column_name,
+            segment_type as column_dtype
+        FROM pragma_storage_info('column_details')
+
+        /* avoid duplicate entries in the form of VALIDITY segment_types */
+        WHERE segment_type != 'VALIDITY';
+        """
+
+    # perform the query and create a list of dictionaries with the column data for table
+    return _duckdb_reader().execute(select_query).arrow().to_pylist()
+
+
+@python_app
+def _prep_cast_column_data_types(
+    columns: List[Dict[str, str]], data_type_cast_map: Dict[str, str]
+) -> List[Dict[str, str]]:
+    """
+    Cast data types per what is received in cast_map.
+
+    Example:
+    - columns: [{"column_id":0, "column_name":"colname", "column_dtype":"DOUBLE"}]
+    - data_type_cast_map: {"float": "float32"}
+
+    The above passed through this function will set the "column_dtype" value
+    to a "REAL" dtype ("REAL" in duckdb is roughly equivalent to "float32")
+
+    Args:
+        table_path: str:
+            Path to a parquet file which will be modified.
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly to eventually align with DuckDB types:
+            https://duckdb.org/docs/sql/data_types/overview
+
+            Note: includes synonym matching for common naming convention
+            use in Pandas and/or PyArrow via cytotable.utils.DATA_TYPE_SYNONYMS
+
+    Returns:
+        List[Dict[str, str]]
+            list of dictionaries which each include column level information
+    """
+
+    from functools import partial
+
+    from cytotable.utils import _arrow_type_cast_if_specified
+
+    if data_type_cast_map is not None:
+        return list(
+            # map across all columns
+            map(
+                partial(
+                    # attempts to cast the columns provided
+                    _arrow_type_cast_if_specified,
+                    # set static data_type_case_map arg for
+                    # use with all fields
+                    data_type_cast_map=data_type_cast_map,
+                ),
+                columns,
+            )
+        )
+
+    return columns
+
+
+@python_app
 def _get_table_chunk_offsets(
     source: Dict[str, Any],
     chunk_size: int,
@@ -104,6 +211,7 @@ def _source_chunk_to_parquet(
     chunk_size: int,
     offset: int,
     dest_path: str,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Export source data to chunked parquet file using chunk size and offsets.
@@ -140,15 +248,23 @@ def _source_chunk_to_parquet(
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
+    # build the column selection block of query
+    select_columns = ",".join(
+        [
+            # here we cast the column to the specified type ensure the colname remains the same
+            f"CAST({column['column_name']} AS {column['column_dtype']}) AS {column['column_name']}"
+            for column in source["columns"]
+        ]
+    )
+
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)
     if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
-        base_query = f"""SELECT * from read_csv_auto('{str(source["source_path"])}')"""
+        base_query = f"SELECT {select_columns} FROM read_csv_auto('{str(source['source_path'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
+
     elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
-        base_query = f"""
-                SELECT * from sqlite_scan('{str(source["source_path"])}', '{str(source["table_name"])}')
-                """
+        base_query = f"SELECT {select_columns} FROM sqlite_scan('{str(source['source_path'])}', '{str(source['table_name'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
 
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
@@ -692,7 +808,8 @@ def _concat_join_sources(
 
 @python_app
 def _infer_source_group_common_schema(
-    source_group: List[Dict[str, Any]]
+    source_group: List[Dict[str, Any]],
+    data_type_cast_map: Optional[Dict[str, str]] = None,
 ) -> List[Tuple[str, str]]:
     """
     Infers a common schema for group of parquet files which may have
@@ -703,6 +820,10 @@ def _infer_source_group_common_schema(
         source_group: List[Dict[str, Any]]:
             Group of one or more data sources which includes metadata about
             path to parquet data.
+        data_type_cast_map: Optional[Dict[str, str]], default None
+            A dictionary mapping data type groups to specific types.
+            Roughly includes Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
 
     Returns:
         List[Tuple[str, str]]
@@ -750,7 +871,17 @@ def _infer_source_group_common_schema(
             elif pa.types.is_integer(field.type) and pa.types.is_floating(
                 schema.field(field.name).type
             ):
-                common_schema = common_schema.set(index, field.with_type(pa.float64()))
+                common_schema = common_schema.set(
+                    index,
+                    field.with_type(
+                        # use float64 as a default here if we aren't casting floats
+                        pa.float64()
+                        if data_type_cast_map is None
+                        or "float" not in data_type_cast_map.keys()
+                        # otherwise use the float data type cast type
+                        else pa.type_for_alias(data_type_cast_map["float"])
+                    ),
+                )
 
     if len(list(common_schema.names)) == 0:
         raise SchemaException(
@@ -804,6 +935,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     chunk_size: Optional[int],
     infer_common_schema: bool,
     drop_null: bool,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -840,6 +972,10 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
             Whether to drop null results.
+        data_type_cast_map: Dict[str, str]
+            A dictionary mapping data type groups to specific types.
+            Roughly includes Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
         **kwargs: Any:
             Keyword args used for gathering source data, primarily relevant for
             Cloudpathlib cloud-based client configuration.
@@ -909,6 +1045,25 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         if len(source_group_vals) > 0
     }
 
+    # gather column names and types from source tables
+    column_names_and_types_gathered = {
+        source_group_name: [
+            dict(
+                source,
+                **{
+                    "columns": _prep_cast_column_data_types(
+                        columns=_get_table_columns_and_types(
+                            source=source,
+                        ),
+                        data_type_cast_map=data_type_cast_map,
+                    ).result()
+                },
+            )
+            for source in source_group_vals
+        ]
+        for source_group_name, source_group_vals in invalid_files_dropped.items()
+    }
+
     results = {
         source_group_name: [
             dict(
@@ -924,6 +1079,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                                 chunk_size=chunk_size,
                                 offset=offset,
                                 dest_path=dest_path,
+                                data_type_cast_map=data_type_cast_map,
                             ),
                             source_group_name=source_group_name,
                             identifying_columns=identifying_columns,
@@ -936,7 +1092,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             )
             for source in source_group_vals
         ]
-        for source_group_name, source_group_vals in invalid_files_dropped.items()
+        for source_group_name, source_group_vals in column_names_and_types_gathered.items()
     }
 
     # if we're concatting or joining and need to infer the common schema
@@ -946,7 +1102,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             source_group_name: {
                 "sources": source_group_vals,
                 "common_schema": _infer_source_group_common_schema(
-                    source_group=source_group_vals
+                    source_group=source_group_vals,
+                    data_type_cast_map=data_type_cast_map,
                 ),
             }
             for source_group_name, source_group_vals in results.items()
@@ -1024,6 +1181,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     chunk_size: Optional[int] = None,
     infer_common_schema: bool = True,
     drop_null: bool = True,
+    data_type_cast_map: Optional[Dict[str, str]] = None,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
@@ -1188,6 +1346,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             chunk_size=chunk_size,
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
+            data_type_cast_map=data_type_cast_map,
             **kwargs,
         ).result()
 
