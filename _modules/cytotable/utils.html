@@ -40,9 +40,10 @@
 <span class="kn">import</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">duckdb</span>
+<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">AppBase</span>
@@ -58,6 +59,13 @@
     <span class="k">if</span> <span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
     <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span><span class="p">)))</span>
 <span class="p">)</span>
+
+<span class="n">DATA_TYPE_SYNONYMS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;real&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float4&quot;</span><span class="p">,</span> <span class="s2">&quot;float&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;double&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;float64&quot;</span><span class="p">,</span> <span class="s2">&quot;float8&quot;</span><span class="p">,</span> <span class="s2">&quot;numeric&quot;</span><span class="p">,</span> <span class="s2">&quot;decimal&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;integer&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="s2">&quot;int4&quot;</span><span class="p">,</span> <span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="s2">&quot;signed&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;bigint&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span> <span class="s2">&quot;int8&quot;</span><span class="p">,</span> <span class="s2">&quot;long&quot;</span><span class="p">],</span>
+<span class="p">}</span>
 
 <span class="c1"># reference the original init</span>
 <span class="n">original_init</span> <span class="o">=</span> <span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span>
@@ -303,6 +311,66 @@
 
     <span class="c1"># cast the result as a pathlib.Path</span>
     <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_arrow_type_cast_if_specified"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._arrow_type_cast_if_specified">[docs]</a><span class="k">def</span> <span class="nf">_arrow_type_cast_if_specified</span><span class="p">(</span>
+    <span class="n">column</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        column: Dict[str, str]:</span>
+<span class="sd">            Dictionary which includes a column idx, name, and dtype</span>
+<span class="sd">        data_type_cast_map: Dict[str, str]</span>
+<span class="sd">            A dictionary mapping data type groups to specific types.</span>
+<span class="sd">            Roughly includes Arrow data types language from:</span>
+<span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
+<span class="sd">            Example: {&quot;float&quot;: &quot;float32&quot;}</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, str]</span>
+<span class="sd">            A potentially data type updated dictionary of column information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># for casting to new float type</span>
+    <span class="k">if</span> <span class="s2">&quot;float&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_dtype&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">&quot;REAL&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;DOUBLE&quot;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;column_id&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;column_name&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;column_dtype&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">key</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;float&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
+            <span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">}</span>
+
+    <span class="c1"># for casting to new int type</span>
+    <span class="k">elif</span> <span class="s2">&quot;integer&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_dtype&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">&quot;TINYINT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;SMALLINT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;INTEGER&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;BIGINT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;HUGEINT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;UTINYINT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;USMALLINT&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;UINTEGER&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;UBIGINT&quot;</span><span class="p">,</span>
+    <span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;column_id&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_id&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;column_name&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;column_dtype&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="n">key</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;integer&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
+            <span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+        <span class="p">}</span>
+
+    <span class="c1"># else we retain the existing data field type</span>
+    <span class="k">return</span> <span class="n">column</span></div>
 </pre></div>
 
           </div>

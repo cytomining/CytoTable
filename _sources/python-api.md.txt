@@ -25,6 +25,10 @@ Convert
 
 |
 
+.. autofunction:: _get_table_columns_and_types
+
+|
+
 .. autofunction:: _get_table_chunk_offsets
 
 |
@@ -34,6 +38,10 @@ Convert
 |
 
 .. autofunction:: _join_source_chunk
+
+|
+
+.. autofunction:: _prep_cast_column_data_types
 
 |
 

@@ -53,6 +53,113 @@
 
 
 <span class="nd">@python_app</span>
+<span class="k">def</span> <span class="nf">_get_table_columns_and_types</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gather column data from table through duckdb.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source: Dict[str, Any]</span>
+<span class="sd">            Contains the source data to be chunked. Represents a single</span>
+<span class="sd">            file or table of some kind.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, str]]</span>
+<span class="sd">            list of dictionaries which each include column level information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">pathlib</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span>
+
+    <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+    <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="c1"># prepare the data source in the form of a duckdb query</span>
+    <span class="n">select_source</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+        <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
+        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># query top 5 results from table and use pragma_storage_info() to</span>
+    <span class="c1"># gather duckdb interpreted data typing</span>
+    <span class="n">select_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        /* we create an in-mem table for later use with the pragma_storage_info call</span>
+<span class="s2">        as this call only functions with materialized tables and not views or related */</span>
+<span class="s2">        CREATE TABLE column_details AS</span>
+<span class="s2">            (SELECT *</span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">select_source</span><span class="si">}</span>
+<span class="s2">            LIMIT 5</span>
+<span class="s2">            );</span>
+
+<span class="s2">        /* selects specific column metadata from pragma_storage_info */</span>
+<span class="s2">        SELECT DISTINCT</span>
+<span class="s2">            column_id,</span>
+<span class="s2">            column_name,</span>
+<span class="s2">            segment_type as column_dtype</span>
+<span class="s2">        FROM pragma_storage_info(&#39;column_details&#39;)</span>
+
+<span class="s2">        /* avoid duplicate entries in the form of VALIDITY segment_types */</span>
+<span class="s2">        WHERE segment_type != &#39;VALIDITY&#39;;</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+    <span class="c1"># perform the query and create a list of dictionaries with the column data for table</span>
+    <span class="k">return</span> <span class="n">_duckdb_reader</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select_query</span><span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+
+
+<span class="nd">@python_app</span>
+<span class="k">def</span> <span class="nf">_prep_cast_column_data_types</span><span class="p">(</span>
+    <span class="n">columns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cast data types per what is received in cast_map.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">    - columns: [{&quot;column_id&quot;:0, &quot;column_name&quot;:&quot;colname&quot;, &quot;column_dtype&quot;:&quot;DOUBLE&quot;}]</span>
+<span class="sd">    - data_type_cast_map: {&quot;float&quot;: &quot;float32&quot;}</span>
+
+<span class="sd">    The above passed through this function will set the &quot;column_dtype&quot; value</span>
+<span class="sd">    to a &quot;REAL&quot; dtype (&quot;REAL&quot; in duckdb is roughly equivalent to &quot;float32&quot;)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table_path: str:</span>
+<span class="sd">            Path to a parquet file which will be modified.</span>
+<span class="sd">        data_type_cast_map: Dict[str, str]</span>
+<span class="sd">            A dictionary mapping data type groups to specific types.</span>
+<span class="sd">            Roughly to eventually align with DuckDB types:</span>
+<span class="sd">            https://duckdb.org/docs/sql/data_types/overview</span>
+
+<span class="sd">            Note: includes synonym matching for common naming convention</span>
+<span class="sd">            use in Pandas and/or PyArrow via cytotable.utils.DATA_TYPE_SYNONYMS</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, str]]</span>
+<span class="sd">            list of dictionaries which each include column level information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_arrow_type_cast_if_specified</span>
+
+    <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="c1"># map across all columns</span>
+            <span class="nb">map</span><span class="p">(</span>
+                <span class="n">partial</span><span class="p">(</span>
+                    <span class="c1"># attempts to cast the columns provided</span>
+                    <span class="n">_arrow_type_cast_if_specified</span><span class="p">,</span>
+                    <span class="c1"># set static data_type_case_map arg for</span>
+                    <span class="c1"># use with all fields</span>
+                    <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">columns</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">columns</span>
+
+
+<span class="nd">@python_app</span>
 <span class="k">def</span> <span class="nf">_get_table_chunk_offsets</span><span class="p">(</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -138,6 +245,7 @@
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Export source data to chunked parquet file using chunk size and offsets.</span>
@@ -174,15 +282,23 @@
     <span class="p">)</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1"># build the column selection block of query</span>
+    <span class="n">select_columns</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
+            <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_dtype&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
     <span class="c1"># build output query and filepath base</span>
     <span class="c1"># (chunked output will append offset to keep output paths unique)</span>
     <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span><span class="p">:</span>
-        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;SELECT * from read_csv_auto(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;)&quot;&quot;&quot;</span>
+        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM read_csv_auto(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
         <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
     <span class="k">elif</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
-        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                SELECT * from sqlite_scan(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;)</span>
-<span class="s2">                &quot;&quot;&quot;</span>
+        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM sqlite_scan(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
         <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
 
     <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
@@ -726,7 +842,8 @@
 
 <span class="nd">@python_app</span>
 <span class="k">def</span> <span class="nf">_infer_source_group_common_schema</span><span class="p">(</span>
-    <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Infers a common schema for group of parquet files which may have</span>
@@ -737,6 +854,10 @@
 <span class="sd">        source_group: List[Dict[str, Any]]:</span>
 <span class="sd">            Group of one or more data sources which includes metadata about</span>
 <span class="sd">            path to parquet data.</span>
+<span class="sd">        data_type_cast_map: Optional[Dict[str, str]], default None</span>
+<span class="sd">            A dictionary mapping data type groups to specific types.</span>
+<span class="sd">            Roughly includes Arrow data types language from:</span>
+<span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Tuple[str, str]]</span>
@@ -784,7 +905,17 @@
             <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="ow">and</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span>
                 <span class="n">schema</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">type</span>
             <span class="p">):</span>
-                <span class="n">common_schema</span> <span class="o">=</span> <span class="n">common_schema</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">with_type</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()))</span>
+                <span class="n">common_schema</span> <span class="o">=</span> <span class="n">common_schema</span><span class="o">.</span><span class="n">set</span><span class="p">(</span>
+                    <span class="n">index</span><span class="p">,</span>
+                    <span class="n">field</span><span class="o">.</span><span class="n">with_type</span><span class="p">(</span>
+                        <span class="c1"># use float64 as a default here if we aren&#39;t casting floats</span>
+                        <span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">is</span> <span class="kc">None</span>
+                        <span class="ow">or</span> <span class="s2">&quot;float&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="c1"># otherwise use the float data type cast type</span>
+                        <span class="k">else</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;float&quot;</span><span class="p">])</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">common_schema</span><span class="o">.</span><span class="n">names</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">SchemaException</span><span class="p">(</span>
@@ -838,6 +969,7 @@
     <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -874,6 +1006,10 @@
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
 <span class="sd">        drop_null: bool:</span>
 <span class="sd">            Whether to drop null results.</span>
+<span class="sd">        data_type_cast_map: Dict[str, str]</span>
+<span class="sd">            A dictionary mapping data type groups to specific types.</span>
+<span class="sd">            Roughly includes Arrow data types language from:</span>
+<span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
 <span class="sd">        **kwargs: Any:</span>
 <span class="sd">            Keyword args used for gathering source data, primarily relevant for</span>
 <span class="sd">            Cloudpathlib cloud-based client configuration.</span>
@@ -943,6 +1079,25 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_group_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="p">}</span>
 
+    <span class="c1"># gather column names and types from source tables</span>
+    <span class="n">column_names_and_types_gathered</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">source</span><span class="p">,</span>
+                <span class="o">**</span><span class="p">{</span>
+                    <span class="s2">&quot;columns&quot;</span><span class="p">:</span> <span class="n">_prep_cast_column_data_types</span><span class="p">(</span>
+                        <span class="n">columns</span><span class="o">=</span><span class="n">_get_table_columns_and_types</span><span class="p">(</span>
+                            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+                        <span class="p">),</span>
+                        <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="p">},</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">invalid_files_dropped</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+
     <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
             <span class="nb">dict</span><span class="p">(</span>
@@ -958,6 +1113,7 @@
                                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                                 <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
                                 <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+                                <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
                             <span class="n">identifying_columns</span><span class="o">=</span><span class="n">identifying_columns</span><span class="p">,</span>
@@ -970,7 +1126,7 @@
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
         <span class="p">]</span>
-        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">invalid_files_dropped</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">column_names_and_types_gathered</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
 
     <span class="c1"># if we&#39;re concatting or joining and need to infer the common schema</span>
@@ -980,7 +1136,8 @@
             <span class="n">source_group_name</span><span class="p">:</span> <span class="p">{</span>
                 <span class="s2">&quot;sources&quot;</span><span class="p">:</span> <span class="n">source_group_vals</span><span class="p">,</span>
                 <span class="s2">&quot;common_schema&quot;</span><span class="p">:</span> <span class="n">_infer_source_group_common_schema</span><span class="p">(</span>
-                    <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span>
+                    <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">,</span>
+                    <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
                 <span class="p">),</span>
             <span class="p">}</span>
             <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -1058,6 +1215,7 @@
     <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -1222,6 +1380,7 @@
             <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
+            <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
