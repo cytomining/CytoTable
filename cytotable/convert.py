@@ -1180,7 +1180,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
     chunk_size: Optional[int] = None,
     infer_common_schema: bool = True,
-    drop_null: bool = True,
+    drop_null: bool = False,
     data_type_cast_map: Optional[Dict[str, str]] = None,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
@@ -1225,7 +1225,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Size of join chunks which is used to limit data size during join ops
         infer_common_schema: bool: (Default value = True)
             Whether to infer a common schema when concatenating sources.
-        drop_null: bool (Default value = True)
+        drop_null: bool (Default value = False)
             Whether to drop nan/null values from results
         preset: str (Default value = "cellprofiler_csv")
             an optional group of presets to use based on common configurations
