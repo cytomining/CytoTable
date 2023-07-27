@@ -553,6 +553,9 @@ def test_convert_s3_path_sqlite(
 ):
     """
     Tests convert with mocked sqlite s3 object storage endpoint
+
+    Note: we use a dedicated tmpdir for work in this test to avoid
+    race conditions with nested pytest fixture post-yield deletions.
     """
 
     tmpdir = tempfile.mkdtemp()
