@@ -6,6 +6,8 @@ Tests for CytoTable.convert and related.
 
 import itertools
 import pathlib
+import shutil
+import tempfile
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
 
@@ -546,7 +548,6 @@ def test_convert_s3_path_csv(
 
 
 def test_convert_s3_path_sqlite(
-    get_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
     example_s3_endpoint: str,
 ):
@@ -554,12 +555,14 @@ def test_convert_s3_path_sqlite(
     Tests convert with mocked sqlite s3 object storage endpoint
     """
 
+    tmpdir = tempfile.mkdtemp()
+
     # local sqlite read
     local_cytotable_table = parquet.read_table(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=(
-                f"{get_tempdir}/1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -573,7 +576,7 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
             dest_path=(
-                f"{get_tempdir}/2/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -588,7 +591,7 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path="s3://example/nf1/",
             dest_path=(
-                f"{get_tempdir}/3/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -612,6 +615,8 @@ def test_convert_s3_path_sqlite(
             [(name, "ascending") for name in s3_cytotable_table_nested.schema.names]
         )
     )
+
+    shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 def test_infer_source_group_common_schema(
