@@ -25,6 +25,14 @@ Convert
 
 |
 
+.. autofunction:: _get_table_columns_and_types
+
+|
+
+.. autofunction:: _get_table_chunk_offsets
+
+|
+
 .. autofunction:: _infer_source_group_common_schema
 
 |
@@ -33,19 +41,23 @@ Convert
 
 |
 
+.. autofunction:: _prep_cast_column_data_types
+
+|
+
 .. autofunction:: _prepend_column_name
 
 |
 
-.. autofunction:: _read_data
+.. autofunction:: _return_future
+
+|
+
+.. autofunction:: _source_chunk_to_parquet
 
 |
 
 .. autofunction:: _to_parquet
-
-|
-
-.. autofunction:: _write_parquet
 
 |
 

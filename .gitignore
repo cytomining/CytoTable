@@ -137,5 +137,5 @@ cue.mod/dagger*
 *.csv
 *.png
 
-# dask
-dask-worker-space
+# parsl ignores
+runinfo

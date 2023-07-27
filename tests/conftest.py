@@ -3,6 +3,7 @@ conftest.py for pytest
 """
 import pathlib
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 from typing import Any, Dict, Generator, List, Tuple
@@ -10,6 +11,7 @@ from typing import Any, Dict, Generator, List, Tuple
 import boto3
 import boto3.session
 import duckdb
+import parsl
 import pyarrow as pa
 import pytest
 from moto import mock_s3
@@ -17,11 +19,19 @@ from moto.server import ThreadedMotoServer
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-from cytotable.utils import _column_sort
+from cytotable.utils import _column_sort, _default_parsl_config
+
+
+@pytest.fixture(name="load_parsl", scope="session", autouse=True)
+def fixture_load_parsl() -> None:
+    """
+    Fixture for loading parsl for tests
+    """
+    parsl.load(_default_parsl_config())
 
 
 # note: we use name here to avoid pylint flagging W0621
-@pytest.fixture(name="get_tempdir", scope="session")
+@pytest.fixture(name="get_tempdir")
 def fixture_get_tempdir() -> Generator:
     """
     Provide temporary directory for testing
@@ -206,48 +216,55 @@ def fixture_example_local_sources(
         pathlib.Path(f"{get_tempdir}/example/{number}").mkdir(
             parents=True, exist_ok=True
         )
+        pathlib.Path(f"{get_tempdir}/example_dest/{name}/{number}").mkdir(
+            parents=True, exist_ok=True
+        )
         # write example input
         csv.write_csv(table, f"{get_tempdir}/example/{number}/{name}.csv")
         # write example output
-        parquet.write_table(table, f"{get_tempdir}/example/{number}.{name}.parquet")
+        parquet.write_table(
+            table, f"{get_tempdir}/example_dest/{name}/{number}/{name}.parquet"
+        )
 
     return {
         "image.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/0/image.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/0.image.parquet"
-                ),
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/image/0/image.parquet")
+                ],
             },
         ],
         "cytoplasm.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/1/cytoplasm.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/1.cytoplasm.parquet"
-                ),
+                "table": [
+                    pathlib.Path(
+                        f"{get_tempdir}/example_dest/cytoplasm/1/cytoplasm.parquet"
+                    )
+                ],
             }
         ],
         "cells.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/2/cells.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/2.cells.parquet"
-                ),
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/cells/2/cells.parquet")
+                ],
             }
         ],
         "nuclei.csv": [
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/3/nuclei.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/3.nuclei.parquet"
-                ),
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/nuclei/3/nuclei.parquet")
+                ],
             },
             {
                 "source_path": pathlib.Path(f"{get_tempdir}/example/4/nuclei.csv"),
-                "destination_path": pathlib.Path(
-                    f"{get_tempdir}/example/4.nuclei.parquet"
-                ),
+                "table": [
+                    pathlib.Path(f"{get_tempdir}/example_dest/nuclei/4/nuclei.parquet")
+                ],
             },
         ],
     }
@@ -472,3 +489,59 @@ def example_s3_endpoint(
 
     # return endpoint url for use in testing
     return endpoint_url
+
+
+@pytest.fixture()
+def example_sqlite_mixed_types_database(
+    get_tempdir: str,
+) -> Generator:
+    """
+    Creates a database which includes mixed type columns
+    for testing specific functionality within CytoTable
+    """
+
+    # create a temporary sqlite connection
+    filepath = f"{get_tempdir}/example_mixed_types.sqlite"
+
+    # statements for creating database with simple structure
+    create_stmts = [
+        "DROP TABLE IF EXISTS tbl_a;",
+        """
+        CREATE TABLE tbl_a (
+        col_integer INTEGER NOT NULL
+        ,col_text TEXT
+        ,col_blob BLOB
+        ,col_real REAL
+        );
+        """,
+    ]
+
+    # some example values to insert into the database
+    insert_vals = [1, "sample", b"sample_blob", 0.5]
+    err_values = ["nan", "sample", b"another_blob", "nan"]
+
+    # create the database and insert some data into it
+    with sqlite3.connect(filepath) as connection:
+        for stmt in create_stmts:
+            connection.execute(stmt)
+
+        connection.execute(
+            (
+                "INSERT INTO tbl_a (col_integer, col_text, col_blob, col_real)"
+                "VALUES (?, ?, ?, ?);"
+            ),
+            insert_vals,
+        )
+        connection.execute(
+            (
+                "INSERT INTO tbl_a (col_integer, col_text, col_blob, col_real)"
+                "VALUES (?, ?, ?, ?);"
+            ),
+            err_values,
+        )
+
+    try:
+        yield filepath
+    finally:
+        # after completing the tests, remove the file
+        pathlib.Path(filepath).unlink()
