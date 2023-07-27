@@ -559,7 +559,7 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tempdir}/1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -573,7 +573,7 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
             dest_path=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tempdir}/2/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -588,7 +588,7 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path="s3://example/nf1/",
             dest_path=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tempdir}/3/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
