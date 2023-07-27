@@ -153,10 +153,12 @@ config = {
                 AND per_nuclei.Metadata_Nuclei_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
             """,
     },
-    "cellprofiler_legacy": {
+    "cell-health-cellprofiler-to-cyotominer-database": {
         # version specifications using related references
         "CONFIG_SOURCE_VERSION": {
+            "cell-health-dataset": "v5",
             "cellprofiler": "v2.X",
+            "cytominer-database": "5aa00f58e4a31bbbd2a3779c87e7a3620b0030db",
         },
         # names of source table compartments (for ex. cells.csv, etc.)
         "CONFIG_NAMES_COMPARTMENTS": ("cells", "nuclei", "cytoplasm"),
@@ -165,6 +167,7 @@ config = {
         # column names in any compartment or metadata tables which contain
         # unique names to avoid renaming
         "CONFIG_IDENTIFYING_COLUMNS": (
+            "TableNumber",
             "ImageNumber",
             "Metadata_Well",
             "Parent_Cells",
@@ -185,6 +188,7 @@ config = {
         "CONFIG_JOINS": """
             WITH Image_Filtered AS (
                 SELECT
+                    Metadata_TableNumber,
                     Metadata_ImageNumber,
                     Image_Metadata_Well,
                     Image_Metadata_Plate
@@ -196,12 +200,15 @@ config = {
             FROM
                 Image_Filtered AS image
             LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
-                cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
+                cytoplasm.Metadata_TableNumber = image.Metadata_TableNumber
+                AND cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
             LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                cells.Metadata_TableNumber = cells.Metadata_TableNumber
+                AND cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
             LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                nuclei.Metadata_TableNumber = nuclei.Metadata_TableNumber
+                AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
         """,
     },
