@@ -1214,7 +1214,7 @@
     <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1259,7 +1259,7 @@
 <span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
 <span class="sd">        infer_common_schema: bool: (Default value = True)</span>
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
-<span class="sd">        drop_null: bool (Default value = True)</span>
+<span class="sd">        drop_null: bool (Default value = False)</span>
 <span class="sd">            Whether to drop nan/null values from results</span>
 <span class="sd">        preset: str (Default value = &quot;cellprofiler_csv&quot;)</span>
 <span class="sd">            an optional group of presets to use based on common configurations</span>
