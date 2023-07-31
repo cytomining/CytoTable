@@ -53,6 +53,15 @@ def fixture_data_dir_cellprofiler() -> str:
     return f"{pathlib.Path(__file__).parent}/data/cellprofiler"
 
 
+@pytest.fixture(name="data_dir_cytominerdatabase")
+def fixture_data_dir_cytominerdatabase() -> str:
+    """
+    Provide a data directory for cytominerdatabase test data
+    """
+
+    return f"{pathlib.Path(__file__).parent}/data/cytominer-database"
+
+
 @pytest.fixture(name="data_dir_cellprofiler_sqlite_nf1")
 def fixture_data_dir_cellprofiler_sqlite_nf1(data_dir_cellprofiler: str) -> str:
     """
@@ -64,16 +73,14 @@ def fixture_data_dir_cellprofiler_sqlite_nf1(data_dir_cellprofiler: str) -> str:
 
 
 @pytest.fixture(name="data_dirs_cytominerdatabase")
-def fixture_data_dirs_cytominerdatabase() -> List[str]:
+def fixture_data_dirs_cytominerdatabase(data_dir_cytominerdatabase: str) -> List[str]:
     """
     Provide a data directory for cytominer-database test data
     """
 
-    basedir = f"{pathlib.Path(__file__).parent}/data/cytominer-database"
-
     return [
-        f"{basedir}/data_a",
-        f"{basedir}/data_b",
+        f"{data_dir_cytominerdatabase}/data_a",
+        f"{data_dir_cytominerdatabase}/data_b",
     ]
 
 

@@ -1056,3 +1056,26 @@ def test_convert_hte_cellprofiler_csv(
 
     # clean up the parsl config for other tests
     parsl.clear()
+
+
+def test_cellhealth_preset(
+    get_tempdir: str,
+    data_dir_cytominerdatabase: str,
+):
+    """
+    Tests cytotable functionality leveraging a preset for
+    Cell-Health datasets which were generated using a combination
+    of CellProfiler and cytominer-database feature data.
+    """
+
+    test_result = parquet.read_table(
+        convert(
+            source_path=f"{data_dir_cytominerdatabase}/Cell-Health/test-SQ00014613.sqlite",
+            dest_path=f"{get_tempdir}/Cell-Health",
+            dest_datatype="parquet",
+            source_datatype="sqlite",
+            preset="cell-health-cellprofiler-to-cytominer-database",
+        )
+    )
+
+    assert False
