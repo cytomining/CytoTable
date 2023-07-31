@@ -153,7 +153,7 @@ config = {
                 AND per_nuclei.Metadata_Nuclei_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
             """,
     },
-    "cell-health-cellprofiler-to-cyotominer-database": {
+    "cell-health-cellprofiler-to-cytominer-database": {
         # version specifications using related references
         "CONFIG_SOURCE_VERSION": {
             "cell-health-dataset": "v5",
