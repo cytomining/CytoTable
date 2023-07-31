@@ -391,7 +391,8 @@ def _prepend_column_name(
         # where colname is in identifying_columns parameter values
         # and where the colname does not already start with 'Metadata_'
         # and colname not in metadata list
-        # and colname does not include 'ObjectNumber'
+        # and colname does not include 'ObjectNumber' or 'TableNumber'
+        # (which are specially treated column names in this context)
         # for example:
         #   source_group_name_stem: 'Cells'
         #   column_name: 'Parent_Nuclei'
@@ -400,7 +401,7 @@ def _prepend_column_name(
             column_name in identifying_columns
             and not column_name.startswith("Metadata_")
             and not any(item.capitalize() in column_name for item in metadata)
-            and not "ObjectNumber" in column_name
+            and not any(item in column_name for item in ["ObjectNumber", "TableNumber"])
         ):
             updated_column_names.append(
                 f"Metadata_{source_group_name_stem}_{column_name}"
@@ -424,6 +425,8 @@ def _prepend_column_name(
     parquet.write_table(
         table=table.rename_columns(updated_column_names), where=table_path
     )
+
+    print(updated_column_names)
 
     return table_path
 
