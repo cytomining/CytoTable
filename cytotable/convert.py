@@ -35,7 +35,9 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
 
     import pathlib
 
-    from cytotable.utils import _duckdb_reader
+    import duckdb
+
+    from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
     source_path = source["source_path"]
     source_type = str(pathlib.Path(source_path).suffix).lower()
@@ -49,12 +51,12 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
 
     # query top 5 results from table and use pragma_storage_info() to
     # gather duckdb interpreted data typing
-    select_query = f"""
+    select_query = """
         /* we create an in-mem table for later use with the pragma_storage_info call
         as this call only functions with materialized tables and not views or related */
         CREATE TABLE column_details AS
             (SELECT *
-            FROM {select_source}
+            FROM &select_source
             LIMIT 5
             );
 
@@ -69,8 +71,37 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
         WHERE segment_type != 'VALIDITY';
         """
 
-    # perform the query and create a list of dictionaries with the column data for table
-    return _duckdb_reader().execute(select_query).arrow().to_pylist()
+    # attempt to read the data to parquet from duckdb
+    # with exception handling to read mixed-type data
+    # using sqlite3 and special utility function
+    try:
+        # isolate using new connection to read data with chunk size + offset
+        # and export directly to parquet via duckdb (avoiding need to return data to python)
+        # perform the query and create a list of dictionaries with the column data for table
+        return (
+            _duckdb_reader()
+            .execute(select_query.replace("&select_source", select_source))
+            .arrow()
+            .to_pylist()
+        )
+
+    except duckdb.Error as e:
+        # if we see a mismatched type error
+        # run a more nuanced query through sqlite
+        # to handle the mixed types
+        if "Mismatch Type Error" in str(e) and source_type == ".sqlite":
+            arrow_data_tbl = _sqlite_mixed_type_query_to_parquet(
+                source_path=str(source["source_path"]),
+                table_name=str(source["table_name"]),
+                chunk_size=5,
+                offset=0,
+            )
+            return (
+                _duckdb_reader()
+                .execute(select_query.replace("&select_source", "arrow_data_tbl"))
+                .arrow()
+                .to_pylist()
+            )
 
 
 @python_app
@@ -238,6 +269,7 @@ def _source_chunk_to_parquet(
 
     import duckdb
     from cloudpathlib import AnyPath
+    from pyarrow import parquet
 
     from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
@@ -292,12 +324,14 @@ def _source_chunk_to_parquet(
             "Mismatch Type Error" in str(e)
             and str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite"
         ):
-            result_filepath = _sqlite_mixed_type_query_to_parquet(
-                source_path=str(source["source_path"]),
-                table_name=str(source["table_name"]),
-                chunk_size=chunk_size,
-                offset=offset,
-                result_filepath=result_filepath,
+            parquet.write_table(
+                table=_sqlite_mixed_type_query_to_parquet(
+                    source_path=str(source["source_path"]),
+                    table_name=str(source["table_name"]),
+                    chunk_size=chunk_size,
+                    offset=offset,
+                ),
+                where=result_filepath,
             )
 
     # return the filepath for the chunked output file
