@@ -595,7 +595,7 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path="s3://example/nf1/",
             dest_path=(
-                f"{get_tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
