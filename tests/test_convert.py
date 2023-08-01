@@ -6,8 +6,6 @@ Tests for CytoTable.convert and related.
 
 import itertools
 import pathlib
-import shutil
-import tempfile
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
 
