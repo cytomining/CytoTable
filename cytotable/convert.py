@@ -102,6 +102,8 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
                 .arrow()
                 .to_pylist()
             )
+        else:
+            raise
 
 
 @python_app
@@ -333,6 +335,8 @@ def _source_chunk_to_parquet(
                 ),
                 where=result_filepath,
             )
+        else:
+            raise
 
     # return the filepath for the chunked output file
     return result_filepath

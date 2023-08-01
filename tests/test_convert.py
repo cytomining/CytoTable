@@ -970,34 +970,56 @@ def test_sqlite_mixed_type_query_to_parquet(
         # run a more nuanced query through sqlite
         # to handle the mixed types
         if "Mismatch Type Error" in str(duckdb_exc):
-            result = _sqlite_mixed_type_query_to_parquet(
-                source_path=example_sqlite_mixed_types_database,
-                table_name=table_name,
-                chunk_size=2,
-                offset=0,
-                result_filepath=result_filepath,
+            parquet.write_table(
+                table=_sqlite_mixed_type_query_to_parquet(
+                    source_path=example_sqlite_mixed_types_database,
+                    table_name=table_name,
+                    chunk_size=2,
+                    offset=0,
+                ),
+                where=result_filepath,
             )
 
     # check schema names
-    assert parquet.read_schema(where=result).names == [
+    assert parquet.read_schema(where=result_filepath).names == [
         "col_integer",
         "col_text",
         "col_blob",
         "col_real",
     ]
     # check schema types
-    assert parquet.read_schema(where=result).types == [
+    assert parquet.read_schema(where=result_filepath).types == [
         pa.int64(),
         pa.string(),
         pa.binary(),
         pa.float64(),
     ]
     # check the values per column
-    assert parquet.read_table(source=result).to_pydict() == {
+    assert parquet.read_table(source=result_filepath).to_pydict() == {
         "col_integer": [1, None],
         "col_text": ["sample", "sample"],
         "col_blob": [b"sample_blob", b"another_blob"],
         "col_real": [0.5, None],
+    }
+
+    # run full convert on mixed type database
+    result = convert(
+        source_path=example_sqlite_mixed_types_database,
+        dest_path=result_filepath,
+        dest_datatype="parquet",
+        source_datatype="sqlite",
+        compartments=[table_name],
+        join=False,
+    )
+
+    # assert that the single table result looks like the following dictionary
+    assert parquet.read_table(
+        source=result["Tbl_a.sqlite"][0]["table"][0]
+    ).to_pydict() == {
+        "Tbl_a_col_integer": [1, None],
+        "Tbl_a_col_text": ["sample", "sample"],
+        "Tbl_a_col_blob": [b"sample_blob", b"another_blob"],
+        "Tbl_a_col_real": [0.5, None],
     }
 
 
