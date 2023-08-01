@@ -548,6 +548,7 @@ def test_convert_s3_path_csv(
 
 
 def test_convert_s3_path_sqlite(
+    get_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
     example_s3_endpoint: str,
 ):
@@ -558,14 +559,12 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    tmpdir = tempfile.mkdtemp()
-
     # local sqlite read
     local_cytotable_table = parquet.read_table(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=(
-                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -579,13 +578,17 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
             dest_path=(
-                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
             endpoint_url=example_s3_endpoint,
+            # use explicit cache to avoid temp cache removal / overlaps with
+            # sequential s3 SQLite files. See below for more information
+            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+            local_cache_dir=f"{get_tempdir}/sqlite_s3_cache/1",
         )
     )
 
@@ -594,13 +597,17 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path="s3://example/nf1/",
             dest_path=(
-                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{get_tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
             endpoint_url=example_s3_endpoint,
+            # use explicit cache to avoid temp cache removal / overlaps with
+            # sequential s3 SQLite files. See below for more information
+            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+            local_cache_dir=f"{get_tempdir}/sqlite_s3_cache/2",
         )
     )
 
@@ -618,8 +625,6 @@ def test_convert_s3_path_sqlite(
             [(name, "ascending") for name in s3_cytotable_table_nested.schema.names]
         )
     )
-
-    shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 def test_infer_source_group_common_schema(
