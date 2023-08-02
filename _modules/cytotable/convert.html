@@ -69,7 +69,9 @@
 
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span>
+    <span class="kn">import</span> <span class="nn">duckdb</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
 
     <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
     <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
@@ -81,14 +83,16 @@
         <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
     <span class="p">)</span>
 
-    <span class="c1"># query top 5 results from table and use pragma_storage_info() to</span>
-    <span class="c1"># gather duckdb interpreted data typing</span>
-    <span class="n">select_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+    <span class="c1"># Query top 5 results from table and use pragma_storage_info() to</span>
+    <span class="c1"># gather duckdb interpreted data typing. We gather 5 values for</span>
+    <span class="c1"># each column to help with type inferences (where smaller sets</span>
+    <span class="c1"># may yield lower data type accuracy for the full table).</span>
+    <span class="n">select_query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">        /* we create an in-mem table for later use with the pragma_storage_info call</span>
 <span class="s2">        as this call only functions with materialized tables and not views or related */</span>
 <span class="s2">        CREATE TABLE column_details AS</span>
 <span class="s2">            (SELECT *</span>
-<span class="s2">            FROM </span><span class="si">{</span><span class="n">select_source</span><span class="si">}</span>
+<span class="s2">            FROM &amp;select_source</span>
 <span class="s2">            LIMIT 5</span>
 <span class="s2">            );</span>
 
@@ -98,13 +102,47 @@
 <span class="s2">            column_name,</span>
 <span class="s2">            segment_type as column_dtype</span>
 <span class="s2">        FROM pragma_storage_info(&#39;column_details&#39;)</span>
-
 <span class="s2">        /* avoid duplicate entries in the form of VALIDITY segment_types */</span>
 <span class="s2">        WHERE segment_type != &#39;VALIDITY&#39;;</span>
 <span class="s2">        &quot;&quot;&quot;</span>
 
-    <span class="c1"># perform the query and create a list of dictionaries with the column data for table</span>
-    <span class="k">return</span> <span class="n">_duckdb_reader</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select_query</span><span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+    <span class="c1"># attempt to read the data to parquet from duckdb</span>
+    <span class="c1"># with exception handling to read mixed-type data</span>
+    <span class="c1"># using sqlite3 and special utility function</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># isolate using new connection to read data with chunk size + offset</span>
+        <span class="c1"># and export directly to parquet via duckdb (avoiding need to return data to python)</span>
+        <span class="c1"># perform the query and create a list of dictionaries with the column data for table</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">_duckdb_reader</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="n">select_source</span><span class="p">))</span>
+            <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># if we see a mismatched type error</span>
+        <span class="c1"># run a more nuanced query through sqlite</span>
+        <span class="c1"># to handle the mixed types</span>
+        <span class="k">if</span> <span class="s2">&quot;Mismatch Type Error&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="ow">and</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+            <span class="n">arrow_data_tbl</span> <span class="o">=</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
+                <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
+                <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
+                <span class="c1"># chunk size is set to 5 as a limit similar</span>
+                <span class="c1"># to above SQL within select_query variable</span>
+                <span class="n">chunk_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+                <span class="c1"># offset is set to 0 start at first row</span>
+                <span class="c1"># result from table</span>
+                <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">_duckdb_reader</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow_data_tbl&quot;</span><span class="p">))</span>
+                <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span>
 
 
 <span class="nd">@python_app</span>
@@ -272,6 +310,7 @@
 
     <span class="kn">import</span> <span class="nn">duckdb</span>
     <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
+    <span class="kn">from</span> <span class="nn">pyarrow</span> <span class="kn">import</span> <span class="n">parquet</span>
 
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
 
@@ -326,13 +365,17 @@
             <span class="s2">&quot;Mismatch Type Error&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
             <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
         <span class="p">):</span>
-            <span class="n">result_filepath</span> <span class="o">=</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
-                <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
-                <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
-                <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
-                <span class="n">result_filepath</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
+            <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
+                    <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
+                    <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
+                    <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+                    <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span>
 
     <span class="c1"># return the filepath for the chunked output file</span>
     <span class="k">return</span> <span class="n">result_filepath</span>

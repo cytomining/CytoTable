@@ -196,12 +196,11 @@
     <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">result_filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performs SQLite table data extraction where one or many</span>
 <span class="sd">    columns include data values of potentially mismatched type</span>
-<span class="sd">    such that the data may be exported to Arrow and a Parquet file.</span>
+<span class="sd">    such that the data may be exported to Arrow for later use.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source_path: str:</span>
@@ -212,17 +211,14 @@
 <span class="sd">            Row count to use for chunked output.</span>
 <span class="sd">        offset: int:</span>
 <span class="sd">            The offset for chunking the data from source.</span>
-<span class="sd">        dest_path: str:</span>
-<span class="sd">            Path to store the output data.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str:</span>
-<span class="sd">           The resulting filepath for the table exported to parquet.</span>
+<span class="sd">        pyarrow.Table:</span>
+<span class="sd">           The resulting arrow table for the data</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">sqlite3</span>
 
     <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
 
     <span class="c1"># open sqlite3 connection</span>
     <span class="k">with</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
@@ -268,14 +264,8 @@
             <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
         <span class="p">]</span>
 
-    <span class="c1"># write results to a parquet file</span>
-    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
-        <span class="n">table</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pylist</span><span class="p">(</span><span class="n">results</span><span class="p">),</span>
-        <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="c1"># return filepath</span>
-    <span class="k">return</span> <span class="n">result_filepath</span></div>
+    <span class="c1"># return arrow table with results</span>
+    <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pylist</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_cache_cloudpath_to_local"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._cache_cloudpath_to_local">[docs]</a><span class="k">def</span> <span class="nf">_cache_cloudpath_to_local</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
