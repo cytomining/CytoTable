@@ -67,8 +67,7 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
             column_id,
             column_name,
             segment_type as column_dtype
-        FROM pragma_storage_info('column_details');
-
+        FROM pragma_storage_info('column_details')
         /* avoid duplicate entries in the form of VALIDITY segment_types */
         WHERE segment_type != 'VALIDITY';
         """
