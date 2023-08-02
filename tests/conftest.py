@@ -31,7 +31,7 @@ def fixture_load_parsl() -> None:
 
 
 # note: we use name here to avoid pylint flagging W0621
-@pytest.fixture(name="get_tempdir")
+@pytest.fixture(name="fx_tempdir")
 def fixture_get_tempdir() -> Generator:
     """
     Provide temporary directory for testing
@@ -86,7 +86,7 @@ def fixture_data_dirs_cytominerdatabase(data_dir_cytominerdatabase: str) -> List
 
 @pytest.fixture(name="cytominerdatabase_sqlite")
 def fixture_cytominerdatabase_sqlite(
-    get_tempdir: str,
+    fx_tempdir: str,
     data_dirs_cytominerdatabase: List[str],
 ) -> List[str]:
     """
@@ -97,7 +97,7 @@ def fixture_cytominerdatabase_sqlite(
     for data_dir in data_dirs_cytominerdatabase:
         # example command for reference as subprocess below
         # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
-        output_path = f"sqlite:///{get_tempdir}/{pathlib.Path(data_dir).name}.sqlite"
+        output_path = f"sqlite:///{fx_tempdir}/{pathlib.Path(data_dir).name}.sqlite"
 
         # run cytominer-database as command-line call
         subprocess.call(
@@ -118,7 +118,7 @@ def fixture_cytominerdatabase_sqlite(
 
 @pytest.fixture()
 def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
-    get_tempdir: str,
+    fx_tempdir: str,
     cytominerdatabase_sqlite: List[str],
 ) -> List[str]:
     """
@@ -135,7 +135,7 @@ def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
                 strata=["Metadata_Well"],
                 image_cols=["TableNumber", "ImageNumber"],
             ).merge_single_cells(
-                sc_output_file=f"{get_tempdir}/{pathlib.Path(sqlite_file).name}.parquet",
+                sc_output_file=f"{fx_tempdir}/{pathlib.Path(sqlite_file).name}.parquet",
                 output_type="parquet",
                 join_on=["Image_Metadata_Well"],
             )
@@ -207,7 +207,7 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
 
 @pytest.fixture(name="example_local_sources")
 def fixture_example_local_sources(
-    get_tempdir: str,
+    fx_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -220,57 +220,57 @@ def fixture_example_local_sources(
         ["image", "cytoplasm", "cells", "nuclei", "nuclei"],
     ):
         # build paths for output to land
-        pathlib.Path(f"{get_tempdir}/example/{number}").mkdir(
+        pathlib.Path(f"{fx_tempdir}/example/{number}").mkdir(
             parents=True, exist_ok=True
         )
-        pathlib.Path(f"{get_tempdir}/example_dest/{name}/{number}").mkdir(
+        pathlib.Path(f"{fx_tempdir}/example_dest/{name}/{number}").mkdir(
             parents=True, exist_ok=True
         )
         # write example input
-        csv.write_csv(table, f"{get_tempdir}/example/{number}/{name}.csv")
+        csv.write_csv(table, f"{fx_tempdir}/example/{number}/{name}.csv")
         # write example output
         parquet.write_table(
-            table, f"{get_tempdir}/example_dest/{name}/{number}/{name}.parquet"
+            table, f"{fx_tempdir}/example_dest/{name}/{number}/{name}.parquet"
         )
 
     return {
         "image.csv": [
             {
-                "source_path": pathlib.Path(f"{get_tempdir}/example/0/image.csv"),
+                "source_path": pathlib.Path(f"{fx_tempdir}/example/0/image.csv"),
                 "table": [
-                    pathlib.Path(f"{get_tempdir}/example_dest/image/0/image.parquet")
+                    pathlib.Path(f"{fx_tempdir}/example_dest/image/0/image.parquet")
                 ],
             },
         ],
         "cytoplasm.csv": [
             {
-                "source_path": pathlib.Path(f"{get_tempdir}/example/1/cytoplasm.csv"),
+                "source_path": pathlib.Path(f"{fx_tempdir}/example/1/cytoplasm.csv"),
                 "table": [
                     pathlib.Path(
-                        f"{get_tempdir}/example_dest/cytoplasm/1/cytoplasm.parquet"
+                        f"{fx_tempdir}/example_dest/cytoplasm/1/cytoplasm.parquet"
                     )
                 ],
             }
         ],
         "cells.csv": [
             {
-                "source_path": pathlib.Path(f"{get_tempdir}/example/2/cells.csv"),
+                "source_path": pathlib.Path(f"{fx_tempdir}/example/2/cells.csv"),
                 "table": [
-                    pathlib.Path(f"{get_tempdir}/example_dest/cells/2/cells.parquet")
+                    pathlib.Path(f"{fx_tempdir}/example_dest/cells/2/cells.parquet")
                 ],
             }
         ],
         "nuclei.csv": [
             {
-                "source_path": pathlib.Path(f"{get_tempdir}/example/3/nuclei.csv"),
+                "source_path": pathlib.Path(f"{fx_tempdir}/example/3/nuclei.csv"),
                 "table": [
-                    pathlib.Path(f"{get_tempdir}/example_dest/nuclei/3/nuclei.parquet")
+                    pathlib.Path(f"{fx_tempdir}/example_dest/nuclei/3/nuclei.parquet")
                 ],
             },
             {
-                "source_path": pathlib.Path(f"{get_tempdir}/example/4/nuclei.csv"),
+                "source_path": pathlib.Path(f"{fx_tempdir}/example/4/nuclei.csv"),
                 "table": [
-                    pathlib.Path(f"{get_tempdir}/example_dest/nuclei/4/nuclei.parquet")
+                    pathlib.Path(f"{fx_tempdir}/example_dest/nuclei/4/nuclei.parquet")
                 ],
             },
         ],
@@ -500,7 +500,7 @@ def example_s3_endpoint(
 
 @pytest.fixture()
 def example_sqlite_mixed_types_database(
-    get_tempdir: str,
+    fx_tempdir: str,
 ) -> Generator:
     """
     Creates a database which includes mixed type columns
@@ -508,7 +508,7 @@ def example_sqlite_mixed_types_database(
     """
 
     # create a temporary sqlite connection
-    filepath = f"{get_tempdir}/example_mixed_types.sqlite"
+    filepath = f"{fx_tempdir}/example_mixed_types.sqlite"
 
     # statements for creating database with simple structure
     create_stmts = [

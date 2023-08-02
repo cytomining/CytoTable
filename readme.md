@@ -21,6 +21,8 @@ pip install git+https://github.com/cytomining/CytoTable.git
 
 ## Contributing, Development, and Testing
 
+We test CytoTable using `ubuntu-latest` and `macos-latest` [GitHub Actions runner images](https://github.com/actions/runner-images#available-images).
+
 Please see [contributing.md](docs/source/contributing.md) for more details on contributions, development, and testing.
 
 ## References

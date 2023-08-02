@@ -6,8 +6,6 @@ Tests for CytoTable.convert and related.
 
 import itertools
 import pathlib
-import shutil
-import tempfile
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
 
@@ -61,13 +59,13 @@ def test_config():
         ) == sorted(config_preset.keys())
 
 
-def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
+def test_get_source_filepaths(fx_tempdir: str, data_dir_cellprofiler: str):
     """
     Tests _get_source_filepaths
     """
 
     # test that no sources raises an exception
-    empty_dir = pathlib.Path(f"{get_tempdir}/temp")
+    empty_dir = pathlib.Path(f"{fx_tempdir}/temp")
     empty_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(Exception):
         single_dir_result = _get_source_filepaths(
@@ -106,13 +104,13 @@ def test_get_source_filepaths(get_tempdir: str, data_dir_cellprofiler: str):
     assert len(set(single_dir_result.keys())) == 4
 
 
-def test_prepend_column_name(get_tempdir: str):
+def test_prepend_column_name(fx_tempdir: str):
     """
     Tests _prepend_column_name
     """
 
     # example cytoplasm csv table run
-    prepend_testpath_1 = f"{get_tempdir}/prepend_testpath_1.parquet"
+    prepend_testpath_1 = f"{fx_tempdir}/prepend_testpath_1.parquet"
     parquet.write_table(
         table=pa.Table.from_pydict(
             {
@@ -150,7 +148,7 @@ def test_prepend_column_name(get_tempdir: str):
     ]
 
     # example cells sqlite table run
-    repend_testpath_2 = f"{get_tempdir}/prepend_testpath_2.parquet"
+    repend_testpath_2 = f"{fx_tempdir}/prepend_testpath_2.parquet"
     parquet.write_table(
         table=pa.Table.from_pydict(
             {
@@ -186,7 +184,7 @@ def test_prepend_column_name(get_tempdir: str):
 
 
 def test_concat_source_group(
-    get_tempdir: str,
+    fx_tempdir: str,
     example_tables: Tuple[pa.Table, ...],
     example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
@@ -202,7 +200,7 @@ def test_concat_source_group(
     result = _concat_source_group(
         source_group_name="nuclei",
         source_group=example_local_sources["nuclei.csv"],
-        dest_path=get_tempdir,
+        dest_path=fx_tempdir,
         common_schema=table_nuclei_1.schema,
     ).result()
     assert len(result) == 1
@@ -218,13 +216,13 @@ def test_concat_source_group(
             "color": pa.array(["blue", "red", "green", "orange"]),
         }
     )
-    pathlib.Path(f"{get_tempdir}/example/5").mkdir(parents=True, exist_ok=True)
-    csv.write_csv(mismatching_table, f"{get_tempdir}/example/5/nuclei.csv")
-    parquet.write_table(mismatching_table, f"{get_tempdir}/example/5.nuclei.parquet")
+    pathlib.Path(f"{fx_tempdir}/example/5").mkdir(parents=True, exist_ok=True)
+    csv.write_csv(mismatching_table, f"{fx_tempdir}/example/5/nuclei.csv")
+    parquet.write_table(mismatching_table, f"{fx_tempdir}/example/5.nuclei.parquet")
     example_local_sources["nuclei.csv"].append(
         {
-            "source_path": pathlib.Path(f"{get_tempdir}/example/5/nuclei.csv"),
-            "destination_path": pathlib.Path(f"{get_tempdir}/example/5.nuclei.parquet"),
+            "source_path": pathlib.Path(f"{fx_tempdir}/example/5/nuclei.csv"),
+            "destination_path": pathlib.Path(f"{fx_tempdir}/example/5.nuclei.parquet"),
         }
     )
 
@@ -232,17 +230,17 @@ def test_concat_source_group(
         _concat_source_group(
             source_group_name="nuclei",
             source_group=example_local_sources["nuclei.csv"],
-            dest_path=get_tempdir,
+            dest_path=fx_tempdir,
         ).result()
 
 
-def test_get_join_chunks(get_tempdir: str):
+def test_get_join_chunks(fx_tempdir: str):
     """
     Tests _get_join_chunks
     """
 
     # form test path
-    test_path = f"{get_tempdir}/merge_chunks_test.parquet"
+    test_path = f"{fx_tempdir}/merge_chunks_test.parquet"
 
     # write test data to file
     parquet.write_table(
@@ -274,15 +272,15 @@ def test_get_join_chunks(get_tempdir: str):
     ) == {"id1", "id2"}
 
 
-def test_join_source_chunk(get_tempdir: str):
+def test_join_source_chunk(fx_tempdir: str):
     """
     Tests _get_join_chunks
     """
 
     # form test path a
-    test_path_a = f"{get_tempdir}/example_a_merged.parquet"
+    test_path_a = f"{fx_tempdir}/example_a_merged.parquet"
     # form test path b
-    test_path_b = f"{get_tempdir}/example_b_merged.parquet"
+    test_path_b = f"{fx_tempdir}/example_b_merged.parquet"
 
     # write test data to file
     parquet.write_table(
@@ -312,11 +310,11 @@ def test_join_source_chunk(get_tempdir: str):
             "example_a": [{"table": [test_path_a]}],
             "example_b": [{"table": [test_path_b]}],
         },
-        dest_path=f"{get_tempdir}/destination.parquet",
+        dest_path=f"{fx_tempdir}/destination.parquet",
         joins=f"""
             SELECT *
-            FROM read_parquet('{get_tempdir}/example_a_merged.parquet') as example_a
-            JOIN read_parquet('{get_tempdir}/example_b_merged.parquet') as example_b ON
+            FROM read_parquet('{fx_tempdir}/example_a_merged.parquet') as example_a
+            JOIN read_parquet('{fx_tempdir}/example_b_merged.parquet') as example_b ON
                 example_b.id1 = example_a.id1
                 AND example_b.id2 = example_a.id2
         """,
@@ -340,19 +338,19 @@ def test_join_source_chunk(get_tempdir: str):
     )
 
 
-def test_concat_join_sources(get_tempdir: str):
+def test_concat_join_sources(fx_tempdir: str):
     """
     Tests _concat_join_sources
     """
 
     # create a test dir
-    pathlib.Path(f"{get_tempdir}/concat_join/").mkdir(exist_ok=True)
+    pathlib.Path(f"{fx_tempdir}/concat_join/").mkdir(exist_ok=True)
 
     # form test paths
-    test_path_a = f"{get_tempdir}/concat_join/join_chunks_test_a.parquet"
-    test_path_b = f"{get_tempdir}/concat_join/join_chunks_test_b.parquet"
-    test_path_a_join_chunk = f"{get_tempdir}/join_chunks_test_a.parquet"
-    test_path_b_join_chunk = f"{get_tempdir}/join_chunks_test_b.parquet"
+    test_path_a = f"{fx_tempdir}/concat_join/join_chunks_test_a.parquet"
+    test_path_b = f"{fx_tempdir}/concat_join/join_chunks_test_b.parquet"
+    test_path_a_join_chunk = f"{fx_tempdir}/join_chunks_test_a.parquet"
+    test_path_b_join_chunk = f"{fx_tempdir}/join_chunks_test_b.parquet"
 
     # form test data
     test_table_a = pa.Table.from_pydict(
@@ -402,12 +400,12 @@ def test_concat_join_sources(get_tempdir: str):
     copy(test_path_a, test_path_a_join_chunk)
     copy(test_path_b, test_path_b_join_chunk)
 
-    pathlib.Path(f"{get_tempdir}/test_concat_join_sources").mkdir(
+    pathlib.Path(f"{fx_tempdir}/test_concat_join_sources").mkdir(
         parents=True, exist_ok=True
     )
 
     result = _concat_join_sources(
-        dest_path=f"{get_tempdir}/test_concat_join_sources/example_concat_join.parquet",
+        dest_path=f"{fx_tempdir}/test_concat_join_sources/example_concat_join.parquet",
         join_sources=[test_path_a_join_chunk, test_path_b_join_chunk],
         sources={
             "join_chunks_test_a.parquet": [{"table": [test_path_a]}],
@@ -449,7 +447,7 @@ def test_infer_source_datatype():
 
 
 def test_to_parquet(
-    get_tempdir: str, example_local_sources: Dict[str, List[Dict[str, Any]]]
+    fx_tempdir: str, example_local_sources: Dict[str, List[Dict[str, Any]]]
 ):
     """
     Tests _to_parquet
@@ -466,7 +464,7 @@ def test_to_parquet(
             source_path=str(
                 example_local_sources["image.csv"][0]["source_path"].parent
             ),
-            dest_path=get_tempdir,
+            dest_path=fx_tempdir,
             source_datatype=None,
             compartments=["cytoplasm", "cells", "nuclei"],
             metadata=["image"],
@@ -502,7 +500,7 @@ def test_to_parquet(
 
 
 def test_convert_s3_path_csv(
-    get_tempdir: str,
+    fx_tempdir: str,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
     example_s3_endpoint: str,
 ):
@@ -512,7 +510,7 @@ def test_convert_s3_path_csv(
 
     multi_dir_nonconcat_s3_result = convert(
         source_path="s3://example/",
-        dest_path=f"{get_tempdir}/s3_test",
+        dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
         concat=False,
         join=False,
@@ -548,6 +546,7 @@ def test_convert_s3_path_csv(
 
 
 def test_convert_s3_path_sqlite(
+    fx_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
     example_s3_endpoint: str,
 ):
@@ -558,14 +557,12 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    tmpdir = tempfile.mkdtemp()
-
     # local sqlite read
     local_cytotable_table = parquet.read_table(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=(
-                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -579,13 +576,17 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
             dest_path=(
-                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
             endpoint_url=example_s3_endpoint,
+            # use explicit cache to avoid temp cache removal / overlaps with
+            # sequential s3 SQLite files. See below for more information
+            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/1",
         )
     )
 
@@ -594,13 +595,17 @@ def test_convert_s3_path_sqlite(
         source=convert(
             source_path="s3://example/nf1/",
             dest_path=(
-                f"{tmpdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
             endpoint_url=example_s3_endpoint,
+            # use explicit cache to avoid temp cache removal / overlaps with
+            # sequential s3 SQLite files. See below for more information
+            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
         )
     )
 
@@ -618,8 +623,6 @@ def test_convert_s3_path_sqlite(
             [(name, "ascending") for name in s3_cytotable_table_nested.schema.names]
         )
     )
-
-    shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 def test_infer_source_group_common_schema(
@@ -639,7 +642,7 @@ def test_infer_source_group_common_schema(
 
 
 def test_convert_cytominerdatabase_csv(
-    get_tempdir: str,
+    fx_tempdir: str,
     data_dirs_cytominerdatabase: List[str],
     cytominerdatabase_to_pycytominer_merge_single_cells_parquet: List[str],
 ):
@@ -677,7 +680,7 @@ def test_convert_cytominerdatabase_csv(
             source=convert(
                 source_path=cytominerdatabase_dir,
                 dest_path=(
-                    f"{get_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet"
+                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet"
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
@@ -693,7 +696,7 @@ def test_convert_cytominerdatabase_csv(
 
 
 def test_convert_cellprofiler_sqlite(
-    get_tempdir: str, data_dir_cellprofiler: str, cellprofiler_merged_nf1data: pa.Table
+    fx_tempdir: str, data_dir_cellprofiler: str, cellprofiler_merged_nf1data: pa.Table
 ):
     """
     Tests convert with cellprofiler sqlite exports
@@ -706,7 +709,7 @@ def test_convert_cellprofiler_sqlite(
             source_path=(
                 f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
             ),
-            dest_path=f"{get_tempdir}/NF1_data.parquet",
+            dest_path=f"{fx_tempdir}/NF1_data.parquet",
             dest_datatype="parquet",
             source_datatype="sqlite",
             preset="cellprofiler_sqlite",
@@ -727,7 +730,7 @@ def test_convert_cellprofiler_sqlite(
 
 
 def test_convert_cellprofiler_csv(
-    get_tempdir: str,
+    fx_tempdir: str,
     data_dir_cellprofiler: str,
     cellprofiler_merged_examplehuman: pa.Table,
 ):
@@ -742,7 +745,7 @@ def test_convert_cellprofiler_csv(
     with pytest.raises(Exception):
         convert(
             source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-            dest_path=f"{get_tempdir}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman",
             dest_datatype="parquet",
             source_datatype="csv",
             compartments=[],
@@ -753,7 +756,7 @@ def test_convert_cellprofiler_csv(
     test_result = parquet.read_table(
         convert(
             source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-            dest_path=f"{get_tempdir}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman",
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
@@ -774,14 +777,14 @@ def test_convert_cellprofiler_csv(
 
 
 def test_cast_data_types(
-    get_tempdir: str,
+    fx_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
 ):
     """
     Tests _cast_data_types to ensure data types are casted as expected
     """
 
-    test_dir = f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+    test_dir = f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
     # default data types
     convert(
         source_path=data_dir_cellprofiler_sqlite_nf1,
@@ -871,7 +874,7 @@ def test_cast_data_types(
 
 
 def test_convert_cellprofiler_sqlite_pycytominer_merge(
-    get_tempdir: str,
+    fx_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
 ):
     """
@@ -901,7 +904,7 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
             # and receive parquet filepath
         ).merge_single_cells(
             sc_output_file=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".pycytominer.parquet"
             ),
             output_type="parquet",
@@ -917,7 +920,7 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
         source=convert(
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=(
-                f"{get_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
+                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
                 ".cytotable.parquet"
             ),
             dest_datatype="parquet",
@@ -946,13 +949,13 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
 
 
 def test_sqlite_mixed_type_query_to_parquet(
-    get_tempdir: str, example_sqlite_mixed_types_database: str
+    fx_tempdir: str, example_sqlite_mixed_types_database: str
 ):
     """
     Testing _sqlite_mixed_type_query_to_parquet
     """
 
-    result_filepath = f"{get_tempdir}/example_mixed_types_tbl_a.parquet"
+    result_filepath = f"{fx_tempdir}/example_mixed_types_tbl_a.parquet"
     table_name = "tbl_a"
 
     try:
@@ -970,39 +973,61 @@ def test_sqlite_mixed_type_query_to_parquet(
         # run a more nuanced query through sqlite
         # to handle the mixed types
         if "Mismatch Type Error" in str(duckdb_exc):
-            result = _sqlite_mixed_type_query_to_parquet(
-                source_path=example_sqlite_mixed_types_database,
-                table_name=table_name,
-                chunk_size=2,
-                offset=0,
-                result_filepath=result_filepath,
+            parquet.write_table(
+                table=_sqlite_mixed_type_query_to_parquet(
+                    source_path=example_sqlite_mixed_types_database,
+                    table_name=table_name,
+                    chunk_size=2,
+                    offset=0,
+                ),
+                where=result_filepath,
             )
 
     # check schema names
-    assert parquet.read_schema(where=result).names == [
+    assert parquet.read_schema(where=result_filepath).names == [
         "col_integer",
         "col_text",
         "col_blob",
         "col_real",
     ]
     # check schema types
-    assert parquet.read_schema(where=result).types == [
+    assert parquet.read_schema(where=result_filepath).types == [
         pa.int64(),
         pa.string(),
         pa.binary(),
         pa.float64(),
     ]
     # check the values per column
-    assert parquet.read_table(source=result).to_pydict() == {
+    assert parquet.read_table(source=result_filepath).to_pydict() == {
         "col_integer": [1, None],
         "col_text": ["sample", "sample"],
         "col_blob": [b"sample_blob", b"another_blob"],
         "col_real": [0.5, None],
     }
 
+    # run full convert on mixed type database
+    result = convert(
+        source_path=example_sqlite_mixed_types_database,
+        dest_path=result_filepath,
+        dest_datatype="parquet",
+        source_datatype="sqlite",
+        compartments=[table_name],
+        join=False,
+    )
+
+    # assert that the single table result looks like the following dictionary
+    assert parquet.read_table(
+        source=result["Tbl_a.sqlite"][0]["table"][0]
+    ).to_pydict() == {
+        "Tbl_a_col_integer": [1, None],
+        "Tbl_a_col_text": ["sample", "sample"],
+        "Tbl_a_col_blob": [b"sample_blob", b"another_blob"],
+        "Tbl_a_col_real": [0.5, None],
+    }
+
 
 def test_convert_hte_cellprofiler_csv(
-    get_tempdir: str,
+    fx_tempdir: str,
     data_dir_cellprofiler: str,
     cellprofiler_merged_examplehuman: pa.Table,
 ):
@@ -1034,7 +1059,7 @@ def test_convert_hte_cellprofiler_csv(
     test_result = parquet.read_table(
         convert(
             source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-            dest_path=f"{get_tempdir}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman",
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
