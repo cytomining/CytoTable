@@ -49,8 +49,10 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
         else f"sqlite_scan('{source_path}', '{source['table_name']}')"
     )
 
-    # query top 5 results from table and use pragma_storage_info() to
-    # gather duckdb interpreted data typing
+    # Query top 5 results from table and use pragma_storage_info() to
+    # gather duckdb interpreted data typing. We gather 5 values for
+    # each column to help with type inferences (where smaller sets
+    # may yield lower data type accuracy for the full table).
     select_query = """
         /* we create an in-mem table for later use with the pragma_storage_info call
         as this call only functions with materialized tables and not views or related */
@@ -65,7 +67,7 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
             column_id,
             column_name,
             segment_type as column_dtype
-        FROM pragma_storage_info('column_details')
+        FROM pragma_storage_info('column_details');
 
         /* avoid duplicate entries in the form of VALIDITY segment_types */
         WHERE segment_type != 'VALIDITY';
@@ -93,7 +95,11 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
             arrow_data_tbl = _sqlite_mixed_type_query_to_parquet(
                 source_path=str(source["source_path"]),
                 table_name=str(source["table_name"]),
+                # chunk size is set to 5 as a limit similar
+                # to above SQL within select_query variable
                 chunk_size=5,
+                # offset is set to 0 start at first row
+                # result from table
                 offset=0,
             )
             return (
