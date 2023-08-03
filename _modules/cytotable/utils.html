@@ -60,12 +60,53 @@
     <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span><span class="p">)))</span>
 <span class="p">)</span>
 
-<span class="n">DATA_TYPE_SYNONYMS</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">DDB_DATA_TYPE_SYNONYMS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;real&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float4&quot;</span><span class="p">,</span> <span class="s2">&quot;float&quot;</span><span class="p">],</span>
     <span class="s2">&quot;double&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;float64&quot;</span><span class="p">,</span> <span class="s2">&quot;float8&quot;</span><span class="p">,</span> <span class="s2">&quot;numeric&quot;</span><span class="p">,</span> <span class="s2">&quot;decimal&quot;</span><span class="p">],</span>
     <span class="s2">&quot;integer&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="s2">&quot;int4&quot;</span><span class="p">,</span> <span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="s2">&quot;signed&quot;</span><span class="p">],</span>
     <span class="s2">&quot;bigint&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span> <span class="s2">&quot;int8&quot;</span><span class="p">,</span> <span class="s2">&quot;long&quot;</span><span class="p">],</span>
 <span class="p">}</span>
+
+<span class="c1"># A reference dictionary for SQLite affinity and storage class types</span>
+<span class="c1"># See more here: https://www.sqlite.org/datatype3.html#affinity_name_examples</span>
+<span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;integer&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;int&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;tinyint&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;smallint&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;mediumint&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;bigint&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;unsigned big int&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;int2&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;int8&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;character&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;varchar&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;varying character&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nchar&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;native character&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;nvarchar&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;clob&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;blob&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;blob&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;real&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;real&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;double&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;double precision&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;float&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+    <span class="s2">&quot;numeric&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">&quot;numeric&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;decimal&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;boolean&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;date&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;datetime&quot;</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">}</span>
+
 
 <span class="c1"># reference the original init</span>
 <span class="n">original_init</span> <span class="o">=</span> <span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span>
@@ -220,6 +261,9 @@
 
     <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
 
+    <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">DatatypeException</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span>
+
     <span class="c1"># open sqlite3 connection</span>
     <span class="k">with</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
         <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
@@ -241,12 +285,30 @@
             <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
         <span class="p">]</span>
 
+        <span class="k">def</span> <span class="nf">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">col_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="c1"># seek the translated type from SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span>
+            <span class="n">translated_type</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">key</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">col_type</span> <span class="ow">in</span> <span class="n">values</span>
+            <span class="p">]</span>
+
+            <span class="c1"># if we&#39;re unable to find a synonym for the type, raise an error</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">translated_type</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Unable to find SQLite data type synonym for </span><span class="si">{</span><span class="n">col_type</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># return the translated type for use in SQLite</span>
+            <span class="k">return</span> <span class="n">translated_type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
         <span class="c1"># create cases for mixed-type handling in each column discovered above</span>
         <span class="n">query_parts</span> <span class="o">=</span> <span class="p">[</span>
             <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            CASE</span>
 <span class="s2">                /* when the storage class type doesn&#39;t match the column, return nulltype */</span>
-<span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) != &#39;</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&#39; THEN NULL</span>
+<span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) !=</span>
+<span class="s2">                &#39;</span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">&#39; THEN NULL</span>
 <span class="s2">                /* else, return the normal value */</span>
 <span class="s2">                ELSE </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span>
 <span class="s2">            END AS </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span>
@@ -332,7 +394,7 @@
             <span class="s2">&quot;column_name&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">],</span>
             <span class="s2">&quot;column_dtype&quot;</span><span class="p">:</span> <span class="p">[</span>
                 <span class="n">key</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DDB_DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;float&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
             <span class="p">][</span><span class="mi">0</span><span class="p">],</span>
         <span class="p">}</span>
@@ -354,7 +416,7 @@
             <span class="s2">&quot;column_name&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">],</span>
             <span class="s2">&quot;column_dtype&quot;</span><span class="p">:</span> <span class="p">[</span>
                 <span class="n">key</span>
-                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DDB_DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;integer&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
             <span class="p">][</span><span class="mi">0</span><span class="p">],</span>
         <span class="p">}</span>
