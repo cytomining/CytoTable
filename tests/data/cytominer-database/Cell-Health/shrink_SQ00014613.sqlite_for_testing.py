@@ -23,7 +23,7 @@ with sqlite3.connect(SQLITE_TARGET) as conn:
         DELETE FROM Image
         WHERE TableNumber NOT IN
         /* TableNumber 88ac13033d9baf49fda78c3458bef89e includes
-        mixed-type data which is important to test as part of 
+        mixed-type data which is important to test as part of
         this work. For example, as found in Nuclei column
         Nuclei_Correlation_Costes_AGP_DNA */
         ('88ac13033d9baf49fda78c3458bef89e',
