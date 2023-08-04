@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Tuple, cast
 import duckdb
 import parsl
 import pyarrow as pa
+import pyarrow.compute as pc
 import pytest
 from parsl.channels import LocalChannel
 from parsl.config import Config
@@ -1093,6 +1094,7 @@ def test_cellhealth_preset(
     of CellProfiler and cytominer-database feature data.
     """
 
+    # run convert on the test dataset and read the file into an arrow table
     test_result = parquet.read_table(
         source=convert(
             source_path=f"{data_dir_cytominerdatabase}/Cell-Health/test-SQ00014613.sqlite",
@@ -1103,4 +1105,34 @@ def test_cellhealth_preset(
         )
     )
 
+    # check that we have the expected shape
     assert test_result.shape == (12, 1790)
+    # check that the tablenumber data arrived properly
+    assert set(test_result["Metadata_TableNumber"].to_pylist()) == {
+        "88ac13033d9baf49fda78c3458bef89e",
+        "1e5d8facac7508cfd4086f3e3e950182",
+    }
+    # check that mixed-type data was successfully transitioned into
+    # a compatible and representative data type.
+    assert (
+        # filter the table using the parameters below to gather
+        # what was originally a 'nan' string value in a double column
+        # which will translate from CytoTable into a
+        # parquet NULL, arrow null, and Python None
+        test_result.filter(
+            (pc.field("Metadata_TableNumber") == "88ac13033d9baf49fda78c3458bef89e")
+            & (pc.field("Nuclei_ObjectNumber") == 5)
+        )["Nuclei_Correlation_Costes_AGP_DNA"].to_pylist()[0]
+        is None
+    ) and (
+        # similar to the above filter but gathering all other
+        # results from the same column to verify they are of
+        # float type.
+        all(
+            isinstance(value, float)
+            for value in test_result.filter(
+                (pc.field("Metadata_TableNumber") == "88ac13033d9baf49fda78c3458bef89e")
+                & (pc.field("Nuclei_ObjectNumber") != 5)
+            )["Nuclei_Correlation_Costes_AGP_DNA"].to_pylist()
+        )
+    )
