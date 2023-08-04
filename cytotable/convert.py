@@ -469,8 +469,6 @@ def _prepend_column_name(
         table=table.rename_columns(updated_column_names), where=table_path
     )
 
-    print(updated_column_names)
-
     return table_path
 
 
