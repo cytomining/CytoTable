@@ -22,6 +22,10 @@ with sqlite3.connect(SQLITE_TARGET) as conn:
         """
         DELETE FROM Image
         WHERE TableNumber NOT IN
+        /* TableNumber 88ac13033d9baf49fda78c3458bef89e includes
+        mixed-type data which is important to test as part of 
+        this work. For example, as found in Nuclei column
+        Nuclei_Correlation_Costes_AGP_DNA */
         ('88ac13033d9baf49fda78c3458bef89e',
         '1e5d8facac7508cfd4086f3e3e950182')
         """
@@ -32,6 +36,9 @@ with sqlite3.connect(SQLITE_TARGET) as conn:
             f"""
             DELETE FROM {table}
             WHERE TableNumber NOT IN (SELECT TableNumber FROM Image)
+            /* Here we limit the number of objects which are returned
+            for each compartment table so as to keep the test dataset
+            very small. */
             OR ObjectNumber > 6
             """
         )
