@@ -518,7 +518,14 @@ def example_sqlite_mixed_types_database(
         col_integer INTEGER NOT NULL
         ,col_text TEXT
         ,col_blob BLOB
-        ,col_real REAL
+        /* note: here we use DOUBLE instead of REAL
+        to help test scenarios where the column type
+        does not align with values SQLite yields from
+        SQL function `typeof()`. In this example,
+        SQLite will have a column with type of DOUBLE
+        and floating-point values in that column
+        will have a type of REAL. */
+        ,col_real DOUBLE
         );
         """,
     ]
