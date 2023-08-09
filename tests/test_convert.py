@@ -1084,7 +1084,7 @@ def test_convert_hte_cellprofiler_csv(
     parsl.clear()
 
 
-def test_cellhealth_preset(
+def test_cell_health_cellprofiler_to_cytominer_database_legacy(
     fx_tempdir: str,
     data_dir_cytominerdatabase: str,
 ):
