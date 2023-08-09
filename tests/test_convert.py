@@ -1087,6 +1087,7 @@ def test_convert_hte_cellprofiler_csv(
 def test_cell_health_cellprofiler_to_cytominer_database_legacy(
     fx_tempdir: str,
     data_dir_cytominerdatabase: str,
+    fixture_cytominerdatabase_merged_cellhealth: pa.Table,
 ):
     """
     Tests cytotable functionality leveraging a preset for
@@ -1136,3 +1137,6 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
             )["Nuclei_Correlation_Costes_AGP_DNA"].to_pylist()
         )
     )
+
+    # assert that a manually configured table is equal to the cytotable result
+    assert test_result.equals(fixture_cytominerdatabase_merged_cellhealth)

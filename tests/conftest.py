@@ -11,6 +11,7 @@ from typing import Any, Dict, Generator, List, Tuple
 import boto3
 import boto3.session
 import duckdb
+import pandas as pd
 import parsl
 import pyarrow as pa
 import pytest
@@ -420,6 +421,86 @@ def fixture_cellprofiler_merged_nf1data(
             colname if colname != "ImageNumber" else "Metadata_ImageNumber"
             for colname in control_result.column_names
         ]
+    )
+
+    # inner sorted alphabetizes any columns which may not be part of custom_sort
+    # outer sort provides pycytominer-specific column sort order
+    control_result = control_result.select(
+        sorted(sorted(control_result.column_names), key=_column_sort)
+    )
+
+    return control_result
+
+
+@pytest.fixture(name="")
+def fixture_cytominerdatabase_merged_cellhealth(
+    data_dir_cytominerdatabase: str,
+) -> pa.Table:
+    """
+    Fixture for manually configured merged/joined result from
+    CellProfiler -> Cytominer-database Cell-Health SQLite data
+    """
+
+    sql_stmt = """
+        WITH Image_Filtered AS (
+            SELECT
+                TableNumber,
+                ImageNumber,
+                Image_Metadata_Well,
+                Image_Metadata_Plate
+            FROM Image
+        ),
+        /* gather unique objectnumber column names from each
+        compartment so as to retain differentiation */
+        Cytoplasm_renamed AS (
+            SELECT
+                ObjectNumber AS Cytoplasm_ObjectNumber,
+                *
+            FROM Cytoplasm
+        ),
+        Cells_renamed AS (
+            SELECT
+                ObjectNumber AS Cells_ObjectNumber,
+                *
+            FROM Cells
+        ),
+        Nuclei_renamed AS (
+            SELECT
+                ObjectNumber AS Nuclei_ObjectNumber,
+                *
+            FROM Nuclei
+        )
+        SELECT DISTINCT *
+        FROM Image_Filtered image
+        LEFT JOIN Cytoplasm_renamed cytoplasm ON
+            image.ImageNumber = cytoplasm.ImageNumber
+        LEFT JOIN Cells_renamed cells ON
+            cells.ImageNumber = cytoplasm.ImageNumber
+            AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
+        LEFT JOIN Nuclei_renamed nuclei ON
+            nuclei.ImageNumber = cytoplasm.ImageNumber
+            AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
+    """
+
+    # extract a pyarrow table using pandas
+    control_result = pa.Table.from_pandas(
+        df=pd.read_sql(
+            sql=sql_stmt,
+            con=f"sqlite:///{data_dir_cytominerdatabase}/Cell-Health/test-SQ00014613.sqlite",
+        )
+        # replacing 'nan' strings with None
+        .replace(to_replace="nan", value=None)
+        # renaming columns as appropriate
+        .rename(
+            columns={
+                "ImageNumber": "Metadata_ImageNumber",
+                "TableNumber": "Metadata_TableNumber",
+                "Cytoplasm_Parent_Cells": "Metadata_Cytoplasm_Parent_Cells",
+                "Cytoplasm_Parent_Nuclei": "Metadata_Cytoplasm_Parent_Nuclei",
+            }
+            # drop generic objectnumber column gathered from each compartment
+            # (we'll rely on the compartment prefixed name instead for comparisons)
+        ).drop(columns="ObjectNumber")
     )
 
     # inner sorted alphabetizes any columns which may not be part of custom_sort
