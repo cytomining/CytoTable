@@ -1139,4 +1139,14 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
     )
 
     # assert that a manually configured table is equal to the cytotable result
-    assert test_result.equals(fixture_cytominerdatabase_merged_cellhealth)
+    # note: we sort values by all column names ascendingly for equality comparisons
+    assert test_result.sort_by(
+        [(name, "ascending") for name in test_result.column_names]
+    ).equals(
+        fixture_cytominerdatabase_merged_cellhealth.sort_by(
+            [
+                (name, "ascending")
+                for name in fixture_cytominerdatabase_merged_cellhealth.column_names
+            ]
+        )
+    )
