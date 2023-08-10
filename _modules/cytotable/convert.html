@@ -468,7 +468,8 @@
         <span class="c1"># where colname is in identifying_columns parameter values</span>
         <span class="c1"># and where the colname does not already start with &#39;Metadata_&#39;</span>
         <span class="c1"># and colname not in metadata list</span>
-        <span class="c1"># and colname does not include &#39;ObjectNumber&#39;</span>
+        <span class="c1"># and colname does not include &#39;ObjectNumber&#39; or &#39;TableNumber&#39;</span>
+        <span class="c1"># (which are specially treated column names in this context)</span>
         <span class="c1"># for example:</span>
         <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
         <span class="c1">#   column_name: &#39;Parent_Nuclei&#39;</span>
@@ -477,7 +478,7 @@
             <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
             <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Metadata_&quot;</span><span class="p">)</span>
             <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span> <span class="ow">in</span> <span class="n">column_name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="ow">not</span> <span class="s2">&quot;ObjectNumber&quot;</span> <span class="ow">in</span> <span class="n">column_name</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="n">column_name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ObjectNumber&quot;</span><span class="p">,</span> <span class="s2">&quot;TableNumber&quot;</span><span class="p">])</span>
         <span class="p">):</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span>
