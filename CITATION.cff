@@ -14,6 +14,9 @@ authors:
   - given-names: Faisal
     family-names: Alquaddoomi
     orcid: 'https://orcid.org/0000-0003-4297-8747'
+  - given-names: Erik
+    family-names: Serrano
+    orcid: 'https://orcid.org/0000-0003-4188-9080'
   - given-names: Gregory
     family-names: Way
     orcid: 'https://orcid.org/0000-0002-0503-9348'
@@ -23,6 +26,9 @@ abstract: >-
   Transform single cell morphology data for image-based profiling applications and analyses.
   readouts with Pycytominer.
 keywords:
+  - python
+  - cellprofiler
+  - single-cell-analysis
   - microscopy
   - profiling
   - data
@@ -74,3 +80,37 @@ references:
       - description: "Github Link with Contributors"
         type: url
         value: "https://github.com/WayScience/NF1_SchwannCell_data/graphs/contributors"
+  - authors:
+    - family-names: "Way"
+      given-names: " Gregory P."
+    - family-names: "Kost-Alimova"
+      given-names: " Maria"
+    - family-names: "Shibue"
+      given-names: " Tsukasa"
+    - family-names: "Harrington"
+      given-names: " William F."
+    - family-names: "Gill"
+      given-names: " Stanley"
+    - family-names: "Piccioni"
+      given-names: " Federica"
+    - family-names: "Becker"
+      given-names: " Tim"
+    - family-names: "Shafqat-Abbasi"
+      given-names: " Hamdah"
+    - family-names: "Hahn"
+      given-names: " William C."
+    - family-names: "Carpenter"
+      given-names: " Anne E."
+    - family-names: "Vazquez"
+      given-names: " Francisca"
+    - family-names: "Singh"
+      given-names: " Shantanu"
+    date-accessed: "2023-04-18"
+    title: "Predicting cell health phenotypes using image-based morphology profiling"
+    type: "article"
+    repository-code: "https://github.com/broadinstitute/cell-health"
+    doi: "10.1091/mbc.E20-12-0784"
+    url: "https://doi.org/10.1091/mbc.E20-12-0784"
+    notes: >-
+      Cell Health datasets used as a reference for building CytoTable.
+      Data located at: https://nih.figshare.com/articles/dataset/Cell_Health_-_Cell_Painting_Single_Cell_Profiles/9995672/5
