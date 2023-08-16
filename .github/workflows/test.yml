@@ -3,7 +3,7 @@ name: run tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, expand-paths]
   pull_request:
     branches: [main]
 
