@@ -31,10 +31,12 @@ def _build_path(
 
     import pathlib
 
-    from cloudpathlib import AnyPath, CloudPath
+    from cloudpathlib import CloudPath
+
+    from cytotable.utils import _expand_path
 
     # form a path using cloudpathlib AnyPath, stripping certain characters
-    processed_path = AnyPath(str(path).strip("'\" "))
+    processed_path = _expand_path(str(path).strip("'\" "))
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):

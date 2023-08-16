@@ -5,6 +5,7 @@ Tests for CytoTable.convert and related.
 # pylint: disable=no-member,too-many-lines
 
 import itertools
+import os
 import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
@@ -14,6 +15,7 @@ import parsl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
+from cloudpathlib import CloudPath
 from parsl.channels import LocalChannel
 from parsl.config import Config
 from parsl.executors import HighThroughputExecutor
@@ -32,7 +34,7 @@ from cytotable.convert import (
     convert,
 )
 from cytotable.presets import config
-from cytotable.sources import _get_source_filepaths, _infer_source_datatype
+from cytotable.sources import _build_path, _get_source_filepaths, _infer_source_datatype
 from cytotable.utils import (
     _column_sort,
     _duckdb_reader,
@@ -58,6 +60,28 @@ def test_config():
                 "CONFIG_SOURCE_VERSION",
             ]
         ) == sorted(config_preset.keys())
+
+
+def test_build_path(fx_tempdir: str):
+    """
+    Tests _build_path
+    """
+
+    # check that we have a pathlib path returned for local paths
+    assert isinstance(_build_path.func(path=fx_tempdir), pathlib.Path)
+
+    # check that we have a cloudpath path returned for simulated cloud path
+    assert isinstance(_build_path.func(path=f"s3://{fx_tempdir}"), CloudPath)
+
+    # test that `~` and `$HOME` resolve properly to home
+    home_dir = str(os.environ.get("HOME"))
+    assert _build_path.func(path="~") == pathlib.Path(home_dir)
+    assert _build_path.func(path="$HOME") == pathlib.Path(home_dir)
+
+    # create a subdir and test path resolution to a root
+    subdir = f"{fx_tempdir}/test_subdir"
+    pathlib.Path(subdir).mkdir()
+    assert _build_path.func(path=f"{subdir}/..") == pathlib.Path(fx_tempdir).resolve()
 
 
 def test_get_source_filepaths(fx_tempdir: str, data_dir_cellprofiler: str):
