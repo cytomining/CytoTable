@@ -390,7 +390,7 @@ def _prepend_column_name(
 
     targets = tuple(metadata) + tuple(compartments)
 
-    table = parquet.read_table(source=table_path)
+    table = parquet.read_table(source=table_path, memory_map=True)
 
     # stem of source group name
     # for example:
@@ -599,7 +599,9 @@ def _concat_source_group(
                 # read the file from the list and write to the concatted parquet file
                 # note: we pass column order based on the first chunk file to help ensure schema
                 # compatibility for the writer
-                writer.write_table(parquet.read_table(table, schema=writer_schema))
+                writer.write_table(
+                    parquet.read_table(table, schema=writer_schema, memory_map=True)
+                )
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
 
@@ -661,7 +663,7 @@ def _get_join_chunks(
 
     # read only the table's chunk_columns
     join_column_rows = parquet.read_table(
-        source=basis[0]["table"], columns=list(chunk_columns)
+        source=basis[0]["table"], columns=list(chunk_columns), memory_map=True
     ).to_pylist()
 
     # build and return the chunked join column rows
@@ -845,7 +847,10 @@ def _concat_join_sources(
     # write the concatted result as a parquet file
     parquet.write_table(
         table=pa.concat_tables(
-            tables=[parquet.read_table(table_path) for table_path in join_sources]
+            tables=[
+                parquet.read_table(table_path, memory_map=True)
+                for table_path in join_sources
+            ]
         ),
         where=dest_path,
     )
@@ -856,7 +861,9 @@ def _concat_join_sources(
     writer_schema = parquet.read_schema(join_sources[0])
     with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
         for table_path in join_sources:
-            writer.write_table(parquet.read_table(table_path, schema=writer_schema))
+            writer.write_table(
+                parquet.read_table(table_path, schema=writer_schema, memory_map=True)
+            )
             # remove the file which was written in the concatted parquet file (we no longer need it)
             pathlib.Path(table_path).unlink()
 
