@@ -389,3 +389,14 @@ def _arrow_type_cast_if_specified(
 
     # else we retain the existing data field type
     return column
+
+
+def set_pyarrow_memory_allocator() -> None:
+    """
+    Utility for setting pyarrow memory allocator within the context of CytoTable.
+    """
+
+    import pyarrow as pa
+
+    if pa.default_memory_pool().backend_name != "jemalloc":
+        pa.set_memory_pool(pa.jemalloc_memory_pool())

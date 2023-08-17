@@ -384,6 +384,10 @@ def _prepend_column_name(
 
     import pyarrow.parquet as parquet
 
+    from cytotable.utils import set_pyarrow_memory_allocator
+
+    set_pyarrow_memory_allocator()
+
     targets = tuple(metadata) + tuple(compartments)
 
     table = parquet.read_table(source=table_path)
@@ -536,6 +540,9 @@ def _concat_source_group(
     import pyarrow.parquet as parquet
 
     from cytotable.exceptions import SchemaException
+    from cytotable.utils import set_pyarrow_memory_allocator
+
+    set_pyarrow_memory_allocator()
 
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
@@ -638,6 +645,10 @@ def _get_join_chunks(
     import pathlib
 
     import pyarrow.parquet as parquet
+
+    from cytotable.utils import set_pyarrow_memory_allocator
+
+    set_pyarrow_memory_allocator()
 
     # fetch the compartment concat result as the basis for join groups
     for key, source in sources.items():
@@ -812,6 +823,10 @@ def _concat_join_sources(
     import shutil
 
     import pyarrow.parquet as parquet
+
+    from cytotable.utils import set_pyarrow_memory_allocator
+
+    set_pyarrow_memory_allocator()
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
