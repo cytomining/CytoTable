@@ -342,21 +342,25 @@
 
     <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
 
-    <span class="c1"># attempt to read the data to parquet from duckdb</span>
-    <span class="c1"># with exception handling to read mixed-type data</span>
-    <span class="c1"># using sqlite3 and special utility function</span>
+    <span class="c1"># Attempt to read the data to parquet file</span>
+    <span class="c1"># using duckdb for extraction and pyarrow for</span>
+    <span class="c1"># writing data to a parquet file.</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># isolate using new connection to read data with chunk size + offset</span>
-        <span class="c1"># and export directly to parquet via duckdb (avoiding need to return data to python)</span>
-        <span class="n">_duckdb_reader</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            COPY (</span>
+        <span class="c1"># read data with chunk size + offset</span>
+        <span class="c1"># and export to parquet</span>
+        <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">=</span><span class="n">_duckdb_reader</span><span class="p">()</span>
+            <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
 <span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
-<span class="s2">            ) TO &#39;</span><span class="si">{</span><span class="n">result_filepath</span><span class="si">}</span><span class="s2">&#39;</span>
-<span class="s2">            (FORMAT PARQUET);</span>
-<span class="s2">            &quot;&quot;&quot;</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
+            <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
         <span class="p">)</span>
+    <span class="c1"># Include exception handling to read mixed-type data</span>
+    <span class="c1"># using sqlite3 and special utility function.</span>
     <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1"># if we see a mismatched type error</span>
         <span class="c1"># run a more nuanced query through sqlite</span>
@@ -366,6 +370,9 @@
             <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
         <span class="p">):</span>
             <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+                <span class="c1"># here we use sqlite instead of duckdb to extract</span>
+                <span class="c1"># data for special cases where column and value types</span>
+                <span class="c1"># may not align (which is valid functionality in SQLite).</span>
                 <span class="n">table</span><span class="o">=</span><span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
                     <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
                     <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
