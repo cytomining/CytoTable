@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import os
 import pathlib
-from typing import Dict, Union, cast
+from typing import Any, Dict, Union, cast
 
 import duckdb
 import pyarrow as pa
@@ -389,3 +389,33 @@ def _arrow_type_cast_if_specified(
 
     # else we retain the existing data field type
     return column
+
+
+def _expand_path(
+    path: Union[str, pathlib.Path, AnyPath]
+) -> Union[pathlib.Path, AnyPath]:
+    """
+    Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.
+
+    Args:
+        path: Union[str, pathlib.Path, CloudPath]:
+            Path to expand.
+
+    Returns:
+        Union[pathlib.Path, Any]
+            A local pathlib.Path or Cloudpathlib.AnyPath type path.
+    """
+
+    import os
+    import pathlib
+
+    from cloudpathlib import AnyPath
+
+    # expand environment variables and resolve the path as absolute
+    modifed_path = AnyPath(os.path.expandvars(path))
+
+    # note: we use pathlib.Path here to help expand local paths (~, etc)
+    if isinstance(modifed_path, pathlib.Path):
+        modifed_path = modifed_path.expanduser()
+
+    return modifed_path.resolve()

@@ -1052,6 +1052,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         _source_chunk_to_parquet,
     )
     from cytotable.sources import _gather_sources
+    from cytotable.utils import _expand_path
 
     # gather sources to be processed
     sources = _gather_sources(
@@ -1064,6 +1065,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # if we already have a file in dest_path, remove it
     if pathlib.Path(dest_path).is_file():
         pathlib.Path(dest_path).unlink()
+
+    # expand the destination path
+    expanded_dest_path = _expand_path(path=dest_path)
 
     # prepare offsets for chunked data export from source tables
     offsets_prepared = {
@@ -1129,7 +1133,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                                 source=source,
                                 chunk_size=chunk_size,
                                 offset=offset,
-                                dest_path=dest_path,
+                                dest_path=expanded_dest_path,
                                 data_type_cast_map=data_type_cast_map,
                             ),
                             source_group_name=source_group_name,
@@ -1170,7 +1174,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             source_group_name: _concat_source_group(
                 source_group_name=source_group_name,
                 source_group=source_group_vals["sources"],
-                dest_path=dest_path,
+                dest_path=expanded_dest_path,
                 common_schema=source_group_vals["common_schema"],
             ).result()
             for source_group_name, source_group_vals in common_schema_determined.items()
@@ -1187,7 +1191,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 # join group merging as each mapped task run will need
                 # full concat results
                 sources=results,
-                dest_path=dest_path,
+                dest_path=expanded_dest_path,
                 joins=joins,
                 # get merging chunks by join columns
                 join_group=join_group,
@@ -1208,7 +1212,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # return results in common format which includes metadata
         # for lineage and debugging
         results = _concat_join_sources(
-            dest_path=dest_path,
+            dest_path=expanded_dest_path,
             join_sources=join_sources_result,
             sources=results,
         ).result()

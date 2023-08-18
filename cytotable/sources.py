@@ -13,7 +13,7 @@ from parsl.app.app import join_app, python_app
 @python_app
 def _build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
-) -> Union[pathlib.Path, Any]:
+) -> Union[pathlib.Path, AnyPath]:
     """
     Build a path client or return local path.
 
@@ -29,12 +29,12 @@ def _build_path(
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
-    import pathlib
+    from cloudpathlib import CloudPath
 
-    from cloudpathlib import AnyPath, CloudPath
+    from cytotable.utils import _expand_path
 
     # form a path using cloudpathlib AnyPath, stripping certain characters
-    processed_path = AnyPath(str(path).strip("'\" "))
+    processed_path = _expand_path(str(path).strip("'\" "))
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
