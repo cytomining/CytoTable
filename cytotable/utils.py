@@ -392,8 +392,8 @@ def _arrow_type_cast_if_specified(
 
 
 def _expand_path(
-    path: Union[str, pathlib.Path, CloudPath]
-) -> Union[str, pathlib.Path, CloudPath]:
+    path: Union[str, pathlib.Path, AnyPath]
+) -> Union[pathlib.Path, AnyPath]:
     """
     Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.
 
@@ -405,6 +405,11 @@ def _expand_path(
         Union[pathlib.Path, Any]
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
+
+    import os
+    import pathlib
+
+    from cloudpathlib import AnyPath
 
     # expand environment variables and resolve the path as absolute
     modifed_path = AnyPath(os.path.expandvars(path))

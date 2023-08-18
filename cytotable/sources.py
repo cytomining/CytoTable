@@ -13,7 +13,7 @@ from parsl.app.app import join_app, python_app
 @python_app
 def _build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
-) -> Union[pathlib.Path, Any]:
+) -> Union[pathlib.Path, AnyPath]:
     """
     Build a path client or return local path.
 
@@ -28,8 +28,6 @@ def _build_path(
         Union[pathlib.Path, Any]
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
-
-    import pathlib
 
     from cloudpathlib import CloudPath
 
