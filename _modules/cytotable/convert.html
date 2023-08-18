@@ -1086,6 +1086,7 @@
         <span class="n">_source_chunk_to_parquet</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="kn">from</span> <span class="nn">cytotable.sources</span> <span class="kn">import</span> <span class="n">_gather_sources</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_expand_path</span>
 
     <span class="c1"># gather sources to be processed</span>
     <span class="n">sources</span> <span class="o">=</span> <span class="n">_gather_sources</span><span class="p">(</span>
@@ -1098,6 +1099,9 @@
     <span class="c1"># if we already have a file in dest_path, remove it</span>
     <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
         <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+
+    <span class="c1"># expand the destination path</span>
+    <span class="n">expanded_dest_path</span> <span class="o">=</span> <span class="n">_expand_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
 
     <span class="c1"># prepare offsets for chunked data export from source tables</span>
     <span class="n">offsets_prepared</span> <span class="o">=</span> <span class="p">{</span>
@@ -1163,7 +1167,7 @@
                                 <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
                                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                                 <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
-                                <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+                                <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                                 <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
@@ -1204,7 +1208,7 @@
             <span class="n">source_group_name</span><span class="p">:</span> <span class="n">_concat_source_group</span><span class="p">(</span>
                 <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
                 <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">],</span>
-                <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+                <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                 <span class="n">common_schema</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="s2">&quot;common_schema&quot;</span><span class="p">],</span>
             <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
             <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">common_schema_determined</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
@@ -1221,7 +1225,7 @@
                 <span class="c1"># join group merging as each mapped task run will need</span>
                 <span class="c1"># full concat results</span>
                 <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
-                <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+                <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                 <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">,</span>
                 <span class="c1"># get merging chunks by join columns</span>
                 <span class="n">join_group</span><span class="o">=</span><span class="n">join_group</span><span class="p">,</span>
@@ -1242,7 +1246,7 @@
         <span class="c1"># return results in common format which includes metadata</span>
         <span class="c1"># for lineage and debugging</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">_concat_join_sources</span><span class="p">(</span>
-            <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+            <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
             <span class="n">join_sources</span><span class="o">=</span><span class="n">join_sources_result</span><span class="p">,</span>
             <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
         <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
