@@ -308,21 +308,25 @@ def _source_chunk_to_parquet(
 
     result_filepath = f"{result_filepath_base}-{offset}.parquet"
 
-    # attempt to read the data to parquet from duckdb
-    # with exception handling to read mixed-type data
-    # using sqlite3 and special utility function
+    # Attempt to read the data to parquet file
+    # using duckdb for extraction and pyarrow for
+    # writing data to a parquet file.
     try:
-        # isolate using new connection to read data with chunk size + offset
-        # and export directly to parquet via duckdb (avoiding need to return data to python)
-        _duckdb_reader().execute(
-            f"""
-            COPY (
+        # read data with chunk size + offset
+        # and export to parquet
+        parquet.write_table(
+            table=_duckdb_reader()
+            .execute(
+                f"""
                 {base_query}
                 LIMIT {chunk_size} OFFSET {offset}
-            ) TO '{result_filepath}'
-            (FORMAT PARQUET);
-            """
+                """
+            )
+            .arrow(),
+            where=result_filepath,
         )
+    # Include exception handling to read mixed-type data
+    # using sqlite3 and special utility function.
     except duckdb.Error as e:
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
@@ -332,6 +336,9 @@ def _source_chunk_to_parquet(
             and str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite"
         ):
             parquet.write_table(
+                # here we use sqlite instead of duckdb to extract
+                # data for special cases where column and value types
+                # may not align (which is valid functionality in SQLite).
                 table=_sqlite_mixed_type_query_to_parquet(
                     source_path=str(source["source_path"]),
                     table_name=str(source["table_name"]),
