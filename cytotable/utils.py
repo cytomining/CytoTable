@@ -395,7 +395,7 @@ def _expand_path(
     path: Union[str, pathlib.Path, CloudPath]
 ) -> Union[str, pathlib.Path, CloudPath]:
     """
-    Expands provided path with os environment or user expanded paths.
+    Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.
 
     Args:
         path: Union[str, pathlib.Path, CloudPath]:
