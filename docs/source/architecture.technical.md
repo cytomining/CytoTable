@@ -56,6 +56,13 @@ cytotable.convert(
 In addition to using Python native data types, we also accomplish internal data management for CytoTable using [PyArrow (Apache Arrow) Tables](https://arrow.apache.org/docs/python/generated/pyarrow.Table.html).
 Using Arrow-compatible formats is intended to assist cross-platform utility, encourage high-performance, and enable advanced data integration with non-Python tools.
 
+#### Arrow Memory Allocator Selection
+
+PyArrow may select to use `malloc`, `jemalloc`, or `mimalloc` depending on the operating system and allocator availability.
+This memory allocator selection may also be overridden by a developer implementing CytoTable to help with performance aspects related to user environments.
+PyArrow inherits environment configuration from the Arrow C++ implementation ([see note on this page](https://arrow.apache.org/docs/python/env_vars.html)).
+Use the [`ARROW_DEFAULT_MEMORY_POOL` environment variable](https://arrow.apache.org/docs/cpp/env_vars.html#envvar-ARROW_DEFAULT_MEMORY_POOL) to statically define which memory allocator will be used when implementing CytoTable.
+
 ### SQL-based Data Management
 
 We use the [DuckDB Python API client](https://duckdb.org/docs/api/python/overview) in some areas to interface with [SQL](https://en.wikipedia.org/wiki/SQL) (for example, SQLite databases) and other data formats.
