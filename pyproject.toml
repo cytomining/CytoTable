@@ -22,7 +22,7 @@ sphinxcontrib-mermaid = "^0.8.0"
 moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cffconvert = "^2.0.0"
 cytominer-database = "^0.3.4"
-pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "c90438fd7c11ad8b1689c21db16dab1a5280de6c" }
+pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "09b2c79aa94908e3520f0931a844db4fba7fd3fb" }
 
 [build-system]
 requires = ["poetry-core"]
