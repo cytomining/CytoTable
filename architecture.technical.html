@@ -84,6 +84,19 @@ Using data in this way may require the use of an additional parameter for the cl
 <h3>In-process Data Format<a class="headerlink" href="#in-process-data-format" title="Permalink to this heading">¶</a></h3>
 <p>In addition to using Python native data types, we also accomplish internal data management for CytoTable using <a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.Table.html">PyArrow (Apache Arrow) Tables</a>.
 Using Arrow-compatible formats is intended to assist cross-platform utility, encourage high-performance, and enable advanced data integration with non-Python tools.</p>
+<section id="arrow-memory-allocator-selection">
+<h4>Arrow Memory Allocator Selection<a class="headerlink" href="#arrow-memory-allocator-selection" title="Permalink to this heading">¶</a></h4>
+<p>PyArrow may select to use <a class="reference external" href="https://en.wikipedia.org/wiki/C_dynamic_memory_allocation"><code class="docutils literal notranslate"><span class="pre">malloc</span></code></a>, <a class="reference external" href="https://github.com/jemalloc/jemalloc"><code class="docutils literal notranslate"><span class="pre">jemalloc</span></code></a>, or <a class="reference external" href="https://github.com/microsoft/mimalloc"><code class="docutils literal notranslate"><span class="pre">mimalloc</span></code></a> depending on the operating system and allocator availability.
+This memory allocator selection may also be overridden by a developer implementing CytoTable to help with performance aspects related to user environments.
+PyArrow inherits environment configuration from the Arrow C++ implementation (<a class="reference external" href="https://arrow.apache.org/docs/python/env_vars.html">see note on this page</a>).
+Use the <a class="reference external" href="https://arrow.apache.org/docs/cpp/env_vars.html#envvar-ARROW_DEFAULT_MEMORY_POOL"><code class="docutils literal notranslate"><span class="pre">ARROW_DEFAULT_MEMORY_POOL</span></code> environment variable</a> to statically define which memory allocator will be used when implementing CytoTable.</p>
+</section>
+<section id="arrow-memory-mapping-selection">
+<h4>Arrow Memory Mapping Selection<a class="headerlink" href="#arrow-memory-mapping-selection" title="Permalink to this heading">¶</a></h4>
+<p>PyArrow includes functionality which enables <a class="reference external" href="https://en.wikipedia.org/wiki/Memory-mapped_file">memory mapped</a> parquet file reads for performance benefits (<a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html">see <code class="docutils literal notranslate"><span class="pre">memory_map</span></code> parameter</a>).
+This functionality is enabled by default in CytoTable.
+You may disable this functionality by setting environment variable <code class="docutils literal notranslate"><span class="pre">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span></code> to <code class="docutils literal notranslate"><span class="pre">0</span></code> (for example: <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">CYTOTABLE_ARROW_USE_MEMORY_MAPPING=0</span></code>).</p>
+</section>
 </section>
 <section id="sql-based-data-management">
 <h3>SQL-based Data Management<a class="headerlink" href="#sql-based-data-management" title="Permalink to this heading">¶</a></h3>
