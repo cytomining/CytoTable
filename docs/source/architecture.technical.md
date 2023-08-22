@@ -58,7 +58,7 @@ Using Arrow-compatible formats is intended to assist cross-platform utility, enc
 
 #### Arrow Memory Allocator Selection
 
-PyArrow may select to use `malloc`, `jemalloc`, or `mimalloc` depending on the operating system and allocator availability.
+PyArrow may select to use [`malloc`](https://en.wikipedia.org/wiki/C_dynamic_memory_allocation), [`jemalloc`](https://github.com/jemalloc/jemalloc), or [`mimalloc`](https://github.com/microsoft/mimalloc) depending on the operating system and allocator availability.
 This memory allocator selection may also be overridden by a developer implementing CytoTable to help with performance aspects related to user environments.
 PyArrow inherits environment configuration from the Arrow C++ implementation ([see note on this page](https://arrow.apache.org/docs/python/env_vars.html)).
 Use the [`ARROW_DEFAULT_MEMORY_POOL` environment variable](https://arrow.apache.org/docs/cpp/env_vars.html#envvar-ARROW_DEFAULT_MEMORY_POOL) to statically define which memory allocator will be used when implementing CytoTable.
