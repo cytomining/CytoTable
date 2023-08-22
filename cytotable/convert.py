@@ -391,9 +391,13 @@ def _prepend_column_name(
 
     import pyarrow.parquet as parquet
 
+    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+
     targets = tuple(metadata) + tuple(compartments)
 
-    table = parquet.read_table(source=table_path, memory_map=True)
+    table = parquet.read_table(
+        source=table_path, memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+    )
 
     # stem of source group name
     # for example:
@@ -543,6 +547,7 @@ def _concat_source_group(
     import pyarrow.parquet as parquet
 
     from cytotable.exceptions import SchemaException
+    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
 
     # check whether we already have a file as dest_path
     if pathlib.Path(dest_path).is_file():
@@ -600,7 +605,11 @@ def _concat_source_group(
                 # note: we pass column order based on the first chunk file to help ensure schema
                 # compatibility for the writer
                 writer.write_table(
-                    parquet.read_table(table, schema=writer_schema, memory_map=True)
+                    parquet.read_table(
+                        table,
+                        schema=writer_schema,
+                        memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+                    )
                 )
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
@@ -647,6 +656,7 @@ def _get_join_chunks(
     import pathlib
 
     import pyarrow.parquet as parquet
+    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
 
     # fetch the compartment concat result as the basis for join groups
     for key, source in sources.items():
@@ -659,7 +669,9 @@ def _get_join_chunks(
 
     # read only the table's chunk_columns
     join_column_rows = parquet.read_table(
-        source=basis[0]["table"], columns=list(chunk_columns), memory_map=True
+        source=basis[0]["table"],
+        columns=list(chunk_columns),
+        memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
     ).to_pylist()
 
     # build and return the chunked join column rows
@@ -821,6 +833,7 @@ def _concat_join_sources(
     import shutil
 
     import pyarrow.parquet as parquet
+    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
@@ -840,7 +853,9 @@ def _concat_join_sources(
     parquet.write_table(
         table=pa.concat_tables(
             tables=[
-                parquet.read_table(table_path, memory_map=True)
+                parquet.read_table(
+                    table_path, memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+                )
                 for table_path in join_sources
             ]
         ),
@@ -854,7 +869,11 @@ def _concat_join_sources(
     with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
         for table_path in join_sources:
             writer.write_table(
-                parquet.read_table(table_path, schema=writer_schema, memory_map=True)
+                parquet.read_table(
+                    table_path,
+                    schema=writer_schema,
+                    memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+                )
             )
             # remove the file which was written in the concatted parquet file (we no longer need it)
             pathlib.Path(table_path).unlink()

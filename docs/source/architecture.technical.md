@@ -63,6 +63,12 @@ This memory allocator selection may also be overridden by a developer implementi
 PyArrow inherits environment configuration from the Arrow C++ implementation ([see note on this page](https://arrow.apache.org/docs/python/env_vars.html)).
 Use the [`ARROW_DEFAULT_MEMORY_POOL` environment variable](https://arrow.apache.org/docs/cpp/env_vars.html#envvar-ARROW_DEFAULT_MEMORY_POOL) to statically define which memory allocator will be used when implementing CytoTable.
 
+#### Arrow Memory Mapping Selection
+
+PyArrow includes functionality which enables [memory mapped](https://en.wikipedia.org/wiki/Memory-mapped_file) parquet file reads for performance benefits ([see `memory_map` parameter](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html)).
+This functionality is enabled by default in CytoTable.
+You may disable this functionality by setting environment variable `CYTOTABLE_ARROW_USE_MEMORY_MAPPING` to `0` (for example: `export CYTOTABLE_ARROW_USE_MEMORY_MAPPING=0`).
+
 ### SQL-based Data Management
 
 We use the [DuckDB Python API client](https://duckdb.org/docs/api/python/overview) in some areas to interface with [SQL](https://en.wikipedia.org/wiki/SQL) (for example, SQLite databases) and other data formats.
