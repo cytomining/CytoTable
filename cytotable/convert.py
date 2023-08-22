@@ -656,6 +656,7 @@ def _get_join_chunks(
     import pathlib
 
     import pyarrow.parquet as parquet
+
     from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
 
     # fetch the compartment concat result as the basis for join groups
@@ -833,6 +834,7 @@ def _concat_join_sources(
     import shutil
 
     import pyarrow.parquet as parquet
+
     from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
