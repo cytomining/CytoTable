@@ -1365,6 +1365,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             # else we attempt to load the given parsl configuration
             parsl.load(parsl_config)
     else:
+        # otherwise, cleanup the kernel and warn the user about previous config.
+        import gc
+
+        gc.collect()
         logger.warning("Reusing previously loaded Parsl configuration.")
 
     # optionally load preset configuration for arguments
