@@ -13,7 +13,7 @@ import pyarrow as pa
 from parsl.app.app import join_app, python_app
 
 from cytotable.presets import config
-from cytotable.utils import _column_sort, _default_parsl_config
+from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 
 logger = logging.getLogger(__name__)
 
@@ -1356,31 +1356,16 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
-    # attempt to load parsl configuration
-    try:
+    # attempt to load parsl configuration if we don't already have one
+    if not _parsl_loaded():
         # if we don't have a parsl configuration provided, load the default
         if parsl_config is None:
             parsl.load(_default_parsl_config())
         else:
             # else we attempt to load the given parsl configuration
             parsl.load(parsl_config)
-    except RuntimeError as runtime_exc:
-        # catch cases where parsl has already been loaded and defer to
-        # previously loaded configuration with a warning
-        if str(runtime_exc) == "Config has already been loaded":
-            logger.warning(str(runtime_exc))
-
-            # if we're supplying a new config, attempt to clear current config
-            # and use the new configuration instead. Otherwise, use existing.
-            if parsl_config is not None:
-                # clears the existing parsl configuration
-                parsl.clear()
-                # then load the supplied configuration
-                parsl.load(parsl_config)
-
-        # for other potential runtime errors besides config already being loaded
-        else:
-            raise
+    else:
+        logger.warning("Reusing previously loaded Parsl configuration.")
 
     # optionally load preset configuration for arguments
     # note: defer to overrides from parameters whose values
