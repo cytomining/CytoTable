@@ -7,9 +7,9 @@ import multiprocessing
 import os
 import pathlib
 from typing import Any, Dict, Union, cast
-import parsl
-import duckdb
 
+import duckdb
+import parsl
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
