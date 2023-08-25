@@ -113,6 +113,10 @@ def _parsl_loaded() -> bool:
         if str(rte) == "Must first load config":
             return False
 
+        # otherwise we raise other RuntimeError's
+        else:
+            raise
+
     # otherwise we indicate parsl config has already been loaded
     return True
 
