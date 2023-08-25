@@ -1314,8 +1314,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             an optional group of presets to use based on common configurations
         parsl_config: Optional[parsl.Config] (Default value = None)
             Optional Parsl configuration to use for running CytoTable operations.
-            Note: when using CytoTable multiple times in the same process the
-            first configuration loaded will be reused during subsequent runs.
+            Note: when using CytoTable multiple times in the same process,
+            CytoTable will use the first provided configuration for all runs.
 
     Returns:
         Union[Dict[str, List[Dict[str, Any]]], str]
@@ -1358,7 +1358,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
-    # attempt to load parsl configuration if we don't already have one
+    # attempt to load parsl configuration if we didn't already load one
     if not _parsl_loaded():
         # if we don't have a parsl configuration provided, load the default
         if parsl_config is None:
