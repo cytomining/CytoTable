@@ -43,7 +43,7 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">duckdb</span>
-<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
+<span class="kn">import</span> <span class="nn">parsl</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">AppBase</span>
@@ -131,6 +131,28 @@
 
 <span class="c1"># set the AppBase to the new init for the docstring.</span>
 <span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">Parsl_AppBase_init_for_docs</span>
+
+
+<div class="viewcode-block" id="_parsl_loaded"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._parsl_loaded">[docs]</a><span class="k">def</span> <span class="nf">_parsl_loaded</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Checks whether Parsl configuration has already been loaded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># try to reference Parsl dataflowkernel</span>
+        <span class="n">parsl</span><span class="o">.</span><span class="n">dfk</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">rte</span><span class="p">:</span>
+        <span class="c1"># if we detect a runtime error that states we need to load config</span>
+        <span class="c1"># return false to indicate parsl config has not yet been loaded.</span>
+        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">rte</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Must first load config&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># otherwise we raise other RuntimeError&#39;s</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span>
+
+    <span class="c1"># otherwise we indicate parsl config has already been loaded</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
 
 
 <div class="viewcode-block" id="_default_parsl_config"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._default_parsl_config">[docs]</a><span class="k">def</span> <span class="nf">_default_parsl_config</span><span class="p">():</span>

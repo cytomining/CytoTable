@@ -47,7 +47,7 @@
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">join_app</span><span class="p">,</span> <span class="n">python_app</span>
 
 <span class="kn">from</span> <span class="nn">cytotable.presets</span> <span class="kn">import</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_column_sort</span><span class="p">,</span> <span class="n">_default_parsl_config</span>
+<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_column_sort</span><span class="p">,</span> <span class="n">_default_parsl_config</span><span class="p">,</span> <span class="n">_parsl_loaded</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -1348,6 +1348,8 @@
 <span class="sd">            an optional group of presets to use based on common configurations</span>
 <span class="sd">        parsl_config: Optional[parsl.Config] (Default value = None)</span>
 <span class="sd">            Optional Parsl configuration to use for running CytoTable operations.</span>
+<span class="sd">            Note: when using CytoTable multiple times in the same process,</span>
+<span class="sd">            CytoTable will use the first provided configuration for all runs.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[Dict[str, List[Dict[str, Any]]], str]</span>
@@ -1390,31 +1392,17 @@
 <span class="sd">            )</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># attempt to load parsl configuration</span>
-    <span class="k">try</span><span class="p">:</span>
+    <span class="c1"># attempt to load parsl configuration if we didn&#39;t already load one</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_parsl_loaded</span><span class="p">():</span>
         <span class="c1"># if we don&#39;t have a parsl configuration provided, load the default</span>
         <span class="k">if</span> <span class="n">parsl_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">parsl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">_default_parsl_config</span><span class="p">())</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># else we attempt to load the given parsl configuration</span>
             <span class="n">parsl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">parsl_config</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">RuntimeError</span> <span class="k">as</span> <span class="n">runtime_exc</span><span class="p">:</span>
-        <span class="c1"># catch cases where parsl has already been loaded and defer to</span>
-        <span class="c1"># previously loaded configuration with a warning</span>
-        <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">runtime_exc</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;Config has already been loaded&quot;</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">runtime_exc</span><span class="p">))</span>
-
-            <span class="c1"># if we&#39;re supplying a new config, attempt to clear current config</span>
-            <span class="c1"># and use the new configuration instead. Otherwise, use existing.</span>
-            <span class="k">if</span> <span class="n">parsl_config</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="c1"># clears the existing parsl configuration</span>
-                <span class="n">parsl</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-                <span class="c1"># then load the supplied configuration</span>
-                <span class="n">parsl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">parsl_config</span><span class="p">)</span>
-
-        <span class="c1"># for other potential runtime errors besides config already being loaded</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># otherwise warn the user about previous config.</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Reusing previously loaded Parsl configuration.&quot;</span><span class="p">)</span>
 
     <span class="c1"># optionally load preset configuration for arguments</span>
     <span class="c1"># note: defer to overrides from parameters whose values</span>
