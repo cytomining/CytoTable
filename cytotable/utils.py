@@ -9,7 +9,7 @@ import pathlib
 from typing import Any, Dict, Union, cast
 
 import duckdb
-import pyarrow as pa
+import parsl
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
@@ -97,6 +97,28 @@ def Parsl_AppBase_init_for_docs(self, func, *args, **kwargs):
 
 # set the AppBase to the new init for the docstring.
 AppBase.__init__ = Parsl_AppBase_init_for_docs
+
+
+def _parsl_loaded() -> bool:
+    """
+    Checks whether Parsl configuration has already been loaded.
+    """
+
+    try:
+        # try to reference Parsl dataflowkernel
+        parsl.dfk()
+    except RuntimeError as rte:
+        # if we detect a runtime error that states we need to load config
+        # return false to indicate parsl config has not yet been loaded.
+        if str(rte) == "Must first load config":
+            return False
+
+        # otherwise we raise other RuntimeError's
+        else:
+            raise
+
+    # otherwise we indicate parsl config has already been loaded
+    return True
 
 
 def _default_parsl_config():
