@@ -312,6 +312,15 @@ def _sqlite_mixed_type_query_to_parquet(
             for row in cursor.fetchall()
         ]
 
+        # close the sqlite3 cursor
+        cursor.close()
+
+    # close the sqlite3 connection
+    # note: context manager does not automatically close the connection
+    # as per notes found under:
+    # https://docs.python.org/3/library/sqlite3.html#sqlite3-connection-context-manager
+    conn.close()
+
     # return arrow table with results
     return pa.Table.from_pylist(results)
 
