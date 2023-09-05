@@ -189,6 +189,11 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     Creates a DuckDB connection with the
     sqlite_scanner installed and loaded.
 
+    Note: using this function assumes implementation will
+    close the subsequently created DuckDB connection using
+    `_duckdb_reader().close()` or using a context manager,
+    for ex., using: `with _duckdb_reader() as ddb_reader:`
+
     Returns:
         duckdb.DuckDBPyConnection
     """
