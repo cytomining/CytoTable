@@ -1966,13 +1966,13 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2023.4.24"
+version = "2023.9.4"
 description = "Simple data dependent workflows in Python"
 optional = false
-python-versions = ">=3.7.0"
+python-versions = ">=3.8.0"
 files = [
-    {file = "parsl-2023.4.24-py3-none-any.whl", hash = "sha256:5b5dd7869c961ea9a67bf2aeee0e21363e754395a11db680d8d7f42da9fac36a"},
-    {file = "parsl-2023.4.24.tar.gz", hash = "sha256:6247fcb19e64a85491973fb21556cdf8b2496a463ea1c517eece0c0661dcdf96"},
+    {file = "parsl-2023.9.4-py3-none-any.whl", hash = "sha256:b6cfa2d67039ab64249f9e9f364d5f9aee7ae0d7ec9a5583a4022d9eb448e64b"},
+    {file = "parsl-2023.9.4.tar.gz", hash = "sha256:4203531345c46551dab94455d3efa1c60abe08f3c81740929c11eb83ae287bff"},
 ]
 
 [package.dependencies]
@@ -1986,13 +1986,10 @@ setproctitle = "*"
 six = "*"
 tblib = "*"
 typeguard = ">=2.10,<3"
-types-paramiko = "*"
-types-requests = "*"
-types-six = "*"
-typing-extensions = "*"
+typing-extensions = ">=4.6,<5"
 
 [package.extras]
-all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "oauth-ssh (>=0.9)", "pandas (<2)", "plotly", "pydot", "python-daemon", "python-gssapi", "pyyaml", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
+all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "oauth-ssh (>=0.9)", "pandas (<2)", "plotly", "proxystore", "pydot", "python-daemon", "python-gssapi", "pyyaml", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
 aws = ["boto3"]
 azure = ["azure (<=4)", "msrestazure"]
 docs = ["ipython (<=8.6.0)", "nbsphinx", "sphinx-rtd-theme"]
@@ -2002,6 +1999,7 @@ gssapi = ["python-gssapi"]
 kubernetes = ["kubernetes"]
 monitoring = ["Flask (>=1.0.2)", "flask-sqlalchemy", "networkx (>=2.5,<2.6)", "pandas (<2)", "plotly", "pydot", "python-daemon", "sqlalchemy (>=1.4,<2)"]
 oauth-ssh = ["oauth-ssh (>=0.9)"]
+proxystore = ["proxystore"]
 workqueue = ["work-queue"]
 
 [[package]]
@@ -3331,20 +3329,6 @@ doc = ["sphinx-autodoc-typehints (>=1.2.0)", "sphinx-rtd-theme"]
 test = ["mypy", "pytest", "typing-extensions"]
 
 [[package]]
-name = "types-paramiko"
-version = "3.0.0.8"
-description = "Typing stubs for paramiko"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-paramiko-3.0.0.8.tar.gz", hash = "sha256:5827d71fb1962f27af90def565283cc900270055be4f9a00c62b3e9fea16430a"},
-    {file = "types_paramiko-3.0.0.8-py3-none-any.whl", hash = "sha256:6f9b0a38d13ec31a7748f8e0070f8a767479abcf8def246545c391680531d4f0"},
-]
-
-[package.dependencies]
-cryptography = ">=37.0.0"
-
-[[package]]
 name = "types-pyyaml"
 version = "6.0.12.9"
 description = "Typing stubs for PyYAML"
@@ -3356,50 +3340,14 @@ files = [
 ]
 
 [[package]]
-name = "types-requests"
-version = "2.28.11.17"
-description = "Typing stubs for requests"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-requests-2.28.11.17.tar.gz", hash = "sha256:0d580652ce903f643f8c3b494dd01d29367ea57cea0c7ad7f65cf3169092edb0"},
-    {file = "types_requests-2.28.11.17-py3-none-any.whl", hash = "sha256:cc1aba862575019306b2ed134eb1ea994cab1c887a22e18d3383e6dd42e9789b"},
-]
-
-[package.dependencies]
-types-urllib3 = "<1.27"
-
-[[package]]
-name = "types-six"
-version = "1.16.21.8"
-description = "Typing stubs for six"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-six-1.16.21.8.tar.gz", hash = "sha256:02a892ff8f423c4c5d15de7c6f4d433e643c863bcbefabd19251b478cbb284ab"},
-    {file = "types_six-1.16.21.8-py3-none-any.whl", hash = "sha256:e118ebebb4944af96b4c022b15c0769c065af09126eb148b7797023e905e0652"},
-]
-
-[[package]]
-name = "types-urllib3"
-version = "1.26.25.11"
-description = "Typing stubs for urllib3"
-optional = false
-python-versions = "*"
-files = [
-    {file = "types-urllib3-1.26.25.11.tar.gz", hash = "sha256:697102ddf4f781eed6f692353f40cee1098643526f5a8b99f49d2ede90fd3754"},
-    {file = "types_urllib3-1.26.25.11-py3-none-any.whl", hash = "sha256:04235e792139cf3624b25d38faab593456738fbdb7439634046172e3b1339400"},
-]
-
-[[package]]
 name = "typing-extensions"
-version = "4.5.0"
+version = "4.7.1"
 description = "Backported and Experimental Type Hints for Python 3.7+"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "typing_extensions-4.5.0-py3-none-any.whl", hash = "sha256:fb33085c39dd998ac16d1431ebc293a8b3eedd00fd4a32de0ff79002c19511b4"},
-    {file = "typing_extensions-4.5.0.tar.gz", hash = "sha256:5cb5f4a79139d699607b3ef622a1dedafa84e115ab0024e0d9c044a9479ca7cb"},
+    {file = "typing_extensions-4.7.1-py3-none-any.whl", hash = "sha256:440d5dd3af93b060174bf433bccd69b0babc3b15b1a8dca43789fd7f61514b36"},
+    {file = "typing_extensions-4.7.1.tar.gz", hash = "sha256:b75ddc264f0ba5615db7ba217daeb99701ad295353c45f9e95963337ceeeffb2"},
 ]
 
 [[package]]
