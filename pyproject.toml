@@ -43,3 +43,6 @@ skips = ["B608"]
 
 [tool.codespell]
 ignore-words=".codespell-ignore"
+
+[tool.pytest.ini_options]
+console_output_style = "classic"
