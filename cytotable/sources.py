@@ -94,36 +94,36 @@ def _get_source_filepaths(
 
     # expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []
-    for element in sources:
-        # check that the path is of sqlite type
-        if element["source_path"].suffix.lower() == ".sqlite":
-            # creates individual entries for each table
-            expanded_sources += [
-                {
-                    "source_path": AnyPath(
-                        f"{element['source_path']}/{table_name}.sqlite"
-                    ),
-                    "table_name": table_name,
-                }
-                # perform a query to find the table names from the sqlite file
-                for table_name in _duckdb_reader()
-                .execute(
-                    """
-                    /* perform query on sqlite_master table for metadata on tables */
-                    SELECT name as table_name
-                    from sqlite_scan(?, 'sqlite_master')
-                    where type='table'
-                    """,
-                    parameters=[str(element["source_path"])],
-                )
-                .arrow()["table_name"]
-                .to_pylist()
-                # make sure the table names match with compartment + metadata names
-                if any(target.lower() in table_name.lower() for target in targets)
-            ]
-        else:
-            # if we don't have sqlite source, append the existing element
-            expanded_sources.append(element)
+    with _duckdb_reader() as ddb_reader:
+        for element in sources:
+            # check that the path is of sqlite type
+            if element["source_path"].suffix.lower() == ".sqlite":
+                # creates individual entries for each table
+                expanded_sources += [
+                    {
+                        "source_path": AnyPath(
+                            f"{element['source_path']}/{table_name}.sqlite"
+                        ),
+                        "table_name": table_name,
+                    }
+                    # perform a query to find the table names from the sqlite file
+                    for table_name in ddb_reader.execute(
+                        """
+                        /* perform query on sqlite_master table for metadata on tables */
+                        SELECT name as table_name
+                        from sqlite_scan(?, 'sqlite_master')
+                        where type='table'
+                        """,
+                        parameters=[str(element["source_path"])],
+                    )
+                    .arrow()["table_name"]
+                    .to_pylist()
+                    # make sure the table names match with compartment + metadata names
+                    if any(target.lower() in table_name.lower() for target in targets)
+                ]
+            else:
+                # if we don't have sqlite source, append the existing element
+                expanded_sources.append(element)
 
     # reset sources to expanded_sources
     sources = expanded_sources
