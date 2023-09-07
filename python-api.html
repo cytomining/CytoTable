@@ -755,6 +755,10 @@ To be used with sorted and Pyarrow tables.</p>
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_duckdb_reader</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DuckDBPyConnection</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_duckdb_reader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._duckdb_reader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a DuckDB connection with the
 sqlite_scanner installed and loaded.</p>
+<p>Note: using this function assumes implementation will
+close the subsequently created DuckDB connection using
+<cite>_duckdb_reader().close()</cite> or using a context manager,
+for ex., using: <cite>with _duckdb_reader() as ddb_reader:</cite></p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>duckdb.DuckDBPyConnection</p>

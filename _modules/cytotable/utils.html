@@ -223,6 +223,11 @@
 <span class="sd">    Creates a DuckDB connection with the</span>
 <span class="sd">    sqlite_scanner installed and loaded.</span>
 
+<span class="sd">    Note: using this function assumes implementation will</span>
+<span class="sd">    close the subsequently created DuckDB connection using</span>
+<span class="sd">    `_duckdb_reader().close()` or using a context manager,</span>
+<span class="sd">    for ex., using: `with _duckdb_reader() as ddb_reader:`</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        duckdb.DuckDBPyConnection</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -345,6 +350,15 @@
             <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">([</span><span class="n">desc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">desc</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">],</span> <span class="n">row</span><span class="p">))</span>
             <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
         <span class="p">]</span>
+
+        <span class="c1"># close the sqlite3 cursor</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="c1"># close the sqlite3 connection</span>
+    <span class="c1"># note: context manager does not automatically close the connection</span>
+    <span class="c1"># as per notes found under:</span>
+    <span class="c1"># https://docs.python.org/3/library/sqlite3.html#sqlite3-connection-context-manager</span>
+    <span class="n">conn</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
     <span class="c1"># return arrow table with results</span>
     <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pylist</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>

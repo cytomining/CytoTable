@@ -113,12 +113,14 @@
         <span class="c1"># isolate using new connection to read data with chunk size + offset</span>
         <span class="c1"># and export directly to parquet via duckdb (avoiding need to return data to python)</span>
         <span class="c1"># perform the query and create a list of dictionaries with the column data for table</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="n">_duckdb_reader</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="n">select_source</span><span class="p">))</span>
-            <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
-        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="n">select_source</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+            <span class="p">)</span>
 
     <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="c1"># if we see a mismatched type error</span>
@@ -135,12 +137,14 @@
                 <span class="c1"># result from table</span>
                 <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="k">return</span> <span class="p">(</span>
-                <span class="n">_duckdb_reader</span><span class="p">()</span>
-                <span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow_data_tbl&quot;</span><span class="p">))</span>
-                <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
-                <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
-            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">(</span>
+                    <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                        <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow_data_tbl&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
+                    <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span>
 
@@ -246,16 +250,15 @@
             <span class="p">)</span>
 
         <span class="c1"># gather the total rowcount from csv or sqlite data input sources</span>
-        <span class="n">rowcount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-            <span class="n">_duckdb_reader</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                <span class="c1"># nosec</span>
-                <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;)&quot;</span>
-                <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
-                <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+        <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+            <span class="n">rowcount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="c1"># nosec</span>
+                    <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;)&quot;</span>
+                    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
+                    <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="p">)</span>
 
     <span class="c1"># catch input errors which will result in skipped files</span>
     <span class="k">except</span> <span class="p">(</span><span class="n">duckdb</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">,</span> <span class="n">NoInputDataException</span><span class="p">)</span> <span class="k">as</span> <span class="n">invalid_input_exc</span><span class="p">:</span>
@@ -348,17 +351,16 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># read data with chunk size + offset</span>
         <span class="c1"># and export to parquet</span>
-        <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
-            <span class="n">table</span><span class="o">=</span><span class="n">_duckdb_reader</span><span class="p">()</span>
-            <span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
-<span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
-<span class="s2">                &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+            <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
+<span class="s2">                    LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">                    &quot;&quot;&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
+                <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
-            <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
-        <span class="p">)</span>
     <span class="c1"># Include exception handling to read mixed-type data</span>
     <span class="c1"># using sqlite3 and special utility function.</span>
     <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -797,8 +799,9 @@
         <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
     <span class="p">)</span>
 
-    <span class="c1"># perform compartment joins using duckdb over parquet files</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">_duckdb_reader</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">joins</span><span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+        <span class="c1"># perform compartment joins using duckdb over parquet files</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">joins</span><span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
 
     <span class="c1"># drop nulls if specified</span>
     <span class="k">if</span> <span class="n">drop_null</span><span class="p">:</span>
