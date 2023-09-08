@@ -39,6 +39,7 @@ from cytotable.utils import (
     _column_sort,
     _duckdb_reader,
     _expand_path,
+    _parsl_loaded,
     _sqlite_mixed_type_query_to_parquet,
 )
 
@@ -1064,6 +1065,11 @@ def test_convert_hte_cellprofiler_csv(
     https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor
     """
 
+    # check for previously loaded configuration
+    if _parsl_loaded():
+        # clear the previous config
+        parsl.clear()
+
     local_htex = Config(
         executors=[
             HighThroughputExecutor(
@@ -1089,6 +1095,7 @@ def test_convert_hte_cellprofiler_csv(
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
+            # uses a custom parsl configuration
             parsl_config=local_htex,
         )
     )
