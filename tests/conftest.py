@@ -1,6 +1,9 @@
 """
 conftest.py for pytest
 """
+
+# pylint: disable=line-too-long,unused-argument
+
 import pathlib
 import shutil
 import sqlite3
@@ -22,16 +25,54 @@ from parsl.executors import ThreadPoolExecutor
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-from cytotable.utils import _column_sort, _default_parsl_config
+from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 
 
-@pytest.fixture(name="load_parsl", scope="session", autouse=True)
-def fixture_load_parsl() -> None:
+@pytest.fixture(name="clear_parsl_config", scope="module")
+def fixture_clear_parsl_config() -> None:
     """
-    Fixture for loading parsl for tests
+    Fixture for clearing previously set parsl configurations.
+
+    This is primarily used with the load_parsl_* fixtures in order to avoid
+    issues with overlapping and sometimes mixed sequence test execution.
+    """
+
+    # check for previously loaded configuration
+    if _parsl_loaded():
+        # clear the previous config
+        parsl.clear()
+
+
+@pytest.fixture(name="load_parsl_threaded", scope="module")
+def fixture_load_parsl_threaded(clear_parsl_config: None) -> None:
+    """
+    Fixture for loading parsl ThreadPoolExecutor for testing
+
+    See the following for more details.
+    https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.ThreadPoolExecutor.html
+
+    Note: we use the threadpoolexecutor in some occasions to avoid issues
+    with multiprocessing in moto / mocked S3 environments.
+    See here for more: https://docs.getmoto.org/en/latest/docs/faq.html#is-moto-concurrency-safe
+    """
+
+    parsl.load(
+        Config(executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")])
+    )
+
+
+@pytest.fixture(name="load_parsl_default", scope="module")
+def fixture_load_parsl_default(clear_parsl_config: None) -> None:
+    """
+    Fixture for loading default cytotable parsl config for tests
+
+    This leverages Parsl's HighThroughputExecutor.
+    See here for more: https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html
     """
 
     config = _default_parsl_config()
+    # note: we add the debug option here for testing from the default
+    # referenced in configuration to help observe testing issues
     config.executors[0].worker_debug = True
 
     parsl.load(config)
