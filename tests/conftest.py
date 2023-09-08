@@ -17,6 +17,8 @@ import pyarrow as pa
 import pytest
 from moto import mock_s3
 from moto.server import ThreadedMotoServer
+from parsl.config import Config
+from parsl.executors import ThreadPoolExecutor
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
@@ -28,7 +30,11 @@ def fixture_load_parsl() -> None:
     """
     Fixture for loading parsl for tests
     """
-    parsl.load(_default_parsl_config())
+
+    config = _default_parsl_config()
+    config.executors[0].worker_debug = True
+
+    parsl.load(config)
 
 
 # note: we use name here to avoid pylint flagging W0621
@@ -524,7 +530,7 @@ def fixture_s3_session() -> boto3.session.Session:
     """
 
     # start a moto server for use in testing
-    server = ThreadedMotoServer()
+    server = ThreadedMotoServer(port=5001)
     server.start()
 
     with mock_s3():
@@ -545,7 +551,7 @@ def example_s3_endpoint(
     """
     # s3 is a fixture defined above that yields a boto3 s3 client.
     # Feel free to instantiate another boto3 S3 client -- Keep note of the region though.
-    endpoint_url = "http://localhost:5000"
+    endpoint_url = "http://localhost:5001"
     bucket_name = "example"
 
     # create s3 client
