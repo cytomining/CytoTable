@@ -128,7 +128,7 @@ def _default_parsl_config():
     return Config(
         executors=[
             HighThroughputExecutor(
-                label="HighThroughputExecutor default for CytoTable",
+                label="htex_default_for_cytotable",
             )
         ]
     )
