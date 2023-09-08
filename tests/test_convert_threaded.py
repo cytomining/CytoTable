@@ -1,8 +1,8 @@
 """
-Tests for CytoTable.convert and related.
+ThreadPoolExecutor-based tests for CytoTable.convert and related.
 """
 
-# pylint: disable=no-member,too-many-lines,unused-argument
+# pylint: disable=no-member,too-many-lines,unused-argument,line-too-long
 
 
 import pathlib

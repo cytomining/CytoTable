@@ -1,5 +1,7 @@
 """
 Tests for CytoTable.convert and related.
+
+Note: these use the _default_parsl_config.
 """
 
 # pylint: disable=no-member,too-many-lines,unused-argument
