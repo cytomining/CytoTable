@@ -482,9 +482,9 @@ def fixture_cytominerdatabase_merged_cellhealth(
             AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
     """
 
-    # extract a pyarrow table using pandas
-    control_result = pa.Table.from_pandas(
-        df=pd.read_sql(
+    # extract a pandas df
+    df_from_sqlite = (
+        pd.read_sql(
             sql=sql_stmt,
             con=f"sqlite:///{data_dir_cytominerdatabase}/Cell-Health/test-SQ00014613.sqlite",
         )
@@ -500,8 +500,18 @@ def fixture_cytominerdatabase_merged_cellhealth(
             }
             # drop generic objectnumber column gathered from each compartment
             # (we'll rely on the compartment prefixed name instead for comparisons)
-        ).drop(columns="ObjectNumber")
-    )
+        )
+        # drop ObjectNumber entirely (we have no reference as to which compartment object)
+    ).drop(columns="ObjectNumber")
+    # Drop duplicated column names which come from each compartment table
+    # in preparation for conversion to arrow.
+    # for ex: Metadata_ImageNumber and Metadata_TableNumber
+    df_from_sqlite = df_from_sqlite.loc[
+        :, ~df_from_sqlite.columns.duplicated(keep="first")
+    ]
+
+    # convert to arrow table using the pandas df
+    control_result = pa.Table.from_pandas(df=df_from_sqlite)
 
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
