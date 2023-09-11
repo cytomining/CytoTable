@@ -10,7 +10,7 @@ If you are stuck, please feel free to ask any questions or ask for help.
 
 This project is governed by our [code of conduct](code_of_conduct.md).
 By participating, you are expected to uphold this code.
-Please report unacceptable behavior to cytodata.info@gmail.com.
+Please report unacceptable behavior to [cytodata.info@gmail.com](mailto:cytodata.info@gmail.com).
 
 ## Quick links
 
@@ -33,6 +33,7 @@ This information includes:
 - The format of input data
 - Copy and paste two pieces of information: 1) your command and 2) the specific error message
 - What you’ve tried to overcome the bug
+- What environment you're running CytoTable in (for example, OS, hardware, etc.)
 
 Please provide this information as an issue in the repository: <https://github.com/cytomining/CytoTable/issues>
 
@@ -94,19 +95,8 @@ When appropriate, reference issues (via `#` plus number) .
 
 ### Overview
 
-```{mermaid}
-flowchart LR
-    subgraph Dagger
-        containers["Container(s)"]
-    end
-    subgraph Poetry
-        python[Python]
-    end
-    python --> |running within| containers
-```
-
 CytoTable is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
-We use [Dagger](https://docs.dagger.io/) for consistent local testing and for automated tests via containers.
+We use [pytest](https://docs.pytest.org/) for local testing and [GitHub actions](https://docs.github.com/en/actions) for automated tests via containers.
 
 ### Getting started
 
@@ -115,10 +105,6 @@ To enable local development, perform the following steps.
 1. [Install Python](https://www.python.org/downloads/)
 1. [Install Poetry](https://python-poetry.org/docs/#installation)
 1. [Install Poetry Environment](https://python-poetry.org/docs/basic-usage/#installing-dependencies): `poetry install`
-1. [Install Dagger](https://docs.dagger.io/install/)
-1. Install [Buildkit](https://docs.dagger.io/1223/custom-buildkit/) runtime environment for Dagger (for ex. [Docker Desktop](https://www.docker.com/products/docker-desktop/))
-1. Initialize Dagger Project: `dagger project update`
-1. Use the IDE of your choice to add or edit related content.
 
 ### Code style
 
@@ -130,7 +116,7 @@ We use the [Google Style Python Docstrings](https://www.sphinx-doc.org/en/master
 
 ### Linting
 
-Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) (managed independent of this project's poetry environment) via [Github Actions](https://docs.github.com/en/actions).
+Work added to this repo is automatically checked using [pre-commit](https://pre-commit.com/) via [GitHub Actions](https://docs.github.com/en/actions).
 Pre-commit can work alongside your local [git with hooks](https://pre-commit.com/index.html#3-install-the-git-hook-scripts)
 After [installing pre-commit](https://pre-commit.com/#installation) within your development environment, the following command also can perform the same checks:
 
@@ -140,47 +126,16 @@ After [installing pre-commit](https://pre-commit.com/#installation) within your 
 
 ### Testing
 
-Automated or manual testing for this repo may be performed using Dagger actions.
-The Dagger test action performs [pytest](https://pytest.org/en/latest/contents.html) testing among other checks.
-Dagger actions provide testing through Github actions.
+Manual testing for this project may be performed using the following tools.
+Automated testing is performed using [GitHub Actions](https://docs.github.com/en/actions) and follows the same checks.
 
-Example source data is sourced from [CellProfiler Examples](https://cellprofiler.org/examples) by processing it with [CellProfiler](https://github.com/CellProfiler/CellProfiler) with Dagger.
-This example data is used during testing to ensure expected functionality.
-See below for an example of how to create this testing data (Dagger action `gather_data`).
-
-Dagger-based manual testing is performed using the following:
-
-```sh
-# update the dagger project
-% dagger project update
-
-# gather data for testing
-% dagger do gather_data
-
-# perform the testing
-% dagger do test
-```
-
-Testing with Dagger will automatically test multiple Python versions.
-You may also provide specific Python versions for isolated testing using additional arguments with Dagger.
-
-For example:
-
-```sh
-# perform all tests under Python 3.8
-% dagger do test "3.8"
-
-# perform only sphinx tests under Python 3.9
-% dagger do test "3.9" sphinx
-```
-
-It's also possible to test locally using Poetry.
-Testing without Dagger does not guarantee a successful automated test as environmental differences could exist.
-See below for an example of testing without Dagger:
-
-```sh
-% poetry run pytest
-```
+1. [pytest](https://pytest.org/en/latest/contents.html) provides unit, functional, or integration testing.
+Example test command: `% poetry run pytest`
+1. [sphinx-build](https://www.sphinx-doc.org/en/master/man/sphinx-build.html) provides documentation website build checks via [`-W`](https://www.sphinx-doc.org/en/master/man/sphinx-build.html#cmdoption-sphinx-build-W) (which turns warnings into errors).
+Example command: `% poetry run sphinx-build docs/source docs/build -W`
+1. [cffconvert](https://github.com/citation-file-format/cffconvert) provides [CITATION.cff file](https://citation-file-format.github.io/) formatting checks. Example command: `% poetry run cffconvert --validate`
+1. [pre-commit](https://pre-commit.com/) provides various checks which are treated as failures in automated testing.
+Example command `% pre-commit run -all-files`
 
 #### Test Coverage
 
@@ -200,17 +155,17 @@ Diagrams may be added using the [Sphinx extension for Mermaid](https://github.co
 
 ### Documentation Linting
 
-Content is tested via Dagger actions using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
+Documentation content is tested using the `sphinx-build ... -W` command to avoid missing autodoc members, etc.
 To check your documentation updates before pushing, use the following to trigger a related `sphinx-build` (content made available at `./docs/build/index.html`):
 
 ```sh
-% dagger do docs
+% poetry run sphinx-build docs/source doctest -W
 ```
 
 ### Documentation Builds
 
 Documentation builds presume HTML as the primary export, e.g. `sphinx-build -b html ...`.
-Documentation is automatically published to a docsite via [Github Actions](https://docs.github.com/en/actions).
+Documentation is automatically published to a docsite via [GitHub Actions](https://docs.github.com/en/actions).
 
 ## Attribution
 
