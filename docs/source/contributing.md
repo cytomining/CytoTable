@@ -130,12 +130,12 @@ Manual testing for this project may be performed using the following tools.
 Automated testing is performed using [GitHub Actions](https://docs.github.com/en/actions) and follows the same checks.
 
 1. [pytest](https://pytest.org/en/latest/contents.html) provides unit, functional, or integration testing.
-Example test command: `% poetry run pytest`
+   Example test command: `% poetry run pytest`
 1. [sphinx-build](https://www.sphinx-doc.org/en/master/man/sphinx-build.html) provides documentation website build checks via [`-W`](https://www.sphinx-doc.org/en/master/man/sphinx-build.html#cmdoption-sphinx-build-W) (which turns warnings into errors).
-Example command: `% poetry run sphinx-build docs/source docs/build -W`
+   Example command: `% poetry run sphinx-build docs/source docs/build -W`
 1. [cffconvert](https://github.com/citation-file-format/cffconvert) provides [CITATION.cff file](https://citation-file-format.github.io/) formatting checks. Example command: `% poetry run cffconvert --validate`
 1. [pre-commit](https://pre-commit.com/) provides various checks which are treated as failures in automated testing.
-Example command `% pre-commit run -all-files`
+   Example command `% pre-commit run -all-files`
 
 #### Test Coverage
 
