@@ -43,7 +43,7 @@
 <h2>Code of conduct<a class="headerlink" href="#code-of-conduct" title="Permalink to this heading">¶</a></h2>
 <p>This project is governed by our <a class="reference internal" href="code_of_conduct.html"><span class="std std-doc">code of conduct</span></a>.
 By participating, you are expected to uphold this code.
-Please report unacceptable behavior to cytodata.info&#64;gmail.com.</p>
+Please report unacceptable behavior to <a class="reference external" href="mailto:cytodata&#46;info&#37;&#52;&#48;gmail&#46;com">cytodata<span>&#46;</span>info<span>&#64;</span>gmail<span>&#46;</span>com</a>.</p>
 </section>
 <section id="quick-links">
 <h2>Quick links<a class="headerlink" href="#quick-links" title="Permalink to this heading">¶</a></h2>
@@ -67,6 +67,7 @@ This information includes:</p>
 <li><p>The format of input data</p></li>
 <li><p>Copy and paste two pieces of information: 1) your command and 2) the specific error message</p></li>
 <li><p>What you’ve tried to overcome the bug</p></li>
+<li><p>What environment you’re running CytoTable in (for example, OS, hardware, etc.)</p></li>
 </ul>
 <p>Please provide this information as an issue in the repository: <a class="reference external" href="https://github.com/cytomining/CytoTable/issues">https://github.com/cytomining/CytoTable/issues</a></p>
 <p>Please also search the issues (and documentation) for an existing solution.
@@ -123,17 +124,8 @@ When appropriate, reference issues (via <code class="docutils literal notranslat
 <h2>Development<a class="headerlink" href="#development" title="Permalink to this heading">¶</a></h2>
 <section id="overview">
 <h3>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h3>
-<div class="mermaid">
-            flowchart LR
-    subgraph Dagger
-        containers[&quot;Container(s)&quot;]
-    end
-    subgraph Poetry
-        python[Python]
-    end
-    python --&gt; |running within| containers
-        </div><p>CytoTable is primarily written in Python with related environments managed by Python <a class="reference external" href="https://python-poetry.org/">Poetry</a>.
-We use <a class="reference external" href="https://docs.dagger.io/">Dagger</a> for consistent local testing and for automated tests via containers.</p>
+<p>CytoTable is primarily written in Python with related environments managed by Python <a class="reference external" href="https://python-poetry.org/">Poetry</a>.
+We use <a class="reference external" href="https://docs.pytest.org/">pytest</a> for local testing and <a class="reference external" href="https://docs.github.com/en/actions">GitHub actions</a> for automated tests via containers.</p>
 </section>
 <section id="getting-started">
 <h3>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this heading">¶</a></h3>
@@ -142,10 +134,6 @@ We use <a class="reference external" href="https://docs.dagger.io/">Dagger</a> f
 <li><p><a class="reference external" href="https://www.python.org/downloads/">Install Python</a></p></li>
 <li><p><a class="reference external" href="https://python-poetry.org/docs/#installation">Install Poetry</a></p></li>
 <li><p><a class="reference external" href="https://python-poetry.org/docs/basic-usage/#installing-dependencies">Install Poetry Environment</a>: <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span></code></p></li>
-<li><p><a class="reference external" href="https://docs.dagger.io/install/">Install Dagger</a></p></li>
-<li><p>Install <a class="reference external" href="https://docs.dagger.io/1223/custom-buildkit/">Buildkit</a> runtime environment for Dagger (for ex. <a class="reference external" href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a>)</p></li>
-<li><p>Initialize Dagger Project: <code class="docutils literal notranslate"><span class="pre">dagger</span> <span class="pre">project</span> <span class="pre">update</span></code></p></li>
-<li><p>Use the IDE of your choice to add or edit related content.</p></li>
 </ol>
 </section>
 <section id="code-style">
@@ -158,7 +146,7 @@ We use the <a class="reference external" href="https://www.sphinx-doc.org/en/mas
 </section>
 <section id="linting">
 <h3>Linting<a class="headerlink" href="#linting" title="Permalink to this heading">¶</a></h3>
-<p>Work added to this repo is automatically checked using <a class="reference external" href="https://pre-commit.com/">pre-commit</a> (managed independent of this project’s poetry environment) via <a class="reference external" href="https://docs.github.com/en/actions">Github Actions</a>.
+<p>Work added to this repo is automatically checked using <a class="reference external" href="https://pre-commit.com/">pre-commit</a> via <a class="reference external" href="https://docs.github.com/en/actions">GitHub Actions</a>.
 Pre-commit can work alongside your local <a class="reference external" href="https://pre-commit.com/index.html#3-install-the-git-hook-scripts">git with hooks</a>
 After <a class="reference external" href="https://pre-commit.com/#installation">installing pre-commit</a> within your development environment, the following command also can perform the same checks:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
@@ -167,39 +155,17 @@ After <a class="reference external" href="https://pre-commit.com/#installation">
 </section>
 <section id="testing">
 <h3>Testing<a class="headerlink" href="#testing" title="Permalink to this heading">¶</a></h3>
-<p>Automated or manual testing for this repo may be performed using Dagger actions.
-The Dagger test action performs <a class="reference external" href="https://pytest.org/en/latest/contents.html">pytest</a> testing among other checks.
-Dagger actions provide testing through Github actions.</p>
-<p>Example source data is sourced from <a class="reference external" href="https://cellprofiler.org/examples">CellProfiler Examples</a> by processing it with <a class="reference external" href="https://github.com/CellProfiler/CellProfiler">CellProfiler</a> with Dagger.
-This example data is used during testing to ensure expected functionality.
-See below for an example of how to create this testing data (Dagger action <code class="docutils literal notranslate"><span class="pre">gather_data</span></code>).</p>
-<p>Dagger-based manual testing is performed using the following:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># update the dagger project</span>
-%<span class="w"> </span>dagger<span class="w"> </span>project<span class="w"> </span>update
-
-<span class="c1"># gather data for testing</span>
-%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span>gather_data
-
-<span class="c1"># perform the testing</span>
-%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">test</span>
-</pre></div>
-</div>
-<p>Testing with Dagger will automatically test multiple Python versions.
-You may also provide specific Python versions for isolated testing using additional arguments with Dagger.</p>
-<p>For example:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># perform all tests under Python 3.8</span>
-%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;3.8&quot;</span>
-
-<span class="c1"># perform only sphinx tests under Python 3.9</span>
-%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;3.9&quot;</span><span class="w"> </span>sphinx
-</pre></div>
-</div>
-<p>It’s also possible to test locally using Poetry.
-Testing without Dagger does not guarantee a successful automated test as environmental differences could exist.
-See below for an example of testing without Dagger:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>pytest
-</pre></div>
-</div>
+<p>Manual testing for this project may be performed using the following tools.
+Automated testing is performed using <a class="reference external" href="https://docs.github.com/en/actions">GitHub Actions</a> and follows the same checks.</p>
+<ol class="arabic simple">
+<li><p><a class="reference external" href="https://pytest.org/en/latest/contents.html">pytest</a> provides unit, functional, or integration testing.
+Example test command: <code class="docutils literal notranslate"><span class="pre">%</span> <span class="pre">poetry</span> <span class="pre">run</span> <span class="pre">pytest</span></code></p></li>
+<li><p><a class="reference external" href="https://www.sphinx-doc.org/en/master/man/sphinx-build.html">sphinx-build</a> provides documentation website build checks via <a class="reference external" href="https://www.sphinx-doc.org/en/master/man/sphinx-build.html#cmdoption-sphinx-build-W"><code class="docutils literal notranslate"><span class="pre">-W</span></code></a> (which turns warnings into errors).
+Example command: <code class="docutils literal notranslate"><span class="pre">%</span> <span class="pre">poetry</span> <span class="pre">run</span> <span class="pre">sphinx-build</span> <span class="pre">docs/source</span> <span class="pre">docs/build</span> <span class="pre">-W</span></code></p></li>
+<li><p><a class="reference external" href="https://github.com/citation-file-format/cffconvert">cffconvert</a> provides <a class="reference external" href="https://citation-file-format.github.io/">CITATION.cff file</a> formatting checks. Example command: <code class="docutils literal notranslate"><span class="pre">%</span> <span class="pre">poetry</span> <span class="pre">run</span> <span class="pre">cffconvert</span> <span class="pre">--validate</span></code></p></li>
+<li><p><a class="reference external" href="https://pre-commit.com/">pre-commit</a> provides various checks which are treated as failures in automated testing.
+Example command <code class="docutils literal notranslate"><span class="pre">%</span> <span class="pre">pre-commit</span> <span class="pre">run</span> <span class="pre">-all-files</span></code></p></li>
+</ol>
 <section id="test-coverage">
 <h4>Test Coverage<a class="headerlink" href="#test-coverage" title="Permalink to this heading">¶</a></h4>
 <p>Test coverage is provided via <a class="reference external" href="https://github.com/nedbat/coveragepy">coverage</a> and <a class="reference external" href="https://github.com/pytest-dev/pytest-cov">pytest-cov</a>.
@@ -218,16 +184,16 @@ Documentation content assumes a “one sentence per line” style.
 Diagrams may be added using the <a class="reference external" href="https://github.com/mgaitan/sphinxcontrib-mermaid#markdown-support">Sphinx extension for Mermaid</a>.</p>
 <section id="documentation-linting">
 <h3>Documentation Linting<a class="headerlink" href="#documentation-linting" title="Permalink to this heading">¶</a></h3>
-<p>Content is tested via Dagger actions using the <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">...</span> <span class="pre">-W</span></code> command to avoid missing autodoc members, etc.
+<p>Documentation content is tested using the <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">...</span> <span class="pre">-W</span></code> command to avoid missing autodoc members, etc.
 To check your documentation updates before pushing, use the following to trigger a related <code class="docutils literal notranslate"><span class="pre">sphinx-build</span></code> (content made available at <code class="docutils literal notranslate"><span class="pre">./docs/build/index.html</span></code>):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>dagger<span class="w"> </span><span class="k">do</span><span class="w"> </span>docs
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>poetry<span class="w"> </span>run<span class="w"> </span>sphinx-build<span class="w"> </span>docs/source<span class="w"> </span>doctest<span class="w"> </span>-W
 </pre></div>
 </div>
 </section>
 <section id="documentation-builds">
 <h3>Documentation Builds<a class="headerlink" href="#documentation-builds" title="Permalink to this heading">¶</a></h3>
 <p>Documentation builds presume HTML as the primary export, e.g. <code class="docutils literal notranslate"><span class="pre">sphinx-build</span> <span class="pre">-b</span> <span class="pre">html</span> <span class="pre">...</span></code>.
-Documentation is automatically published to a docsite via <a class="reference external" href="https://docs.github.com/en/actions">Github Actions</a>.</p>
+Documentation is automatically published to a docsite via <a class="reference external" href="https://docs.github.com/en/actions">GitHub Actions</a>.</p>
 </section>
 </section>
 <section id="attribution">
