@@ -12,8 +12,14 @@ import parsl
 import pyarrow as pa
 from parsl.app.app import join_app, python_app
 
+from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
-from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
+from cytotable.utils import (
+    _column_sort,
+    _default_parsl_config,
+    _expand_path,
+    _parsl_loaded,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1287,7 +1293,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Path to write files to.
             Note: this may only be a local path.
         dest_datatype: Literal["parquet"]:
-            Destination datatype to write to.
+            Destination datatype to write to. This path will be used for
+            intermediary data work and must be a new file or directory path.
+            This parameter will result in a directory on `join=False`.
+            This parameter will result in a single file on `join=True`.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1333,9 +1342,9 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
             # using a local path with cellprofiler csv presets
             convert(
-                source_path="./tests/data/cellprofiler/csv_single",
+                source_path="./tests/data/cellprofiler/ExampleHuman",
                 source_datatype="csv",
-                dest_path=".",
+                dest_path="ExampleHuman.parquet",
                 dest_datatype="parquet",
                 preset="cellprofiler_csv",
             )
@@ -1345,7 +1354,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             convert(
                 source_path="s3://s3path",
                 source_datatype="csv",
-                dest_path=".",
+                dest_path="s3_local_result",
                 dest_datatype="parquet",
                 concat=True,
                 preset="cellprofiler_csv",
@@ -1360,6 +1369,13 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 preset="cellprofiler_sqlite",
             )
     """
+
+    # Raise an exception if an existing path is provided as the destination
+    # to avoid removing existing data or unrelated data removal.
+    if _expand_path(dest_path).exists():
+        raise CytoTableException(
+            "An existing file or directory was provided as a dest_path. Please use a new path for this parameter."
+        )
 
     # attempt to load parsl configuration if we didn't already load one
     if not _parsl_loaded():
