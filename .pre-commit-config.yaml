@@ -12,7 +12,7 @@ repos:
       - id: check-added-large-files
       - id: check-toml
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.5
     hooks:
       - id: codespell
         exclude: >
@@ -22,22 +22,22 @@ repos:
         additional_dependencies:
           - tomli
   - repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.16
+    rev: 0.7.17
     hooks:
       - id: mdformat
         additional_dependencies:
           - mdformat-myst
           - mdformat-gfm
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.31.0
+    rev: v1.32.0
     hooks:
       - id: yamllint
   - repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 23.9.1
     hooks:
       - id: black
   - repo: https://github.com/asottile/blacken-docs
-    rev: 1.13.0
+    rev: 1.16.0
     hooks:
       - id: blacken-docs
   - repo: https://github.com/PyCQA/bandit
@@ -51,15 +51,15 @@ repos:
     hooks:
       - id: isort
   - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.7
+    rev: v2.9.1
     hooks:
       - id: vulture
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.2.0
+    rev: v1.5.1
     hooks:
       - id: mypy
   - repo: https://github.com/PyCQA/pylint
-    rev: v3.0.0a6
+    rev: v3.0.0a7
     hooks:
       - id: pylint
         name: pylint
@@ -71,9 +71,9 @@ repos:
         # and the way pre-commit references virtual environments.
         additional_dependencies:
           - "cloudpathlib[all]>=0.13.0"
-          - "pyarrow>=11.0.0"
+          - "pyarrow>=13.0.0"
           - "pytest>=7.2.0"
           - "moto[server,s3]>=4.0.0"
-          - "duckdb>=0.7.0"
+          - "duckdb>=0.8.0"
           - "parsl>=2023.4.24"
-          - "git+https://github.com/cytomining/pycytominer.git@c90438fd7c11ad8b1689c21db16dab1a5280de6c"
+          - "git+https://github.com/cytomining/pycytominer.git@09b2c79aa94908e3520f0931a844db4fba7fd3fb"
