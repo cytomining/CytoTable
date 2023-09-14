@@ -1377,7 +1377,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     # to avoid removing existing data or unrelated data removal.
     if _expand_path(dest_path).exists():
         raise CytoTableException(
-            "An existing file or directory was provided as a dest_path. Please use a new path for this parameter."
+            (
+                "An existing file or directory was provided as dest_path: "
+                f"'{dest_path}'. Please use a new path for this parameter."
+            )
         )
 
     # attempt to load parsl configuration if we didn't already load one
