@@ -50,7 +50,10 @@ str reference to read source files from.
 Note: may be local or remote object-storage location
 using convention “s3://…” or similar.</p></li>
 <li><p><strong>dest_path</strong> – str:
-Path to write files to.
+Path to write files to. This path will be used for
+intermediary data work and must be a new file or directory path.
+This parameter will result in a directory on <cite>join=False</cite>.
+This parameter will result in a single file on <cite>join=True</cite>.
 Note: this may only be a local path.</p></li>
 <li><p><strong>dest_datatype</strong> – Literal[“parquet”]:
 Destination datatype to write to.</p></li>
@@ -101,9 +104,9 @@ where parquet file was written or str of joined result filepath.</p>
 
 <span class="c1"># using a local path with cellprofiler csv presets</span>
 <span class="n">convert</span><span class="p">(</span>
-    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/csv_single&quot;</span><span class="p">,</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/ExampleHuman&quot;</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
-    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;ExampleHuman.parquet&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
     <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -113,7 +116,7 @@ where parquet file was written or str of joined result filepath.</p>
 <span class="n">convert</span><span class="p">(</span>
     <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;s3://s3path&quot;</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
-    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;s3_local_result&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
     <span class="n">concat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
@@ -513,7 +516,10 @@ str reference to read source files from.
 Note: may be local or remote object-storage
 location using convention “s3://…” or similar.</p></li>
 <li><p><strong>dest_path</strong> – str:
-Path to write files to.
+Path to write files to. This path will be used for
+intermediary data work and must be a new file or directory path.
+This parameter will result in a directory on <cite>join=False</cite>.
+This parameter will result in a single file on <cite>join=True</cite>.
 Note: this may only be a local path.</p></li>
 <li><p><strong>source_datatype</strong> – Optional[str]: (Default value = None)
 Source datatype to focus on during conversion.</p></li>

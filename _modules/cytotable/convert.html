@@ -46,8 +46,14 @@
 <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">join_app</span><span class="p">,</span> <span class="n">python_app</span>
 
+<span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">CytoTableException</span>
 <span class="kn">from</span> <span class="nn">cytotable.presets</span> <span class="kn">import</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_column_sort</span><span class="p">,</span> <span class="n">_default_parsl_config</span><span class="p">,</span> <span class="n">_parsl_loaded</span>
+<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">_column_sort</span><span class="p">,</span>
+    <span class="n">_default_parsl_config</span><span class="p">,</span>
+    <span class="n">_expand_path</span><span class="p">,</span>
+    <span class="n">_parsl_loaded</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -523,7 +529,7 @@
 <span class="k">def</span> <span class="nf">_concat_source_group</span><span class="p">(</span>
     <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
-    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">common_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -584,10 +590,6 @@
 
     <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">SchemaException</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
-
-    <span class="c1"># check whether we already have a file as dest_path</span>
-    <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
-        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># build a result placeholder</span>
     <span class="n">concatted</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
@@ -885,9 +887,6 @@
     <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
 
-    <span class="c1"># also remove any pre-existing files which may already be at file destination</span>
-    <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
     <span class="c1"># write the concatted result as a parquet file</span>
     <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
         <span class="n">table</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">concat_tables</span><span class="p">(</span>
@@ -1063,7 +1062,10 @@
 <span class="sd">            Note: may be local or remote object-storage</span>
 <span class="sd">            location using convention &quot;s3://...&quot; or similar.</span>
 <span class="sd">        dest_path: str:</span>
-<span class="sd">            Path to write files to.</span>
+<span class="sd">            Path to write files to. This path will be used for</span>
+<span class="sd">            intermediary data work and must be a new file or directory path.</span>
+<span class="sd">            This parameter will result in a directory on `join=False`.</span>
+<span class="sd">            This parameter will result in a single file on `join=True`.</span>
 <span class="sd">            Note: this may only be a local path.</span>
 <span class="sd">        source_datatype: Optional[str]: (Default value = None)</span>
 <span class="sd">            Source datatype to focus on during conversion.</span>
@@ -1103,8 +1105,6 @@
 <span class="sd">            result.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">pathlib</span>
-
     <span class="kn">from</span> <span class="nn">cytotable.convert</span> <span class="kn">import</span> <span class="p">(</span>
         <span class="n">_concat_join_sources</span><span class="p">,</span>
         <span class="n">_concat_source_group</span><span class="p">,</span>
@@ -1126,10 +1126,6 @@
         <span class="n">targets</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">compartments</span><span class="p">),</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-
-    <span class="c1"># if we already have a file in dest_path, remove it</span>
-    <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
-        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
     <span class="c1"># expand the destination path</span>
     <span class="n">expanded_dest_path</span> <span class="o">=</span> <span class="n">_expand_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
@@ -1318,7 +1314,10 @@
 <span class="sd">            Note: may be local or remote object-storage location</span>
 <span class="sd">            using convention &quot;s3://...&quot; or similar.</span>
 <span class="sd">        dest_path: str:</span>
-<span class="sd">            Path to write files to.</span>
+<span class="sd">            Path to write files to. This path will be used for</span>
+<span class="sd">            intermediary data work and must be a new file or directory path.</span>
+<span class="sd">            This parameter will result in a directory on `join=False`.</span>
+<span class="sd">            This parameter will result in a single file on `join=True`.</span>
 <span class="sd">            Note: this may only be a local path.</span>
 <span class="sd">        dest_datatype: Literal[&quot;parquet&quot;]:</span>
 <span class="sd">            Destination datatype to write to.</span>
@@ -1367,9 +1366,9 @@
 
 <span class="sd">            # using a local path with cellprofiler csv presets</span>
 <span class="sd">            convert(</span>
-<span class="sd">                source_path=&quot;./tests/data/cellprofiler/csv_single&quot;,</span>
+<span class="sd">                source_path=&quot;./tests/data/cellprofiler/ExampleHuman&quot;,</span>
 <span class="sd">                source_datatype=&quot;csv&quot;,</span>
-<span class="sd">                dest_path=&quot;.&quot;,</span>
+<span class="sd">                dest_path=&quot;ExampleHuman.parquet&quot;,</span>
 <span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
 <span class="sd">                preset=&quot;cellprofiler_csv&quot;,</span>
 <span class="sd">            )</span>
@@ -1379,7 +1378,7 @@
 <span class="sd">            convert(</span>
 <span class="sd">                source_path=&quot;s3://s3path&quot;,</span>
 <span class="sd">                source_datatype=&quot;csv&quot;,</span>
-<span class="sd">                dest_path=&quot;.&quot;,</span>
+<span class="sd">                dest_path=&quot;s3_local_result&quot;,</span>
 <span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
 <span class="sd">                concat=True,</span>
 <span class="sd">                preset=&quot;cellprofiler_csv&quot;,</span>
@@ -1394,6 +1393,16 @@
 <span class="sd">                preset=&quot;cellprofiler_sqlite&quot;,</span>
 <span class="sd">            )</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Raise an exception if an existing path is provided as the destination</span>
+    <span class="c1"># to avoid removing existing data or unrelated data removal.</span>
+    <span class="k">if</span> <span class="n">_expand_path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;An existing file or directory was provided as dest_path: &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">&#39;. Please use a new path for this parameter.&quot;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="c1"># attempt to load parsl configuration if we didn&#39;t already load one</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_parsl_loaded</span><span class="p">():</span>

@@ -41,14 +41,16 @@
 CytoTable converts this data to Parquet from local or object-storage based locations.</p>
 <p>Files with similar names nested within sub-folders will be concatenated by default (appended to the end of each data file) together and used to create a single Parquet file per compartment.
 For example: if we have <code class="docutils literal notranslate"><span class="pre">folder/subfolder_a/cells.csv</span></code> and <code class="docutils literal notranslate"><span class="pre">folder/subfolder_b/cells.csv</span></code>, using <code class="docutils literal notranslate"><span class="pre">convert(source_path=&quot;folder&quot;,</span> <span class="pre">...)</span></code> will result in <code class="docutils literal notranslate"><span class="pre">folder.cells.parquet</span></code> (unless <code class="docutils literal notranslate"><span class="pre">concat=False</span></code>).</p>
+<p>Note: The <code class="docutils literal notranslate"><span class="pre">dest_path</span></code> parameter (<code class="docutils literal notranslate"><span class="pre">convert(dest_path=&quot;&quot;)</span></code>) will be used for intermediary data work and must be a new file or directory path.
+This path will result directory output on <code class="docutils literal notranslate"><span class="pre">join=False</span></code> and a single file output on <code class="docutils literal notranslate"><span class="pre">join=True</span></code>.</p>
 <p>For example, see below:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">cytotable</span> <span class="kn">import</span> <span class="n">convert</span>
 
 <span class="c1"># using a local path with cellprofiler csv presets</span>
 <span class="n">convert</span><span class="p">(</span>
-    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/csv_single&quot;</span><span class="p">,</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/ExampleHuman&quot;</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
-    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;ExampleHuman.parquet&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
     <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -58,7 +60,7 @@ For example: if we have <code class="docutils literal notranslate"><span class="
 <span class="n">convert</span><span class="p">(</span>
     <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;s3://s3path&quot;</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
-    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;.&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;s3_local_result&quot;</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
     <span class="n">concat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
