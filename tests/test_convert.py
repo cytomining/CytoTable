@@ -86,6 +86,7 @@ def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: s
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=test_dir,
             dest_datatype="parquet",
+            join=False,
             preset="cellprofiler_sqlite_pycytominer",
         )
 
@@ -95,6 +96,7 @@ def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: s
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=test_file,
             dest_datatype="parquet",
+            join=True,
             preset="cellprofiler_sqlite_pycytominer",
         )
 
