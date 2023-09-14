@@ -495,7 +495,7 @@ def _prepend_column_name(
 def _concat_source_group(
     source_group_name: str,
     source_group: List[Dict[str, Any]],
-    dest_path: str = ".",
+    dest_path: str,
     common_schema: Optional[List[Tuple[str, str]]] = None,
 ) -> List[Dict[str, Any]]:
     """
