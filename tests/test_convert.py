@@ -30,6 +30,7 @@ from cytotable.convert import (
     _to_parquet,
     convert,
 )
+from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
 from cytotable.sources import _get_source_filepaths, _infer_source_datatype
 from cytotable.utils import (
@@ -58,6 +59,61 @@ def test_config():
                 "CONFIG_SOURCE_VERSION",
             ]
         ) == sorted(config_preset.keys())
+
+
+def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: str):
+    """
+    Tests running cytotable.convert with existing dest_path
+    where we expect a raised exception to avoid data loss.
+    """
+
+    # locations for test dir and file
+    test_dir = f"{fx_tempdir}/existing_dir"
+    test_file = f"{fx_tempdir}/existing_file"
+
+    # Create an empty directory
+    pathlib.Path(test_dir).mkdir()
+
+    # Create an empty file
+    pathlib.Path(test_file).touch()
+
+    # test raise with existing dir as dest_path
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=test_dir,
+            dest_datatype="parquet",
+            join=False,
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+
+    # test raise with existing file as dest_path
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=test_file,
+            dest_datatype="parquet",
+            join=True,
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+
+    # test raise with $HOME as dest_path
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path="$HOME",
+            dest_datatype="parquet",
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+
+    # test raise with "." as dest_path
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=".",
+            dest_datatype="parquet",
+            preset="cellprofiler_sqlite_pycytominer",
+        )
 
 
 def test_extend_path(fx_tempdir: str):
@@ -655,7 +711,7 @@ def test_convert_cellprofiler_csv(
     with pytest.raises(Exception):
         convert(
             source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-            dest_path=f"{fx_tempdir}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman_result_1",
             dest_datatype="parquet",
             source_datatype="csv",
             compartments=[],
@@ -666,7 +722,7 @@ def test_convert_cellprofiler_csv(
     test_result = parquet.read_table(
         convert(
             source_path=f"{data_dir_cellprofiler}/ExampleHuman",
-            dest_path=f"{fx_tempdir}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman_result_2",
             dest_datatype="parquet",
             source_datatype="csv",
             preset="cellprofiler_csv",
@@ -920,7 +976,7 @@ def test_sqlite_mixed_type_query_to_parquet(
     # run full convert on mixed type database
     result = convert(
         source_path=example_sqlite_mixed_types_database,
-        dest_path=result_filepath,
+        dest_path=f"{fx_tempdir}/example_mixed_types_tbl_a.cytotable.parquet",
         dest_datatype="parquet",
         source_datatype="sqlite",
         compartments=[table_name],
