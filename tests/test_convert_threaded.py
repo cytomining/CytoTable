@@ -128,7 +128,7 @@ def test_convert_s3_path_sqlite(
             source_path=data_dir_cellprofiler_sqlite_nf1,
             dest_path=(
                 f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.parquet"
+                ".cytotable.local.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
@@ -152,7 +152,7 @@ def test_convert_s3_path_sqlite(
             source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
             dest_path=(
                 f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.parquet"
+                ".cytotable.mocks3.direct.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
@@ -171,7 +171,7 @@ def test_convert_s3_path_sqlite(
             source_path="s3://example/nf1/",
             dest_path=(
                 f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.parquet"
+                ".cytotable.mocks3.nested.parquet"
             ),
             dest_datatype="parquet",
             chunk_size=100,
