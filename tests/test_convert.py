@@ -98,6 +98,24 @@ def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: s
             preset="cellprofiler_sqlite_pycytominer",
         )
 
+    # test raise with $HOME as dest_path
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path="$HOME",
+            dest_datatype="parquet",
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+
+    # test raise with "." as dest_path
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path=data_dir_cellprofiler_sqlite_nf1,
+            dest_path=".",
+            dest_datatype="parquet",
+            preset="cellprofiler_sqlite_pycytominer",
+        )
+
 
 def test_extend_path(fx_tempdir: str):
     """
