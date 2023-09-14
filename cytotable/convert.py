@@ -1035,7 +1035,10 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Note: may be local or remote object-storage
             location using convention "s3://..." or similar.
         dest_path: str:
-            Path to write files to.
+            Path to write files to. This path will be used for
+            intermediary data work and must be a new file or directory path.
+            This parameter will result in a directory on `join=False`.
+            This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
         source_datatype: Optional[str]: (Default value = None)
             Source datatype to focus on during conversion.
@@ -1290,13 +1293,13 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Note: may be local or remote object-storage location
             using convention "s3://..." or similar.
         dest_path: str:
-            Path to write files to.
-            Note: this may only be a local path.
-        dest_datatype: Literal["parquet"]:
-            Destination datatype to write to. This path will be used for
+            Path to write files to. This path will be used for
             intermediary data work and must be a new file or directory path.
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
+            Note: this may only be a local path.
+        dest_datatype: Literal["parquet"]:
+            Destination datatype to write to.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
