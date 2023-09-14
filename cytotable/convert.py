@@ -557,10 +557,6 @@ def _concat_source_group(
     from cytotable.exceptions import SchemaException
     from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
 
-    # check whether we already have a file as dest_path
-    if pathlib.Path(dest_path).is_file():
-        pathlib.Path(dest_path).unlink(missing_ok=True)
-
     # build a result placeholder
     concatted: List[Dict[str, Any]] = [
         {
@@ -857,9 +853,6 @@ def _concat_join_sources(
     if pathlib.Path(dest_path).is_dir():
         shutil.rmtree(path=dest_path)
 
-    # also remove any pre-existing files which may already be at file destination
-    pathlib.Path(dest_path).unlink(missing_ok=True)
-
     # write the concatted result as a parquet file
     parquet.write_table(
         table=pa.concat_tables(
@@ -1078,8 +1071,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             result.
     """
 
-    import pathlib
-
     from cytotable.convert import (
         _concat_join_sources,
         _concat_source_group,
@@ -1101,10 +1092,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         targets=list(metadata) + list(compartments),
         **kwargs,
     ).result()
-
-    # if we already have a file in dest_path, remove it
-    if pathlib.Path(dest_path).is_file():
-        pathlib.Path(dest_path).unlink()
 
     # expand the destination path
     expanded_dest_path = _expand_path(path=dest_path)
