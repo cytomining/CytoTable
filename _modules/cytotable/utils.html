@@ -48,7 +48,7 @@
 <span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">AppBase</span>
 <span class="kn">from</span> <span class="nn">parsl.config</span> <span class="kn">import</span> <span class="n">Config</span>
-<span class="kn">from</span> <span class="nn">parsl.executors.threads</span> <span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span> <span class="nn">parsl.executors</span> <span class="kn">import</span> <span class="n">HighThroughputExecutor</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -160,7 +160,11 @@
 <span class="sd">    Return a default Parsl configuration for use with CytoTable.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">Config</span><span class="p">(</span>
-        <span class="n">executors</span><span class="o">=</span><span class="p">[</span><span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_threads</span><span class="o">=</span><span class="n">MAX_THREADS</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;local_threads&quot;</span><span class="p">)]</span>
+        <span class="n">executors</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">HighThroughputExecutor</span><span class="p">(</span>
+                <span class="n">label</span><span class="o">=</span><span class="s2">&quot;htex_default_for_cytotable&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
     <span class="p">)</span></div>
 
 
