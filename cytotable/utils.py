@@ -14,7 +14,7 @@ from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
 from parsl.config import Config
-from parsl.executors.threads import ThreadPoolExecutor
+from parsl.executors import HighThroughputExecutor
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,11 @@ def _default_parsl_config():
     Return a default Parsl configuration for use with CytoTable.
     """
     return Config(
-        executors=[ThreadPoolExecutor(max_threads=MAX_THREADS, label="local_threads")]
+        executors=[
+            HighThroughputExecutor(
+                label="htex_default_for_cytotable",
+            )
+        ]
     )
 
 
