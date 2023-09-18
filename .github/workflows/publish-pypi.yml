@@ -4,8 +4,8 @@ name: publish pypi release
 
 on:
   release:
-    branches:
-      - main
+    types:
+      - published
 
 jobs:
   publish_pypi:
