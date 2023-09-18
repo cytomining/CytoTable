@@ -8,7 +8,7 @@ on:
       - main
 
 jobs:
-  publish-pypi:
+  publish_pypi:
     runs-on: ubuntu-latest
     environment: release
     permissions:
