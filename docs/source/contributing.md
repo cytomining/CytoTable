@@ -176,7 +176,7 @@ Many thanks go to the developers and contributors of that repository.
 
 ### Release Locations
 
-We utilize [semantic versioning](https://en.wikipedia.org/wiki/Software_versioning#Semantic_versioning)("semver") in order to distinguish between major, minor, and patch releases.
+We utilize [semantic versioning](https://en.wikipedia.org/wiki/Software_versioning#Semantic_versioning) ("semver") in order to distinguish between major, minor, and patch releases.
 We publish source code by using [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) available [here](https://github.com/cytomining/CytoTable/releases).
 We publish Python packages through the [Python Packaging Index (PyPI)](https://pypi.org/) available [here](https://pypi.org/project/cytotable/).
 
