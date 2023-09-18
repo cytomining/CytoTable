@@ -1,5 +1,5 @@
 ---
-# used for publishing packages to pypi
+# used for publishing packages to pypi on release
 name: publish pypi release
 
 on:
