@@ -23,7 +23,7 @@ authors:
 repository-code: 'https://github.com/cytomining/CytoTable'
 url: 'https://cytomining.github.io/CytoTable/'
 abstract: >-
-  Transform data for processing image-based profiling readouts with Pycytominer and other Cytomining tools.
+  Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools.
 keywords:
   - python
   - cellprofiler

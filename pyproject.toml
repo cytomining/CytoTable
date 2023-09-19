@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "CytoTable"
 version = "0.0.2"
-description = "Transform data for processing image-based profiling readouts with Pycytominer and other Cytomining tools."
+description = "Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools."
 authors = ["Cytomining Community"]
 license = "BSD-3-Clause License"
 packages = [{include = "cytotable"}]
