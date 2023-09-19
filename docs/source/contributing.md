@@ -186,7 +186,7 @@ There are several manual and automated steps involved with publishing CytoTable 
 See below for an overview of how this works.
 
 1. Prepare a release in a code contribution which utilizes the command [`poetry version ...`](https://python-poetry.org/docs/cli/#version) to update the version (this updates `pyproject.toml` with automatically incremented versions under `version = "..."`).
-1. Open a pull request and use a repository label for `release-<semver release type>` to label the pull request for visibility with [`release-drafter`](https://github.com/release-drafter/release-drafter).
+1. Open a pull request and use a repository label for `release-<semver release type>` to label the pull request for visibility with [`release-drafter`](https://github.com/release-drafter/release-drafter) (for example, see [CytoTable#108](https://github.com/cytomining/CytoTable/pull/108) as a reference of a semver patch update).
 1. On merging the pull request for the release, a [GitHub Actions workflow](https://docs.github.com/en/actions/using-workflows) defined in `draft-release.yml` leveraging [`release-drafter`](https://github.com/release-drafter/release-drafter) will draft a release for maintainers to modify.
 1. Make modifications as necessary to the draft GitHub release, then publish the release.
 1. On publishing the release, another GitHub Actions workflow defined in `publish-pypi.yml` will run to build and deploy the Python package to PyPI (utilizing the earlier modified `pyproject.toml` semantic version reference for labeling the release).
