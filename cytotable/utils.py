@@ -111,7 +111,7 @@ def _parsl_loaded() -> bool:
     except ConfigurationError as pce:
         # if we detect a Parsl ConfigurationError that states we need to load config
         # return false to indicate parsl config has not yet been loaded.
-        if str(pce) == "Must first load config":
+        if pce.args[0] == "Must first load config":
             return False
 
         # otherwise we raise other ConfigurationError's
