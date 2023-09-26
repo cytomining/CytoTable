@@ -648,7 +648,22 @@ def _concat_source_group(
 
 
 @python_app
-def _prepare_join_sql(sources: Dict[str, List[Dict[str, Any]]], joins: str):
+def _prepare_join_sql(sources: Dict[str, List[Dict[str, Any]]], joins: str) -> str:
+    """
+    Prepare join SQL statement with actual locations of data based on the sources.
+
+    Args:
+        sources: Dict[str, List[Dict[str, Any]]]:
+            Grouped datasets of files which will be used by other functions.
+            Includes the metadata concerning location of actual data.
+        joins: str:
+            DuckDB-compatible SQL which will be used to perform the join
+            operations using the join_group keys as a reference.
+
+    Returns:
+        str:
+            String representing the SQL to be used in later join work.
+    """
     import pathlib
 
     # replace with real location of sources for join sql
@@ -1096,7 +1111,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                                 chunk_size=chunk_size,
                                 offset=offset,
                                 dest_path=expanded_dest_path,
-                                data_type_cast_map=data_type_cast_map,
                             ),
                             source_group_name=source_group_name,
                             identifying_columns=identifying_columns,

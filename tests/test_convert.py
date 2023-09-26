@@ -314,6 +314,13 @@ def test_concat_source_group(
         ).result()
 
 
+def test_prepare_join_sql(load_parsl_default: None):
+    """
+    Tests _prepare_join_sql
+    """
+
+    pass
+
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     """
     Tests _join_source_chunk
