@@ -25,6 +25,7 @@ from cytotable.convert import (
     _concat_source_group,
     _infer_source_group_common_schema,
     _join_source_chunk,
+    _prepare_join_sql,
     _prepend_column_name,
     _to_parquet,
     convert,
@@ -314,12 +315,51 @@ def test_concat_source_group(
         ).result()
 
 
-def test_prepare_join_sql(load_parsl_default: None):
+def test_prepare_join_sql(
+    load_parsl_default: None,
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
+):
     """
     Tests _prepare_join_sql
+
+    After running _prepare_join_sql we'd expect something like:
+        SELECT
+            *
+        FROM
+            read_parquet(['<temp_dir_location>/example_dest/image/0/image.parquet']) AS image
+        LEFT JOIN read_parquet(['<temp_dir_location>/example_dest/cytoplasm/1/cytoplasm.parquet']) AS cytoplasm ON
+            cytoplasm.ImageNumber = image.ImageNumber
+        LEFT JOIN read_parquet(['<temp_dir_location>/example_dest/cells/2/cells.parquet']) AS cells ON
+            cells.ImageNumber = cytoplasm.ImageNumber
+        LEFT JOIN read_parquet(['<temp_dir_location>/example_dest/nuclei/3/nuclei.parquet']) AS nuclei ON
+            nuclei.ImageNumber = cytoplasm.ImageNumber
     """
 
-    pass
+    # attempt to run query against prepared_join_sql with test data
+    with _duckdb_reader() as ddb_reader:
+        result = (
+            ddb_reader.execute(
+                _prepare_join_sql(
+                    sources=example_local_sources,
+                    # simplified join for example dataset
+                    joins="""
+                    SELECT
+                        *
+                    FROM
+                        read_parquet('image.parquet') AS image
+                    LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
+                        cytoplasm.ImageNumber = image.ImageNumber
+                    LEFT JOIN read_parquet('cells.parquet') AS cells ON
+                        cells.ImageNumber = cytoplasm.ImageNumber
+                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+                        nuclei.ImageNumber = cytoplasm.ImageNumber
+                    """,
+                ).result()
+            )
+            .arrow()
+            .to_pydict()
+        )
+
 
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     """
