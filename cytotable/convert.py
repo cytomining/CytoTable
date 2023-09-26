@@ -274,7 +274,6 @@ def _source_chunk_to_parquet(
     chunk_size: int,
     offset: int,
     dest_path: str,
-    data_type_cast_map: Optional[Dict[str, str]] = None,
 ) -> str:
     """
     Export source data to chunked parquet file using chunk size and offsets.
@@ -701,7 +700,6 @@ def _join_source_chunk(
     # Attempt to read the data to parquet file
     # using duckdb for extraction and pyarrow for
     # writing data to a parquet file.
-
     # read data with chunk size + offset
     # and export to parquet
     with _duckdb_reader() as ddb_reader:
