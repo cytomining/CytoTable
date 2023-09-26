@@ -23,7 +23,6 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
-    _get_join_chunks,
     _infer_source_group_common_schema,
     _join_source_chunk,
     _prepend_column_name,
@@ -54,7 +53,6 @@ def test_config():
                 "CONFIG_NAMES_METADATA",
                 "CONFIG_IDENTIFYING_COLUMNS",
                 "CONFIG_CHUNK_SIZE",
-                "CONFIG_CHUNK_COLUMNS",
                 "CONFIG_JOINS",
                 "CONFIG_SOURCE_VERSION",
             ]
@@ -316,47 +314,9 @@ def test_concat_source_group(
         ).result()
 
 
-def test_get_join_chunks(load_parsl_default: None, fx_tempdir: str):
-    """
-    Tests _get_join_chunks
-    """
-
-    # form test path
-    test_path = f"{fx_tempdir}/merge_chunks_test.parquet"
-
-    # write test data to file
-    parquet.write_table(
-        table=pa.Table.from_pydict(
-            {
-                "id1": [1, 2, 3, 1, 2, 3],
-                "id2": ["a", "a", "a", "b", "b", "b"],
-                "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
-                "field2": [True, False, True, True, False, True],
-            }
-        ),
-        where=test_path,
-    )
-
-    result = _get_join_chunks(
-        sources={"merge_chunks_test.parquet": [{"table": [test_path]}]},
-        metadata=["merge_chunks_test"],
-        chunk_columns=["id1", "id2"],
-        chunk_size=2,
-    ).result()
-
-    # test that we have 3 chunks of merge columns
-    assert len(result) == 3
-    # test that we have only the columns we specified
-    assert set(
-        itertools.chain(
-            *[list(chunk_item.keys()) for chunk in result for chunk_item in chunk]
-        )
-    ) == {"id1", "id2"}
-
-
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     """
-    Tests _get_join_chunks
+    Tests _join_source_chunk
     """
 
     # form test path a
@@ -388,10 +348,6 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     )
 
     result = _join_source_chunk(
-        sources={
-            "example_a": [{"table": [test_path_a]}],
-            "example_b": [{"table": [test_path_b]}],
-        },
         dest_path=f"{fx_tempdir}/destination.parquet",
         joins=f"""
             SELECT *
@@ -400,11 +356,13 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
                 example_b.id1 = example_a.id1
                 AND example_b.id2 = example_a.id2
         """,
-        join_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
+        chunk_size=2,
+        offset=0,
         drop_null=True,
     ).result()
 
     assert isinstance(result, str)
+
     result_table = parquet.read_table(source=result)
     assert result_table.equals(
         other=pa.Table.from_pydict(

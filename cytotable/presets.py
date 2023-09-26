@@ -26,8 +26,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -73,8 +71,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -126,8 +122,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -181,8 +175,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -203,11 +195,11 @@ config = {
                 cytoplasm.Metadata_TableNumber = image.Metadata_TableNumber
                 AND cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
             LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
+                cells.Metadata_TableNumber = cells.Metadata_TableNumber
                 AND cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
             LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
+                nuclei.Metadata_TableNumber = nuclei.Metadata_TableNumber
                 AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
         """,

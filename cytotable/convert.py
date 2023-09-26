@@ -175,8 +175,9 @@ def _prep_cast_column_data_types(
 
 @python_app
 def _get_table_chunk_offsets(
-    source: Dict[str, Any],
     chunk_size: int,
+    source: Optional[Dict[str, Any]] = None,
+    sql_stmt: Optional[str] = None,
 ) -> Union[List[int], None]:
     """
     Get table data chunk offsets for later use in capturing segments
@@ -207,38 +208,53 @@ def _get_table_chunk_offsets(
 
     logger = logging.getLogger(__name__)
 
-    table_name = source["table_name"] if "table_name" in source.keys() else None
-    source_path = source["source_path"]
-    source_type = str(pathlib.Path(source_path).suffix).lower()
+    if source is not None:
+        table_name = source["table_name"] if "table_name" in source.keys() else None
+        source_path = source["source_path"]
+        source_type = str(pathlib.Path(source_path).suffix).lower()
 
-    try:
-        # for csv's, check that we have more than one row (a header and data values)
-        if (
-            source_type == ".csv"
-            and sum(1 for _ in AnyPath(source_path).open("r")) <= 1
-        ):
-            raise NoInputDataException(
-                f"Data file has 0 rows of values. Error in file: {source_path}"
+        try:
+            # for csv's, check that we have more than one row (a header and data values)
+            if (
+                source_type == ".csv"
+                and sum(1 for _ in AnyPath(source_path).open("r")) <= 1
+            ):
+                raise NoInputDataException(
+                    f"Data file has 0 rows of values. Error in file: {source_path}"
+                )
+
+            # gather the total rowcount from csv or sqlite data input sources
+            with _duckdb_reader() as ddb_reader:
+                rowcount = int(
+                    ddb_reader.execute(
+                        # nosec
+                        f"SELECT COUNT(*) from read_csv_auto('{source_path}', header=TRUE, delim=',')"
+                        if source_type == ".csv"
+                        else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
+                    ).fetchone()[0]
+                )
+
+        # catch input errors which will result in skipped files
+        except (
+            duckdb.InvalidInputException,
+            NoInputDataException,
+        ) as invalid_input_exc:
+            logger.warning(
+                msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
             )
 
+            return None
+
+    # find chunk offsets from sql statement
+    elif sql_stmt is not None:
         # gather the total rowcount from csv or sqlite data input sources
         with _duckdb_reader() as ddb_reader:
             rowcount = int(
                 ddb_reader.execute(
                     # nosec
-                    f"SELECT COUNT(*) from read_csv_auto('{source_path}', header=TRUE, delim=',')"
-                    if source_type == ".csv"
-                    else f"SELECT COUNT(*) from sqlite_scan('{source_path}', '{table_name}')"
+                    f"SELECT COUNT(*) FROM ({sql_stmt})"
                 ).fetchone()[0]
             )
-
-    # catch input errors which will result in skipped files
-    except (duckdb.InvalidInputException, NoInputDataException) as invalid_input_exc:
-        logger.warning(
-            msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
-        )
-
-        return None
 
     return list(
         range(
@@ -633,74 +649,32 @@ def _concat_source_group(
 
 
 @python_app
-def _get_join_chunks(
-    sources: Dict[str, List[Dict[str, Any]]],
-    metadata: Union[List[str], Tuple[str, ...]],
-    chunk_columns: Union[List[str], Tuple[str, ...]],
-    chunk_size: int,
-) -> List[List[Dict[str, Any]]]:
-    """
-    Build groups of join keys for later join operations
-
-    Args:
-        sources: Dict[List[Dict[str, Any]]]:
-            Grouped datasets of files which will be used by other functions.
-        metadata: Union[List[str], Tuple[str, ...]]:
-            List of source data names which are used as metadata.
-        chunk_columns: Union[List[str], Tuple[str, ...]]:
-            Column names which appear in all compartments to use when performing join.
-        chunk_size: int:
-            Size of join chunks which is used to limit data size during join ops.
-
-    Returns:
-        List[List[Dict[str, Any]]]]:
-            A list of lists with at most chunk size length that contain join keys.
-    """
-
+def _prepare_join_sql(sources: Dict[str, List[Dict[str, Any]]], joins: str):
     import pathlib
 
-    import pyarrow.parquet as parquet
+    # replace with real location of sources for join sql
+    for key, val in sources.items():
+        if pathlib.Path(key).stem.lower() in joins.lower():
+            joins = joins.replace(
+                f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
+                str([str(table) for table in val[0]["table"]]),
+            )
 
-    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
-
-    # fetch the compartment concat result as the basis for join groups
-    for key, source in sources.items():
-        if any(name.lower() in pathlib.Path(key).stem.lower() for name in metadata):
-            first_result = source
-            break
-
-    # gather the workflow result for basis if it's not yet returned
-    basis = first_result
-
-    # read only the table's chunk_columns
-    join_column_rows = parquet.read_table(
-        source=basis[0]["table"],
-        columns=list(chunk_columns),
-        memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
-    ).to_pylist()
-
-    # build and return the chunked join column rows
-    return [
-        join_column_rows[i : i + chunk_size]
-        for i in range(0, len(join_column_rows), chunk_size)
-    ]
+    return joins
 
 
 @python_app
 def _join_source_chunk(
-    sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     joins: str,
-    join_group: List[Dict[str, Any]],
+    chunk_size: int,
+    offset: int,
     drop_null: bool,
 ) -> str:
     """
     Join sources based on join group keys (group of specific join column values)
 
     Args:
-        sources: Dict[str, List[Dict[str, Any]]]:
-            Grouped datasets of files which will be used by other functions.
-            Includes the metadata concerning location of actual data.
         dest_path: str:
             Destination path to write file-based content.
         joins: str:
@@ -724,52 +698,19 @@ def _join_source_chunk(
 
     from cytotable.utils import _duckdb_reader
 
-    # replace with real location of sources for join sql
-    for key, val in sources.items():
-        if pathlib.Path(key).stem.lower() in joins.lower():
-            joins = joins.replace(
-                f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
-                str([str(table) for table in val[0]["table"]]),
-            )
+    # Attempt to read the data to parquet file
+    # using duckdb for extraction and pyarrow for
+    # writing data to a parquet file.
 
-    # update the join groups to include unique values per table
-    updated_join_group = []
-    for key in sources.keys():
-        updated_join_group.extend(
-            [
-                {
-                    f"{str(pathlib.Path(key).stem)}.{join_key}": val
-                    for join_key, val in chunk.items()
-                }
-                for chunk in join_group
-            ]
-        )
-
-    # form where clause for sql joins to filter the results
-    joins += (
-        "WHERE ("
-        + ") OR (".join(
-            [
-                " AND ".join(
-                    [
-                        # create groups of join column filters where values always
-                        # are expected to equal those within the join_group together
-                        f"{join_column} = {join_column_value}"
-                        if not isinstance(join_column_value, str)
-                        # account for string values
-                        else (f"{join_column} = " f"'{join_column_value}'")
-                        for join_column, join_column_value in chunk.items()
-                    ]
-                )
-                for chunk in updated_join_group
-            ]
-        )
-        + ")"
-    )
-
+    # read data with chunk size + offset
+    # and export to parquet
     with _duckdb_reader() as ddb_reader:
-        # perform compartment joins using duckdb over parquet files
-        result = ddb_reader.execute(joins).arrow()
+        result = ddb_reader.execute(
+            f"""
+                {joins}
+                LIMIT {chunk_size} OFFSET {offset}
+                """
+        ).arrow()
 
     # drop nulls if specified
     if drop_null:
@@ -1012,7 +953,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     concat: bool,
     join: bool,
     joins: Optional[str],
-    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
     chunk_size: Optional[int],
     infer_common_schema: bool,
     drop_null: bool,
@@ -1048,8 +988,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to join the compartment data together into one dataset.
         joins: str:
             DuckDB-compatible SQL which will be used to perform the join operations.
-        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],
-            Column names which appear in all compartments to use when performing join.
         chunk_size: Optional[int],
             Size of join chunks which is used to limit data size during join ops.
         infer_common_schema: bool:  (Default value = True)
@@ -1074,7 +1012,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     from cytotable.convert import (
         _concat_join_sources,
         _concat_source_group,
-        _get_join_chunks,
         _get_table_chunk_offsets,
         _infer_source_group_common_schema,
         _join_source_chunk,
@@ -1210,6 +1147,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
     if join:
+        prepared_joins_sql = _prepare_join_sql(sources=results, joins=joins).result()
+
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
         join_sources_result = [
@@ -1217,21 +1156,18 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 # gather the result of concatted sources prior to
                 # join group merging as each mapped task run will need
                 # full concat results
-                sources=results,
                 dest_path=expanded_dest_path,
-                joins=joins,
-                # get merging chunks by join columns
-                join_group=join_group,
+                joins=prepared_joins_sql,
+                chunk_size=chunk_size,
+                offset=offset,
                 drop_null=drop_null,
             ).result()
             # create join group for querying the concatenated
             # data in order to perform memory-safe joining
             # per user chunk size specification.
-            for join_group in _get_join_chunks(
-                sources=results,
-                chunk_columns=chunk_columns,
+            for offset in _get_table_chunk_offsets(
+                sql_stmt=prepared_joins_sql,
                 chunk_size=chunk_size,
-                metadata=metadata,
             ).result()
         ]
 
@@ -1259,7 +1195,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     concat: bool = True,
     join: bool = True,
     joins: Optional[str] = None,
-    chunk_columns: Optional[Union[List[str], Tuple[str, ...]]] = None,
     chunk_size: Optional[int] = None,
     infer_common_schema: bool = True,
     drop_null: bool = False,
@@ -1303,9 +1238,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to join the compartment data together into one dataset
         joins: str: (Default value = None):
             DuckDB-compatible SQL which will be used to perform the join operations.
-        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]
-            (Default value = None)
-            Column names which appear in all compartments to use when performing join
         chunk_size: Optional[int] (Default value = None)
             Size of join chunks which is used to limit data size during join ops
         infer_common_schema: bool: (Default value = True)
@@ -1402,11 +1334,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             else identifying_columns
         )
         joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
-        chunk_columns = (
-            cast(list, config[preset]["CONFIG_CHUNK_COLUMNS"])
-            if chunk_columns is None
-            else chunk_columns
-        )
         chunk_size = (
             cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
             if chunk_size is None
@@ -1425,7 +1352,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             concat=concat,
             join=join,
             joins=joins,
-            chunk_columns=chunk_columns,
             chunk_size=chunk_size,
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
