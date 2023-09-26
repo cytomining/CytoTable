@@ -647,8 +647,11 @@ def _concat_source_group(
     return concatted
 
 
-@python_app
-def _prepare_join_sql(sources: Dict[str, List[Dict[str, Any]]], joins: str) -> str:
+@python_app()
+def _prepare_join_sql(
+    sources: Dict[str, List[Dict[str, Any]]],
+    joins: str,
+) -> str:
     """
     Prepare join SQL statement with actual locations of data based on the sources.
 
