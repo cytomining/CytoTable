@@ -326,12 +326,12 @@ def test_prepare_join_sql(
         SELECT
             *
         FROM
-            read_parquet(['<temp_dir_location>/example_dest/image/0/image.parquet']) AS image
-        LEFT JOIN read_parquet(['<temp_dir_location>/example_dest/cytoplasm/1/cytoplasm.parquet']) AS cytoplasm ON
+            read_parquet(['<temp_dir_location>/image.parquet']) AS image
+        LEFT JOIN read_parquet(['<temp_dir_location>/cytoplasm.parquet']) AS cytoplasm ON
             cytoplasm.ImageNumber = image.ImageNumber
-        LEFT JOIN read_parquet(['<temp_dir_location>/example_dest/cells/2/cells.parquet']) AS cells ON
+        LEFT JOIN read_parquet(['<temp_dir_location>/cells.parquet']) AS cells ON
             cells.ImageNumber = cytoplasm.ImageNumber
-        LEFT JOIN read_parquet(['<temp_dir_location>/example_dest/nuclei/3/nuclei.parquet']) AS nuclei ON
+        LEFT JOIN read_parquet(['<temp_dir_location>/nuclei.parquet']) AS nuclei ON
             nuclei.ImageNumber = cytoplasm.ImageNumber
     """
 
@@ -359,6 +359,9 @@ def test_prepare_join_sql(
             .arrow()
             .to_pydict()
         )
+
+    # check that we received data back
+    assert len(result) == 9
 
 
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
