@@ -27,6 +27,7 @@ moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cffconvert = "^2.0.0"
 cytominer-database = "^0.3.4"
 pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "09b2c79aa94908e3520f0931a844db4fba7fd3fb" }
+poetry2conda = "^0.3.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -47,3 +48,9 @@ skips = ["B608"]
 
 [tool.codespell]
 ignore-words=".codespell-ignore"
+
+[tool.poetry2conda]
+name = "cytotable_dev"
+
+[tool.poetry2conda.dependencies]
+duckdb = { name = "python-duckdb" }
