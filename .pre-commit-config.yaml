@@ -9,6 +9,7 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: recipe/meta.yaml
       - id: check-added-large-files
       - id: check-toml
   - repo: https://github.com/codespell-project/codespell
@@ -32,6 +33,7 @@ repos:
     rev: v1.32.0
     hooks:
       - id: yamllint
+        exclude: recipe/meta.yaml
   - repo: https://github.com/psf/black
     rev: 23.9.1
     hooks:
