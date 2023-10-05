@@ -3,18 +3,22 @@
 # https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html
 
 # sets pyproject and poetry read capabilities for gathering metadata
-{% set pyproject = load_file_data('pyproject.toml') %}
+# see the following for more details:
+# https://docs.conda.io/projects/conda-build/en/stable/resources/define-metadata.html#loading-data-from-other-files
+{% set pyproject = load_file_data('../pyproject.toml') %}
 {% set poetry = pyproject.get('tool', {}).get('poetry') %}
 
 # specifies package name and version to release
 package:
-  name: {{ poetry.get('name') }}
+  # note: package name for conda must be lowercase
+  name: {{ poetry.get('name').lower() }}
   version: {{ poetry.get('version') }}
 
 # specifies the location for conda build source
 source:
   git_url: https://github.com/cytomining/cytotable.git
-  git_rev: {{ poetry.get('version') }}
+  # note: we use an explicit "v" in the version tag from git
+  git_rev: "v{{ poetry.get('version') }}"
 
 # specifies build architecture and call for installation
 build:
@@ -66,5 +70,3 @@ extra:
     - axiomcura
     - falquaddoomi
     - gwaybio
-
-
