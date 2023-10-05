@@ -108,15 +108,10 @@ def _parsl_loaded() -> bool:
     try:
         # try to reference Parsl dataflowkernel
         parsl.dfk()
-    except NoDataFlowKernelError as ndfke:
-        # if we detect a Parsl ConfigurationError that states we need to load config
+    except NoDataFlowKernelError:
+        # if we detect a Parsl NoDataFlowKernelError
         # return false to indicate parsl config has not yet been loaded.
-        if ndfke.args[0] == "Must first load config":
-            return False
-
-        # otherwise we raise other ConfigurationError's
-        else:
-            raise
+        return False
 
     # otherwise we indicate parsl config has already been loaded
     return True
