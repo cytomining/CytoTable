@@ -2,7 +2,7 @@
 
 # CytoTable
 
-![dataflow](docs/source/_static/dataflow.svg)
+![dataflow](https://raw.githubusercontent.com/cytomining/cytotable/main/docs/source/_static/dataflow.svg?raw=true)
 _Diagram showing data flow relative to this project._
 
 ## Summary
