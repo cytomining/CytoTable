@@ -195,11 +195,11 @@ config = {
                 cytoplasm.Metadata_TableNumber = image.Metadata_TableNumber
                 AND cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
             LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.Metadata_TableNumber = cells.Metadata_TableNumber
+                cells.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
                 AND cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
             LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.Metadata_TableNumber = nuclei.Metadata_TableNumber
+                nuclei.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
                 AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
         """,
