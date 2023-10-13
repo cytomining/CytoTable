@@ -209,8 +209,9 @@
 
 <span class="nd">@python_app</span>
 <span class="k">def</span> <span class="nf">_get_table_chunk_offsets</span><span class="p">(</span>
-    <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sql_stmt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Get table data chunk offsets for later use in capturing segments</span>
@@ -241,38 +242,53 @@
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-    <span class="n">table_name</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;table_name&quot;</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
-    <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">table_name</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;table_name&quot;</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+        <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
-    <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># for csv&#39;s, check that we have more than one row (a header and data values)</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
-            <span class="ow">and</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mi">1</span>
-        <span class="p">):</span>
-            <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Data file has 0 rows of values. Error in file: </span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># for csv&#39;s, check that we have more than one row (a header and data values)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
+                <span class="ow">and</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">AnyPath</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mi">1</span>
+            <span class="p">):</span>
+                <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Data file has 0 rows of values. Error in file: </span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># gather the total rowcount from csv or sqlite data input sources</span>
+            <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+                <span class="n">rowcount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+                    <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                        <span class="c1"># nosec</span>
+                        <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;)&quot;</span>
+                        <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
+                        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="p">)</span>
+
+        <span class="c1"># catch input errors which will result in skipped files</span>
+        <span class="k">except</span> <span class="p">(</span>
+            <span class="n">duckdb</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">,</span>
+            <span class="n">NoInputDataException</span><span class="p">,</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">invalid_input_exc</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Skipping file due to input file errors: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">invalid_input_exc</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># find chunk offsets from sql statement</span>
+    <span class="k">elif</span> <span class="n">sql_stmt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># gather the total rowcount from csv or sqlite data input sources</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
             <span class="n">rowcount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
                 <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                     <span class="c1"># nosec</span>
-                    <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;)&quot;</span>
-                    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
-                    <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) FROM (</span><span class="si">{</span><span class="n">sql_stmt</span><span class="si">}</span><span class="s2">)&quot;</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
             <span class="p">)</span>
-
-    <span class="c1"># catch input errors which will result in skipped files</span>
-    <span class="k">except</span> <span class="p">(</span><span class="n">duckdb</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">,</span> <span class="n">NoInputDataException</span><span class="p">)</span> <span class="k">as</span> <span class="n">invalid_input_exc</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Skipping file due to input file errors: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">invalid_input_exc</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="kc">None</span>
 
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
         <span class="nb">range</span><span class="p">(</span>
@@ -292,7 +308,6 @@
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Export source data to chunked parquet file using chunk size and offsets.</span>
@@ -666,75 +681,51 @@
     <span class="k">return</span> <span class="n">concatted</span>
 
 
-<span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_get_join_chunks</span><span class="p">(</span>
+<span class="nd">@python_app</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">_prepare_join_sql</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
-    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
-    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
-    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+    <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build groups of join keys for later join operations</span>
+<span class="sd">    Prepare join SQL statement with actual locations of data based on the sources.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[List[Dict[str, Any]]]:</span>
+<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            Grouped datasets of files which will be used by other functions.</span>
-<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
-<span class="sd">            List of source data names which are used as metadata.</span>
-<span class="sd">        chunk_columns: Union[List[str], Tuple[str, ...]]:</span>
-<span class="sd">            Column names which appear in all compartments to use when performing join.</span>
-<span class="sd">        chunk_size: int:</span>
-<span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
+<span class="sd">            Includes the metadata concerning location of actual data.</span>
+<span class="sd">        joins: str:</span>
+<span class="sd">            DuckDB-compatible SQL which will be used to perform the join</span>
+<span class="sd">            operations using the join_group keys as a reference.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[List[Dict[str, Any]]]]:</span>
-<span class="sd">            A list of lists with at most chunk size length that contain join keys.</span>
+<span class="sd">        str:</span>
+<span class="sd">            String representing the SQL to be used in later join work.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+    <span class="c1"># replace with real location of sources for join sql</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">joins</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">joins</span> <span class="o">=</span> <span class="n">joins</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">.parquet&#39;&quot;</span><span class="p">,</span>
+                <span class="nb">str</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]]),</span>
+            <span class="p">)</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
-
-    <span class="c1"># fetch the compartment concat result as the basis for join groups</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">):</span>
-            <span class="n">first_result</span> <span class="o">=</span> <span class="n">source</span>
-            <span class="k">break</span>
-
-    <span class="c1"># gather the workflow result for basis if it&#39;s not yet returned</span>
-    <span class="n">basis</span> <span class="o">=</span> <span class="n">first_result</span>
-
-    <span class="c1"># read only the table&#39;s chunk_columns</span>
-    <span class="n">join_column_rows</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span>
-        <span class="n">source</span><span class="o">=</span><span class="n">basis</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">],</span>
-        <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">chunk_columns</span><span class="p">),</span>
-        <span class="n">memory_map</span><span class="o">=</span><span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
-
-    <span class="c1"># build and return the chunked join column rows</span>
-    <span class="k">return</span> <span class="p">[</span>
-        <span class="n">join_column_rows</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">chunk_size</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">join_column_rows</span><span class="p">),</span> <span class="n">chunk_size</span><span class="p">)</span>
-    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">joins</span>
 
 
 <span class="nd">@python_app</span>
 <span class="k">def</span> <span class="nf">_join_source_chunk</span><span class="p">(</span>
-    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">join_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Join sources based on join group keys (group of specific join column values)</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
-<span class="sd">            Grouped datasets of files which will be used by other functions.</span>
-<span class="sd">            Includes the metadata concerning location of actual data.</span>
 <span class="sd">        dest_path: str:</span>
 <span class="sd">            Destination path to write file-based content.</span>
 <span class="sd">        joins: str:</span>
@@ -758,52 +749,18 @@
 
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span>
 
-    <span class="c1"># replace with real location of sources for join sql</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">joins</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-            <span class="n">joins</span> <span class="o">=</span> <span class="n">joins</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">.parquet&#39;&quot;</span><span class="p">,</span>
-                <span class="nb">str</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]]),</span>
-            <span class="p">)</span>
-
-    <span class="c1"># update the join groups to include unique values per table</span>
-    <span class="n">updated_join_group</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="n">updated_join_group</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="p">{</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">join_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">val</span>
-                    <span class="k">for</span> <span class="n">join_key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">chunk</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="p">}</span>
-                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">join_group</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-
-    <span class="c1"># form where clause for sql joins to filter the results</span>
-    <span class="n">joins</span> <span class="o">+=</span> <span class="p">(</span>
-        <span class="s2">&quot;WHERE (&quot;</span>
-        <span class="o">+</span> <span class="s2">&quot;) OR (&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                    <span class="p">[</span>
-                        <span class="c1"># create groups of join column filters where values always</span>
-                        <span class="c1"># are expected to equal those within the join_group together</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">join_column</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">join_column_value</span><span class="si">}</span><span class="s2">&quot;</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">join_column_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
-                        <span class="c1"># account for string values</span>
-                        <span class="k">else</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">join_column</span><span class="si">}</span><span class="s2"> = &quot;</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">join_column_value</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
-                        <span class="k">for</span> <span class="n">join_column</span><span class="p">,</span> <span class="n">join_column_value</span> <span class="ow">in</span> <span class="n">chunk</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                    <span class="p">]</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">updated_join_group</span>
-            <span class="p">]</span>
-        <span class="p">)</span>
-        <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
-    <span class="p">)</span>
-
+    <span class="c1"># Attempt to read the data to parquet file</span>
+    <span class="c1"># using duckdb for extraction and pyarrow for</span>
+    <span class="c1"># writing data to a parquet file.</span>
+    <span class="c1"># read data with chunk size + offset</span>
+    <span class="c1"># and export to parquet</span>
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-        <span class="c1"># perform compartment joins using duckdb over parquet files</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">joins</span><span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                </span><span class="si">{</span><span class="n">joins</span><span class="si">}</span>
+<span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
 
     <span class="c1"># drop nulls if specified</span>
     <span class="k">if</span> <span class="n">drop_null</span><span class="p">:</span>
@@ -1046,7 +1003,6 @@
     <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]],</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -1082,8 +1038,6 @@
 <span class="sd">            Whether to join the compartment data together into one dataset.</span>
 <span class="sd">        joins: str:</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
-<span class="sd">        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]],</span>
-<span class="sd">            Column names which appear in all compartments to use when performing join.</span>
 <span class="sd">        chunk_size: Optional[int],</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
 <span class="sd">        infer_common_schema: bool:  (Default value = True)</span>
@@ -1108,7 +1062,6 @@
     <span class="kn">from</span> <span class="nn">cytotable.convert</span> <span class="kn">import</span> <span class="p">(</span>
         <span class="n">_concat_join_sources</span><span class="p">,</span>
         <span class="n">_concat_source_group</span><span class="p">,</span>
-        <span class="n">_get_join_chunks</span><span class="p">,</span>
         <span class="n">_get_table_chunk_offsets</span><span class="p">,</span>
         <span class="n">_infer_source_group_common_schema</span><span class="p">,</span>
         <span class="n">_join_source_chunk</span><span class="p">,</span>
@@ -1195,7 +1148,6 @@
                                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                                 <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
                                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
-                                <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
                             <span class="n">identifying_columns</span><span class="o">=</span><span class="n">identifying_columns</span><span class="p">,</span>
@@ -1244,6 +1196,8 @@
     <span class="c1"># conditional section for merging</span>
     <span class="c1"># note: join implies a concat, but concat does not imply a join</span>
     <span class="k">if</span> <span class="n">join</span><span class="p">:</span>
+        <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+
         <span class="c1"># map joined results based on the join groups gathered above</span>
         <span class="c1"># note: after mapping we end up with a list of strings (task returns str)</span>
         <span class="n">join_sources_result</span> <span class="o">=</span> <span class="p">[</span>
@@ -1251,21 +1205,18 @@
                 <span class="c1"># gather the result of concatted sources prior to</span>
                 <span class="c1"># join group merging as each mapped task run will need</span>
                 <span class="c1"># full concat results</span>
-                <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
-                <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">,</span>
-                <span class="c1"># get merging chunks by join columns</span>
-                <span class="n">join_group</span><span class="o">=</span><span class="n">join_group</span><span class="p">,</span>
+                <span class="n">joins</span><span class="o">=</span><span class="n">prepared_joins_sql</span><span class="p">,</span>
+                <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
                 <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
             <span class="c1"># create join group for querying the concatenated</span>
             <span class="c1"># data in order to perform memory-safe joining</span>
             <span class="c1"># per user chunk size specification.</span>
-            <span class="k">for</span> <span class="n">join_group</span> <span class="ow">in</span> <span class="n">_get_join_chunks</span><span class="p">(</span>
-                <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
-                <span class="n">chunk_columns</span><span class="o">=</span><span class="n">chunk_columns</span><span class="p">,</span>
+            <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">_get_table_chunk_offsets</span><span class="p">(</span>
+                <span class="n">sql_stmt</span><span class="o">=</span><span class="n">prepared_joins_sql</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
             <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
         <span class="p">]</span>
 
@@ -1293,7 +1244,6 @@
     <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">chunk_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1337,9 +1287,6 @@
 <span class="sd">            Whether to join the compartment data together into one dataset</span>
 <span class="sd">        joins: str: (Default value = None):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
-<span class="sd">        chunk_columns: Optional[Union[List[str], Tuple[str, ...]]]</span>
-<span class="sd">            (Default value = None)</span>
-<span class="sd">            Column names which appear in all compartments to use when performing join</span>
 <span class="sd">        chunk_size: Optional[int] (Default value = None)</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
 <span class="sd">        infer_common_schema: bool: (Default value = True)</span>
@@ -1436,11 +1383,6 @@
             <span class="k">else</span> <span class="n">identifying_columns</span>
         <span class="p">)</span>
         <span class="n">joins</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">joins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">joins</span>
-        <span class="n">chunk_columns</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_COLUMNS&quot;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">chunk_columns</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="k">else</span> <span class="n">chunk_columns</span>
-        <span class="p">)</span>
         <span class="n">chunk_size</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_SIZE&quot;</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -1459,7 +1401,6 @@
             <span class="n">concat</span><span class="o">=</span><span class="n">concat</span><span class="p">,</span>
             <span class="n">join</span><span class="o">=</span><span class="n">join</span><span class="p">,</span>
             <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">,</span>
-            <span class="n">chunk_columns</span><span class="o">=</span><span class="n">chunk_columns</span><span class="p">,</span>
             <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
             <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>

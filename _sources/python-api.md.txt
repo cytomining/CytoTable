@@ -21,10 +21,6 @@ Convert
 
 |
 
-.. autofunction:: _get_join_chunks
-
-|
-
 .. autofunction:: _get_table_columns_and_types
 
 |
@@ -38,6 +34,10 @@ Convert
 |
 
 .. autofunction:: _join_source_chunk
+
+|
+
+.. autofunction:: _prepare_join_sql
 
 |
 
