@@ -575,9 +575,6 @@ def test_to_parquet(
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
-        parquet_result = parquet.ParquetDataset(
-            path_or_paths=flattened_result["table"]
-        ).read()
         csv_source = (
             _duckdb_reader()
             .execute(
@@ -589,6 +586,11 @@ def test_to_parquet(
             )
             .arrow()
         )
+        parquet_result = parquet.ParquetDataset(
+            path_or_paths=flattened_result["table"],
+            # set the order of the columns uniformly for schema comparison
+            schema=csv_source.schema,
+        ).read()
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape
 
