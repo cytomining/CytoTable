@@ -13,9 +13,13 @@ The Parquet files will have a unified and documented data model, including refer
 
 ## Installation
 
-Install CytoTable with the following command:
+Install CytoTable from [PyPI](https://pypi.org/) or from source:
 
 ```shell
+# install from pypi
+pip install cytotable
+
+# install directly from source
 pip install git+https://github.com/cytomining/CytoTable.git
 ```
 
