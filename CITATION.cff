@@ -176,5 +176,5 @@ references:
       - type: doi
         value: 10.1145/1327452.1327492
     notes: >-
-      MapReduce techniques are used via Parsl apps and workfow configuration 
+      MapReduce techniques are used via Parsl apps and workflow configuration
       to help achieve scalable data engineering for CytoTable.
