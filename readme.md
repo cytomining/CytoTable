@@ -2,7 +2,7 @@
 
 # CytoTable
 
-![dataflow](docs/source/_static/dataflow.svg)
+![dataflow](https://raw.githubusercontent.com/cytomining/cytotable/main/docs/source/_static/dataflow.svg?raw=true)
 _Diagram showing data flow relative to this project._
 
 ## Summary
@@ -13,9 +13,13 @@ The Parquet files will have a unified and documented data model, including refer
 
 ## Installation
 
-Install CytoTable with the following command:
+Install CytoTable from [PyPI](https://pypi.org/) or from source:
 
 ```shell
+# install from pypi
+pip install cytotable
+
+# install directly from source
 pip install git+https://github.com/cytomining/CytoTable.git
 ```
 

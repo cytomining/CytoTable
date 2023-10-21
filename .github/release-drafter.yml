@@ -14,7 +14,7 @@ version-resolver:
     labels:
       - 'release-patch'
   default: patch
-change-template: '- $TITLE (#$NUMBER)'
+change-template: '- $TITLE (@$AUTHOR via #$NUMBER)'
 template: |
   ## Changes
 

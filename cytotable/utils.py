@@ -14,7 +14,7 @@ from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
 from parsl.config import Config
-from parsl.errors import ConfigurationError
+from parsl.errors import NoDataFlowKernelError
 from parsl.executors import HighThroughputExecutor
 
 logger = logging.getLogger(__name__)
@@ -108,15 +108,10 @@ def _parsl_loaded() -> bool:
     try:
         # try to reference Parsl dataflowkernel
         parsl.dfk()
-    except ConfigurationError as pce:
-        # if we detect a Parsl ConfigurationError that states we need to load config
+    except NoDataFlowKernelError:
+        # if we detect a Parsl NoDataFlowKernelError
         # return false to indicate parsl config has not yet been loaded.
-        if pce.args[0] == "Must first load config":
-            return False
-
-        # otherwise we raise other ConfigurationError's
-        else:
-            raise
+        return False
 
     # otherwise we indicate parsl config has already been loaded
     return True

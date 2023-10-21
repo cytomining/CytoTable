@@ -26,8 +26,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -73,8 +71,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -126,8 +122,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
@@ -181,8 +175,6 @@ config = {
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
         "CONFIG_CHUNK_SIZE": 1000,
-        # chunking columns to use along with chunk size for join operations
-        "CONFIG_CHUNK_COLUMNS": ("Metadata_ImageNumber",),
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """

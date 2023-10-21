@@ -23,9 +23,9 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
-    _get_join_chunks,
     _infer_source_group_common_schema,
     _join_source_chunk,
+    _prepare_join_sql,
     _prepend_column_name,
     _to_parquet,
     convert,
@@ -54,7 +54,6 @@ def test_config():
                 "CONFIG_NAMES_METADATA",
                 "CONFIG_IDENTIFYING_COLUMNS",
                 "CONFIG_CHUNK_SIZE",
-                "CONFIG_CHUNK_COLUMNS",
                 "CONFIG_JOINS",
                 "CONFIG_SOURCE_VERSION",
             ]
@@ -316,47 +315,58 @@ def test_concat_source_group(
         ).result()
 
 
-def test_get_join_chunks(load_parsl_default: None, fx_tempdir: str):
+def test_prepare_join_sql(
+    load_parsl_default: None,
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
+):
     """
-    Tests _get_join_chunks
+    Tests _prepare_join_sql
+
+    After running _prepare_join_sql we'd expect something like:
+        SELECT
+            *
+        FROM
+            read_parquet(['<temp_dir_location>/image.parquet']) AS image
+        LEFT JOIN read_parquet(['<temp_dir_location>/cytoplasm.parquet']) AS cytoplasm ON
+            cytoplasm.ImageNumber = image.ImageNumber
+        LEFT JOIN read_parquet(['<temp_dir_location>/cells.parquet']) AS cells ON
+            cells.ImageNumber = cytoplasm.ImageNumber
+        LEFT JOIN read_parquet(['<temp_dir_location>/nuclei.parquet']) AS nuclei ON
+            nuclei.ImageNumber = cytoplasm.ImageNumber
     """
 
-    # form test path
-    test_path = f"{fx_tempdir}/merge_chunks_test.parquet"
-
-    # write test data to file
-    parquet.write_table(
-        table=pa.Table.from_pydict(
-            {
-                "id1": [1, 2, 3, 1, 2, 3],
-                "id2": ["a", "a", "a", "b", "b", "b"],
-                "field1": ["foo", "bar", "baz", "foo", "bar", "baz"],
-                "field2": [True, False, True, True, False, True],
-            }
-        ),
-        where=test_path,
-    )
-
-    result = _get_join_chunks(
-        sources={"merge_chunks_test.parquet": [{"table": [test_path]}]},
-        metadata=["merge_chunks_test"],
-        chunk_columns=["id1", "id2"],
-        chunk_size=2,
-    ).result()
-
-    # test that we have 3 chunks of merge columns
-    assert len(result) == 3
-    # test that we have only the columns we specified
-    assert set(
-        itertools.chain(
-            *[list(chunk_item.keys()) for chunk in result for chunk_item in chunk]
+    # attempt to run query against prepared_join_sql with test data
+    with _duckdb_reader() as ddb_reader:
+        result = (
+            ddb_reader.execute(
+                _prepare_join_sql(
+                    sources=example_local_sources,
+                    # simplified join for example dataset
+                    joins="""
+                    SELECT
+                        *
+                    FROM
+                        read_parquet('image.parquet') AS image
+                    LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
+                        cytoplasm.ImageNumber = image.ImageNumber
+                    LEFT JOIN read_parquet('cells.parquet') AS cells ON
+                        cells.ImageNumber = cytoplasm.ImageNumber
+                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+                        nuclei.ImageNumber = cytoplasm.ImageNumber
+                    """,
+                ).result()
+            )
+            .arrow()
+            .to_pydict()
         )
-    ) == {"id1", "id2"}
+
+    # check that we received data back
+    assert len(result) == 9
 
 
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     """
-    Tests _get_join_chunks
+    Tests _join_source_chunk
     """
 
     # form test path a
@@ -388,10 +398,6 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     )
 
     result = _join_source_chunk(
-        sources={
-            "example_a": [{"table": [test_path_a]}],
-            "example_b": [{"table": [test_path_b]}],
-        },
         dest_path=f"{fx_tempdir}/destination.parquet",
         joins=f"""
             SELECT *
@@ -400,11 +406,13 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
                 example_b.id1 = example_a.id1
                 AND example_b.id2 = example_a.id2
         """,
-        join_group=[{"id1": 1, "id2": "a"}, {"id1": 2, "id2": "a"}],
+        chunk_size=2,
+        offset=0,
         drop_null=True,
     ).result()
 
     assert isinstance(result, str)
+
     result_table = parquet.read_table(source=result)
     assert result_table.equals(
         other=pa.Table.from_pydict(
@@ -567,9 +575,6 @@ def test_to_parquet(
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
-        parquet_result = parquet.ParquetDataset(
-            path_or_paths=flattened_result["table"]
-        ).read()
         csv_source = (
             _duckdb_reader()
             .execute(
@@ -581,6 +586,11 @@ def test_to_parquet(
             )
             .arrow()
         )
+        parquet_result = parquet.ParquetDataset(
+            path_or_paths=flattened_result["table"],
+            # set the order of the columns uniformly for schema comparison
+            schema=csv_source.schema,
+        ).read()
         assert parquet_result.schema.equals(csv_source.schema)
         assert parquet_result.shape == csv_source.shape
 
