@@ -113,3 +113,68 @@ references:
     notes: >-
       Cell Health datasets used as a reference for building CytoTable.
       Data located at: https://nih.figshare.com/articles/dataset/Cell_Health_-_Cell_Painting_Single_Cell_Profiles/9995672/5
+  - title:  >-
+      Parsl: Pervasive Parallel Programming in Python
+    type: software
+    url: https://dl.acm.org/doi/10.1145/3307681.3325400
+    authors:
+      - family-names: Babuji
+        given-names: Yadu
+      - family-names: Woodard
+        given-names: Anna
+      - family-names: Li
+        given-names: Zhuozhao
+      - family-names: Katz
+        given-names: Daniel S.
+      - family-names: Clifford
+        given-names: Ben
+      - family-names: Kumar
+        given-names: Rohan
+      - family-names: Lacinski
+        given-names: Lukasz
+      - family-names: Chard
+        given-names: Ryan
+      - family-names: Wozniak
+        given-names: Justin M.
+      - family-names: Foster
+        given-names: Ian
+      - family-names: Wilde
+        given-names: Michael
+      - family-names: Chard
+        given-names: Kyle
+    date-released: 2019-06-17
+    identifiers:
+      - type: doi
+        value: 10.1145/3307681.3325400
+    notes: >-
+      Parsl is used to help enable parallel task completion for scalable data engineering.
+  - title:  >-
+      DuckDB: an Embeddable Analytical Database
+    type: software
+    url: https://dl.acm.org/doi/10.1145/3299869.3320212
+    authors:
+      - family-names: Raasveldt
+        given-names: Mark
+      - family-names: Mühleisen
+        given-names: Hannes
+    date-released: 2019-06-25
+    identifiers:
+      - type: doi
+        value: 10.1145/3299869.3320212
+    notes: >-
+      DuckDB is used throughout many data operations within CytoTable.
+  - title:  >-
+      MapReduce: simplified data processing on large clusters
+    type: software
+    url: https://dl.acm.org/doi/10.1145/1327452.1327492
+    authors:
+      - family-names: Dean
+        given-names: Jeffrey
+      - family-names: Ghemawat
+        given-names: Sanjay
+    identifiers:
+      - type: doi
+        value: 10.1145/1327452.1327492
+    notes: >-
+      MapReduce techniques are used via Parsl apps and workflow configuration
+      to help achieve scalable data engineering for CytoTable.
