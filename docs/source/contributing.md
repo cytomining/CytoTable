@@ -190,3 +190,9 @@ See below for an overview of how this works.
 1. On merging the pull request for the release, a [GitHub Actions workflow](https://docs.github.com/en/actions/using-workflows) defined in `draft-release.yml` leveraging [`release-drafter`](https://github.com/release-drafter/release-drafter) will draft a release for maintainers to modify.
 1. Make modifications as necessary to the draft GitHub release, then publish the release.
 1. On publishing the release, another GitHub Actions workflow defined in `publish-pypi.yml` will run to build and deploy the Python package to PyPI (utilizing the earlier modified `pyproject.toml` semantic version reference for labeling the release).
+
+#### Conda Releases
+
+Conda releases require separate procedures from the above.
+A Conda development environment is provided under `/build/conda/cytotable_dev.yaml` for convenience via [poetry2conda](https://github.com/dojeda/poetry2conda) to assist with development and build needs.
+A Conda recipe is provided under `/build/conda/recipe/meta.yaml` for use on conda channels for distribution.

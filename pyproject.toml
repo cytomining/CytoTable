@@ -47,3 +47,9 @@ skips = ["B608"]
 
 [tool.codespell]
 ignore-words=".codespell-ignore"
+
+[tool.poetry2conda]
+name = "cytotable_dev"
+
+[tool.poetry2conda.dependencies]
+duckdb = { name = "python-duckdb" }
