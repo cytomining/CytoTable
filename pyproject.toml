@@ -12,7 +12,7 @@ keywords = ["python", "cellprofiler","single-cell-analysis", "way-lab"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.13"
-pyarrow = "^13.0.0"
+pyarrow = ">=13.0.0"
 cloudpathlib = {extras = ["all"], version = "^0.15.0"}
 duckdb = ">=0.8.0"
 parsl = ">=2023.9.25"
