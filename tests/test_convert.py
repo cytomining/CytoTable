@@ -32,7 +32,7 @@ from cytotable.convert import (
 )
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
-from cytotable.sources import _get_source_filepaths, _infer_source_datatype
+from cytotable.sources import _infer_source_datatype
 from cytotable.utils import (
     _column_sort,
     _duckdb_reader,
@@ -135,53 +135,6 @@ def test_extend_path(fx_tempdir: str):
     subdir = f"{fx_tempdir}/test_subdir"
     pathlib.Path(subdir).mkdir()
     assert _expand_path(path=f"{subdir}/..") == pathlib.Path(fx_tempdir).resolve()
-
-
-def test_get_source_filepaths(
-    load_parsl_default: None, fx_tempdir: str, data_dir_cellprofiler: str
-):
-    """
-    Tests _get_source_filepaths
-    """
-
-    # test that no sources raises an exception
-    empty_dir = pathlib.Path(f"{fx_tempdir}/temp")
-    empty_dir.mkdir(parents=True, exist_ok=True)
-    with pytest.raises(Exception):
-        single_dir_result = _get_source_filepaths(
-            path=empty_dir,
-            targets=["image", "cells", "nuclei", "cytoplasm"],
-        ).result()
-
-    # check that single sqlite file is returned as desired
-    single_file_result = _get_source_filepaths(
-        path=pathlib.Path(
-            f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
-        ),
-        targets=["cells"],
-    ).result()
-    assert len(set(single_file_result.keys())) == 1
-
-    # check that single csv file is returned as desired
-    single_file_result = _get_source_filepaths(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv"),
-        targets=["cells"],
-    ).result()
-    assert len(set(single_file_result.keys())) == 1
-
-    single_dir_result = _get_source_filepaths(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
-        targets=["cells"],
-    ).result()
-    # test that the single dir structure includes 1 unique key (for cells)
-    assert len(set(single_dir_result.keys())) == 1
-
-    single_dir_result = _get_source_filepaths(
-        path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
-        targets=["image", "cells", "nuclei", "cytoplasm"],
-    ).result()
-    # test that the single dir structure includes 4 unique keys
-    assert len(set(single_dir_result.keys())) == 4
 
 
 def test_prepend_column_name(load_parsl_default: None, fx_tempdir: str):
