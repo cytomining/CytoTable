@@ -16,6 +16,7 @@ pyarrow = ">=13.0.0"
 cloudpathlib = {extras = ["all"], version = "^0.15.0"}
 duckdb = ">=0.8.0"
 parsl = ">=2023.9.25"
+dunamai = "^1.19.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.4.0"

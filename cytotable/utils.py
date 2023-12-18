@@ -6,6 +6,9 @@ import logging
 import multiprocessing
 import os
 import pathlib
+
+import pkg_resources
+import dunamai
 from typing import Any, Dict, Union, cast
 
 import duckdb
@@ -453,3 +456,21 @@ def _expand_path(
         modifed_path = modifed_path.expanduser()
 
     return modifed_path.resolve()
+
+
+def _get_cytotable_version() -> str:
+    """
+    Seeks the current version of CytoTable using either pkg_resources
+    or dunamai to determine the current version being used.
+
+    Returns:
+        str
+            A string representing the version of CytoTable currently being used.
+    """
+    try:
+        # attempt to gather the pkg_resources version (for PyPI)
+        return pkg_resources.get_distribution(__name__).version
+    except pkg_resources.DistributionNotFound:
+        # else grab the version-control-based version
+        return dunamai.Version.from_any_vcs().serialize()
+

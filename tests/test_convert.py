@@ -38,6 +38,7 @@ from cytotable.utils import (
     _duckdb_reader,
     _expand_path,
     _sqlite_mixed_type_query_to_parquet,
+    _get_cytotable_version
 )
 
 
@@ -59,6 +60,12 @@ def test_config():
             ]
         ) == sorted(config_preset.keys())
 
+def test_get_cytotable_version():
+    """
+    Tests get_cytotable_version
+    """
+
+    assert isinstance(_get_cytotable_version(), str)
 
 def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: str):
     """
@@ -1024,3 +1031,5 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
             ]
         )
     )
+
+
