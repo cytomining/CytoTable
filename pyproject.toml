@@ -56,4 +56,3 @@ skips = ["B608"]
 
 [tool.codespell]
 ignore-words=".codespell-ignore"
-
