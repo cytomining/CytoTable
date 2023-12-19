@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "CytoTable"
-version = "0.0.3"
+version = "0.0.0"
 description = "Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools."
 authors = ["Cytomining Community"]
 license = "BSD-3-Clause License"
@@ -9,6 +9,15 @@ readme = "readme.md"
 repository = "https://github.com/cytomining/CytoTable"
 documentation = "https://cytomining.github.io/CytoTable/"
 keywords = ["python", "cellprofiler","single-cell-analysis", "way-lab"]
+
+[tool.poetry-dynamic-versioning]
+enable = true
+style = "pep440"
+vcs = "git"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.13"
@@ -29,9 +38,7 @@ cffconvert = "^2.0.0"
 cytominer-database = "^0.3.4"
 pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "09b2c79aa94908e3520f0931a844db4fba7fd3fb" }
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+
 
 [tool.vulture]
 min_confidence = 80
@@ -48,3 +55,4 @@ skips = ["B608"]
 
 [tool.codespell]
 ignore-words=".codespell-ignore"
+

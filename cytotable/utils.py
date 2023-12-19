@@ -468,9 +468,9 @@ def _get_cytotable_version() -> str:
             A string representing the version of CytoTable currently being used.
     """
     try:
-        # attempt to gather the pkg_resources version (for PyPI)
-        return pkg_resources.get_distribution(__name__).version
-    except pkg_resources.DistributionNotFound:
-        # else grab the version-control-based version
+        # attempt to gather the development version from dunamai
         return dunamai.Version.from_any_vcs().serialize()
+    except RuntimeError:
+        # else grab the static version from __init__.py
+        return 
 
