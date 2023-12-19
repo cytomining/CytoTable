@@ -6,10 +6,11 @@ import logging
 import multiprocessing
 import os
 import pathlib
-from typing import Any, Dict, Union, cast
+from typing import Any, Dict, Optional, Union, cast
 
 import duckdb
 import parsl
+import pyarrow as pa
 from cloudpathlib import AnyPath, CloudPath
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
@@ -467,6 +468,8 @@ def _get_cytotable_version() -> str:
 
     import dunamai
 
+    import cytotable
+
     try:
         # attempt to gather the development version from dunamai
         # for scenarios where cytotable from source is used.
@@ -477,22 +480,26 @@ def _get_cytotable_version() -> str:
         return cytotable.__version__
 
 
-def _write_parquet_with_metadata(
-    table: pyarrow.Table, metadata: Dict[str, str], **kwargs
-) -> None:
+def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
     """
     Adds metadata to parquet output from CytoTable.
+    Note: this mostly wraps pyarrow.parquet.write_table
+    https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html
 
+    Args:
+        table: pa.Table
+            Pyarrow table to be serialized as parquet table.
     """
 
     from pyarrow import parquet
+
     from cytotable.utils import _get_cytotable_version
 
     parquet.write_table(
         table=table.replace_schema_metadata(
             metadata={
                 "data-producer": "https://github.com/cytomining/CytoTable",
-                "data-producer-version": str(cytotable_get_cytotable_version()),
+                "data-producer-version": str(_get_cytotable_version()),
             }
         ),
         **kwargs,
