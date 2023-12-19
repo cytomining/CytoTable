@@ -3,7 +3,6 @@ Utility functions for CytoTable
 """
 
 import logging
-import multiprocessing
 import os
 import pathlib
 from typing import Any, Dict, Optional, Union, cast
@@ -19,67 +18,6 @@ from parsl.errors import NoDataFlowKernelError
 from parsl.executors import HighThroughputExecutor
 
 logger = logging.getLogger(__name__)
-
-# read max threads from environment if necessary
-# max threads will be used with default Parsl config and Duckdb
-MAX_THREADS = (
-    multiprocessing.cpu_count()
-    if "CYTOTABLE_MAX_THREADS" not in os.environ
-    else int(cast(int, os.environ.get("CYTOTABLE_MAX_THREADS")))
-)
-
-# enables overriding default memory mapping behavior with pyarrow memory mapping
-CYTOTABLE_ARROW_USE_MEMORY_MAPPING = (
-    os.environ.get("CYTOTABLE_ARROW_USE_MEMORY_MAPPING", "1") == "1"
-)
-
-DDB_DATA_TYPE_SYNONYMS = {
-    "real": ["float32", "float4", "float"],
-    "double": ["float64", "float8", "numeric", "decimal"],
-    "integer": ["int32", "int4", "int", "signed"],
-    "bigint": ["int64", "int8", "long"],
-}
-
-# A reference dictionary for SQLite affinity and storage class types
-# See more here: https://www.sqlite.org/datatype3.html#affinity_name_examples
-SQLITE_AFFINITY_DATA_TYPE_SYNONYMS = {
-    "integer": [
-        "int",
-        "integer",
-        "tinyint",
-        "smallint",
-        "mediumint",
-        "bigint",
-        "unsigned big int",
-        "int2",
-        "int8",
-    ],
-    "text": [
-        "character",
-        "varchar",
-        "varying character",
-        "nchar",
-        "native character",
-        "nvarchar",
-        "text",
-        "clob",
-    ],
-    "blob": ["blob"],
-    "real": [
-        "real",
-        "double",
-        "double precision",
-        "float",
-    ],
-    "numeric": [
-        "numeric",
-        "decimal",
-        "boolean",
-        "date",
-        "datetime",
-    ],
-}
-
 
 # reference the original init
 original_init = AppBase.__init__
@@ -199,6 +137,10 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         duckdb.DuckDBPyConnection
     """
 
+    import duckdb
+
+    from cytotable.constants import MAX_THREADS
+
     return duckdb.connect().execute(
         # note: we use an f-string here to
         # dynamically configure threads as appropriate
@@ -253,8 +195,8 @@ def _sqlite_mixed_type_query_to_parquet(
 
     import pyarrow as pa
 
+    from cytotable.constants import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
     from cytotable.exceptions import DatatypeException
-    from cytotable.utils import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
 
     # open sqlite3 connection
     with sqlite3.connect(source_path) as conn:
@@ -385,6 +327,9 @@ def _arrow_type_cast_if_specified(
         Dict[str, str]
             A potentially data type updated dictionary of column information
     """
+
+    from cytotable.constants import DDB_DATA_TYPE_SYNONYMS
+
     # for casting to new float type
     if "float" in data_type_cast_map.keys() and column["column_dtype"] in [
         "REAL",
@@ -493,14 +438,12 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
 
     from pyarrow import parquet
 
+    from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
     from cytotable.utils import _get_cytotable_version
 
     parquet.write_table(
         table=table.replace_schema_metadata(
-            metadata={
-                "data-producer": "https://github.com/cytomining/CytoTable",
-                "data-producer-version": str(_get_cytotable_version()),
-            }
+            metadata=CYTOTABLE_DEFAULT_PARQUET_METADATA
         ),
         **kwargs,
     )
