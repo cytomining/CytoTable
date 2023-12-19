@@ -59,6 +59,12 @@ def test_config():
             ]
         ) == sorted(config_preset.keys())
 
+def test_get_cytotable_version():
+    """
+    Tests get_cytotable_version
+    """
+
+    assert isinstance(_get_cytotable_version(), str)
 
 def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: str):
     """
