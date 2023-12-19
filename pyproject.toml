@@ -1,5 +1,6 @@
 [tool.poetry]
 name = "CytoTable"
+# note: version data is maintained by poetry-dynamic-versioning
 version = "0.0.0"
 description = "Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools."
 authors = ["Cytomining Community"]

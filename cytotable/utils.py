@@ -7,7 +7,6 @@ import multiprocessing
 import os
 import pathlib
 
-import pkg_resources
 import dunamai
 from typing import Any, Dict, Union, cast
 
@@ -469,8 +468,9 @@ def _get_cytotable_version() -> str:
     """
     try:
         # attempt to gather the development version from dunamai
+        # for scenarios where cytotable from source is used.
         return dunamai.Version.from_any_vcs().serialize()
     except RuntimeError:
-        # else grab the static version from __init__.py
-        return 
-
+        # else grab a static version from __init__.py
+        # for scenarios where the built/packaged cytotable is used.
+        return cytotable.__version__
