@@ -454,6 +454,7 @@ def _expand_path(
 
     return modifed_path.resolve()
 
+
 def _get_cytotable_version() -> str:
     """
     Seeks the current version of CytoTable using either pkg_resources
@@ -463,6 +464,7 @@ def _get_cytotable_version() -> str:
         str
             A string representing the version of CytoTable currently being used.
     """
+
     import dunamai
 
     try:
@@ -473,3 +475,25 @@ def _get_cytotable_version() -> str:
         # else grab a static version from __init__.py
         # for scenarios where the built/packaged cytotable is used.
         return cytotable.__version__
+
+
+def _write_parquet_with_metadata(
+    table: pyarrow.Table, metadata: Dict[str, str], **kwargs
+) -> None:
+    """
+    Adds metadata to parquet output from CytoTable.
+
+    """
+
+    from pyarrow import parquet
+    from cytotable.utils import _get_cytotable_version
+
+    parquet.write_table(
+        table=table.replace_schema_metadata(
+            metadata={
+                "data-producer": "https://github.com/cytomining/CytoTable",
+                "data-producer-version": str(cytotable_get_cytotable_version()),
+            }
+        ),
+        **kwargs,
+    )
