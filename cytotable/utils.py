@@ -434,6 +434,11 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
     Args:
         table: pa.Table
             Pyarrow table to be serialized as parquet table.
+        **kwargs: Any
+            kwargs provided to this function roughly align with
+            pyarrow.parquet.write_table. The following might be
+            examples of what to expect here:
+            - where: str or pyarrow.NativeFile
     """
 
     from pyarrow import parquet
