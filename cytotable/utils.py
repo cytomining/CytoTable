@@ -432,9 +432,9 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
     https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html
 
     Args:
-        table: pa.Table
+        table: pa.Table:
             Pyarrow table to be serialized as parquet table.
-        **kwargs: Any
+        **kwargs: Any:
             kwargs provided to this function roughly align with
             pyarrow.parquet.write_table. The following might be
             examples of what to expect here:
