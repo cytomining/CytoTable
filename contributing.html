@@ -207,14 +207,16 @@ Many thanks go to the developers and contributors of that repository.</p>
 We publish source code by using <a class="reference external" href="https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases">GitHub Releases</a> available <a class="reference external" href="https://github.com/cytomining/CytoTable/releases">here</a>.
 We publish Python packages through the <a class="reference external" href="https://pypi.org/">Python Packaging Index (PyPI)</a> available <a class="reference external" href="https://pypi.org/project/cytotable/">here</a>.</p>
 </section>
-<section id="publishing-process">
-<h3>Publishing Process<a class="headerlink" href="#publishing-process" title="Permalink to this heading">¶</a></h3>
+<section id="release-publishing-process">
+<h3>Release Publishing Process<a class="headerlink" href="#release-publishing-process" title="Permalink to this heading">¶</a></h3>
 <p>There are several manual and automated steps involved with publishing CytoTable releases.
 See below for an overview of how this works.</p>
+<p>Notes about <a class="reference external" href="https://en.wikipedia.org/wiki/Software_versioning#Semantic_versioning">semantic version</a> (semver) specifications:
+CytoTable semvers are controlled through <a class="reference external" href="https://github.com/mtkennerly/poetry-dynamic-versioning"><code class="docutils literal notranslate"><span class="pre">poetry-dynamic-versioning</span></code></a> which leverages <a class="reference external" href="https://github.com/mtkennerly/dunamai"><code class="docutils literal notranslate"><span class="pre">dunamai</span></code></a> to create version data based on <a class="reference external" href="https://git-scm.com/book/en/v2/Git-Basics-Tagging">git tags</a> and and commits.
+CytoTable release git tags are automatically applied through <a class="reference external" href="https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases">GitHub Releases</a> and related inferred changes from <a class="reference external" href="https://github.com/release-drafter/release-drafter"><code class="docutils literal notranslate"><span class="pre">release-drafter</span></code></a>.</p>
 <ol class="arabic simple">
-<li><p>Prepare a release in a code contribution which utilizes the command <a class="reference external" href="https://python-poetry.org/docs/cli/#version"><code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">version</span> <span class="pre">...</span></code></a> to update the version (this updates <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> with automatically incremented versions under <code class="docutils literal notranslate"><span class="pre">version</span> <span class="pre">=</span> <span class="pre">&quot;...&quot;</span></code>).</p></li>
 <li><p>Open a pull request and use a repository label for <code class="docutils literal notranslate"><span class="pre">release-&lt;semver</span> <span class="pre">release</span> <span class="pre">type&gt;</span></code> to label the pull request for visibility with <a class="reference external" href="https://github.com/release-drafter/release-drafter"><code class="docutils literal notranslate"><span class="pre">release-drafter</span></code></a> (for example, see <a class="reference external" href="https://github.com/cytomining/CytoTable/pull/108">CytoTable#108</a> as a reference of a semver patch update).</p></li>
-<li><p>On merging the pull request for the release, a <a class="reference external" href="https://docs.github.com/en/actions/using-workflows">GitHub Actions workflow</a> defined in <code class="docutils literal notranslate"><span class="pre">draft-release.yml</span></code> leveraging <a class="reference external" href="https://github.com/release-drafter/release-drafter"><code class="docutils literal notranslate"><span class="pre">release-drafter</span></code></a> will draft a release for maintainers to modify.</p></li>
+<li><p>On merging the pull request for the release, a <a class="reference external" href="https://docs.github.com/en/actions/using-workflows">GitHub Actions workflow</a> defined in <code class="docutils literal notranslate"><span class="pre">draft-release.yml</span></code> leveraging <a class="reference external" href="https://github.com/release-drafter/release-drafter"><code class="docutils literal notranslate"><span class="pre">release-drafter</span></code></a> will draft a release for maintainers to modify as needed (double checking on the prepared git tag and content).</p></li>
 <li><p>Make modifications as necessary to the draft GitHub release, then publish the release.</p></li>
 <li><p>On publishing the release, another GitHub Actions workflow defined in <code class="docutils literal notranslate"><span class="pre">publish-pypi.yml</span></code> will run to build and deploy the Python package to PyPI (utilizing the earlier modified <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> semantic version reference for labeling the release).</p></li>
 </ol>
@@ -277,7 +279,7 @@ See below for an overview of how this works.</p>
 <li class="toctree-l2"><a class="reference internal" href="#attribution">Attribution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#publishing-releases">Publishing Releases</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#release-locations">Release Locations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#publishing-process">Publishing Process</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#release-publishing-process">Release Publishing Process</a></li>
 </ul>
 </li>
 </ul>
