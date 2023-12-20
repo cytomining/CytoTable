@@ -302,7 +302,11 @@ def _source_chunk_to_parquet(
     from cloudpathlib import AnyPath
     from pyarrow import parquet
 
-    from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
+    from cytotable.utils import (
+        _duckdb_reader,
+        _sqlite_mixed_type_query_to_parquet,
+        _write_parquet_table_with_metadata,
+    )
 
     # attempt to build dest_path
     source_dest_path = (
@@ -339,7 +343,7 @@ def _source_chunk_to_parquet(
         # read data with chunk size + offset
         # and export to parquet
         with _duckdb_reader() as ddb_reader:
-            parquet.write_table(
+            _write_parquet_table_with_metadata(
                 table=ddb_reader.execute(
                     f"""
                     {base_query}
@@ -358,7 +362,7 @@ def _source_chunk_to_parquet(
             "Mismatch Type Error" in str(e)
             and str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite"
         ):
-            parquet.write_table(
+            _write_parquet_table_with_metadata(
                 # here we use sqlite instead of duckdb to extract
                 # data for special cases where column and value types
                 # may not align (which is valid functionality in SQLite).
@@ -414,7 +418,8 @@ def _prepend_column_name(
 
     import pyarrow.parquet as parquet
 
-    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+    from cytotable.constants import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+    from cytotable.utils import _write_parquet_table_with_metadata
 
     targets = tuple(metadata) + tuple(compartments)
 
@@ -499,7 +504,7 @@ def _prepend_column_name(
             updated_column_names.append(column_name)
 
     # perform table column name updates
-    parquet.write_table(
+    _write_parquet_table_with_metadata(
         table=table.rename_columns(updated_column_names), where=table_path
     )
 
@@ -569,8 +574,12 @@ def _concat_source_group(
     import pyarrow as pa
     import pyarrow.parquet as parquet
 
+    from cytotable.constants import (
+        CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+        CYTOTABLE_DEFAULT_PARQUET_METADATA,
+    )
     from cytotable.exceptions import SchemaException
-    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+    from cytotable.utils import _write_parquet_table_with_metadata
 
     # build a result placeholder
     concatted: List[Dict[str, Any]] = [
@@ -600,7 +609,9 @@ def _concat_source_group(
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
     # build the schema for concatenation writer
-    writer_schema = pa.schema(common_schema)
+    writer_schema = pa.schema(common_schema).with_metadata(
+        CYTOTABLE_DEFAULT_PARQUET_METADATA
+    )
 
     # build a parquet file writer which will be used to append files
     # as a single concatted parquet file, referencing the first file's schema
@@ -713,7 +724,7 @@ def _join_source_chunk(
 
     import pyarrow.parquet as parquet
 
-    from cytotable.utils import _duckdb_reader
+    from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
 
     # Attempt to read the data to parquet file
     # using duckdb for extraction and pyarrow for
@@ -757,7 +768,7 @@ def _join_source_chunk(
     )
 
     # write the result
-    parquet.write_table(
+    _write_parquet_table_with_metadata(
         table=result,
         where=result_file_path,
     )
@@ -797,7 +808,11 @@ def _concat_join_sources(
 
     import pyarrow.parquet as parquet
 
-    from cytotable.utils import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+    from cytotable.constants import (
+        CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+        CYTOTABLE_DEFAULT_PARQUET_METADATA,
+    )
+    from cytotable.utils import _write_parquet_table_with_metadata
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
@@ -811,7 +826,7 @@ def _concat_join_sources(
         shutil.rmtree(path=dest_path)
 
     # write the concatted result as a parquet file
-    parquet.write_table(
+    _write_parquet_table_with_metadata(
         table=pa.concat_tables(
             tables=[
                 parquet.read_table(
@@ -826,7 +841,9 @@ def _concat_join_sources(
     # build a parquet file writer which will be used to append files
     # as a single concatted parquet file, referencing the first file's schema
     # (all must be the same schema)
-    writer_schema = parquet.read_schema(join_sources[0])
+    writer_schema = parquet.read_schema(join_sources[0]).with_metadata(
+        CYTOTABLE_DEFAULT_PARQUET_METADATA
+    )
     with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
         for table_path in join_sources:
             writer.write_table(

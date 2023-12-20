@@ -37,7 +37,9 @@ from cytotable.utils import (
     _column_sort,
     _duckdb_reader,
     _expand_path,
+    _get_cytotable_version,
     _sqlite_mixed_type_query_to_parquet,
+    _write_parquet_table_with_metadata,
 )
 
 
@@ -58,6 +60,51 @@ def test_config():
                 "CONFIG_SOURCE_VERSION",
             ]
         ) == sorted(config_preset.keys())
+
+
+def test_get_cytotable_version():
+    """
+    Tests get_cytotable_version
+    """
+
+    assert isinstance(_get_cytotable_version(), str)
+
+
+def test_write_parquet_table_with_metadata(fx_tempdir: str):
+    """
+    Tests _write_parquet_table_with_metadata
+    """
+
+    # create a test dir and str with path for test file
+    pathlib.Path(f"{fx_tempdir}/pq_metadata_test").mkdir()
+    destination_file = f"{fx_tempdir}/pq_metadata_test/test.parquet"
+
+    # test writing to parquet file with metadata
+    _write_parquet_table_with_metadata(
+        table=pa.Table.from_pydict(
+            {
+                "col_1": [
+                    "a",
+                ],
+                "col_2": [
+                    1,
+                ],
+            }
+        ),
+        where=destination_file,
+    )
+
+    # assert that we have the metadata in place as expected
+    assert (
+        parquet.read_table(source=destination_file).schema.metadata[b"data-producer"]
+        == b"https://github.com/cytomining/CytoTable"
+    )
+    assert (
+        parquet.read_table(source=destination_file).schema.metadata[
+            b"data-producer-version"
+        ]
+        == _get_cytotable_version().encode()
+    )
 
 
 def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: str):
