@@ -5,6 +5,7 @@ CytoTable: constants - storing various constants to be used throughout cytotable
 import multiprocessing
 import os
 from typing import cast
+
 from cytotable.utils import _get_cytotable_version
 
 # read max threads from environment if necessary
