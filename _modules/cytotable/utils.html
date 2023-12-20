@@ -37,13 +37,13 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">multiprocessing</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">duckdb</span>
 <span class="kn">import</span> <span class="nn">parsl</span>
+<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">AppBase</span>
@@ -52,67 +52,6 @@
 <span class="kn">from</span> <span class="nn">parsl.executors</span> <span class="kn">import</span> <span class="n">HighThroughputExecutor</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-
-<span class="c1"># read max threads from environment if necessary</span>
-<span class="c1"># max threads will be used with default Parsl config and Duckdb</span>
-<span class="n">MAX_THREADS</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">multiprocessing</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span>
-    <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CYTOTABLE_MAX_THREADS&quot;</span><span class="p">)))</span>
-<span class="p">)</span>
-
-<span class="c1"># enables overriding default memory mapping behavior with pyarrow memory mapping</span>
-<span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;CYTOTABLE_ARROW_USE_MEMORY_MAPPING&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span>
-<span class="p">)</span>
-
-<span class="n">DDB_DATA_TYPE_SYNONYMS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;real&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float4&quot;</span><span class="p">,</span> <span class="s2">&quot;float&quot;</span><span class="p">],</span>
-    <span class="s2">&quot;double&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;float64&quot;</span><span class="p">,</span> <span class="s2">&quot;float8&quot;</span><span class="p">,</span> <span class="s2">&quot;numeric&quot;</span><span class="p">,</span> <span class="s2">&quot;decimal&quot;</span><span class="p">],</span>
-    <span class="s2">&quot;integer&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int32&quot;</span><span class="p">,</span> <span class="s2">&quot;int4&quot;</span><span class="p">,</span> <span class="s2">&quot;int&quot;</span><span class="p">,</span> <span class="s2">&quot;signed&quot;</span><span class="p">],</span>
-    <span class="s2">&quot;bigint&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;int64&quot;</span><span class="p">,</span> <span class="s2">&quot;int8&quot;</span><span class="p">,</span> <span class="s2">&quot;long&quot;</span><span class="p">],</span>
-<span class="p">}</span>
-
-<span class="c1"># A reference dictionary for SQLite affinity and storage class types</span>
-<span class="c1"># See more here: https://www.sqlite.org/datatype3.html#affinity_name_examples</span>
-<span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;integer&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s2">&quot;int&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;integer&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;tinyint&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;smallint&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;mediumint&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;bigint&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;unsigned big int&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;int2&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;int8&quot;</span><span class="p">,</span>
-    <span class="p">],</span>
-    <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s2">&quot;character&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;varchar&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;varying character&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;nchar&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;native character&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;nvarchar&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;text&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;clob&quot;</span><span class="p">,</span>
-    <span class="p">],</span>
-    <span class="s2">&quot;blob&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;blob&quot;</span><span class="p">],</span>
-    <span class="s2">&quot;real&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s2">&quot;real&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;double&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;double precision&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;float&quot;</span><span class="p">,</span>
-    <span class="p">],</span>
-    <span class="s2">&quot;numeric&quot;</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s2">&quot;numeric&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;decimal&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;boolean&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;date&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;datetime&quot;</span><span class="p">,</span>
-    <span class="p">],</span>
-<span class="p">}</span>
-
 
 <span class="c1"># reference the original init</span>
 <span class="n">original_init</span> <span class="o">=</span> <span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span>
@@ -232,6 +171,10 @@
 <span class="sd">        duckdb.DuckDBPyConnection</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="kn">import</span> <span class="nn">duckdb</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">MAX_THREADS</span>
+
     <span class="k">return</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
         <span class="c1"># note: we use an f-string here to</span>
         <span class="c1"># dynamically configure threads as appropriate</span>
@@ -286,8 +229,8 @@
 
     <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
 
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span>
     <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">DatatypeException</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span>
 
     <span class="c1"># open sqlite3 connection</span>
     <span class="k">with</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
@@ -418,6 +361,9 @@
 <span class="sd">        Dict[str, str]</span>
 <span class="sd">            A potentially data type updated dictionary of column information</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">DDB_DATA_TYPE_SYNONYMS</span>
+
     <span class="c1"># for casting to new float type</span>
     <span class="k">if</span> <span class="s2">&quot;float&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_dtype&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="s2">&quot;REAL&quot;</span><span class="p">,</span>
@@ -487,6 +433,59 @@
         <span class="n">modifed_path</span> <span class="o">=</span> <span class="n">modifed_path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">modifed_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="_get_cytotable_version"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._get_cytotable_version">[docs]</a><span class="k">def</span> <span class="nf">_get_cytotable_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Seeks the current version of CytoTable using either pkg_resources</span>
+<span class="sd">    or dunamai to determine the current version being used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str</span>
+<span class="sd">            A string representing the version of CytoTable currently being used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># attempt to gather the development version from dunamai</span>
+        <span class="c1"># for scenarios where cytotable from source is used.</span>
+        <span class="kn">import</span> <span class="nn">dunamai</span>
+
+        <span class="k">return</span> <span class="n">dunamai</span><span class="o">.</span><span class="n">Version</span><span class="o">.</span><span class="n">from_any_vcs</span><span class="p">()</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">RuntimeError</span><span class="p">,</span> <span class="ne">ModuleNotFoundError</span><span class="p">):</span>
+        <span class="c1"># else grab a static version from __init__.py</span>
+        <span class="c1"># for scenarios where the built/packaged cytotable is used.</span>
+        <span class="kn">import</span> <span class="nn">cytotable</span>
+
+        <span class="k">return</span> <span class="n">cytotable</span><span class="o">.</span><span class="n">__version__</span></div>
+
+
+<div class="viewcode-block" id="_write_parquet_table_with_metadata"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._write_parquet_table_with_metadata">[docs]</a><span class="k">def</span> <span class="nf">_write_parquet_table_with_metadata</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds metadata to parquet output from CytoTable.</span>
+<span class="sd">    Note: this mostly wraps pyarrow.parquet.write_table</span>
+<span class="sd">    https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table: pa.Table:</span>
+<span class="sd">            Pyarrow table to be serialized as parquet table.</span>
+<span class="sd">        **kwargs: Any:</span>
+<span class="sd">            kwargs provided to this function roughly align with</span>
+<span class="sd">            pyarrow.parquet.write_table. The following might be</span>
+<span class="sd">            examples of what to expect here:</span>
+<span class="sd">            - where: str or pyarrow.NativeFile</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">pyarrow</span> <span class="kn">import</span> <span class="n">parquet</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_get_cytotable_version</span>
+
+    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
+        <span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">replace_schema_metadata</span><span class="p">(</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span>
+        <span class="p">),</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
           </div>

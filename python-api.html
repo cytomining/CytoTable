@@ -780,6 +780,22 @@ Path to expand.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._get_cytotable_version">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_get_cytotable_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_get_cytotable_version"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._get_cytotable_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Seeks the current version of CytoTable using either pkg_resources
+or dunamai to determine the current version being used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>str</dt><dd><p>A string representing the version of CytoTable currently being used.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._parsl_loaded">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_parsl_loaded</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_parsl_loaded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._parsl_loaded" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks whether Parsl configuration has already been loaded.</p>
@@ -809,6 +825,27 @@ The offset for chunking the data from source.</p></li>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pyarrow.Table</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._write_parquet_table_with_metadata">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_write_parquet_table_with_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Table</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_write_parquet_table_with_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._write_parquet_table_with_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds metadata to parquet output from CytoTable.
+Note: this mostly wraps pyarrow.parquet.write_table
+<a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html">https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>table</strong> – pa.Table:
+Pyarrow table to be serialized as parquet table.</p></li>
+<li><p><strong>**kwargs</strong> – Any:
+kwargs provided to this function roughly align with
+pyarrow.parquet.write_table. The following might be
+examples of what to expect here:
+- where: str or pyarrow.NativeFile</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -930,8 +967,10 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._default_parsl_config"><code class="docutils literal notranslate"><span class="pre">_default_parsl_config()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._duckdb_reader"><code class="docutils literal notranslate"><span class="pre">_duckdb_reader()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._expand_path"><code class="docutils literal notranslate"><span class="pre">_expand_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._get_cytotable_version"><code class="docutils literal notranslate"><span class="pre">_get_cytotable_version()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._write_parquet_table_with_metadata"><code class="docutils literal notranslate"><span class="pre">_write_parquet_table_with_metadata()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#presets">Presets</a><ul>
