@@ -1,0 +1,11 @@
+name: Setup Environment and Cache
+description: |
+  Setup poetry for use with GitHub Actions workflows.
+  Note: presumes pre-installed Python.
+runs:
+  using: "composite"
+  steps:
+    - name: Setup poetry and poetry-dynamic-versioning
+      shell: bash
+      run: |
+        python -m pip install poetry poetry-dynamic-versioning

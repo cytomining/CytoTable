@@ -1,6 +1,10 @@
 """
 __init__.py for cytotable
 """
+
+# note: version data is maintained by poetry-dynamic-versioning
+__version__ = "0.0.0"
+
 from .convert import convert
 from .exceptions import (
     CytoTableException,

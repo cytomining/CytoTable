@@ -24,8 +24,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python_version }}
-      - name: Install poetry
-        run: pip install poetry
+      - name: Setup for poetry
+        uses: ./.github/actions/setup-poetry
       - name: Install environment
         run: poetry install --no-interaction --no-ansi
       - name: Run sphinx-docs build test
