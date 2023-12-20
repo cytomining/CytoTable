@@ -411,17 +411,17 @@ def _get_cytotable_version() -> str:
             A string representing the version of CytoTable currently being used.
     """
 
-    import dunamai
-
-    import cytotable
-
     try:
         # attempt to gather the development version from dunamai
         # for scenarios where cytotable from source is used.
+        import dunamai
+
         return dunamai.Version.from_any_vcs().serialize()
-    except RuntimeError:
+    except (RuntimeError, ModuleNotFoundError):
         # else grab a static version from __init__.py
         # for scenarios where the built/packaged cytotable is used.
+        import cytotable
+
         return cytotable.__version__
 
 
