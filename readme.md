@@ -11,6 +11,13 @@ CytoTable enables single-cell morphology data analysis by cleaning and transform
 CytoTable creates parquet files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
 The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).
 
+The name for the project is inspired from:
+
+- __Cyto__: "1. (biology) cell." ([Wiktionary: Cyto-](https://en.wiktionary.org/wiki/cyto-))
+- __Table__:
+  - "1. Furniture with a top surface to accommodate a variety of uses."
+  - "3.1. A matrix or grid of data arranged in rows and columns." <br> ([Wiktionary: Table](https://en.wiktionary.org/wiki/table))
+
 ## Installation
 
 Install CytoTable from [PyPI](https://pypi.org/) or from source:
