@@ -73,7 +73,7 @@ This argument helps ensure constraints surrounding temporary local file storage 
 A quick example of how this argument is used: :code:`convert(..., local_cache_dir="non_temporary_directory", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
-Future work to enable direct SQLite data access from cloud locations for CytoTable will be documented within GitHub issue [CytoTable/#70].
+Future work to enable direct SQLite data access from cloud locations for CytoTable will be documented within GitHub issue [CytoTable/#70](https://github.com/cytomining/CytoTable/issues/70).
 
 ### Data Source Types
 
