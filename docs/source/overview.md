@@ -50,8 +50,10 @@ Examples of paths to these sources leverage specialized prefixes and may be foun
 Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (`S3Client <https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/>`_, `AzureBlobClient <https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/>`_, `GSClient <https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/>`_) and :code:`convert(..., **kwargs)` (:mod:`convert() <cytotable.convert.convert>`).
 
 For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, :code:`aws s3 ... --no-sign-request`) may be used via :code:`convert(..., no_sign_request=True)` (:mod:`convert() <cytotable.convert.convert>`).
-Each cloud service provider may have different requirements for authentication (there is no fully unified API for these).
 ```
+
+Each cloud service provider may have different requirements for authentication (there is no fully unified API for these).
+Please see the [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/) client documentation for more information on which arguments may be used for configuration with specific cloud providers (for example, [`S3Client`](https://cloudpathlib.drivendata.org/stable/api-reference/s3client/), [`GSClient`](https://cloudpathlib.drivendata.org/stable/api-reference/gsclient/), or [`AzureBlobClient`](https://cloudpathlib.drivendata.org/stable/api-reference/azblobclient/)).
 
 ##### Cloud Service File Type Parsing Differences
 
