@@ -33,10 +33,47 @@ These measurement data are the focus of the data source content which follows.
 ```{eval-rst}
 Data sources may be provided to CytoTable using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
 We use `cloudpathlib <https://cloudpathlib.drivendata.org/~latest/>`_  under the hood to reference files in a unified way, whether they're local or remote.
-
-Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (`S3Client <https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/>`_, `AzureBlobClient <https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/>`_, `GSClient <https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/>`_) and :code:`convert(..., **kwargs)` (:mod:`convert() <cytotable.convert.convert>`).
-For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, :code:`aws s3 ... --no-sign-request`) may be used via :code:`convert(..., no_sign_request=True)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
+
+#### Data Source Locations in the Cloud
+
+Cloud-based data sources used through CytoTable leverage [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/).
+Examples of paths to these sources leverage specialized prefixes and may be found below.
+
+- [Amazon S3](https://en.wikipedia.org/wiki/Amazon_S3): `s3://bucket_name/object_name`
+- [Google Cloud Storage](https://en.wikipedia.org/wiki/Google_Cloud_Storage): `gc://bucket_name/object_name`
+- [Azure Blob Storage](https://en.wikipedia.org/wiki/Microsoft_Azure#Storage_services): `az://container_name/blob_name`
+
+##### Cloud Service Configuration and Authentication
+
+```{eval-rst}
+Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (`S3Client <https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/>`_, `AzureBlobClient <https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/>`_, `GSClient <https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/>`_) and :code:`convert(..., **kwargs)` (:mod:`convert() <cytotable.convert.convert>`).
+
+For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, :code:`aws s3 ... --no-sign-request`) may be used via :code:`convert(..., no_sign_request=True)` (:mod:`convert() <cytotable.convert.convert>`).
+Each cloud service provider may have different requirements for authentication (there is no fully unified API for these).
+```
+
+##### Cloud Service File Type Parsing Differences
+
+Data sources retrieved from cloud services are not all treated the same due to technical constraints.
+See below for a description of how each file type is treated for a better understanding of expectations.
+
+__Comma-separated values (.csv)__:
+
+CSV files stored on cloud services are read directly from the cloud service.
+
+__SQLite Databases (.sqlite)__:
+
+SQLite databases stored on cloud services are downloaded locally before other CytoTable work is performed.
+This is done to account for differences in how [SQLite's virtual file system (VFS)](https://www.sqlite.org/vfs.html) operates in context with cloud service object storage.
+Large SQLite files stored in the cloud may benefit from explicit local cache specification through a special keyword argument (`**kwarg`) passed through CytoTable to [`cloudpathlib`: `local_cache_dir`](https://cloudpathlib.drivendata.org/~latest/caching/#keeping-the-cache-around).
+This argument helps ensure constraints surrounding temporary local file storage locations do not impede the ability to download or work with the data (for example, file size limitations and periodic deletions outside of CytoTable might be encountered within default OS temporary file storage locations).
+
+```{eval-rst}
+A quick example of how this argument is used: :code:`convert(..., local_cache_dir="non_temporary_directory", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
+Future work to enable direct SQLite data access from cloud locations for CytoTable will be documented within GitHub issue [CytoTable/#70].
 
 ### Data Source Types
 
