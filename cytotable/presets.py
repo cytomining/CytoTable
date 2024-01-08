@@ -1,5 +1,5 @@
 """
-Presets for common pycytominer-transform configurations.
+Presets for common CytoTable configurations.
 """
 
 config = {
@@ -206,5 +206,5 @@ config = {
     },
 }
 """
-Configuration presets for pycytominer-transform
+Configuration presets for CytoTable
 """

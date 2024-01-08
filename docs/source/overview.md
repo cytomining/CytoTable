@@ -25,7 +25,7 @@ flowchart LR
     classDef green fill:#97F0B4,stroke:#333
 ```
 
-Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.
+Data sources for CytoTable are measurement data created from other cell biology image analysis tools.
 These measurement data are the focus of the data source content which follows.
 
 ### Data Source Locations

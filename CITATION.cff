@@ -59,7 +59,7 @@ references:
     scope: "ExampleHuman"
     notes: >-
       ExampleHuman CellProfiler data is used to help validate expected results
-      for pycytominer-transform.
+      for CytoTable.
     identifiers:
       - description: "README.md with Citation Information"
         type: url
@@ -74,7 +74,7 @@ references:
     scope: "all_cellprofiler.sqlite"
     notes: >-
       CellProfiler generated data from NF1_SchwannCell_data project is used to help validate
-      expected results for pycytominer-transform.
+      expected results for CytoTable.
     identifiers:
       - description: "Github Link with Contributors"
         type: url
