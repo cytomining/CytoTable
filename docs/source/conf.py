@@ -78,3 +78,7 @@ autodoc_preserve_defaults = True
 
 # enable anchor creation
 myst_heading_anchors = 3
+
+# add custom css
+html_static_path = ["_static"]
+html_css_files = ["custom.css"]
