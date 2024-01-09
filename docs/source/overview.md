@@ -37,8 +37,8 @@ We use `cloudpathlib <https://cloudpathlib.drivendata.org/~latest/>`_  under the
 
 #### Data Source Locations in the Cloud
 
-Cloud-based data sources used through CytoTable leverage [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/).
-Examples of paths to these sources leverage specialized prefixes and may be found below.
+CytoTable uses [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/) to access cloud-based data sources.
+CytoTable supports:
 
 - [Amazon S3](https://en.wikipedia.org/wiki/Amazon_S3): `s3://bucket_name/object_name`
 - [Google Cloud Storage](https://en.wikipedia.org/wiki/Google_Cloud_Storage): `gc://bucket_name/object_name`
@@ -62,13 +62,14 @@ See below for a description of how each file type is treated for a better unders
 
 __Comma-separated values (.csv)__:
 
-CSV files stored on cloud services are read directly from the cloud service.
+CytoTable reads cloud-based CSV files directly.
 
 __SQLite Databases (.sqlite)__:
 
-SQLite databases stored on cloud services are downloaded locally before other CytoTable work is performed.
-This is done to account for differences in how [SQLite's virtual file system (VFS)](https://www.sqlite.org/vfs.html) operates in context with cloud service object storage.
-Large SQLite files stored in the cloud may benefit from explicit local cache specification through a special keyword argument (`**kwarg`) passed through CytoTable to [`cloudpathlib`: `local_cache_dir`](https://cloudpathlib.drivendata.org/~latest/caching/#keeping-the-cache-around).
+CytoTable downloads cloud-based SQLite databases locally before other CytoTable processing.
+This is necessary to account for differences in how [SQLite's virtual file system (VFS)](https://www.sqlite.org/vfs.html) operates in context with cloud service object storage.
+
+Note: Large SQLite files stored in the cloud may benefit from explicit local cache specification through a special keyword argument (`**kwarg`) passed through CytoTable to `cloudpathlib` called `local_cache_dir`. See [the cloudpathlib documentation on caching](https://cloudpathlib.drivendata.org/~latest/caching/#keeping-the-cache-around).
 This argument helps ensure constraints surrounding temporary local file storage locations do not impede the ability to download or work with the data (for example, file size limitations and periodic deletions outside of CytoTable might be encountered within default OS temporary file storage locations).
 
 ```{eval-rst}
