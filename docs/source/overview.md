@@ -35,7 +35,7 @@ Data sources may be provided to CytoTable using local filepaths or remote object
 We use `cloudpathlib <https://cloudpathlib.drivendata.org/~latest/>`_  under the hood to reference files in a unified way, whether they're local or remote.
 ```
 
-#### Data Source Locations in the Cloud
+#### Cloud Data Sources
 
 CytoTable uses [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/) to access cloud-based data sources.
 CytoTable supports:
