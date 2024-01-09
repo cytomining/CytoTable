@@ -9,6 +9,7 @@
     <title>Overview &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/sphinx_highlight.js"></script>
@@ -56,14 +57,43 @@ Use manual overrides within <a class="reference internal" href="python-api.html#
 
     classDef outlined fill:#fff,stroke:#333
     classDef green fill:#97F0B4,stroke:#333
-        </div><p>Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.
+        </div><p>Data sources for CytoTable are measurement data created from other cell biology image analysis tools.
 These measurement data are the focus of the data source content which follows.</p>
 <section id="data-source-locations">
 <h3>Data Source Locations<a class="headerlink" href="#data-source-locations" title="Permalink to this heading">¶</a></h3>
 <p>Data sources may be provided to CytoTable using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
 We use <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a>  under the hood to reference files in a unified way, whether they’re local or remote.</p>
-<p>Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (<a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/">S3Client</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/">AzureBlobClient</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/">GSClient</a>) and <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">**kwargs)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).
-For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, <code class="code docutils literal notranslate"><span class="pre">aws</span> <span class="pre">s3</span> <span class="pre">...</span> <span class="pre">--no-sign-request</span></code>) may be used via <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">no_sign_request=True)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+<section id="cloud-data-sources">
+<h4>Cloud Data Sources<a class="headerlink" href="#cloud-data-sources" title="Permalink to this heading">¶</a></h4>
+<p>CytoTable uses <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a> to access cloud-based data sources.
+CytoTable supports:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Amazon_S3">Amazon S3</a>: <code class="docutils literal notranslate"><span class="pre">s3://bucket_name/object_name</span></code></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Google_Cloud_Storage">Google Cloud Storage</a>: <code class="docutils literal notranslate"><span class="pre">gc://bucket_name/object_name</span></code></p></li>
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Microsoft_Azure#Storage_services">Azure Blob Storage</a>: <code class="docutils literal notranslate"><span class="pre">az://container_name/blob_name</span></code></p></li>
+</ul>
+<section id="cloud-service-configuration-and-authentication">
+<h5>Cloud Service Configuration and Authentication<a class="headerlink" href="#cloud-service-configuration-and-authentication" title="Permalink to this heading">¶</a></h5>
+<p>Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (<a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/">S3Client</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/">AzureBlobClient</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/">GSClient</a>) and <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">**kwargs)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+<p>For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, <code class="code docutils literal notranslate"><span class="pre">aws</span> <span class="pre">s3</span> <span class="pre">...</span> <span class="pre">--no-sign-request</span></code>) may be used via <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">no_sign_request=True)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+<p>Each cloud service provider may have different requirements for authentication (there is no fully unified API for these).
+Please see the <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a> client documentation for more information on which arguments may be used for configuration with specific cloud providers (for example, <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/api-reference/s3client/"><code class="docutils literal notranslate"><span class="pre">S3Client</span></code></a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/api-reference/gsclient/"><code class="docutils literal notranslate"><span class="pre">GSClient</span></code></a>, or <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/api-reference/azblobclient/"><code class="docutils literal notranslate"><span class="pre">AzureBlobClient</span></code></a>).</p>
+</section>
+<section id="cloud-service-file-type-parsing-differences">
+<h5>Cloud Service File Type Parsing Differences<a class="headerlink" href="#cloud-service-file-type-parsing-differences" title="Permalink to this heading">¶</a></h5>
+<p>Data sources retrieved from cloud services are not all treated the same due to technical constraints.
+See below for a description of how each file type is treated for a better understanding of expectations.</p>
+<p><strong>Comma-separated values (.csv)</strong>:</p>
+<p>CytoTable reads cloud-based CSV files directly.</p>
+<p><strong>SQLite Databases (.sqlite)</strong>:</p>
+<p>CytoTable downloads cloud-based SQLite databases locally before other CytoTable processing.
+This is necessary to account for differences in how <a class="reference external" href="https://www.sqlite.org/vfs.html">SQLite’s virtual file system (VFS)</a> operates in context with cloud service object storage.</p>
+<p>Note: Large SQLite files stored in the cloud may benefit from explicit local cache specification through a special keyword argument (<code class="docutils literal notranslate"><span class="pre">**kwarg</span></code>) passed through CytoTable to <code class="docutils literal notranslate"><span class="pre">cloudpathlib</span></code> called <code class="docutils literal notranslate"><span class="pre">local_cache_dir</span></code>. See <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/caching/#keeping-the-cache-around">the cloudpathlib documentation on caching</a>.
+This argument helps ensure constraints surrounding temporary local file storage locations do not impede the ability to download or work with the data (for example, file size limitations and periodic deletions outside of CytoTable might be encountered within default OS temporary file storage locations).</p>
+<p>A quick example of how this argument is used: <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">local_cache_dir=&quot;non_temporary_directory&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+<p>Future work to enable direct SQLite data access from cloud locations for CytoTable will be documented within GitHub issue <a class="reference external" href="https://github.com/cytomining/CytoTable/issues/70">CytoTable/#70</a>.</p>
+</section>
+</section>
 </section>
 <section id="data-source-types">
 <h3>Data Source Types<a class="headerlink" href="#data-source-types" title="Permalink to this heading">¶</a></h3>

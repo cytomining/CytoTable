@@ -1,10 +1,10 @@
 # Data Architecture
 
-Documentation covering data architecture for pyctyominer-transform.
+Documentation covering data architecture for CytoTable.
 
 ## Sources
 
-Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.
+Data sources for CytoTable are measurement data created from other cell biology image analysis tools.
 
 See below for a brief overview of these sources and data types.
 
@@ -42,7 +42,7 @@ erDiagram
     Image ||--o{ Others : includes
 ```
 
-The above diagram shows an example of image data relationships found within the data that is used by pycytominer-transform.
+The above diagram shows an example of image data relationships found within the data that is used by CytoTable.
 Namely: Each image may include zero or many compartment objects (Cytoplasm, Cells, Nuclei, etc)objects.
 
 ### Cytoplasm Compartment Data Relationships
@@ -64,6 +64,6 @@ erDiagram
     Nuclei ||--|| Cytoplasm : related-to
 ```
 
-The above diagram shows canonical relationships of the Cytoplasm compartment data to other compartments found within the data that is used by pycytominer-transform.
+The above diagram shows canonical relationships of the Cytoplasm compartment data to other compartments found within the data that is used by CytoTable.
 Each Cytoplasm object is related to Cells via the Parent_Cells field and Nuclei via the Parent_Nuclei field.
 These Parent\_\* fields are ObjectNumbers in their respective compartments.

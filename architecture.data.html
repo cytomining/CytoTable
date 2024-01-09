@@ -9,6 +9,7 @@
     <title>Data Architecture &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/sphinx_highlight.js"></script>
@@ -36,10 +37,10 @@
             
   <section id="data-architecture">
 <h1>Data Architecture<a class="headerlink" href="#data-architecture" title="Permalink to this heading">¶</a></h1>
-<p>Documentation covering data architecture for pyctyominer-transform.</p>
+<p>Documentation covering data architecture for CytoTable.</p>
 <section id="sources">
 <h2>Sources<a class="headerlink" href="#sources" title="Permalink to this heading">¶</a></h2>
-<p>Data sources for pyctyominer-transform are measurement data created from other cell biology image analysis tools.</p>
+<p>Data sources for CytoTable are measurement data created from other cell biology image analysis tools.</p>
 <p>See below for a brief overview of these sources and data types.</p>
 <ul class="simple">
 <li><p><a class="reference external" href="https://github.com/CellProfiler/CellProfiler">CellProfiler</a> generates <a class="reference external" href="https://en.wikipedia.org/wiki/Comma-separated_values">CSV</a> and <a class="reference external" href="https://www.sqlite.org/">SQLite</a> databases data.</p></li>
@@ -78,7 +79,7 @@
     Image ||--o{ Cells : includes
     Image ||--o{ Nuclei : includes
     Image ||--o{ Others : includes
-        </div><p>The above diagram shows an example of image data relationships found within the data that is used by pycytominer-transform.
+        </div><p>The above diagram shows an example of image data relationships found within the data that is used by CytoTable.
 Namely: Each image may include zero or many compartment objects (Cytoplasm, Cells, Nuclei, etc)objects.</p>
 </section>
 <section id="cytoplasm-compartment-data-relationships">
@@ -98,7 +99,7 @@ Namely: Each image may include zero or many compartment objects (Cytoplasm, Cell
     }
     Cells ||--|| Cytoplasm : related-to
     Nuclei ||--|| Cytoplasm : related-to
-        </div><p>The above diagram shows canonical relationships of the Cytoplasm compartment data to other compartments found within the data that is used by pycytominer-transform.
+        </div><p>The above diagram shows canonical relationships of the Cytoplasm compartment data to other compartments found within the data that is used by CytoTable.
 Each Cytoplasm object is related to Cells via the Parent_Cells field and Nuclei via the Parent_Nuclei field.
 These Parent_* fields are ObjectNumbers in their respective compartments.</p>
 </section>
