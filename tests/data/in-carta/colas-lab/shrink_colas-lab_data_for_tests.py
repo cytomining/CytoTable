@@ -6,7 +6,6 @@ Note: built to be run from CytoTable poetry dev environment from project base, e
 """
 
 import pathlib
-from typing import Dict, List, Union
 
 import duckdb
 import pyarrow as pa
