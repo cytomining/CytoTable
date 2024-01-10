@@ -254,3 +254,6 @@ The word "join" here is interpreted through `SQL-based terminology on joins <htt
 Joins may be specified in CytoTable using `DuckDB-style SQL <https://duckdb.org/docs/sql/introduction.html>`_ through :code:`convert(..., joins="SELECT * FROM ... JOIN ...", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 Also see CytoTable's presets found here: :data:`presets.config <cytotable.presets.config>` or via `GitHub source code for presets.config <https://github.com/cytomining/CytoTable/blob/main/cytotable/presets.py>`_.
 ```
+
+Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
+Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for ex. [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
