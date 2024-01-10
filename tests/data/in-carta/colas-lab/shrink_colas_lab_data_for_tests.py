@@ -6,10 +6,8 @@ Note: built to be run from CytoTable poetry dev environment from project base, e
 """
 
 import pathlib
-from typing import Dict, List, Union
 
 import duckdb
-import pyarrow as pa
 from pyarrow import csv
 
 # set a path for local data source
@@ -17,7 +15,7 @@ SOURCE_DATA_DIR = "tests/data/in-carta/colas-lab/data"
 TARGET_DATA_DIR = "tests/data/in-carta/colas-lab"
 
 # build a collection of schema
-schema_collection: List[Dict[str, Union[str, pa.Schema]]] = []
+schema_collection = []
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
     with duckdb.connect() as ddb:
         # read the csv file as a pyarrow table and extract detected schema
@@ -35,7 +33,7 @@ for schema in schema_collection:
         # compare every schema to all others
         if schema["file"] != schema_to_compare["file"]:
             if not schema["schema"].equals(schema_to_compare["schema"]):
-                raise Exception("Inequal schema detected.")
+                raise TypeError("Inequal schema detected.")
 
 
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
