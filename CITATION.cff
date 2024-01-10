@@ -184,7 +184,7 @@ references:
     title: Colas Lab Example IN Carta Dataset
     type: data
     notes: >-
-      Colas Lab provided access to dataset created from IN Carta for
+      The Colas Lab provided access to a single-cell dataset exported from IN Carta Image Analysis Software (Molecular Devices) for
       use within CytoTable tests for furthering development efforts.
       A modified testing dataset appears within this project
       under `tests/data/in-carta/colas-lab`.
