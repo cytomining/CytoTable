@@ -186,7 +186,7 @@ references:
     notes: >-
       Colas Lab provided access to dataset created from IN Carta for
       use within CytoTable tests for furthering development efforts.
-      A modified testing dataset appears within this project 
+      A modified testing dataset appears within this project
       under `tests/data/in-carta/colas-lab`.
       See:
       - https://sbpdiscovery.org/our-scientists/alexandre-colas-phd
