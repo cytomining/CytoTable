@@ -117,3 +117,140 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 ```{eval-rst}
   Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
+
+## Data Transformations
+
+CytoTable performs various types of data transformations.
+This section help define terminology and expectations surrounding the use of this terminology.
+One or all of these may be used by CytoTable depending on the way it is configured.
+
+### Data Chunking
+
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+
+"Data source"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+<td>
+
+"Chunk 1"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+
+</table>
+
+"Chunk 2"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+_Example of data chunking performed on a simple table of data._
+
+Data chunking within CytoTable involves slicing data sources into "chunks" of rows which all contain the same columns and have a lower number of rows than the original data source.
+Data chunking is generally used to reduce the memory footprint of operations performed within CytoTable.
+Data chunking can be used through [Parquet "datasets"](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html), which are one form of serialized and chunked data.
+
+### Data Concatenations
+
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+
+"Chunk 1"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+
+</table>
+
+"Chunk 2"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+<td>
+
+"Concatenated data"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+_Example of data concatenation performed on simple tables of similar data "chunks"._
+
+Data concatenation within CytoTable involves appending two or more data sources (for example, as chunks from above) with the same columns together as a unified dataset.
+Just as chunking slices data apart, concatenation appends it back together.
+Data concatenation within CytoTable typically occurs using a [ParquetWriter](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetWriter.html) to assist with composing a single file from many individual files.
+
+### Data Joins
+
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+
+"Table 1" (notice __Col_C__)
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+
+</table>
+
+"Table 2" (notice __Col_Z__)
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_Z</th></tr>
+<tr><td>1</td><td>a</td><td>2024-01-01</td></tr>
+</table>
+
+</td>
+<td>
+
+"Joined data" (as Table 1 <a href="https://en.wikipedia.org/wiki/Join_(SQL)#Left_outer_join">left-joined</a> with Table 2)
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th><th>Col_Z</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td><td>2024-01-01</td></tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+_Example of a data join performed on simple example tables._
+
+```{eval-rst}
+Data joins within CytoTable involve bringing one or more data sources together with differing columns as a new dataset.
+The word "join" here is interpreted through `SQL-based terminology on joins <https://en.wikipedia.org/wiki/Join_(SQL)>`_.
+Joins may be specified in CytoTable using `DuckDB-style SQL <https://duckdb.org/docs/sql/introduction.html>`_ through :code:`convert(..., joins="SELECT * FROM ... JOIN ...", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+Also see CytoTable's presets found here: :data:`presets.config <cytotable.presets.config>` or via `GitHub source code for presets.config <https://github.com/cytomining/CytoTable/blob/main/cytotable/presets.py>`_.
+```
