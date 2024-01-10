@@ -187,7 +187,6 @@ references:
       Colas Lab provided access to dataset created from IN Carta for
       use within CytoTable tests for furthering development efforts.
       Testing dataset appears within this project under `tests/data/in-carta/colas-lab`
-      See: 
+      See:
       - https://sbpdiscovery.org/our-scientists/alexandre-colas-phd
       - https://www.moleculardevices.com/products/cellular-imaging-systems/acquisition-and-analysis-software/in-carta-image-analysis-software
-
