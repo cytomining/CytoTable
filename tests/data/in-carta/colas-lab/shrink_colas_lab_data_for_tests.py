@@ -13,12 +13,12 @@ import pyarrow as pa
 from pyarrow import csv
 
 # set a path for local data source
-source_data_dir = "tests/data/in-carta/colas-lab/data"
-target_data_dir = "tests/data/in-carta/colas-lab"
+SOURCE_DATA_DIR = "tests/data/in-carta/colas-lab/data"
+TARGET_DATA_DIR = "tests/data/in-carta/colas-lab"
 
 # build a collection of schema
 schema_collection: List[Dict[str, Union[str, pa.Schema]]] = []
-for data_file in pathlib.Path(source_data_dir).rglob("*.csv"):
+for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
     with duckdb.connect() as ddb:
         # read the csv file as a pyarrow table and extract detected schema
         table = ddb.execute(
@@ -38,7 +38,7 @@ for schema in schema_collection:
                 raise Exception("Inequal schema detected.")
 
 
-for data_file in pathlib.Path(source_data_dir).rglob("*.csv"):
+for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
     with duckdb.connect() as ddb:
         # read the csv file as a pyarrow table append to list for later use
         csv.write_csv(
@@ -50,5 +50,5 @@ for data_file in pathlib.Path(source_data_dir).rglob("*.csv"):
                 AND data_file."ROW" in ('C', 'D')
                 """
             ).arrow(),
-            output_file=f"{target_data_dir}/test-{pathlib.Path(data_file).name}",
+            output_file=f"{TARGET_DATA_DIR}/test-{pathlib.Path(data_file).name}",
         )
