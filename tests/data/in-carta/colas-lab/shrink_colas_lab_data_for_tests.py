@@ -39,13 +39,17 @@ for schema in schema_collection:
         # compare every schema to all others
         if schema["file"] != schema_to_compare["file"]:
             if not schema["schema"].equals(schema_to_compare["schema"]):
+                # if we detect that the schema are inequal, raise an exception
                 raise TypeError("Inequal schema detected.")
 
 
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
     with duckdb.connect() as ddb:
-        # read the csv file as a pyarrow table and output to a new csv
+        # Read the csv file with SQL-based filters
+        # as a pyarrow table then output to a new and
+        # smaller csv for testing purposes.
         csv.write_csv(
+            # we use duckdb to filter the original dataset in SQL
             data=ddb.execute(
                 f"""
                 SELECT *
@@ -56,5 +60,6 @@ for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
                 AND data_file."ROW" in ('C', 'D')
                 """
             ).arrow(),
+            # output the filtered data as a CSV to a new location
             output_file=f"{TARGET_DATA_DIR}/test-{pathlib.Path(data_file).name}",
         )
