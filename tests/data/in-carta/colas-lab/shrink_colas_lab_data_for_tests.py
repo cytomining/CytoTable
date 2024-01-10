@@ -10,7 +10,7 @@ import pathlib
 import duckdb
 from pyarrow import csv
 
-# set a path for local data source
+# set a path for local and target data dir
 SOURCE_DATA_DIR = "tests/data/in-carta/colas-lab/data"
 TARGET_DATA_DIR = "tests/data/in-carta/colas-lab"
 
@@ -19,13 +19,19 @@ schema_collection = []
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
     with duckdb.connect() as ddb:
         # read the csv file as a pyarrow table and extract detected schema
-        table = ddb.execute(
-            f"""
-            SELECT *
-            FROM read_csv_auto('{data_file}')
-            """
-        ).arrow()
-        schema_collection.append({"file": data_file, "schema": table.schema})
+        schema_collection.append(
+            {
+                "file": data_file,
+                "schema": ddb.execute(
+                    f"""
+                    SELECT *
+                    FROM read_csv_auto('{data_file}')
+                    """
+                )
+                .arrow()
+                .schema,
+            }
+        )
 
 # determine if the schema are exactly alike
 for schema in schema_collection:
@@ -38,13 +44,15 @@ for schema in schema_collection:
 
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
     with duckdb.connect() as ddb:
-        # read the csv file as a pyarrow table append to list for later use
+        # read the csv file as a pyarrow table and output to a new csv
         csv.write_csv(
             data=ddb.execute(
                 f"""
                 SELECT *
                 FROM read_csv_auto('{data_file}') as data_file
+                /* select only the first three objects to limit the dataset */
                 WHERE data_file."OBJECT ID" in (1,2,3)
+                /* select rows C and D to limit the dataset */
                 AND data_file."ROW" in ('C', 'D')
                 """
             ).arrow(),
