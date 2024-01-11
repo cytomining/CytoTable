@@ -122,7 +122,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 
 CytoTable performs various types of data transformations.
 This section help define terminology and expectations surrounding the use of this terminology.
-One or all of these may be used by CytoTable depending on the way it is configured.
+CytoTable might use one or all of these depending on user configuration.
 
 ### Data Chunking
 
@@ -164,7 +164,7 @@ One or all of these may be used by CytoTable depending on the way it is configur
 _Example of data chunking performed on a simple table of data._
 
 Data chunking within CytoTable involves slicing data sources into "chunks" of rows which all contain the same columns and have a lower number of rows than the original data source.
-Data chunking is generally used to reduce the memory footprint of operations performed within CytoTable.
+CytoTable uses data chunking to reduce the memory footprint of operations.
 Data chunking can be used through [Parquet "datasets"](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html), which are one form of serialized and chunked data.
 
 ### Data Concatenations
@@ -273,4 +273,4 @@ Also see CytoTable's presets found here: :data:`presets.config <cytotable.preset
 ```
 
 Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
-Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for ex. [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
+Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for example, [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
