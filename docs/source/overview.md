@@ -244,6 +244,23 @@ Data concatenation within CytoTable typically occurs using a [ParquetWriter](htt
 
 </td>
 </tr>
+<tr >
+<td colspan="2" style="text-align:center;font-weight:bold;">
+Join Specification in SQL
+</td>
+</tr>
+<tr >
+<td colspan="2">
+
+```sql
+SELECT *
+FROM Table_1
+LEFT JOIN Table_2 ON
+Table_1.Col_A = Table_2.Col_A;
+```
+
+</td>
+</tr>
 </table>
 
 _Example of a data join performed on simple example tables._
