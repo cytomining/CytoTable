@@ -163,9 +163,12 @@ CytoTable might use one or all of these depending on user configuration.
 
 _Example of data chunking performed on a simple table of data._
 
+```{eval-rst}
 Data chunking within CytoTable involves slicing data sources into "chunks" of rows which all contain the same columns and have a lower number of rows than the original data source.
-CytoTable uses data chunking to reduce the memory footprint of operations.
-Data chunking can be used through [Parquet "datasets"](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html), which are one form of serialized and chunked data.
+CytoTable uses data chunking to reduce the memory footprint of operations on subsets of data.
+CytoTable may be used to create chunked data output by disabling concatenation and joins, e.g. :code:`convert(..., concat=False,join=False, ...)` (:mod:`convert() <cytotable.convert.convert>`).
+Parquet "datasets" (for example, see `PyArrow documentation <https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html>`_ or `Pandas documentation <https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html>`_ on using source paths which are directories) are an abstraction which may be used to read CytoTable output data chunks which are not concatenated or joined.
+```
 
 ### Data Concatenations
 
