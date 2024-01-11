@@ -2,7 +2,7 @@
 Shrink datasets from Colas Lab from IN Carta provided as collection of CSV's.
 
 Note: built to be run from CytoTable poetry dev environment from project base, e.g.:
-`poetry run python tests/data/in-carta/colas-lab/shrink_colas-lab_data_for_tests.py`
+`poetry run python tests/data/in-carta/colas-lab/shrink_colas_lab_data_for_tests.py`
 """
 
 import pathlib
@@ -43,7 +43,7 @@ for schema in schema_collection:
                 raise TypeError("Inequal schema detected.")
 
 
-for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
+for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
     with duckdb.connect() as ddb:
         # Read the csv file with SQL-based filters
         # as a pyarrow table then output to a new and
@@ -61,5 +61,5 @@ for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
                 """
             ).arrow(),
             # output the filtered data as a CSV to a new location
-            output_file=f"{TARGET_DATA_DIR}/test-{pathlib.Path(data_file).name}",
+            output_file=f"{TARGET_DATA_DIR}/test-in-carta-{idx}.csv",
         )
