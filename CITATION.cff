@@ -178,3 +178,20 @@ references:
     notes: >-
       MapReduce techniques are used via Parsl apps and workflow configuration
       to help achieve scalable data engineering for CytoTable.
+  - authors:
+      - family-names: Lamba
+        given-names: Aashna
+      - family-names: Colas
+        given-names: Alexandre
+    date-accessed: "2024-01-09"
+    title: Colas Lab Example IN Carta Dataset
+    type: data
+    notes: >-
+      The Colas Lab provided access to a single-cell dataset exported from
+      IN Carta Image Analysis Software (Molecular Devices) for
+      use within CytoTable tests for furthering development efforts.
+      A modified testing dataset appears within this project
+      under `tests/data/in-carta/colas-lab`.
+      See:
+      - https://sbpdiscovery.org/our-scientists/alexandre-colas-phd
+      - https://www.moleculardevices.com/products/cellular-imaging-systems/acquisition-and-analysis-software/in-carta-image-analysis-software
