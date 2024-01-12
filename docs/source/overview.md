@@ -209,8 +209,8 @@ Parquet "datasets" (for example, see `PyArrow documentation <https://arrow.apach
 
 _Example of data concatenation performed on simple tables of similar data "chunks"._
 
-Data concatenation within CytoTable involves appending two or more data sources (for example, as chunks from above) with the same columns together as a unified dataset.
-Just as chunking slices data apart, concatenation appends it back together.
+Data concatenation within CytoTable involves bringing two or more data "chunks" with the same columns together as a unified dataset.
+Just as chunking slices data apart, concatenation brings them together.
 Data concatenation within CytoTable typically occurs using a [ParquetWriter](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetWriter.html) to assist with composing a single file from many individual files.
 
 ### Data Joins
