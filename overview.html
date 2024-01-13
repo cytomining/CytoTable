@@ -141,6 +141,126 @@ It provides efficient data compression and encoding schemes with enhanced perfor
 </div></blockquote>
 </section>
 </section>
+<section id="data-transformations">
+<h2>Data Transformations<a class="headerlink" href="#data-transformations" title="Permalink to this heading">¶</a></h2>
+<p>CytoTable performs various types of data transformations.
+This section help define terminology and expectations surrounding the use of this terminology.
+CytoTable might use one or all of these depending on user configuration.</p>
+<section id="data-chunking">
+<h3>Data Chunking<a class="headerlink" href="#data-chunking" title="Permalink to this heading">¶</a></h3>
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+<p>“Data source”</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+</td>
+<td>
+<p>“Chunk 1”</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+</table>
+<p>“Chunk 2”</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+</td>
+</tr>
+</table>
+<p><em>Example of data chunking performed on a simple table of data.</em></p>
+<p>Data chunking within CytoTable involves slicing data sources into “chunks” of rows which all contain the same columns and have a lower number of rows than the original data source.
+CytoTable uses data chunking through the <code class="docutils literal notranslate"><span class="pre">chunk_size</span></code> argument value (<code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">chunk_size=1000,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>)) to reduce the memory footprint of operations on subsets of data.
+CytoTable may be used to create chunked data output by disabling concatenation and joins, e.g. <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">concat=False,join=False,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).
+Parquet “datasets” are an abstraction which may be used to read CytoTable output data chunks which are not concatenated or joined (for example, see <a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html">PyArrow documentation</a> or <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html">Pandas documentation</a> on using source paths which are directories).</p>
+</section>
+<section id="data-concatenations">
+<h3>Data Concatenations<a class="headerlink" href="#data-concatenations" title="Permalink to this heading">¶</a></h3>
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+<p>“Chunk 1”</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+</table>
+<p>“Chunk 2”</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+</td>
+<td>
+<p>“Concatenated data”</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+</td>
+</tr>
+</table>
+<p><em>Example of data concatenation performed on simple tables of similar data “chunks”.</em></p>
+<p>Data concatenation within CytoTable involves bringing two or more data “chunks” with the same columns together as a unified dataset.
+Just as chunking slices data apart, concatenation brings them together.
+Data concatenation within CytoTable typically occurs using a <a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetWriter.html">ParquetWriter</a> to assist with composing a single file from many individual files.</p>
+</section>
+<section id="data-joins">
+<h3>Data Joins<a class="headerlink" href="#data-joins" title="Permalink to this heading">¶</a></h3>
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+<p>“Table 1” (notice <strong>Col_C</strong>)</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+</table>
+<p>“Table 2” (notice <strong>Col_Z</strong>)</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_Z</th></tr>
+<tr><td>1</td><td>a</td><td>2024-01-01</td></tr>
+</table>
+</td>
+<td>
+<p>“Joined data” (as Table 1 <a href="https://en.wikipedia.org/wiki/Join_(SQL)#Left_outer_join">left-joined</a> with Table 2)</p>
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th><th>Col_Z</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td><td>2024-01-01</td></tr>
+</table>
+</td>
+</tr>
+<tr >
+<td colspan="2" style="text-align:center;font-weight:bold;">
+Join Specification in SQL
+</td>
+</tr>
+<tr >
+<td colspan="2">
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span>
+<span class="k">FROM</span><span class="w"> </span><span class="n">Table_1</span>
+<span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">Table_2</span><span class="w"> </span><span class="k">ON</span>
+<span class="n">Table_1</span><span class="p">.</span><span class="n">Col_A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Table_2</span><span class="p">.</span><span class="n">Col_A</span><span class="p">;</span>
+</pre></div>
+</div>
+</td>
+</tr>
+</table>
+<p><em>Example of a data join performed on simple example tables.</em></p>
+<p>Data joins within CytoTable involve bringing one or more data sources together with differing columns as a new dataset.
+The word “join” here is interpreted through <a class="reference external" href="https://en.wikipedia.org/wiki/Join_(SQL)">SQL-based terminology on joins</a>.
+Joins may be specified in CytoTable using <a class="reference external" href="https://duckdb.org/docs/sql/introduction.html">DuckDB-style SQL</a> through <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">joins=&quot;SELECT</span> <span class="pre">*</span> <span class="pre">FROM</span> <span class="pre">...</span> <span class="pre">JOIN</span> <span class="pre">...&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).
+Also see CytoTable’s presets found here: <a class="reference internal" href="python-api.html#cytotable.presets.config" title="cytotable.presets.config"><code class="xref py py-data docutils literal notranslate"><span class="pre">presets.config</span></code></a> or via <a class="reference external" href="https://github.com/cytomining/CytoTable/blob/main/cytotable/presets.py">GitHub source code for presets.config</a>.</p>
+<p>Note: data software outside of CytoTable sometimes makes use of the term “merge” to describe capabilities which are similar to join (for ex. <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html"><code class="docutils literal notranslate"><span class="pre">pandas.DataFrame.merge</span></code></a>.
+Within CytoTable, we opt to describe these operations with “join” to avoid confusion with software development alongside the technologies used (for example, <a class="reference external" href="https://duckdb.org/docs/archive/0.9.2/sql/introduction">DuckDB SQL</a> includes no <code class="docutils literal notranslate"><span class="pre">MERGE</span></code> keyword).</p>
+</section>
+</section>
 </section>
 
 
@@ -179,6 +299,12 @@ It provides efficient data compression and encoding schemes with enhanced perfor
 <li class="toctree-l2"><a class="reference internal" href="#data-destinations">Data Destinations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#data-destination-locations">Data Destination Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#data-destination-types">Data Destination Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-transformations">Data Transformations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-chunking">Data Chunking</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-concatenations">Data Concatenations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-joins">Data Joins</a></li>
 </ul>
 </li>
 </ul>
