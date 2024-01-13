@@ -117,3 +117,163 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 ```{eval-rst}
   Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
+
+## Data Transformations
+
+CytoTable performs various types of data transformations.
+This section help define terminology and expectations surrounding the use of this terminology.
+CytoTable might use one or all of these depending on user configuration.
+
+### Data Chunking
+
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+
+"Data source"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+<td>
+
+"Chunk 1"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+
+</table>
+
+"Chunk 2"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+_Example of data chunking performed on a simple table of data._
+
+```{eval-rst}
+Data chunking within CytoTable involves slicing data sources into "chunks" of rows which all contain the same columns and have a lower number of rows than the original data source.
+CytoTable uses data chunking through the ``chunk_size`` argument value (:code:`convert(..., chunk_size=1000, ...)` (:mod:`convert() <cytotable.convert.convert>`)) to reduce the memory footprint of operations on subsets of data.
+CytoTable may be used to create chunked data output by disabling concatenation and joins, e.g. :code:`convert(..., concat=False,join=False, ...)` (:mod:`convert() <cytotable.convert.convert>`).
+Parquet "datasets" are an abstraction which may be used to read CytoTable output data chunks which are not concatenated or joined (for example, see `PyArrow documentation <https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html>`_ or `Pandas documentation <https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html>`_ on using source paths which are directories).
+```
+
+### Data Concatenations
+
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+
+"Chunk 1"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+
+</table>
+
+"Chunk 2"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+<td>
+
+"Concatenated data"
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+<tr><td>2</td><td>b</td><td>0.02</td></tr>
+</table>
+
+</td>
+</tr>
+</table>
+
+_Example of data concatenation performed on simple tables of similar data "chunks"._
+
+Data concatenation within CytoTable involves bringing two or more data "chunks" with the same columns together as a unified dataset.
+Just as chunking slices data apart, concatenation brings them together.
+Data concatenation within CytoTable typically occurs using a [ParquetWriter](https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetWriter.html) to assist with composing a single file from many individual files.
+
+### Data Joins
+
+<table>
+<tr><th>Original</th><th>Changes</th></tr>
+<tr>
+<td>
+
+"Table 1" (notice __Col_C__)
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td></tr>
+
+</table>
+
+"Table 2" (notice __Col_Z__)
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_Z</th></tr>
+<tr><td>1</td><td>a</td><td>2024-01-01</td></tr>
+</table>
+
+</td>
+<td>
+
+"Joined data" (as Table 1 <a href="https://en.wikipedia.org/wiki/Join_(SQL)#Left_outer_join">left-joined</a> with Table 2)
+
+<table>
+<tr><th>Col_A</th><th>Col_B</th><th>Col_C</th><th>Col_Z</th></tr>
+<tr><td>1</td><td>a</td><td>0.01</td><td>2024-01-01</td></tr>
+</table>
+
+</td>
+</tr>
+<tr >
+<td colspan="2" style="text-align:center;font-weight:bold;">
+Join Specification in SQL
+</td>
+</tr>
+<tr >
+<td colspan="2">
+
+```sql
+SELECT *
+FROM Table_1
+LEFT JOIN Table_2 ON
+Table_1.Col_A = Table_2.Col_A;
+```
+
+</td>
+</tr>
+</table>
+
+_Example of a data join performed on simple example tables._
+
+```{eval-rst}
+Data joins within CytoTable involve bringing one or more data sources together with differing columns as a new dataset.
+The word "join" here is interpreted through `SQL-based terminology on joins <https://en.wikipedia.org/wiki/Join_(SQL)>`_.
+Joins may be specified in CytoTable using `DuckDB-style SQL <https://duckdb.org/docs/sql/introduction.html>`_ through :code:`convert(..., joins="SELECT * FROM ... JOIN ...", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+Also see CytoTable's presets found here: :data:`presets.config <cytotable.presets.config>` or via `GitHub source code for presets.config <https://github.com/cytomining/CytoTable/blob/main/cytotable/presets.py>`_.
+```
+
+Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
+Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for example, [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
