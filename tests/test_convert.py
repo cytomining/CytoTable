@@ -1093,7 +1093,7 @@ def test_in_carta_to_parquet(
         # process the data with cytotable using in-carta preset
         cytotable_result = convert(
             source_path=data_dir,
-            dest_path=f"{fx_tempdir}/in_carta_test",
+            dest_path=f"{fx_tempdir}/{pathlib.Path(data_dir).name}",
             dest_datatype="parquet",
             source_datatype="csv",
             preset="in-carta",
