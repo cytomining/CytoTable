@@ -207,8 +207,7 @@ config = {
     "in-carta": {
         # version specifications using related references
         "CONFIG_SOURCE_VERSION": {
-            # note: uncertain version at this time, to be filled in as possible
-            "in-carta": "v",
+            "in-carta": "v1.17.0412545",
         },
         # names of source table compartments (for ex. cells.csv, etc.)
         "CONFIG_NAMES_COMPARTMENTS": tuple(),
