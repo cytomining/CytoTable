@@ -1081,11 +1081,30 @@ def test_in_carta_to_parquet(
     """
 
     for data_dir in data_dirs_in_carta:
-        convert(
+        # read the directory of data with wildcard
+        with duckdb.connect() as ddb:
+            ddb_result = ddb.execute(
+                f"""
+                SELECT *
+                FROM read_csv_auto('{data_dir}/*.csv')
+                """
+            ).arrow()
+
+        # process the data with cytotable using in-carta preset
+        cytotable_result = convert(
             source_path=data_dir,
-            dest_path=f"{fx_tempdir}/in_carta_test.cytotable.parquet",
+            dest_path=f"{fx_tempdir}/in_carta_test",
             dest_datatype="parquet",
             source_datatype="csv",
             preset="in-carta",
             join=False,
         )
+
+        # read the result from CytoTable as a table
+        cytotable_result_table = parquet.read_table(
+            cytotable_result[list(cytotable_result.keys())[0]][0]["table"][0]
+        )
+
+        # check the data against one another
+        assert cytotable_result_table.schema.equals(ddb_result.schema)
+        assert cytotable_result_table.shape == ddb_result.shape
