@@ -319,7 +319,7 @@ def _source_chunk_to_parquet(
     select_columns = ",".join(
         [
             # here we cast the column to the specified type ensure the colname remains the same
-            f"CAST({column['column_name']} AS {column['column_dtype']}) AS {column['column_name']}"
+            f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
             for column in source["columns"]
         ]
     )
@@ -422,6 +422,10 @@ def _prepend_column_name(
     from cytotable.utils import _write_parquet_table_with_metadata
 
     targets = tuple(metadata) + tuple(compartments)
+
+    # if we have no targets or metadata to work from, return the table unchanged
+    if len(targets) == 0:
+        return table_path
 
     table = parquet.read_table(
         source=table_path, memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING

@@ -47,6 +47,7 @@ def _build_path(
 def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
     targets: List[str],
+    source_datatype: Optional[str] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
     Gather dataset of filepaths from a provided directory path.
@@ -56,12 +57,15 @@ def _get_source_filepaths(
             Either a directory path to seek filepaths within or a path directly to a file.
         targets: List[str]:
             Compartment and metadata names to seek within the provided path.
+        source_datatype: Optional[str]:  (Default value = None)
+            The source datatype (extension) to use for reading the tables.
 
     Returns:
         Dict[str, List[Dict[str, Any]]]
             Data structure which groups related files based on the compartments.
     """
 
+    import os
     import pathlib
 
     from cloudpathlib import AnyPath
@@ -85,6 +89,7 @@ def _get_source_filepaths(
         # ensure the subpaths meet certain specifications
         if (
             targets is None
+            or targets == []
             # checks for name of the file from targets (compartment + metadata names)
             or str(subpath.stem).lower() in [target.lower() for target in targets]
             # checks for sqlite extension (which may include compartment + metadata names)
@@ -134,21 +139,36 @@ def _get_source_filepaths(
 
     # group files together by similar filename for later data operations
     grouped_sources = {}
-    for unique_source in set(source["source_path"].name for source in sources):
-        grouped_sources[unique_source.capitalize()] = [
-            # case for files besides sqlite
-            source if source["source_path"].suffix.lower() != ".sqlite"
-            # if we have sqlite entries, update the source_path to the parent
-            # (the parent table database file) as grouped key name will now
-            # encapsulate the table name details.
-            else {
-                "source_path": source["source_path"].parent,
-                "table_name": source["table_name"],
-            }
-            for source in sources
-            # focus only on entries which include the unique_source name
-            if source["source_path"].name == unique_source
-        ]
+
+    # if we have no targets, create a single group inferred from a common prefix and suffix
+    if targets is None or targets == []:
+        # gather a common prefix to use for the group
+        common_prefix = os.path.commonprefix(
+            [
+                source["source_path"].stem
+                for source in sources
+                if source["source_path"].suffix == "." + source_datatype
+            ]
+        )
+        grouped_sources[f"{common_prefix}.{source_datatype}"] = sources
+
+    # otherwise, use the unique names in the paths to determine source grouping
+    else:
+        for unique_source in set(source["source_path"].name for source in sources):
+            grouped_sources[unique_source.capitalize()] = [
+                # case for files besides sqlite
+                source if source["source_path"].suffix.lower() != ".sqlite"
+                # if we have sqlite entries, update the source_path to the parent
+                # (the parent table database file) as grouped key name will now
+                # encapsulate the table name details.
+                else {
+                    "source_path": source["source_path"].parent,
+                    "table_name": source["table_name"],
+                }
+                for source in sources
+                # focus only on entries which include the unique_source name
+                if source["source_path"].name == unique_source
+            ]
 
     return grouped_sources
 
@@ -190,7 +210,7 @@ def _infer_source_datatype(
         raise DatatypeException(
             (
                 f"Unable to find source datatype {source_datatype} "
-                "within files. Detected datatypes: {suffixes}"
+                f"within files. Detected datatypes: {suffixes}"
             )
         )
 
@@ -270,7 +290,9 @@ def _gather_sources(
     source_path = _build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
-    sources = _get_source_filepaths(path=source_path, targets=targets)
+    sources = _get_source_filepaths(
+        path=source_path, targets=targets, source_datatype=source_datatype
+    )
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = _infer_source_datatype(
