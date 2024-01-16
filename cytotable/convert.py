@@ -75,7 +75,9 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
             segment_type as column_dtype
         FROM pragma_storage_info('column_details')
         /* avoid duplicate entries in the form of VALIDITY segment_types */
-        WHERE segment_type != 'VALIDITY';
+        WHERE segment_type != 'VALIDITY'
+        /* explicitly order the columns by their id to avoid inconsistent results */
+        ORDER BY column_id ASC;
         """
 
     # attempt to read the data to parquet from duckdb
