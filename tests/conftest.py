@@ -137,7 +137,7 @@ def fixture_data_dirs_cytominerdatabase(data_dir_cytominerdatabase: str) -> List
 @pytest.fixture(name="data_dirs_in_carta")
 def fixture_data_dir_in_carta() -> List[str]:
     """
-    Provide data directories for in-carta test data
+    Provide data directories for IN Carta test data
     """
 
     return [f"{pathlib.Path(__file__).parent}/data/in-carta/colas-lab"]

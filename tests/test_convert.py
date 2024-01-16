@@ -1071,3 +1071,21 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
             ]
         )
     )
+
+
+def test_in_carta_to_parquet(
+    load_parsl_default: None, fx_tempdir: str, data_dirs_in_carta: List[str]
+):
+    """
+    Testing IN Carta preset with CytoTable convert to parquet output.
+    """
+
+    for data_dir in data_dirs_in_carta:
+        convert(
+            source_path=data_dir,
+            dest_path=f"{fx_tempdir}/in_carta_test.cytotable.parquet",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="in-carta",
+            join=False,
+        )
