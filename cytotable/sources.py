@@ -70,8 +70,13 @@ def _get_source_filepaths(
 
     from cloudpathlib import AnyPath
 
-    from cytotable.exceptions import NoInputDataException
+    from cytotable.exceptions import DatatypeException, NoInputDataException
     from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
+
+    if (targets is None or targets == []) and source_datatype is None:
+        raise DatatypeException(
+            f"A source_datatype must be specified when using undefined compartments and metadata names."
+        )
 
     # gathers files from provided path using compartments + metadata as a filter
     sources = [
@@ -147,7 +152,7 @@ def _get_source_filepaths(
             [
                 source["source_path"].stem
                 for source in sources
-                if source["source_path"].suffix == "." + source_datatype
+                if source["source_path"].suffix == f".{source_datatype}"
             ]
         )
         grouped_sources[f"{common_prefix}.{source_datatype}"] = sources
