@@ -1102,7 +1102,10 @@ def test_in_carta_to_parquet(
 
         # read the result from CytoTable as a table
         cytotable_result_table = parquet.read_table(
-            cytotable_result[list(cytotable_result.keys())[0]][0]["table"][0]
+            # note: we use cast here to explicitly tell mypy about the types involved
+            cast(list, cytotable_result[list(cast(dict, cytotable_result).keys())[0]])[
+                0
+            ]["table"][0]
         )
 
         # check the data against one another
