@@ -575,6 +575,7 @@ def _concat_source_group(
             Updated dictionary containing concatenated sources.
     """
 
+    import errno
     import pathlib
 
     import pyarrow as pa
@@ -655,7 +656,7 @@ def _concat_source_group(
                 pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
             except OSError as os_err:
                 # raise only if we don't have a dir not empty errno
-                if os_err.errno != 66:
+                if os_err.errno != errno.ENOTEMPTY:
                     raise
 
     # return the concatted parquet filename
