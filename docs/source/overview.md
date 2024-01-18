@@ -106,7 +106,7 @@ Data source compatibility for CytoTable is focused (but not explicitly limited t
 
 ```{eval-rst}
   * **Manual specification:** CSV data source types may be manually specified by using :code:`convert(..., source_datatype="csv", ...)` (:mod:`convert() <cytotable.convert.convert>`).
-  * **Preset specification:** CSV data sources from CellProfiler may use the configuration preset :code:`convert(..., preset="in-carta", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+  * **Preset specification:** CSV data sources from In Carta Image Analysis Software may use the configuration preset :code:`convert(..., preset="in-carta", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 ## Data Destinations
