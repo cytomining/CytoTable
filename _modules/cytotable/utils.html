@@ -237,13 +237,18 @@
     <span class="k">with</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">conn</span><span class="p">:</span>
         <span class="n">cursor</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
 
-        <span class="c1"># gather table column details including datatype</span>
+        <span class="c1"># Gather table column details including datatype.</span>
+        <span class="c1"># Note: uses SQLite pragma for table information.</span>
+        <span class="c1"># See the following for more information:</span>
+        <span class="c1"># https://sqlite.org/pragma.html#pragma_table_info</span>
         <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            SELECT :table_name as table_name,</span>
 <span class="s2">                    name as column_name,</span>
 <span class="s2">                    type as column_type</span>
-<span class="s2">            FROM pragma_table_info(:table_name);</span>
+<span class="s2">            FROM pragma_table_info(:table_name)</span>
+<span class="s2">            /* explicit column ordering by &#39;cid&#39; */</span>
+<span class="s2">            ORDER BY cid ASC;</span>
 <span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span>
             <span class="p">{</span><span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">},</span>
         <span class="p">)</span>

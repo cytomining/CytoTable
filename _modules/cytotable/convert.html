@@ -110,7 +110,9 @@
 <span class="s2">            segment_type as column_dtype</span>
 <span class="s2">        FROM pragma_storage_info(&#39;column_details&#39;)</span>
 <span class="s2">        /* avoid duplicate entries in the form of VALIDITY segment_types */</span>
-<span class="s2">        WHERE segment_type != &#39;VALIDITY&#39;;</span>
+<span class="s2">        WHERE segment_type != &#39;VALIDITY&#39;</span>
+<span class="s2">        /* explicitly order the columns by their id to avoid inconsistent results */</span>
+<span class="s2">        ORDER BY column_id ASC;</span>
 <span class="s2">        &quot;&quot;&quot;</span>
 
     <span class="c1"># attempt to read the data to parquet from duckdb</span>
@@ -354,7 +356,7 @@
     <span class="n">select_columns</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="p">[</span>
             <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
-            <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_dtype&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="se">\&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2"> AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_dtype&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span>
             <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span>
         <span class="p">]</span>
     <span class="p">)</span>
@@ -449,6 +451,7 @@
 <span class="sd">            Path to the modified file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="kn">import</span> <span class="nn">logging</span>
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
     <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
@@ -456,7 +459,19 @@
     <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
 
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
     <span class="n">targets</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">compartments</span><span class="p">)</span>
+
+    <span class="c1"># if we have no targets or metadata to work from, return the table unchanged</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
+                <span class="s2">&quot;Skipping column name prepend operations&quot;</span>
+                <span class="s2">&quot;because no compartments or metadata were provided.&quot;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">table_path</span>
 
     <span class="n">table</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span>
         <span class="n">source</span><span class="o">=</span><span class="n">table_path</span><span class="p">,</span> <span class="n">memory_map</span><span class="o">=</span><span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
@@ -604,6 +619,7 @@
 <span class="sd">            Updated dictionary containing concatenated sources.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="kn">import</span> <span class="nn">errno</span>
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
     <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
@@ -684,7 +700,7 @@
                 <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
             <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">os_err</span><span class="p">:</span>
                 <span class="c1"># raise only if we don&#39;t have a dir not empty errno</span>
-                <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="mi">66</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTEMPTY</span><span class="p">:</span>
                     <span class="k">raise</span>
 
     <span class="c1"># return the concatted parquet filename</span>
