@@ -416,9 +416,9 @@ def _prepend_column_name(
             Path to the modified file.
     """
 
+    import logging
     import pathlib
 
-    import logging
     import pyarrow.parquet as parquet
 
     from cytotable.constants import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
