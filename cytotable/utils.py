@@ -202,13 +202,18 @@ def _sqlite_mixed_type_query_to_parquet(
     with sqlite3.connect(source_path) as conn:
         cursor = conn.cursor()
 
-        # gather table column details including datatype
+        # Gather table column details including datatype.
+        # Note: uses SQLite pragma for table information.
+        # See the following for more information:
+        # https://sqlite.org/pragma.html#pragma_table_info
         cursor.execute(
             f"""
             SELECT :table_name as table_name,
                     name as column_name,
                     type as column_type
-            FROM pragma_table_info(:table_name);
+            FROM pragma_table_info(:table_name)
+            /* explicit column ordering by 'cid' */
+            ORDER BY cid ASC;
             """,
             {"table_name": table_name},
         )

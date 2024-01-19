@@ -75,7 +75,9 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
             segment_type as column_dtype
         FROM pragma_storage_info('column_details')
         /* avoid duplicate entries in the form of VALIDITY segment_types */
-        WHERE segment_type != 'VALIDITY';
+        WHERE segment_type != 'VALIDITY'
+        /* explicitly order the columns by their id to avoid inconsistent results */
+        ORDER BY column_id ASC;
         """
 
     # attempt to read the data to parquet from duckdb
@@ -319,7 +321,7 @@ def _source_chunk_to_parquet(
     select_columns = ",".join(
         [
             # here we cast the column to the specified type ensure the colname remains the same
-            f"CAST({column['column_name']} AS {column['column_dtype']}) AS {column['column_name']}"
+            f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
             for column in source["columns"]
         ]
     )
@@ -414,6 +416,7 @@ def _prepend_column_name(
             Path to the modified file.
     """
 
+    import logging
     import pathlib
 
     import pyarrow.parquet as parquet
@@ -421,7 +424,19 @@ def _prepend_column_name(
     from cytotable.constants import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
     from cytotable.utils import _write_parquet_table_with_metadata
 
+    logger = logging.getLogger(__name__)
+
     targets = tuple(metadata) + tuple(compartments)
+
+    # if we have no targets or metadata to work from, return the table unchanged
+    if len(targets) == 0:
+        logger.warning(
+            msg=(
+                "Skipping column name prepend operations"
+                "because no compartments or metadata were provided."
+            )
+        )
+        return table_path
 
     table = parquet.read_table(
         source=table_path, memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING
@@ -569,6 +584,7 @@ def _concat_source_group(
             Updated dictionary containing concatenated sources.
     """
 
+    import errno
     import pathlib
 
     import pyarrow as pa
@@ -649,7 +665,7 @@ def _concat_source_group(
                 pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
             except OSError as os_err:
                 # raise only if we don't have a dir not empty errno
-                if os_err.errno != 66:
+                if os_err.errno != errno.ENOTEMPTY:
                     raise
 
     # return the concatted parquet filename

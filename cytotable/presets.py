@@ -204,6 +204,34 @@ config = {
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
         """,
     },
+    "in-carta": {
+        # version specifications using related references
+        "CONFIG_SOURCE_VERSION": {
+            "in-carta": "v1.17.0412545",
+        },
+        # names of source table compartments (for ex. cells.csv, etc.)
+        "CONFIG_NAMES_COMPARTMENTS": tuple(),
+        # names of source table metadata (for ex. image.csv, etc.)
+        "CONFIG_NAMES_METADATA": tuple(),
+        # column names in any compartment or metadata tables which contain
+        # unique names to avoid renaming
+        "CONFIG_IDENTIFYING_COLUMNS": (
+            "OBJECT ID",
+            "Row",
+            "Column",
+            "FOV",
+            "WELL LABEL",
+            "Z",
+            "T",
+        ),
+        # chunk size to use for join operations to help with possible performance issues
+        # note: this number is an estimate and is may need changes contingent on data
+        # and system used by this library.
+        "CONFIG_CHUNK_SIZE": 1000,
+        # compartment and metadata joins performed using DuckDB SQL
+        # and modified at runtime as needed
+        "CONFIG_JOINS": "",
+    },
 }
 """
 Configuration presets for CytoTable

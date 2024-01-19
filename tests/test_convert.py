@@ -1071,3 +1071,43 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
             ]
         )
     )
+
+
+def test_in_carta_to_parquet(
+    load_parsl_default: None, fx_tempdir: str, data_dirs_in_carta: List[str]
+):
+    """
+    Testing IN Carta preset with CytoTable convert to parquet output.
+    """
+
+    for data_dir in data_dirs_in_carta:
+        # read the directory of data with wildcard
+        with duckdb.connect() as ddb:
+            ddb_result = ddb.execute(
+                f"""
+                SELECT *
+                FROM read_csv_auto('{data_dir}/*.csv')
+                """
+            ).arrow()
+
+        # process the data with cytotable using in-carta preset
+        cytotable_result = convert(
+            source_path=data_dir,
+            dest_path=f"{fx_tempdir}/{pathlib.Path(data_dir).name}",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="in-carta",
+            join=False,
+        )
+
+        # read the result from CytoTable as a table
+        cytotable_result_table = parquet.read_table(
+            # note: we use cast here to explicitly tell mypy about the types involved
+            cast(list, cytotable_result[list(cast(dict, cytotable_result).keys())[0]])[
+                0
+            ]["table"][0]
+        )
+
+        # check the data against one another
+        assert cytotable_result_table.schema.equals(ddb_result.schema)
+        assert cytotable_result_table.shape == ddb_result.shape
