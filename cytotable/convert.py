@@ -418,15 +418,24 @@ def _prepend_column_name(
 
     import pathlib
 
+    import logging
     import pyarrow.parquet as parquet
 
     from cytotable.constants import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
     from cytotable.utils import _write_parquet_table_with_metadata
 
+    logger = logging.getLogger(__name__)
+
     targets = tuple(metadata) + tuple(compartments)
 
     # if we have no targets or metadata to work from, return the table unchanged
     if len(targets) == 0:
+        logger.warning(
+            msg=(
+                "Skipping column name prepend operations"
+                "because no compartments or metadata were provided."
+            )
+        )
         return table_path
 
     table = parquet.read_table(

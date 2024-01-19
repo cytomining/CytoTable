@@ -146,6 +146,8 @@ def _get_source_filepaths(
     grouped_sources = {}
 
     # if we have no targets, create a single group inferred from a common prefix and suffix
+    # note: this may apply for scenarios where no compartments or metadata are
+    # provided as input to CytoTable operations.
     if targets is None or targets == []:
         # gather a common prefix to use for the group
         common_prefix = os.path.commonprefix(
