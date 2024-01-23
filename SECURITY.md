@@ -4,7 +4,7 @@ CytoTable maintainers and community take security bugs seriously. We appreciate 
 
 To report a security issue, please use the GitHub Security Advisory ["Report a Vulnerability"](https://github.com/cytomining/cytotable/security/advisories/new) tab.
 
-## Using "Development" vs "Production" Dependencies
+## Using "Development" vs "Non-development" Dependencies
 
 A number of development-only dependencies are included with this project for maintenance and testing purposes.
 Please see the `pyproject.toml` table `[tool.poetry.dependencies]` for a list of non-development dependencies and `[tool.poetry.group.dev.dependencies]` for a list of development dependencies.
