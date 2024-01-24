@@ -12,6 +12,10 @@ This project is governed by our [code of conduct](code_of_conduct.md).
 By participating, you are expected to uphold this code.
 Please report unacceptable behavior to [cytodata.info@gmail.com](mailto:cytodata.info@gmail.com).
 
+## Security
+
+Please see our [SECURITY.md](https://github.com/cytomining/CytoTable/blob/main/SECURITY.md) file for more information on security practices and recommendations associated with this project.
+
 ## Quick links
 
 - Documentation: <https://cytomining.github.io/CytoTable/>
