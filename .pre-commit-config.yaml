@@ -16,9 +16,9 @@ repos:
     hooks:
       - id: codespell
         exclude: >
-              (?x)^(
-                  .*\.lock|.*\.csv
-              )$
+          (?x)^(
+              .*\.lock|.*\.csv
+          )$
         additional_dependencies:
           - tomli
   - repo: https://github.com/executablebooks/mdformat
@@ -73,7 +73,7 @@ repos:
           - "cloudpathlib[all]>=0.13.0"
           - "pyarrow>=13.0.0"
           - "pytest>=7.2.0"
-          - "moto[server,s3]>=4.0.0"
+          - "moto[server,s3]>=4.0.0,<5.0.0"
           - "duckdb>=0.8.0"
           - "parsl>=2023.4.24"
           - "git+https://github.com/cytomining/pycytominer.git@09b2c79aa94908e3520f0931a844db4fba7fd3fb"
