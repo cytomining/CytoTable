@@ -26,8 +26,11 @@ from parsl.config import Config
 from parsl.executors import ThreadPoolExecutor
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
+from sqlalchemy.util import deprecations
 
 from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
+
+deprecations.SILENCE_UBER_WARNING = True
 
 
 @pytest.fixture(name="clear_parsl_config", scope="module")
