@@ -14,6 +14,7 @@ from pyarrow import csv
 SOURCE_DATA_DIR = "tests/data/in-carta/colas-lab/data"
 TARGET_DATA_DIR = "tests/data/in-carta/colas-lab"
 
+
 # build a collection of schema
 schema_collection = []
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
@@ -61,5 +62,5 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
                 """
             ).arrow(),
             # output the filtered data as a CSV to a new location
-            output_file=f"{TARGET_DATA_DIR}/test-in-carta-{idx}.csv",
+            output_file=f"{TARGET_DATA_DIR}/Test 0 Day{idx} Test Test_2024_Jan-0{idx+1}-{idx+12}-12-12_Test.csv",
         )
