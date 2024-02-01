@@ -152,7 +152,8 @@ def _get_source_filepaths(
         # gather a common prefix to use for the group
         common_prefix = os.path.commonprefix(
             [
-                source["source_path"].stem
+                # use lowercase version of the path to infer a commonprefix
+                source["source_path"].stem.lower()
                 for source in sources
                 if source["source_path"].suffix == f".{source_datatype}"
             ]
