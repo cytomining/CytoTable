@@ -30,6 +30,8 @@ from sqlalchemy.util import deprecations
 
 from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 
+# filters sqlalchemy 2.0 uber warning
+# referenced from: https://stackoverflow.com/a/76308286
 deprecations.SILENCE_UBER_WARNING = True
 
 
