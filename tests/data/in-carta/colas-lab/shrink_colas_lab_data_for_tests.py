@@ -14,6 +14,7 @@ from pyarrow import csv
 SOURCE_DATA_DIR = "tests/data/in-carta/colas-lab/data"
 TARGET_DATA_DIR = "tests/data/in-carta/colas-lab"
 
+
 # build a collection of schema
 schema_collection = []
 for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
@@ -48,6 +49,11 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
         # Read the csv file with SQL-based filters
         # as a pyarrow table then output to a new and
         # smaller csv for testing purposes.
+
+        output_filename = (
+            f"Test 0 Day{idx} Test Test_2024_Jan-0{idx+1}-{idx+12}-12-12_Test.csv"
+        )
+
         csv.write_csv(
             # we use duckdb to filter the original dataset in SQL
             data=ddb.execute(
@@ -61,5 +67,9 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
                 """
             ).arrow(),
             # output the filtered data as a CSV to a new location
-            output_file=f"{TARGET_DATA_DIR}/test-in-carta-{idx}.csv",
+            output_file=f"{TARGET_DATA_DIR}/{output_filename}"
+            # For some files lowercase the first letter of the file
+            # as a simulation of the source data.
+            if idx < 3
+            else f"{TARGET_DATA_DIR}/{output_filename[0].lower() + output_filename[1:]}",
         )

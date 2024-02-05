@@ -1100,6 +1100,10 @@ def test_in_carta_to_parquet(
             join=False,
         )
 
+        # Check that the returned value isn't a string with an extension but
+        # no common path.
+        assert list(cast(dict, cytotable_result).keys())[0] != ".csv"
+
         # read the result from CytoTable as a table
         cytotable_result_table = parquet.read_table(
             # note: we use cast here to explicitly tell mypy about the types involved
