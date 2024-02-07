@@ -58,5 +58,7 @@ skips = ["B608"]
 ignore-words=".codespell-ignore"
 
 [tool.pytest.ini_options]
-filterwarnings = ["ignore::DeprecationWarning:pkg_resources",
-    "ignore::DeprecationWarning:cytominer_database"]
+filterwarnings = [
+  "ignore::DeprecationWarning:pkg_resources",
+  "ignore::DeprecationWarning:cytominer_database",
+]
