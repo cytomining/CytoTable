@@ -58,6 +58,10 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
+  - repo: https://github.com/citation-file-format/cffconvert
+    rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
+    hooks:
+      - id: validate-cff
   - repo: https://github.com/PyCQA/pylint
     rev: v3.0.3
     hooks:

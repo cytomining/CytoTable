@@ -30,7 +30,5 @@ jobs:
         run: poetry install --no-interaction --no-ansi
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
-      - name: Run citation file test
-        run: poetry run cffconvert --validate
       - name: Run pytest
         run: poetry run pytest
