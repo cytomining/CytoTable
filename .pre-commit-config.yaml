@@ -15,7 +15,6 @@ repos:
     rev: 1.8.0
     hooks:
       - id: poetry-check
-      - id: poetry-lock
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
