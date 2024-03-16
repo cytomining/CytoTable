@@ -37,7 +37,6 @@
 <span class="sd">CytoTable: convert - transforming data for use with pyctyominer.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">uuid</span>
@@ -875,19 +874,6 @@
     <span class="c1"># remove dir if we have it</span>
     <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
-
-    <span class="c1"># write the concatted result as a parquet file</span>
-    <span class="n">_write_parquet_table_with_metadata</span><span class="p">(</span>
-        <span class="n">table</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">concat_tables</span><span class="p">(</span>
-            <span class="n">tables</span><span class="o">=</span><span class="p">[</span>
-                <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span>
-                    <span class="n">table_path</span><span class="p">,</span> <span class="n">memory_map</span><span class="o">=</span><span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
-                <span class="p">)</span>
-                <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">join_sources</span>
-            <span class="p">]</span>
-        <span class="p">),</span>
-        <span class="n">where</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
-    <span class="p">)</span>
 
     <span class="c1"># build a parquet file writer which will be used to append files</span>
     <span class="c1"># as a single concatted parquet file, referencing the first file&#39;s schema</span>
