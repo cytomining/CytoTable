@@ -26,7 +26,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 python = ">=3.8,<3.13"
 pyarrow = ">=13.0.0"
 cloudpathlib = {extras = ["all"], version = "^0.15.0"}
-duckdb = ">=0.8.0"
+duckdb = ">=0.8.0,<0.10.0"
 parsl = ">=2023.9.25"
 
 [tool.poetry.group.dev.dependencies]
@@ -37,7 +37,7 @@ myst-parser = "^2.0.0"
 sphinxcontrib-mermaid = "^0.9.0"
 moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cytominer-database = "^0.3.4"
-pycytominer = { git = "https://github.com/cytomining/pycytominer.git", rev = "09b2c79aa94908e3520f0931a844db4fba7fd3fb" }
+pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
 
 [tool.vulture]
