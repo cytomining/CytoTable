@@ -2,7 +2,6 @@
 CytoTable: convert - transforming data for use with pyctyominer.
 """
 
-
 import itertools
 import logging
 import uuid
@@ -840,19 +839,6 @@ def _concat_join_sources(
     # remove dir if we have it
     if pathlib.Path(dest_path).is_dir():
         shutil.rmtree(path=dest_path)
-
-    # write the concatted result as a parquet file
-    _write_parquet_table_with_metadata(
-        table=pa.concat_tables(
-            tables=[
-                parquet.read_table(
-                    table_path, memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING
-                )
-                for table_path in join_sources
-            ]
-        ),
-        where=dest_path,
-    )
 
     # build a parquet file writer which will be used to append files
     # as a single concatted parquet file, referencing the first file's schema
