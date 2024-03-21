@@ -26,7 +26,7 @@ build-backend = "poetry_dynamic_versioning.backend"
 python = ">=3.8,<3.13"
 pyarrow = ">=13.0.0"
 cloudpathlib = {extras = ["all"], version = "^0.18.0"}
-duckdb = ">=0.10.1"
+duckdb = ">=0.8.0,!=0.10.0,>=0.10.1"
 parsl = ">=2023.9.25"
 numpy = [
   {version = "<=1.24.4", python = "<3.12"},
