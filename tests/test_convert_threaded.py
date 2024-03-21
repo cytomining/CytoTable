@@ -16,8 +16,8 @@ from parsl.executors import ThreadPoolExecutor
 from pyarrow import parquet
 
 from cytotable.convert import convert
-from cytotable.sources import _get_source_filepaths
 from cytotable.presets import config
+from cytotable.sources import _get_source_filepaths
 
 
 def test_convert_tpe_cellprofiler_csv(
@@ -127,7 +127,7 @@ def test_convert_s3_path_sqlite(
 
     # create a modified join sql for deterministic comparisons
     modified_joins = (
-        config["cellprofiler_sqlite_pycytominer"]["CONFIG_JOINS"] + " ORDER BY ALL"
+        str(config["cellprofiler_sqlite_pycytominer"]["CONFIG_JOINS"]) + " ORDER BY ALL"
     )
 
     # local sqlite read
