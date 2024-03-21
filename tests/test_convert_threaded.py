@@ -17,6 +17,7 @@ from pyarrow import parquet
 
 from cytotable.convert import convert
 from cytotable.sources import _get_source_filepaths
+from cytotable.presets import config
 
 
 def test_convert_tpe_cellprofiler_csv(
@@ -124,6 +125,11 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
+    # create a modified join sql for deterministic comparisons
+    modified_joins = (
+        config["cellprofiler_sqlite_pycytominer"]["CONFIG_JOINS"] + " ORDER BY ALL"
+    )
+
     # local sqlite read
     local_cytotable_table = parquet.read_table(
         source=convert(
@@ -135,16 +141,7 @@ def test_convert_s3_path_sqlite(
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
-            # note: we use the threadpoolexecutor to avoid issues with multiprocessing
-            # in moto / mocked S3 environments.
-            # See here for more: https://docs.getmoto.org/en/latest/docs/faq.html#is-moto-concurrency-safe
-            parsl_config=Config(
-                executors=[
-                    ThreadPoolExecutor(
-                        label="tpe_for_cytotable_testing_moto_s3",
-                    )
-                ]
-            ),
+            joins=modified_joins,
         )
     )
 
@@ -164,6 +161,7 @@ def test_convert_s3_path_sqlite(
             # sequential s3 SQLite files. See below for more information
             # https://cloudpathlib.drivendata.org/stable/caching/#automatically
             local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/1",
+            joins=modified_joins,
         )
     )
 
@@ -183,6 +181,7 @@ def test_convert_s3_path_sqlite(
             # sequential s3 SQLite files. See below for more information
             # https://cloudpathlib.drivendata.org/stable/caching/#automatically
             local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
+            joins=modified_joins,
         )
     )
 
