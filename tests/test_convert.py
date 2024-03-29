@@ -704,6 +704,56 @@ def test_convert_cellprofiler_sqlite(
     assert test_result.equals(control_result)
 
 
+def test_convert_cellprofiler_sqlite_join_with_no_concat(
+    load_parsl_default: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_nf1data: pa.Table,
+):
+    """
+    Tests convert with cellprofiler sqlite exports
+    using joins but no concatenation.
+    """
+
+    control_result = cellprofiler_merged_nf1data
+
+    # create a modified join sql for deterministic comparisons
+    modified_joins = (
+        str(config["cellprofiler_sqlite"]["CONFIG_JOINS"]) + " ORDER BY ALL"
+    )
+
+    # gather results as a joined list of chunk files which aren't concatenated
+    test_result_data: List[str] = convert(
+        source_path=(
+            f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
+        ),
+        dest_path=f"{fx_tempdir}/NF1_data.parquet",
+        dest_datatype="parquet",
+        source_datatype="sqlite",
+        preset="cellprofiler_sqlite",
+        joins=modified_joins,
+        # explicitly set the chunk size to receive multiple chunk files
+        chunk_size=100,
+        join=True,
+        concat=False,
+    )
+
+    # read the result files as a single pyarrow table
+    test_result = parquet.ParquetDataset(path_or_paths=test_result_data).read()
+
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+    )
+
+    assert test_result.shape == control_result.shape
+    assert test_result.equals(control_result)
+
+
 def test_convert_cellprofiler_csv(
     load_parsl_default: None,
     fx_tempdir: str,

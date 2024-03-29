@@ -1205,14 +1205,18 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             ).result()
         ]
 
-        # concat our join chunks together as one cohesive dataset
-        # return results in common format which includes metadata
-        # for lineage and debugging
-        results = _concat_join_sources(
-            dest_path=expanded_dest_path,
-            join_sources=join_sources_result,
-            sources=results,
-        ).result()
+        if concat:
+            # concat our join chunks together as one cohesive dataset
+            # return results in common format which includes metadata
+            # for lineage and debugging
+            results = _concat_join_sources(
+                dest_path=expanded_dest_path,
+                join_sources=join_sources_result,
+                sources=results,
+            ).result()
+        else:
+            # else we leave the joined chunks as-is and return them
+            results = join_sources_result
 
     # wrap the final result as a future and return
     return _return_future(results)
