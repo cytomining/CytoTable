@@ -723,7 +723,7 @@ def test_convert_cellprofiler_sqlite_join_with_no_concat(
     )
 
     # gather results as a joined list of chunk files which aren't concatenated
-    test_result_data: List[str] = convert(
+    test_result_data = convert(
         source_path=(
             f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
         ),

@@ -993,7 +993,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     drop_null: bool,
     data_type_cast_map: Optional[Dict[str, str]] = None,
     **kwargs,
-) -> Union[Dict[str, List[Dict[str, Any]]], str]:
+) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
     Export data to parquet.
 
@@ -1216,7 +1216,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             ).result()
         else:
             # else we leave the joined chunks as-is and return them
-            results = join_sources_result
+            return _return_future(join_sources_result)
 
     # wrap the final result as a future and return
     return _return_future(results)
@@ -1240,7 +1240,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
-) -> Union[Dict[str, List[Dict[str, Any]]], str]:
+) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
     Convert file-based data from various sources to Pycytominer-compatible standards.
 
