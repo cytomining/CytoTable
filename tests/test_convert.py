@@ -417,10 +417,10 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     assert result_table.equals(
         other=pa.Table.from_pydict(
             {
-                "id1": [1, 2],
-                "id2": ["a", "a"],
-                "field1": ["foo", "bar"],
-                "field2": [True, False],
+                "field1": ["foo", "foo"],
+                "field2": [True, True],
+                "id1": [1, 1],
+                "id2": ["a", "b"],
             },
             # use schema from result as a reference for col order
             schema=result_table.schema,

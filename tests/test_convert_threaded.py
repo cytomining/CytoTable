@@ -16,7 +16,6 @@ from parsl.executors import ThreadPoolExecutor
 from pyarrow import parquet
 
 from cytotable.convert import convert
-from cytotable.presets import config
 from cytotable.sources import _get_source_filepaths
 
 
@@ -125,11 +124,6 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    # create a modified join sql for deterministic comparisons
-    modified_joins = (
-        str(config["cellprofiler_sqlite_pycytominer"]["CONFIG_JOINS"]) + " ORDER BY ALL"
-    )
-
     # local sqlite read
     local_cytotable_table = parquet.read_table(
         source=convert(
@@ -141,7 +135,6 @@ def test_convert_s3_path_sqlite(
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
-            joins=modified_joins,
         )
     )
 
@@ -161,7 +154,6 @@ def test_convert_s3_path_sqlite(
             # sequential s3 SQLite files. See below for more information
             # https://cloudpathlib.drivendata.org/stable/caching/#automatically
             local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/1",
-            joins=modified_joins,
         )
     )
 
@@ -181,7 +173,6 @@ def test_convert_s3_path_sqlite(
             # sequential s3 SQLite files. See below for more information
             # https://cloudpathlib.drivendata.org/stable/caching/#automatically
             local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-            joins=modified_joins,
         )
     )
 
