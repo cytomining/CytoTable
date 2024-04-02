@@ -257,7 +257,12 @@ def _sqlite_mixed_type_query_to_parquet(
 
         # perform the select using the cases built above and using chunksize + offset
         cursor.execute(
-            f'SELECT {", ".join(query_parts)} FROM {table_name} LIMIT {chunk_size} OFFSET {offset};'
+            f"""
+            SELECT {', '.join(query_parts)}
+            FROM {table_name}
+            ORDER BY {', '.join([col['column_name'] for col in column_info])}
+            LIMIT {chunk_size} OFFSET {offset};
+            """
         )
         # collect the results and include the column name with values
         results = [
