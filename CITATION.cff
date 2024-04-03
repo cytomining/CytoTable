@@ -195,3 +195,18 @@ references:
       See:
       - https://sbpdiscovery.org/our-scientists/alexandre-colas-phd
       - https://www.moleculardevices.com/products/cellular-imaging-systems/acquisition-and-analysis-software/in-carta-image-analysis-software
+  - authors:
+      - name: "Way Lab nf1_cellpainting_data Team"
+    date-accessed: "2024-04-03"
+    title: Way Lab nf1_cellpainting_data CellProfiler Data
+    type: data
+    repository-code: "https://github.com/WayScience/nf1_cellpainting_data"
+    url: "https://github.com/WayScience/nf1_cellpainting_data/raw/main/2.cellprofiler_analysis/analysis_output/Plate_3/Plate_3_nf1_analysis.sqlite"
+    scope: "Plate_3_nf1_analysis.sqlite"
+    notes: >-
+      CellProfiler generated data from nf1_cellpainting_data project is used to help validate
+      expected results for CytoTable.
+    identifiers:
+      - description: "Github Link with Contributors"
+        type: url
+        value: "https://github.com/WayScience/nf1_cellpainting_data/graphs/contributors"
