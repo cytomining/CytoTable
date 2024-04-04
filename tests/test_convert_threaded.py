@@ -239,6 +239,7 @@ def test_get_source_filepaths(
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
 
+
 def test_avoid_na_row_output(
     load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
 ):
