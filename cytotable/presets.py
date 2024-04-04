@@ -39,15 +39,15 @@ config = {
             SELECT
                 *
             FROM
-                Image_Filtered AS image
-            RIGHT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
-                cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
-            RIGHT JOIN read_parquet('cells.parquet') AS cells ON
+                read_parquet('cytoplasm.parquet') AS cytoplasm
+            LEFT JOIN read_parquet('cells.parquet') AS cells ON
                 cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            RIGHT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
                 nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
+            LEFT JOIN Image_Filtered AS image ON
+                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
             """,
     },
     "cellprofiler_sqlite": {
@@ -85,15 +85,15 @@ config = {
             SELECT
                 *
             FROM
-                Per_Image_Filtered AS per_image
-            RIGHT JOIN read_parquet('per_cytoplasm.parquet') AS per_cytoplasm ON
-                per_cytoplasm.Metadata_ImageNumber = per_image.Metadata_ImageNumber
-            RIGHT JOIN read_parquet('per_cells.parquet') AS per_cells ON
+                read_parquet('per_cytoplasm.parquet') AS per_cytoplasm
+            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells ON
                 per_cells.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
                 AND per_cells.Cells_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Cells
-            RIGHT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
+            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
                 per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
                 AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Nuclei
+            LEFT JOIN  Per_Image_Filtered AS per_image ON
+                per_image.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
             """,
     },
     "cellprofiler_sqlite_pycytominer": {
@@ -136,15 +136,15 @@ config = {
             SELECT
                 *
             FROM
-                Per_Image_Filtered AS per_image
-            RIGHT JOIN read_parquet('per_cytoplasm.parquet') AS per_cytoplasm ON
-                per_cytoplasm.Metadata_ImageNumber = per_image.Metadata_ImageNumber
-            RIGHT JOIN read_parquet('per_cells.parquet') AS per_cells ON
+                read_parquet('per_cytoplasm.parquet') AS per_cytoplasm
+            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells ON
                 per_cells.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
                 AND per_cells.Metadata_Cells_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            RIGHT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
+            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
                 per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
                 AND per_nuclei.Metadata_Nuclei_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
+            LEFT JOIN Per_Image_Filtered AS per_image ON
+                per_image.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
             """,
     },
     "cell-health-cellprofiler-to-cytominer-database": {
@@ -190,18 +190,18 @@ config = {
             SELECT
                 *
             FROM
-                Image_Filtered AS image
-            RIGHT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
-                cytoplasm.Metadata_TableNumber = image.Metadata_TableNumber
-                AND cytoplasm.Metadata_ImageNumber = image.Metadata_ImageNumber
-            RIGHT JOIN read_parquet('cells.parquet') AS cells ON
+                read_parquet('cytoplasm.parquet') AS cytoplasm
+            LEFT JOIN read_parquet('cells.parquet') AS cells ON
                 cells.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
                 AND cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            RIGHT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
                 nuclei.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
                 AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
+            LEFT JOIN  Image_Filtered AS image ON
+                image.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
+                AND image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
         """,
     },
     "in-carta": {
