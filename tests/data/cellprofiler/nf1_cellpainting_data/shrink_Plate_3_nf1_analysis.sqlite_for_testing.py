@@ -5,6 +5,9 @@ Source:
 https://github.com/WayScience/nf1_cellpainting_data/raw/main/2.cellprofiler_analysis/analysis_output/Plate_3/Plate_3_nf1_analysis.sqlite
 """
 
+# disable similar line checks for pylint
+# pylint: disable=R0801
+
 import shutil
 import sqlite3
 
