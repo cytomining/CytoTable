@@ -175,6 +175,86 @@ def _prep_cast_column_data_types(
 
 
 @python_app
+def _set_tablenumber(
+    sources: Dict[str, List[Dict[str, Any]]],
+    add_tablenumber: Optional[bool] = None,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Gathers a "TableNumber" for the table which is a unique identifier intended
+    to help differentiate between imagenumbers to create distinct results.
+
+    Note:
+    - If using CSV data sources, the image.csv table is used for checksum.
+    - If using SQLite data sources, the entire SQLite database is used for checksum.
+
+    Args:
+        sources: Dict[str, List[Dict[str, Any]]]
+            Contains metadata about data tables and related contents.
+        add_tablenumber: Optional[bool]
+            Whether to add a calculated tablenumber.
+            Note: when False, adds None as the tablenumber
+
+    Returns:
+        List[Dict[str, Any]]
+            New source group with added TableNumber details.
+    """
+
+    from cloudpathlib import AnyPath
+
+    from cytotable.utils import _gather_tablenumber_checksum
+
+    print(sources)
+
+    # determine if we need to add tablenumber data
+    if add_tablenumber is None:
+        pass
+
+    # if we're configured not to add tablenumber, add None
+    if not add_tablenumber:
+        return {
+            source_group_name: [
+                dict(
+                    source,
+                    **{
+                        "tablenumber": None,
+                    },
+                )
+                for source in source_group_vals
+            ]
+            for source_group_name, source_group_vals in sources.items()
+        }
+
+    # gather the image table from the source_group
+    tablenumber_table = {
+        # create a data structure with the common parent for each dataset
+        # and the calculated checksum from the image table
+        str(source["source_path"].parent): _gather_tablenumber_checksum(
+            source["source_path"]
+        )
+        for source_group_name, source_group_vals in sources.items()
+        # use the image tables references only for the basis of the
+        # these calculations.
+        if any(
+            value in str(AnyPath(source_group_name).stem).lower()
+            for value in ["image", "per_image"]
+        )
+        for source in source_group_vals
+    }
+
+    # return a modified sources data structure with the table number added
+    return {
+        source_group_name: [
+            dict(
+                source,
+                **{"tablenumber": tablenumber_table[str(source["source_path"].parent)]},
+            )
+            for source in source_group_vals
+        ]
+        for source_group_name, source_group_vals in sources.items()
+    }
+
+
+@python_app
 def _get_table_chunk_offsets(
     chunk_size: int,
     source: Optional[Dict[str, Any]] = None,
@@ -316,8 +396,19 @@ def _source_chunk_to_parquet(
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
+    # build tablenumber segment addition (if necessary)
+    tablenumber_sql = (
+        # to become tablenumber in sql select later with bigint (8-byte integer)
+        # we cast here to bigint to avoid concat or join conflicts later due to
+        # misaligned automatic data typing.
+        f"CAST({source['tablenumber']} AS BIGINT) as TableNumber, "
+        if source["tablenumber"] is not None
+        # if we don't have a tablenumber value, don't introduce the column
+        else ""
+    )
+
     # build the column selection block of query
-    select_columns = ",".join(
+    select_columns = tablenumber_sql + ",".join(
         [
             # here we cast the column to the specified type ensure the colname remains the same
             f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
@@ -372,6 +463,7 @@ def _source_chunk_to_parquet(
                     table_name=str(source["table_name"]),
                     chunk_size=chunk_size,
                     offset=offset,
+                    tablenumber=source["tablenumber"],
                 ),
                 where=result_filepath,
             )
@@ -992,6 +1084,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     infer_common_schema: bool,
     drop_null: bool,
     data_type_cast_map: Optional[Dict[str, str]] = None,
+    add_tablenumber: Optional[bool] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
     """
@@ -1118,6 +1211,11 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in invalid_files_dropped.items()
     }
 
+    # add tablenumber details, appending None if not add_tablenumber
+    tablenumber_prepared = _set_tablenumber(
+        sources=column_names_and_types_gathered, add_tablenumber=add_tablenumber
+    ).result()
+
     results = {
         source_group_name: [
             dict(
@@ -1145,7 +1243,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             )
             for source in source_group_vals
         ]
-        for source_group_name, source_group_vals in column_names_and_types_gathered.items()
+        for source_group_name, source_group_vals in tablenumber_prepared.items()
     }
 
     # if we're concatting or joining and need to infer the common schema
@@ -1233,6 +1331,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     infer_common_schema: bool = True,
     drop_null: bool = False,
     data_type_cast_map: Optional[Dict[str, str]] = None,
+    add_tablenumber: Optional[bool] = None,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
@@ -1390,6 +1489,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
             data_type_cast_map=data_type_cast_map,
+            add_tablenumber=add_tablenumber,
             **kwargs,
         ).result()
 
