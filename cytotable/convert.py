@@ -233,7 +233,6 @@ def _set_tablenumber(
         add_tablenumber
         is False
     ):
-
         return {
             source_group_name: [
                 dict(
