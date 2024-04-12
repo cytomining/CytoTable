@@ -203,14 +203,37 @@ def _set_tablenumber(
 
     from cytotable.utils import _gather_tablenumber_checksum
 
-    print(sources)
+    image_table_groups = {
+        # create a data structure with the common parent for each dataset
+        # and the calculated checksum from the image table.
+        # note: the source_path parent is used for non-SQLite files
+        # whereas the direct source path is used for SQLite files.
+        (
+            str(source["source_path"].parent)
+            if source["source_path"].suffix != "sqlite"
+            else source["source_path"]
+        ): source["source_path"]
+        for source_group_name, source_group_vals in sources.items()
+        # use the image tables references only for the basis of the
+        # these calculations.
+        if any(
+            value in str(AnyPath(source_group_name).stem).lower()
+            for value in ["image", "per_image"]
+        )
+        for source in source_group_vals
+    }
 
     # determine if we need to add tablenumber data
-    if add_tablenumber is None:
-        pass
+    if (
+        # case for detecting multiple image tables which need to be differentiated
+        add_tablenumber is None
+        and (len(image_table_groups) <= 1)
+    ) or (
+        # case for explicitly set no tablenumbers
+        add_tablenumber
+        is False
+    ):
 
-    # if we're configured not to add tablenumber, add None
-    if not add_tablenumber:
         return {
             source_group_name: [
                 dict(
@@ -228,20 +251,11 @@ def _set_tablenumber(
     tablenumber_table = {
         # create a data structure with the common parent for each dataset
         # and the calculated checksum from the image table
-        str(source["source_path"].parent): _gather_tablenumber_checksum(
-            source["source_path"]
-        )
-        for source_group_name, source_group_vals in sources.items()
-        # use the image tables references only for the basis of the
-        # these calculations.
-        if any(
-            value in str(AnyPath(source_group_name).stem).lower()
-            for value in ["image", "per_image"]
-        )
-        for source in source_group_vals
+        group: _gather_tablenumber_checksum(path)
+        for group, path in image_table_groups.items()
     }
 
-    # return a modified sources data structure with the table number added
+    # return a modified sources data structure with the tablenumber added
     return {
         source_group_name: [
             dict(
@@ -249,6 +263,7 @@ def _set_tablenumber(
                 **{"tablenumber": tablenumber_table[str(source["source_path"].parent)]},
             )
             for source in source_group_vals
+            if str(source["source_path"].parent) in list(tablenumber_table.keys())
         ]
         for source_group_name, source_group_vals in sources.items()
     }
