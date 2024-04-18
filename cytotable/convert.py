@@ -348,6 +348,8 @@ def _source_chunk_to_parquet(
                 table=ddb_reader.execute(
                     f"""
                     {base_query}
+                    /* order by all columns for deterministic output */
+                    ORDER BY ALL
                     LIMIT {chunk_size} OFFSET {offset}
                     """
                 ).arrow(),
@@ -750,6 +752,7 @@ def _join_source_chunk(
         result = ddb_reader.execute(
             f"""
                 {joins}
+                {"ORDER BY ALL" if "ORDER BY" not in joins.upper() else ""}
                 LIMIT {chunk_size} OFFSET {offset}
                 """
         ).arrow()

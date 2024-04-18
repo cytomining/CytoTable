@@ -417,10 +417,10 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     assert result_table.equals(
         other=pa.Table.from_pydict(
             {
-                "id1": [1, 2],
-                "id2": ["a", "a"],
-                "field1": ["foo", "bar"],
-                "field2": [True, False],
+                "field1": ["foo", "foo"],
+                "field2": [True, True],
+                "id1": [1, 1],
+                "id2": ["a", "b"],
             },
             # use schema from result as a reference for col order
             schema=result_table.schema,
@@ -977,10 +977,10 @@ def test_sqlite_mixed_type_query_to_parquet(
     ]
     # check the values per column
     assert parquet.read_table(source=result_filepath).to_pydict() == {
-        "col_integer": [1, None],
+        "col_integer": [None, 1],
         "col_text": ["sample", "sample"],
-        "col_blob": [b"sample_blob", b"another_blob"],
-        "col_real": [0.5, None],
+        "col_blob": [b"another_blob", b"sample_blob"],
+        "col_real": [None, 0.5],
     }
 
     # run full convert on mixed type database
@@ -997,10 +997,10 @@ def test_sqlite_mixed_type_query_to_parquet(
     assert parquet.read_table(
         source=result["Tbl_a.sqlite"][0]["table"][0]
     ).to_pydict() == {
-        "Tbl_a_col_integer": [1, None],
+        "Tbl_a_col_integer": [None, 1],
         "Tbl_a_col_text": ["sample", "sample"],
-        "Tbl_a_col_blob": [b"sample_blob", b"another_blob"],
-        "Tbl_a_col_real": [0.5, None],
+        "Tbl_a_col_blob": [b"another_blob", b"sample_blob"],
+        "Tbl_a_col_real": [None, 0.5],
     }
 
 
