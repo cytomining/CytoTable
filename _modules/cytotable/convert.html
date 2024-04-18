@@ -383,6 +383,8 @@
                 <span class="n">table</span><span class="o">=</span><span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                    </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
+<span class="s2">                    /* order by all columns for deterministic output */</span>
+<span class="s2">                    ORDER BY ALL</span>
 <span class="s2">                    LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
 <span class="s2">                    &quot;&quot;&quot;</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
@@ -785,6 +787,7 @@
         <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                </span><span class="si">{</span><span class="n">joins</span><span class="si">}</span>
+<span class="s2">                </span><span class="si">{</span><span class="s2">&quot;ORDER BY ALL&quot;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="s2">&quot;ORDER BY&quot;</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">joins</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span>
 <span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
 <span class="s2">                &quot;&quot;&quot;</span>
         <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>

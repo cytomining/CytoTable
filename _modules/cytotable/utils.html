@@ -292,7 +292,12 @@
 
         <span class="c1"># perform the select using the cases built above and using chunksize + offset</span>
         <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s1">&#39;SELECT </span><span class="si">{</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_parts</span><span class="p">)</span><span class="si">}</span><span class="s1"> FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s1"> LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s1"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s1">;&#39;</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_parts</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span>
+<span class="s2">            ORDER BY </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">col</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">column_info</span><span class="p">])</span><span class="si">}</span>
+<span class="s2">            LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">            &quot;&quot;&quot;</span>
         <span class="p">)</span>
         <span class="c1"># collect the results and include the column name with values</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">[</span>
