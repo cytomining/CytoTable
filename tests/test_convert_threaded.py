@@ -10,6 +10,7 @@ from typing import Any, Dict, List, cast
 
 import parsl
 import pyarrow as pa
+import pyarrow.compute as pc
 import pytest
 from parsl.config import Config
 from parsl.executors import ThreadPoolExecutor
@@ -237,3 +238,40 @@ def test_get_source_filepaths(
     ).result()
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
+
+
+def test_avoid_na_row_output(
+    load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
+):
+    """
+    Test to help detect and avoid scenarios where CytoTable returns rows of
+    NA-based data. This occurs when CytoTable processes CellProfiler data
+    sources with images that do not contain segmented objects. In other words,
+    this test ensures CytoTable produces correct output data when the input
+    CellProfiler image table contains imagenumbers that do not exist in any
+    compartment object.
+
+    Therefore, CytoTable does not return single-cell rows which include image
+    table metadata and NA feature data. Using compartment tables as the basis
+    of data joins avoids this issue.
+    """
+
+    # run convert using a dataset known to contain the scenario outlined above.
+    parquet_file = convert(
+        source_path=(
+            f"{data_dir_cellprofiler}"
+            "/nf1_cellpainting_data/test-Plate_3_nf1_analysis.sqlite"
+        ),
+        dest_path=f"{fx_tempdir}/nf1_cellpainting_data/test-Plate_3_nf1_analysis.parquet",
+        dest_datatype="parquet",
+        preset="cellprofiler_sqlite_pycytominer",
+    )
+
+    # check that we have no nulls within Metadata_ImageNumber column
+    assert not pc.sum(
+        pc.is_null(
+            parquet.read_table(
+                source=parquet_file,
+            ).column("Metadata_ImageNumber")
+        )
+    ).as_py()
