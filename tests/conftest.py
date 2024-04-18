@@ -208,6 +208,98 @@ def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
     return output_paths
 
 
+@pytest.fixture()
+def cytominerdatabase_to_manual_join_parquet(
+    fx_tempdir: str,
+    cytominerdatabase_sqlite: List[str],
+) -> List[str]:
+    """
+    Processed cytominer-database test sqlite data as
+    pycytominer merged single cell parquet files
+    """
+
+    output_paths = []
+    for sqlite_file in cytominerdatabase_sqlite:
+        destination_path = (
+            f"{fx_tempdir}/manual_join.{pathlib.Path(sqlite_file).name}.parquet"
+        )
+        df_cytominerdatabase = (
+            pd.read_sql(
+                sql="""
+                WITH Image_Filtered AS (
+                    SELECT
+                        TableNumber,
+                        ImageNumber
+                    FROM
+                        Image
+                ),
+                /* gather unique objectnumber column names from each
+                compartment so as to retain differentiation */
+                Cytoplasm_renamed AS (
+                    SELECT
+                        ObjectNumber AS Cytoplasm_ObjectNumber,
+                        *
+                    FROM Cytoplasm
+                ),
+                Cells_renamed AS (
+                    SELECT
+                        ObjectNumber AS Cells_ObjectNumber,
+                        *
+                    FROM Cells
+                ),
+                Nuclei_renamed AS (
+                    SELECT
+                        ObjectNumber AS Nuclei_ObjectNumber,
+                        *
+                    FROM Nuclei
+                )
+                SELECT *
+                FROM Cytoplasm_renamed cytoplasm
+                LEFT JOIN Cells_renamed cells ON
+                    cells.ImageNumber = cytoplasm.ImageNumber
+                    AND cells.TableNumber = cytoplasm.TableNumber
+                    AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
+                LEFT JOIN Nuclei_renamed nuclei ON
+                    nuclei.ImageNumber = cytoplasm.ImageNumber
+                    AND nuclei.TableNumber = cytoplasm.TableNumber
+                    AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
+                LEFT JOIN Image_Filtered image ON
+                    image.ImageNumber = cytoplasm.ImageNumber
+                    AND image.TableNumber = cytoplasm.TableNumber
+                """,
+                con=sqlite_file,
+            )
+            # replacing 'nan' strings with None
+            .replace(to_replace="nan", value=None)
+            # renaming columns as appropriate
+            .rename(
+                columns={
+                    "ImageNumber": "Metadata_ImageNumber",
+                    "TableNumber": "Metadata_TableNumber",
+                    "Cytoplasm_Parent_Cells": "Metadata_Cytoplasm_Parent_Cells",
+                    "Cytoplasm_Parent_Nuclei": "Metadata_Cytoplasm_Parent_Nuclei",
+                    "Cells_Parent_Nuclei": "Metadata_Cells_Parent_Nuclei",
+                }
+                # drop generic objectnumber column gathered from each compartment
+                # (we'll rely on the compartment prefixed name instead for comparisons)
+            ).drop(columns="ObjectNumber")
+        )
+
+        # drop duplicate column names
+        df_cytominerdatabase = df_cytominerdatabase.loc[
+            :, ~df_cytominerdatabase.columns.duplicated()
+        ].copy()
+
+        # sort the columns and export to parquet
+        df_cytominerdatabase[
+            sorted(sorted(df_cytominerdatabase.columns.tolist()), key=_column_sort)
+        ].to_parquet(destination_path)
+
+        output_paths.append(destination_path)
+
+    return output_paths
+
+
 @pytest.fixture(name="example_tables")
 def fixture_example_tables() -> Tuple[pa.Table, ...]:
     """
@@ -356,13 +448,25 @@ def fixture_cellprofiler_merged_examplehuman(
         """
         return table.rename_columns(
             [
-                f"Metadata_{colname}"
-                if colname in ["ImageNumber", "ObjectNumber"]
-                else f"Metadata_{name}_{colname}"
-                if any(name in colname for name in ["Parent_Cells", "Parent_Nuclei"])
-                else f"{name}_{colname}"
-                if not (colname.startswith(name) or colname.startswith("Metadata_"))
-                else colname
+                (
+                    f"Metadata_{colname}"
+                    if colname in ["ImageNumber", "ObjectNumber"]
+                    else (
+                        f"Metadata_{name}_{colname}"
+                        if any(
+                            name in colname
+                            for name in ["Parent_Cells", "Parent_Nuclei"]
+                        )
+                        else (
+                            f"{name}_{colname}"
+                            if not (
+                                colname.startswith(name)
+                                or colname.startswith("Metadata_")
+                            )
+                            else colname
+                        )
+                    )
+                )
                 for colname in table.column_names
             ]
         )

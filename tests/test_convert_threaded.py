@@ -10,6 +10,7 @@ from typing import Any, Dict, List, cast
 
 import parsl
 import pyarrow as pa
+import pyarrow.compute as pc
 import pytest
 from parsl.config import Config
 from parsl.executors import ThreadPoolExecutor
@@ -246,3 +247,77 @@ def test_get_source_filepaths(
     ).result()
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
+
+
+def test_gather_tablenumber(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+    data_dirs_cytominerdatabase: List[str],
+    cytominerdatabase_to_manual_join_parquet: List[str],
+):
+    """
+    Tests _gather_tablenumber
+    """
+
+    for unprocessed_cytominerdatabase, processed_cytominerdatabase in zip(
+        data_dirs_cytominerdatabase, cytominerdatabase_to_manual_join_parquet
+    ):
+        test_table = parquet.read_table(
+            source=convert(
+                source_path=unprocessed_cytominerdatabase,
+                dest_path=(
+                    f"{fx_tempdir}/{pathlib.Path(unprocessed_cytominerdatabase).name}.test_table.parquet"
+                ),
+                dest_datatype="parquet",
+                source_datatype="csv",
+                join=True,
+                joins="""
+                    WITH Image_Filtered AS (
+                        SELECT
+                            Metadata_TableNumber,
+                            Metadata_ImageNumber
+                        FROM
+                            read_parquet('image.parquet')
+                        )
+                    SELECT
+                        *
+                    FROM
+                        read_parquet('cytoplasm.parquet') AS cytoplasm
+                    LEFT JOIN read_parquet('cells.parquet') AS cells ON
+                        cells.Metadata_TableNumber = cells.Metadata_TableNumber
+                        AND cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                        AND cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
+                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+                        nuclei.Metadata_TableNumber = nuclei.Metadata_TableNumber
+                        AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                        AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
+                    LEFT JOIN Image_Filtered AS image ON
+                        image.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
+                        AND image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                """,
+                preset="cell-health-cellprofiler-to-cytominer-database",
+            )
+        )
+        control_table = parquet.read_table(source=processed_cytominerdatabase)
+
+        # test_unique_tablenumbers = pc.unique(test_table["Metadata_TableNumber"])
+        control_unique_tablenumbers = pc.unique(control_table["Metadata_TableNumber"])
+
+        assert (
+            test_table.filter(
+                # we use only those tablenumbers which appear in cytominer-database related results
+                # to help compare. CytoTable only removes datasets which have no image table whereas
+                # cytominer-database removes any dataset which has no image table or problematic
+                # compartment tables (any compartment table with errors triggers the entire dataset
+                # being removed).
+                pc.field("Metadata_TableNumber").isin(control_unique_tablenumbers)
+            )
+            .sort_by([(name, "ascending") for name in test_table.column_names])
+            .equals(
+                control_table.sort_by(
+                    [(name, "ascending") for name in control_table.column_names]
+                )
+            )
+        )
+
+    assert False
