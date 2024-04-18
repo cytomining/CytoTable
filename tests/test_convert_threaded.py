@@ -244,10 +244,16 @@ def test_avoid_na_row_output(
     load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
 ):
     """
-    Test to help detect and avoid scenarios where rows of NA-based data are returned
-    due to undetected objects in compartments (and as a result, imagenumbers).
-    For example, if there are imagenumbers in the image table and not the compartment table,
-    we want to avoid returning rows of NA data from the compartment tables after joins take place.
+    Test to help detect and avoid scenarios where CytoTable returns rows of
+    NA-based data. This occurs when CytoTable processes CellProfiler data
+    sources with images that do not contain segmented objects. In other words,
+    this test ensures CytoTable produces correct output data when the input
+    CellProfiler image table contains imagenumbers that do not exist in any
+    compartment object.
+
+    Therefore, CytoTable does not return single-cell rows which include image
+    table metadata and NA feature data. Using compartment tables as the basis
+    of data joins avoids this issue.
     """
 
     # run convert using a dataset known to contain the scenario outlined above.
