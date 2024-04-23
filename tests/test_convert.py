@@ -570,7 +570,7 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
-        ).result(),
+        ),
     )
 
     flattened_results = list(itertools.chain(*list(result.values())))

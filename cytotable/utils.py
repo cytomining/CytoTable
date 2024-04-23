@@ -5,7 +5,7 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import duckdb
 import parsl
@@ -461,4 +461,57 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
             metadata=CYTOTABLE_DEFAULT_PARQUET_METADATA
         ),
         **kwargs,
+    )
+
+
+def evaluate_futures(sources: Union[Dict[str, List[Dict[str, Any]]], str]) -> Any:
+    """
+    Evaluates any Parsl futures for use within other tasks.
+    This enables a pattern of Parsl app usage as "tasks" and delayed
+    future result evaluation for concurrency.
+
+    Args:
+        sources: Union[Dict[str, List[Dict[str, Any]]], str]
+
+    Returns:
+        Union[Dict[str, List[Dict[str, Any]]], str]
+            A data structure which includes evaluated futures where they were found.
+    """
+
+    def unwrap_value(val):
+        # helper function to unwrap futures from values
+        if isinstance(val, parsl.dataflow.futures.AppFuture):
+            return val.result()
+        elif isinstance(val, list):
+            # if we have a list of futures, return the results
+            if isinstance(val[0], parsl.dataflow.futures.AppFuture):
+                return [elem.result() for elem in val]
+        # otherwise return the value
+        return val
+
+    def unwrap_source(source):
+        # helper function to unwrap futures from sources
+        if isinstance(source, dict):
+            return {key: unwrap_value(val) for key, val in source.items()}
+        else:
+            return unwrap_value(source)
+
+    return (
+        {
+            source_group_name: [
+                # unwrap sources into future results
+                unwrap_source(source)
+                for source in (
+                    source_group_vals.result()
+                    # if we have a future, return the result
+                    if isinstance(source_group_vals, parsl.dataflow.futures.AppFuture)
+                    # otherwise return the value
+                    else source_group_vals
+                )
+            ]
+            for source_group_name, source_group_vals in sources.items()
+            # if we have a dict, use the above, otherwise unwrap the value in case of future
+        }
+        if isinstance(sources, dict)
+        else unwrap_value(sources)
     )
