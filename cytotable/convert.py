@@ -13,6 +13,7 @@ from parsl.app.app import join_app, python_app
 
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
+from cytotable.sources import _gather_sources
 from cytotable.utils import (
     _column_sort,
     _default_parsl_config,
@@ -1027,25 +1028,15 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             result.
     """
 
-    from cytotable.convert import (
-        _concat_join_sources,
-        _concat_source_group,
-        _get_table_chunk_offsets,
-        _infer_source_group_common_schema,
-        _join_source_chunk,
-        _prepend_column_name,
-        _source_chunk_to_parquet,
-    )
-    from cytotable.sources import _gather_sources
-    from cytotable.utils import _expand_path
-
     # gather sources to be processed
     sources = _gather_sources(
         source_path=source_path,
         source_datatype=source_datatype,
-        targets=list(metadata) + list(compartments)
-        if metadata is not None and compartments is not None
-        else [],
+        targets=(
+            list(metadata) + list(compartments)
+            if metadata is not None and compartments is not None
+            else []
+        ),
         **kwargs,
     ).result()
 
