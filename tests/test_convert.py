@@ -192,26 +192,26 @@ def test_evaluate_futures(load_parsl_default: None):
     """
 
     @python_app
-    def example_parsl_task(input: int):
+    def example_parsl_task(i: int):
         # an example of a parsl task
-        return input
+        return i
 
     example_sources = {
         "a": [
             {
-                "one": example_parsl_task(input=1),
-                "two": [example_parsl_task(input=1), example_parsl_task(input=1)],
+                "one": example_parsl_task(i=1),
+                "two": [example_parsl_task(i=1), example_parsl_task(i=1)],
             }
         ],
         "b": [
             {
-                "one": example_parsl_task(input=2),
-                "two": [example_parsl_task(input=2), example_parsl_task(input=2)],
+                "one": example_parsl_task(i=2),
+                "two": [example_parsl_task(i=2), example_parsl_task(i=2)],
             }
         ],
     }
 
-    example_result = example_parsl_task(input=3)
+    example_result = example_parsl_task(i=3)
 
     assert evaluate_futures(sources=example_sources) == {
         "a": [
