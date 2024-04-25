@@ -472,7 +472,7 @@ def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
     Args:
         val: Union[parsl.dataflow.futures.AppFuture, Any]
             A value which may or may not be a Parsl future which
-            needs to be evalutated.
+            needs to be evaluated.
 
     Returns:
         Any
@@ -480,7 +480,7 @@ def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
             result if Parsl futures are encountered.
     """
 
-    # if we have a future value, evalutate the result
+    # if we have a future value, evaluate the result
     if isinstance(val, parsl.dataflow.futures.AppFuture):
         return val.result()
     elif isinstance(val, list):

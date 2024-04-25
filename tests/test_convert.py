@@ -11,12 +11,13 @@ import os
 import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
-from parsl.app.app import python_app
+
 import duckdb
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
 from cloudpathlib import CloudPath
+from parsl.app.app import python_app
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
@@ -69,6 +70,7 @@ def test_get_cytotable_version():
     """
 
     assert isinstance(_get_cytotable_version(), str)
+
 
 def test_write_parquet_table_with_metadata(fx_tempdir: str):
     """
@@ -206,7 +208,7 @@ def test_evaluate_futures(load_parsl_default: None):
                 "one": example_parsl_task(input=2),
                 "two": [example_parsl_task(input=2), example_parsl_task(input=2)],
             }
-        ]
+        ],
     }
 
     example_result = example_parsl_task(input=3)
@@ -223,7 +225,7 @@ def test_evaluate_futures(load_parsl_default: None):
                 "one": 2,
                 "two": [2, 2],
             }
-        ]
+        ],
     }
 
     assert evaluate_futures(sources=example_result) == 3
