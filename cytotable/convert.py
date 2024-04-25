@@ -8,8 +8,7 @@ import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import parsl
-import pyarrow as pa
-from parsl.app.app import join_app, python_app
+from parsl.app.app import python_app
 
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
