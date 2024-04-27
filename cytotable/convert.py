@@ -309,6 +309,8 @@ def _source_chunk_to_parquet(
         _write_parquet_table_with_metadata,
     )
 
+    from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
+
     # attempt to build dest_path
     source_dest_path = (
         f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
@@ -318,7 +320,20 @@ def _source_chunk_to_parquet(
 
     # build the column selection block of query
     select_columns = ",".join(
+        # add cytotable metadata columns
         [
+            (
+                f"CAST( '{source['source_path']}' AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path']})"
+                " AS cytotable_meta_source_path"
+            ),
+            f"CAST( {offset} as {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset']}) AS cytotable_meta_offset",
+            (
+                f"CAST( (row_number() OVER ()) AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum']})"
+                " AS cytotable_meta_rownum"
+            ),
+        ]
+        # add source table columns
+        + [
             # here we cast the column to the specified type ensure the colname remains the same
             f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
             for column in source["columns"]
@@ -422,7 +437,10 @@ def _prepend_column_name(
 
     import pyarrow.parquet as parquet
 
-    from cytotable.constants import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
+    from cytotable.constants import (
+        CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+        CYOTABLE_META_COLUMN_TYPES,
+    )
     from cytotable.utils import _write_parquet_table_with_metadata
 
     logger = logging.getLogger(__name__)
@@ -470,8 +488,10 @@ def _prepend_column_name(
         #   source_group_name_stem: 'Cells'
         #   column_name: 'AreaShape_Area'
         #   updated_column_name: 'Cells_AreaShape_Area'
-        if column_name not in identifying_columns and not column_name.startswith(
-            source_group_name_stem.capitalize()
+        if (
+            column_name not in identifying_columns
+            and not column_name.startswith(source_group_name_stem.capitalize())
+            and column_name not in list(CYOTABLE_META_COLUMN_TYPES.keys())
         ):
             updated_column_names.append(f"{source_group_name_stem}_{column_name}")
         # if-condition for prepending 'Metadata_' to column name
@@ -697,13 +717,25 @@ def _prepare_join_sql(
     """
     import pathlib
 
+    from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
+
     # replace with real location of sources for join sql
+    order_by_tables = []
     for key, val in sources.items():
         if pathlib.Path(key).stem.lower() in joins.lower():
             joins = joins.replace(
                 f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
                 str([str(table) for table in val[0]["table"]]),
             )
+            order_by_tables.append(str(pathlib.Path(key).stem.lower()))
+    
+    order_by_sql = "ORDER BY " + ", ".join([f"{table}.{meta_column}" for table in order_by_tables for meta_column in list(CYOTABLE_META_COLUMN_TYPES.keys())])
+    joins = f"""{joins}
+    {order_by_sql}
+    """
+
+    print(joins)
+
 
     return joins
 
@@ -752,7 +784,6 @@ def _join_source_chunk(
         result = ddb_reader.execute(
             f"""
                 {joins}
-                {"ORDER BY ALL" if "ORDER BY" not in joins.upper() else ""}
                 LIMIT {chunk_size} OFFSET {offset}
                 """
         ).arrow()

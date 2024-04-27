@@ -448,7 +448,7 @@ def fixture_cellprofiler_merged_nf1data(
         .execute(
             """
             /* perform query on sqlite tables through duckdb */
-            WITH Per_Image_Filtered AS (
+            WITH per_image AS (
                 SELECT
                     ImageNumber,
                     Image_Metadata_Well,
@@ -456,7 +456,7 @@ def fixture_cellprofiler_merged_nf1data(
                 FROM Per_Image
             )
             SELECT *
-            FROM Per_Image_Filtered image
+            FROM per_image image
             LEFT JOIN Per_Cytoplasm cytoplasm ON
                 image.ImageNumber = cytoplasm.ImageNumber
             LEFT JOIN Per_Cells cells ON
@@ -505,7 +505,7 @@ def fixture_cytominerdatabase_merged_cellhealth(
     """
 
     sql_stmt = """
-        WITH Image_Filtered AS (
+        WITH image AS (
             SELECT
                 TableNumber,
                 ImageNumber,
@@ -534,7 +534,7 @@ def fixture_cytominerdatabase_merged_cellhealth(
             FROM Nuclei
         )
         SELECT DISTINCT *
-        FROM Image_Filtered image
+        FROM image
         LEFT JOIN Cytoplasm_renamed cytoplasm ON
             image.ImageNumber = cytoplasm.ImageNumber
         LEFT JOIN Cells_renamed cells ON

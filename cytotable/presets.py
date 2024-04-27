@@ -29,8 +29,11 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Image_Filtered AS (
+            WITH image AS (
                 SELECT
+                    cytotable_meta_source_path,
+                    cytotable_meta_offset,
+                    cytotable_meta_rownum,
                     /* seeks columns by name, avoiding failure if some do not exist */
                     COLUMNS('^Metadata_ImageNumber$|^Image_Metadata_Well$|^Image_Metadata_Plate$')
                 FROM
@@ -46,7 +49,7 @@ config = {
             LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
                 nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN Image_Filtered AS image ON
+            LEFT JOIN image AS image ON
                 image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
             """,
     },
@@ -74,7 +77,7 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Per_Image_Filtered AS (
+            WITH per_image AS (
                 SELECT
                     Metadata_ImageNumber,
                     Image_Metadata_Well,
@@ -92,7 +95,7 @@ config = {
             LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
                 per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
                 AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Nuclei
-            LEFT JOIN  Per_Image_Filtered AS per_image ON
+            LEFT JOIN  per_image AS per_image ON
                 per_image.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
             """,
     },
@@ -125,7 +128,7 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Per_Image_Filtered AS (
+            WITH per_image AS (
                 SELECT
                     Metadata_ImageNumber,
                     Image_Metadata_Well,
@@ -143,7 +146,7 @@ config = {
             LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
                 per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
                 AND per_nuclei.Metadata_Nuclei_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN Per_Image_Filtered AS per_image ON
+            LEFT JOIN per_image AS per_image ON
                 per_image.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
             """,
     },
@@ -178,7 +181,7 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Image_Filtered AS (
+            WITH image AS (
                 SELECT
                     Metadata_TableNumber,
                     Metadata_ImageNumber,
@@ -199,7 +202,7 @@ config = {
                 nuclei.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
                 AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN  Image_Filtered AS image ON
+            LEFT JOIN image AS image ON
                 image.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
                 AND image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
         """,
