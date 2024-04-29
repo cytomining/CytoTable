@@ -774,17 +774,25 @@ def _join_source_chunk(
     import pyarrow.parquet as parquet
 
     from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
+    from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 
     # Attempt to read the data to parquet file
     # using duckdb for extraction and pyarrow for
     # writing data to a parquet file.
     # read data with chunk size + offset
     # and export to parquet
+    exclude_meta_cols = [f"c NOT LIKE '{col}%'" for col in list(CYOTABLE_META_COLUMN_TYPES.keys())]
     with _duckdb_reader() as ddb_reader:
         result = ddb_reader.execute(
             f"""
+                WITH joined AS (
                 {joins}
                 LIMIT {chunk_size} OFFSET {offset}
+                )
+                SELECT 
+                /* exclude metadata columns from the results by using a CTE */
+                COLUMNS (c -> ({" AND ".join(exclude_meta_cols)}))
+                FROM joined;
                 """
         ).arrow()
 

@@ -29,28 +29,19 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH image AS (
-                SELECT
-                    cytotable_meta_source_path,
-                    cytotable_meta_offset,
-                    cytotable_meta_rownum,
-                    /* seeks columns by name, avoiding failure if some do not exist */
-                    COLUMNS('^Metadata_ImageNumber$|^Image_Metadata_Well$|^Image_Metadata_Plate$')
-                FROM
-                    read_parquet('image.parquet')
-                )
             SELECT
-                *
+                image.Metadata_ImageNumber,
+                cytoplasm.*,
+                cells.*,
+                nuclei.*
             FROM
                 read_parquet('cytoplasm.parquet') AS cytoplasm
-            LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-                AND cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+            LEFT JOIN read_parquet('cells.parquet') AS cells USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('image.parquet') AS image USING (Metadata_ImageNumber)
+            WHERE
+                cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN image AS image ON
-                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
             """,
     },
     "cellprofiler_sqlite": {
