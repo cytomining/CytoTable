@@ -49,15 +49,7 @@ Convert
 
 |
 
-.. autofunction:: _return_future
-
-|
-
 .. autofunction:: _source_chunk_to_parquet
-
-|
-
-.. autofunction:: _to_parquet
 
 |
 

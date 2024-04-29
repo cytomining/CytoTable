@@ -38,6 +38,64 @@
 <span id="convert"></span><h2>Convert<a class="headerlink" href="#module-cytotable.convert" title="Permalink to this heading">¶</a></h2>
 <p>CytoTable: convert - transforming data for use with pyctyominer.</p>
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.convert._to_parquet">
+<span class="sig-prename descclassname"><span class="pre">cytotable.convert.</span></span><span class="sig-name descname"><span class="pre">_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifying_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">join</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_null</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type_cast_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/convert.html#_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.convert._to_parquet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Export data to parquet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_path</strong> – str:
+str reference to read source files from.
+Note: may be local or remote object-storage
+location using convention “s3://…” or similar.</p></li>
+<li><p><strong>dest_path</strong> – str:
+Path to write files to. This path will be used for
+intermediary data work and must be a new file or directory path.
+This parameter will result in a directory on <cite>join=False</cite>.
+This parameter will result in a single file on <cite>join=True</cite>.
+Note: this may only be a local path.</p></li>
+<li><p><strong>source_datatype</strong> – Optional[str]: (Default value = None)
+Source datatype to focus on during conversion.</p></li>
+<li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
+Metadata names to use for conversion.</p></li>
+<li><p><strong>compartments</strong> – Union[List[str], Tuple[str, …]]: (Default value = None)
+Compartment names to use for conversion.</p></li>
+<li><p><strong>identifying_columns</strong> – Union[List[str], Tuple[str, …]]:
+Column names which are used as ID’s and as a result need to be
+ignored with regards to renaming.</p></li>
+<li><p><strong>concat</strong> – bool:
+Whether to concatenate similar files together.</p></li>
+<li><p><strong>join</strong> – bool:
+Whether to join the compartment data together into one dataset.</p></li>
+<li><p><strong>joins</strong> – str:
+DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
+<li><p><strong>chunk_size</strong> – Optional[int],
+Size of join chunks which is used to limit data size during join ops.</p></li>
+<li><p><strong>infer_common_schema</strong> – bool:  (Default value = True)
+Whether to infer a common schema when concatenating sources.</p></li>
+<li><p><strong>drop_null</strong> – bool:
+Whether to drop null results.</p></li>
+<li><p><strong>data_type_cast_map</strong> – Dict[str, str]
+A dictionary mapping data type groups to specific types.
+Roughly includes Arrow data types language from:
+<a class="reference external" href="https://arrow.apache.org/docs/python/api/datatypes.html">https://arrow.apache.org/docs/python/api/datatypes.html</a></p></li>
+<li><p><strong>**kwargs</strong> – Any:
+Keyword args used for gathering source data, primarily relevant for
+Cloudpathlib cloud-based client configuration.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Grouped sources which include metadata about destination filepath
+where parquet file was written or a string filepath for the joined
+result.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Union[Dict[str, List[Dict[str, Any]]], str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.convert.convert">
 <span class="sig-prename descclassname"><span class="pre">cytotable.convert.</span></span><span class="sig-name descname"><span class="pre">convert</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'parquet'</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">identifying_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concat</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">join</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">joins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunk_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infer_common_schema</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_null</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type_cast_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'cellprofiler_csv'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parsl_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Config</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/convert.html#convert"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.convert.convert" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert file-based data from various sources to Pycytominer-compatible standards.</p>
@@ -440,31 +498,6 @@ List of source data names which are used as compartments.</p></li>
 <div class="line"><br /></div>
 </div>
 <dl class="py function">
-<dt class="sig sig-object py" id="cytotable.convert._return_future">
-<span class="sig-prename descclassname"><span class="pre">cytotable.convert.</span></span><span class="sig-name descname"><span class="pre">_return_future</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.convert._return_future" title="Permalink to this definition">¶</a></dt>
-<dd><p>This is a simple wrapper python_app to allow
-the return of join_app-compliant output (must be a Parsl future)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>input</strong> – Any
-Any input which will be used within the context of a
-Parsl join_app future return.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Any</dt><dd><p>Returns the input as provided wrapped within the context
-of a python_app for the purpose of a join_app.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
-<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.convert._source_chunk_to_parquet">
 <span class="sig-prename descclassname"><span class="pre">cytotable.convert.</span></span><span class="sig-name descname"><span class="pre">_source_chunk_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.convert._source_chunk_to_parquet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Export source data to chunked parquet file using chunk size and offsets.</p>
@@ -497,67 +530,6 @@ Path to store the output data.</p></li>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<dl class="py function">
-<dt class="sig sig-object py" id="cytotable.convert._to_parquet">
-<span class="sig-prename descclassname"><span class="pre">cytotable.convert.</span></span><span class="sig-name descname"><span class="pre">_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.convert._to_parquet" title="Permalink to this definition">¶</a></dt>
-<dd><p>Export data to parquet.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>source_path</strong> – str:
-str reference to read source files from.
-Note: may be local or remote object-storage
-location using convention “s3://…” or similar.</p></li>
-<li><p><strong>dest_path</strong> – str:
-Path to write files to. This path will be used for
-intermediary data work and must be a new file or directory path.
-This parameter will result in a directory on <cite>join=False</cite>.
-This parameter will result in a single file on <cite>join=True</cite>.
-Note: this may only be a local path.</p></li>
-<li><p><strong>source_datatype</strong> – Optional[str]: (Default value = None)
-Source datatype to focus on during conversion.</p></li>
-<li><p><strong>metadata</strong> – Union[List[str], Tuple[str, …]]:
-Metadata names to use for conversion.</p></li>
-<li><p><strong>compartments</strong> – Union[List[str], Tuple[str, …]]: (Default value = None)
-Compartment names to use for conversion.</p></li>
-<li><p><strong>identifying_columns</strong> – Union[List[str], Tuple[str, …]]:
-Column names which are used as ID’s and as a result need to be
-ignored with regards to renaming.</p></li>
-<li><p><strong>concat</strong> – bool:
-Whether to concatenate similar files together.</p></li>
-<li><p><strong>join</strong> – bool:
-Whether to join the compartment data together into one dataset.</p></li>
-<li><p><strong>joins</strong> – str:
-DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
-<li><p><strong>chunk_size</strong> – Optional[int],
-Size of join chunks which is used to limit data size during join ops.</p></li>
-<li><p><strong>infer_common_schema</strong> – bool:  (Default value = True)
-Whether to infer a common schema when concatenating sources.</p></li>
-<li><p><strong>drop_null</strong> – bool:
-Whether to drop null results.</p></li>
-<li><p><strong>data_type_cast_map</strong> – Dict[str, str]
-A dictionary mapping data type groups to specific types.
-Roughly includes Arrow data types language from:
-<a class="reference external" href="https://arrow.apache.org/docs/python/api/datatypes.html">https://arrow.apache.org/docs/python/api/datatypes.html</a></p></li>
-<li><p><strong>**kwargs</strong> – Any:
-Keyword args used for gathering source data, primarily relevant for
-Cloudpathlib cloud-based client configuration.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Grouped sources which include metadata about destination filepath
-where parquet file was written or a string filepath for the joined
-result.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Union[Dict[str, List[Dict[str, Any]]], str]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 </section>
 <section id="module-cytotable.sources">
 <span id="sources"></span><h2>Sources<a class="headerlink" href="#module-cytotable.sources" title="Permalink to this heading">¶</a></h2>
@@ -569,25 +541,7 @@ source data and metadata for performing conversion work.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._build_path">
 <span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_build_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._build_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Build a path client or return local path.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
-Path to seek filepaths within.</p></li>
-<li><p><strong>**kwargs</strong> – Any
-keyword arguments to be used with
-Cloudpathlib.CloudPath.client .</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Union[pathlib.Path, Any]</dt><dd><p>A local pathlib.Path or Cloudpathlib.AnyPath type path.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
+<dd><p>Extends AppBase to cover the Python App.</p>
 </dd></dl>
 
 <div class="line-block">
@@ -596,24 +550,7 @@ Cloudpathlib.CloudPath.client .</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._filter_source_filepaths">
 <span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_filter_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._filter_source_filepaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Filter source filepaths based on provided source_datatype.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]
-Grouped datasets of files which will be used by other functions.</p></li>
-<li><p><strong>source_datatype</strong> – str
-Source datatype to use for filtering the dataset.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the datatype.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
+<dd><p>Extends AppBase to cover the Python App.</p>
 </dd></dl>
 
 <div class="line-block">
@@ -622,26 +559,7 @@ Source datatype to use for filtering the dataset.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._get_source_filepaths">
 <span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._get_source_filepaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Gather dataset of filepaths from a provided directory path.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
-Either a directory path to seek filepaths within or a path directly to a file.</p></li>
-<li><p><strong>targets</strong> – List[str]:
-Compartment and metadata names to seek within the provided path.</p></li>
-<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
-The source datatype (extension) to use for reading the tables.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the compartments.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
+<dd><p>Extends AppBase to cover the Python App.</p>
 </dd></dl>
 
 <div class="line-block">
@@ -650,25 +568,7 @@ The source datatype (extension) to use for reading the tables.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._infer_source_datatype">
 <span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_infer_source_datatype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._infer_source_datatype" title="Permalink to this definition">¶</a></dt>
-<dd><p>Infers and optionally validates datatype (extension) of files.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]:
-Grouped datasets of files which will be used by other functions.</p></li>
-<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
-Optional source datatype to validate within the context of
-detected datatypes.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>str</dt><dd><p>A string of the datatype detected or validated source_datatype.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
+<dd><p>Extends AppBase to cover the Python App.</p>
 </dd></dl>
 
 <div class="line-block">
@@ -833,6 +733,52 @@ The offset for chunking the data from source.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._unwrap_source">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_unwrap_source</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">AppFuture</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AppFuture</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_unwrap_source"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._unwrap_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to unwrap futures from sources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> – Union[
+Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
+Union[parsl.dataflow.futures.AppFuture, Any],</p></li>
+<li><p><strong>]</strong> – A source is a portion of an internal data structure used by
+CytoTable for processing and organizing data results.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Union[Dict[str, Any], Any]</dt><dd><p>An evaluated dictionary or other value type.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._unwrap_value">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_unwrap_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AppFuture</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_unwrap_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._unwrap_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function to unwrap futures from values or return values
+where there are no futures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>val</strong> – Union[parsl.dataflow.futures.AppFuture, Any]
+A value which may or may not be a Parsl future which
+needs to be evaluated.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Any</dt><dd><p>Returns the value as-is if there’s no future, the future
+result if Parsl futures are encountered.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._write_parquet_table_with_metadata">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_write_parquet_table_with_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Table</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_write_parquet_table_with_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._write_parquet_table_with_metadata" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds metadata to parquet output from CytoTable.
@@ -849,6 +795,30 @@ pyarrow.parquet.write_table. The following might be
 examples of what to expect here:
 - where: str or pyarrow.NativeFile</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils.evaluate_futures">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">evaluate_futures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#evaluate_futures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils.evaluate_futures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates any Parsl futures for use within other tasks.
+This enables a pattern of Parsl app usage as “tasks” and delayed
+future result evaluation for concurrency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>sources</strong> – Union[Dict[str, List[Dict[str, Any]]], str]
+Sources are an internal data structure used by CytoTable for
+processing and organizing data results. They may include futures
+which require asynchronous processing through Parsl, so we
+process them through this function.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Union[Dict[str, List[Dict[str, Any]]], str]</dt><dd><p>A data structure which includes evaluated futures where they were found.</p>
+</dd>
+</dl>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -940,6 +910,7 @@ with CytoTable.</p>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Python API</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-cytotable.convert">Convert</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._to_parquet"><code class="docutils literal notranslate"><span class="pre">_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert.convert"><code class="docutils literal notranslate"><span class="pre">convert()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._concat_join_sources"><code class="docutils literal notranslate"><span class="pre">_concat_join_sources()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._concat_source_group"><code class="docutils literal notranslate"><span class="pre">_concat_source_group()</span></code></a></li>
@@ -950,9 +921,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._prepare_join_sql"><code class="docutils literal notranslate"><span class="pre">_prepare_join_sql()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._prep_cast_column_data_types"><code class="docutils literal notranslate"><span class="pre">_prep_cast_column_data_types()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._prepend_column_name"><code class="docutils literal notranslate"><span class="pre">_prepend_column_name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._return_future"><code class="docutils literal notranslate"><span class="pre">_return_future()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._source_chunk_to_parquet"><code class="docutils literal notranslate"><span class="pre">_source_chunk_to_parquet()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._to_parquet"><code class="docutils literal notranslate"><span class="pre">_to_parquet()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-cytotable.sources">Sources</a><ul>
@@ -973,7 +942,10 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._get_cytotable_version"><code class="docutils literal notranslate"><span class="pre">_get_cytotable_version()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._write_parquet_table_with_metadata"><code class="docutils literal notranslate"><span class="pre">_write_parquet_table_with_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.evaluate_futures"><code class="docutils literal notranslate"><span class="pre">evaluate_futures()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#presets">Presets</a><ul>

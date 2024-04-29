@@ -43,16 +43,17 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">parsl</span>
-<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-<span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">join_app</span><span class="p">,</span> <span class="n">python_app</span>
+<span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">python_app</span>
 
 <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">CytoTableException</span>
 <span class="kn">from</span> <span class="nn">cytotable.presets</span> <span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span> <span class="nn">cytotable.sources</span> <span class="kn">import</span> <span class="n">_gather_sources</span>
 <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">_column_sort</span><span class="p">,</span>
     <span class="n">_default_parsl_config</span><span class="p">,</span>
     <span class="n">_expand_path</span><span class="p">,</span>
     <span class="n">_parsl_loaded</span><span class="p">,</span>
+    <span class="n">evaluate_futures</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -995,34 +996,13 @@
     <span class="p">)</span>
 
 
-<span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_return_future</span><span class="p">(</span><span class="nb">input</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This is a simple wrapper python_app to allow</span>
-<span class="sd">    the return of join_app-compliant output (must be a Parsl future)</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        input: Any</span>
-<span class="sd">            Any input which will be used within the context of a</span>
-<span class="sd">            Parsl join_app future return.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Any</span>
-<span class="sd">            Returns the input as provided wrapped within the context</span>
-<span class="sd">            of a python_app for the purpose of a join_app.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">return</span> <span class="nb">input</span>
-
-
-<span class="nd">@join_app</span>
-<span class="k">def</span> <span class="nf">_to_parquet</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments, too-many-locals</span>
+<div class="viewcode-block" id="_to_parquet"><a class="viewcode-back" href="../../python-api.html#cytotable.convert._to_parquet">[docs]</a><span class="k">def</span> <span class="nf">_to_parquet</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments, too-many-locals</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
-    <span class="n">compartments</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
-    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]],</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]],</span>
+    <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]]],</span>
     <span class="n">concat</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">join</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1082,24 +1062,15 @@
 <span class="sd">            result.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.convert</span> <span class="kn">import</span> <span class="p">(</span>
-        <span class="n">_concat_join_sources</span><span class="p">,</span>
-        <span class="n">_concat_source_group</span><span class="p">,</span>
-        <span class="n">_get_table_chunk_offsets</span><span class="p">,</span>
-        <span class="n">_infer_source_group_common_schema</span><span class="p">,</span>
-        <span class="n">_join_source_chunk</span><span class="p">,</span>
-        <span class="n">_prepend_column_name</span><span class="p">,</span>
-        <span class="n">_return_future</span><span class="p">,</span>
-        <span class="n">_source_chunk_to_parquet</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">cytotable.sources</span> <span class="kn">import</span> <span class="n">_gather_sources</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_expand_path</span>
-
     <span class="c1"># gather sources to be processed</span>
     <span class="n">sources</span> <span class="o">=</span> <span class="n">_gather_sources</span><span class="p">(</span>
         <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
         <span class="n">source_datatype</span><span class="o">=</span><span class="n">source_datatype</span><span class="p">,</span>
-        <span class="n">targets</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">compartments</span><span class="p">),</span>
+        <span class="n">targets</span><span class="o">=</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">compartments</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">compartments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="p">[]</span>
+        <span class="p">),</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
@@ -1115,7 +1086,7 @@
                     <span class="s2">&quot;offsets&quot;</span><span class="p">:</span> <span class="n">_get_table_chunk_offsets</span><span class="p">(</span>
                         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
                         <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                    <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                    <span class="p">)</span>
                 <span class="p">},</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
@@ -1132,7 +1103,9 @@
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
             <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;offsets&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">]</span>
-        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">offsets_prepared</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
+            <span class="n">offsets_prepared</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="c1"># ensure we have source_groups with at least one source table</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_group_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="p">}</span>
@@ -1148,7 +1121,7 @@
                             <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
                         <span class="p">),</span>
                         <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
-                    <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                    <span class="p">)</span>
                 <span class="p">},</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
@@ -1176,28 +1149,34 @@
                             <span class="n">identifying_columns</span><span class="o">=</span><span class="n">identifying_columns</span><span class="p">,</span>
                             <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
                             <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
-                        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                        <span class="p">)</span>
                         <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;offsets&quot;</span><span class="p">]</span>
                     <span class="p">]</span>
                 <span class="p">},</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
         <span class="p">]</span>
-        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">column_names_and_types_gathered</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
+            <span class="n">column_names_and_types_gathered</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
 
     <span class="c1"># if we&#39;re concatting or joining and need to infer the common schema</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">concat</span> <span class="ow">or</span> <span class="n">join</span><span class="p">)</span> <span class="ow">and</span> <span class="n">infer_common_schema</span><span class="p">:</span>
         <span class="c1"># create a common schema for concatenation work</span>
         <span class="n">common_schema_determined</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">source_group_name</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s2">&quot;sources&quot;</span><span class="p">:</span> <span class="n">source_group_vals</span><span class="p">,</span>
-                <span class="s2">&quot;common_schema&quot;</span><span class="p">:</span> <span class="n">_infer_source_group_common_schema</span><span class="p">(</span>
-                    <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">,</span>
-                    <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
-                <span class="p">),</span>
-            <span class="p">}</span>
-            <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;sources&quot;</span><span class="p">:</span> <span class="n">source_group_vals</span><span class="p">,</span>
+                    <span class="s2">&quot;common_schema&quot;</span><span class="p">:</span> <span class="n">_infer_source_group_common_schema</span><span class="p">(</span>
+                        <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">,</span>
+                        <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
+                    <span class="p">),</span>
+                <span class="p">}</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
+                <span class="n">results</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
 
     <span class="c1"># if concat or join, concat the source groups</span>
@@ -1209,17 +1188,24 @@
         <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">source_group_name</span><span class="p">:</span> <span class="n">_concat_source_group</span><span class="p">(</span>
                 <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
-                <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="s2">&quot;sources&quot;</span><span class="p">],</span>
+                <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;sources&quot;</span><span class="p">],</span>
                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
-                <span class="n">common_schema</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="s2">&quot;common_schema&quot;</span><span class="p">],</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">common_schema_determined</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="n">common_schema</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;common_schema&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
+                <span class="n">common_schema_determined</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
 
     <span class="c1"># conditional section for merging</span>
     <span class="c1"># note: join implies a concat, but concat does not imply a join</span>
     <span class="k">if</span> <span class="n">join</span><span class="p">:</span>
-        <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+        <span class="c1"># evaluate the results as they&#39;re used multiple times below</span>
+        <span class="n">evaluated_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+        <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
         <span class="c1"># map joined results based on the join groups gathered above</span>
         <span class="c1"># note: after mapping we end up with a list of strings (task returns str)</span>
@@ -1233,7 +1219,7 @@
                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                 <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
                 <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
-            <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="p">)</span>
             <span class="c1"># create join group for querying the concatenated</span>
             <span class="c1"># data in order to perform memory-safe joining</span>
             <span class="c1"># per user chunk size specification.</span>
@@ -1248,12 +1234,12 @@
         <span class="c1"># for lineage and debugging</span>
         <span class="n">results</span> <span class="o">=</span> <span class="n">_concat_join_sources</span><span class="p">(</span>
             <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
-            <span class="n">join_sources</span><span class="o">=</span><span class="n">join_sources_result</span><span class="p">,</span>
-            <span class="n">sources</span><span class="o">=</span><span class="n">results</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="n">join_sources</span><span class="o">=</span><span class="p">[</span><span class="n">join</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">join</span> <span class="ow">in</span> <span class="n">join_sources_result</span><span class="p">],</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="c1"># wrap the final result as a future and return</span>
-    <span class="k">return</span> <span class="n">_return_future</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../python-api.html#cytotable.convert.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments,too-many-locals</span>
@@ -1429,7 +1415,7 @@
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">output</span></div>
 </pre></div>
