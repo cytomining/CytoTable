@@ -728,14 +728,19 @@ def _prepare_join_sql(
                 str([str(table) for table in val[0]["table"]]),
             )
             order_by_tables.append(str(pathlib.Path(key).stem.lower()))
-    
-    order_by_sql = "ORDER BY " + ", ".join([f"{table}.{meta_column}" for table in order_by_tables for meta_column in list(CYOTABLE_META_COLUMN_TYPES.keys())])
+
+    order_by_sql = "ORDER BY " + ", ".join(
+        [
+            f"{table}.{meta_column}"
+            for table in order_by_tables
+            for meta_column in list(CYOTABLE_META_COLUMN_TYPES.keys())
+        ]
+    )
     joins = f"""{joins}
     {order_by_sql}
     """
 
     print(joins)
-
 
     return joins
 
@@ -771,8 +776,6 @@ def _join_source_chunk(
 
     import pathlib
 
-    import pyarrow.parquet as parquet
-
     from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
     from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 
@@ -781,7 +784,9 @@ def _join_source_chunk(
     # writing data to a parquet file.
     # read data with chunk size + offset
     # and export to parquet
-    exclude_meta_cols = [f"c NOT LIKE '{col}%'" for col in list(CYOTABLE_META_COLUMN_TYPES.keys())]
+    exclude_meta_cols = [
+        f"c NOT LIKE '{col}%'" for col in list(CYOTABLE_META_COLUMN_TYPES.keys())
+    ]
     with _duckdb_reader() as ddb_reader:
         result = ddb_reader.execute(
             f"""
