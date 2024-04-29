@@ -31,9 +31,9 @@ config = {
         "CONFIG_JOINS": """
             SELECT
                 image.Metadata_ImageNumber,
-                cytoplasm.*,
-                cells.*,
-                nuclei.*
+                cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                cells.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber),
+                nuclei.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber)
             FROM
                 read_parquet('cytoplasm.parquet') AS cytoplasm
             LEFT JOIN read_parquet('cells.parquet') AS cells USING (Metadata_ImageNumber)
