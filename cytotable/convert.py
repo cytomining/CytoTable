@@ -109,6 +109,7 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
                 # offset is set to 0 start at first row
                 # result from table
                 offset=0,
+                add_cytotable_meta=False,
             )
             with _duckdb_reader() as ddb_reader:
                 return (
@@ -303,13 +304,12 @@ def _source_chunk_to_parquet(
     from cloudpathlib import AnyPath
     from pyarrow import parquet
 
+    from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
     from cytotable.utils import (
         _duckdb_reader,
         _sqlite_mixed_type_query_to_parquet,
         _write_parquet_table_with_metadata,
     )
-
-    from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 
     # attempt to build dest_path
     source_dest_path = (
@@ -318,18 +318,24 @@ def _source_chunk_to_parquet(
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
+    source_path_str = (
+        source["source_path"]
+        if "table_name" not in source.keys()
+        else f"{source['source_path']}_table_{source['table_name']}"
+    )
     # build the column selection block of query
     select_columns = ",".join(
         # add cytotable metadata columns
         [
             (
-                f"CAST( '{source['source_path']}' AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path']})"
-                " AS cytotable_meta_source_path"
+                f"CAST( '{source_path_str}' "
+                f"AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path']})"
+                ' AS "cytotable_meta_source_path"'
             ),
-            f"CAST( {offset} as {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset']}) AS cytotable_meta_offset",
+            f"CAST( {offset} AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset']}) AS \"cytotable_meta_offset\"",
             (
                 f"CAST( (row_number() OVER ()) AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum']})"
-                " AS cytotable_meta_rownum"
+                ' AS "cytotable_meta_rownum"'
             ),
         ]
         # add source table columns
@@ -389,6 +395,7 @@ def _source_chunk_to_parquet(
                     table_name=str(source["table_name"]),
                     chunk_size=chunk_size,
                     offset=offset,
+                    add_cytotable_meta=True,
                 ),
                 where=result_filepath,
             )
@@ -438,8 +445,8 @@ def _prepend_column_name(
     import pyarrow.parquet as parquet
 
     from cytotable.constants import (
-        CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
         CYOTABLE_META_COLUMN_TYPES,
+        CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
     )
     from cytotable.utils import _write_parquet_table_with_metadata
 
@@ -740,8 +747,6 @@ def _prepare_join_sql(
     {order_by_sql}
     """
 
-    print(joins)
-
     return joins
 
 
@@ -776,8 +781,8 @@ def _join_source_chunk(
 
     import pathlib
 
-    from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
     from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
+    from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
 
     # Attempt to read the data to parquet file
     # using duckdb for extraction and pyarrow for
@@ -794,7 +799,7 @@ def _join_source_chunk(
                 {joins}
                 LIMIT {chunk_size} OFFSET {offset}
                 )
-                SELECT 
+                SELECT
                 /* exclude metadata columns from the results by using a CTE */
                 COLUMNS (c -> ({" AND ".join(exclude_meta_cols)}))
                 FROM joined;

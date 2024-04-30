@@ -28,8 +28,8 @@ from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 from sqlalchemy.util import deprecations
 
-from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
+from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 
 # filters sqlalchemy 2.0 uber warning
 # referenced from: https://stackoverflow.com/a/76308286
@@ -322,7 +322,7 @@ def fixture_example_local_sources(
                 [
                     column
                     for column in table.column_names
-                    if column not in list(CYOTABLE_META_COLUMN_TYPES.keys())
+                    if column not in CYOTABLE_META_COLUMN_TYPES
                 ]
             ),
             f"{fx_tempdir}/example/{number}/{name}.csv",
@@ -495,22 +495,19 @@ def fixture_cellprofiler_merged_nf1data(
         .execute(
             """
             /* perform query on sqlite tables through duckdb */
-            WITH per_image AS (
-                SELECT
-                    ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
-                FROM Per_Image
-            )
-            SELECT *
-            FROM per_image image
-            LEFT JOIN Per_Cytoplasm cytoplasm ON
-                image.ImageNumber = cytoplasm.ImageNumber
-            LEFT JOIN Per_Cells cells ON
-                cells.ImageNumber = cytoplasm.ImageNumber
-                AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
-            LEFT JOIN Per_Nuclei nuclei ON
-                nuclei.ImageNumber = cytoplasm.ImageNumber
+            SELECT
+                image.ImageNumber,
+                image.Image_Metadata_Well,
+                image.Image_Metadata_Plate,
+                cytoplasm.*,
+                cells.*,
+                nuclei.*
+            FROM Per_Cytoplasm cytoplasm
+            LEFT JOIN Per_Cells cells USING (ImageNumber)
+            LEFT JOIN Per_Nuclei nuclei USING (ImageNumber)
+            LEFT JOIN Per_Image image USING (ImageNumber)
+            WHERE
+                cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
         """
         )
@@ -552,7 +549,7 @@ def fixture_cytominerdatabase_merged_cellhealth(
     """
 
     sql_stmt = """
-        WITH image AS (
+        WITH image_filtered AS (
             SELECT
                 TableNumber,
                 ImageNumber,
@@ -581,9 +578,9 @@ def fixture_cytominerdatabase_merged_cellhealth(
             FROM Nuclei
         )
         SELECT DISTINCT *
-        FROM image
+        FROM image_filtered
         LEFT JOIN Cytoplasm_renamed cytoplasm ON
-            image.ImageNumber = cytoplasm.ImageNumber
+            image_filtered.ImageNumber = cytoplasm.ImageNumber
         LEFT JOIN Cells_renamed cells ON
             cells.ImageNumber = cytoplasm.ImageNumber
             AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells

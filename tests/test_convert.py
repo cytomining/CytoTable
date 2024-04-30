@@ -20,6 +20,7 @@ from cloudpathlib import CloudPath
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
+from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
@@ -1011,6 +1012,12 @@ def test_sqlite_mixed_type_query_to_parquet(
         "Tbl_a_col_text": ["sample", "sample"],
         "Tbl_a_col_blob": [b"another_blob", b"sample_blob"],
         "Tbl_a_col_real": [None, 0.5],
+        "cytotable_meta_source_path": [
+            f"{pathlib.Path(fx_tempdir).resolve()}/example_mixed_types.sqlite_table_tbl_a",
+            f"{pathlib.Path(fx_tempdir).resolve()}/example_mixed_types.sqlite_table_tbl_a",
+        ],
+        "cytotable_meta_offset": [0, 0],
+        "cytotable_meta_rownum": [2, 1],
     }
 
 
@@ -1120,6 +1127,15 @@ def test_in_carta_to_parquet(
             cast(list, cytotable_result[list(cast(dict, cytotable_result).keys())[0]])[
                 0
             ]["table"][0]
+        )
+
+        # drop cytotable metadata columns for comparisons (example sources won't contain these)
+        cytotable_result_table = cytotable_result_table.select(
+            [
+                column
+                for column in cytotable_result_table.column_names
+                if column not in CYOTABLE_META_COLUMN_TYPES
+            ]
         )
 
         # check the data against one another

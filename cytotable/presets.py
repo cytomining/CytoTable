@@ -73,8 +73,8 @@ config = {
                 per_image.Image_Metadata_Well,
                 per_image.Image_Metadata_Plate,
                 per_cytoplasm.* EXCLUDE (Metadata_ImageNumber),
-                per_cells.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber),
-                per_nuclei.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber)
+                per_cells.* EXCLUDE (Metadata_ImageNumber),
+                per_nuclei.* EXCLUDE (Metadata_ImageNumber)
             FROM
                 read_parquet('per_cytoplasm.parquet') AS per_cytoplasm
             LEFT JOIN read_parquet('per_cells.parquet') AS per_cells USING (Metadata_ImageNumber)
