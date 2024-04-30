@@ -320,7 +320,7 @@ def test_prepare_join_sql(
     example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
-    Tests _prepare_join_sql
+    Tests _prepare_join_sql by using sources to run the SQL join statement.
 
     After running _prepare_join_sql we'd expect something like:
         SELECT
@@ -337,31 +337,43 @@ def test_prepare_join_sql(
 
     # attempt to run query against prepared_join_sql with test data
     with _duckdb_reader() as ddb_reader:
-        result = (
-            ddb_reader.execute(
-                _prepare_join_sql(
-                    sources=example_local_sources,
-                    # simplified join for example dataset
-                    joins="""
+        result = ddb_reader.execute(
+            _prepare_join_sql(
+                sources=example_local_sources,
+                # simplified join for example dataset
+                joins="""
                     SELECT
                         *
                     FROM
-                        read_parquet('image.parquet') AS image
-                    LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
-                        cytoplasm.ImageNumber = image.ImageNumber
-                    LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                        cells.ImageNumber = cytoplasm.ImageNumber
-                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                        nuclei.ImageNumber = cytoplasm.ImageNumber
+                        read_parquet('cytoplasm.parquet') AS cytoplasm
+                    LEFT JOIN read_parquet('cells.parquet') AS cells USING (ImageNumber)
+                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei USING (ImageNumber)
+                    LEFT JOIN read_parquet('image.parquet') AS image USING (ImageNumber)
+                    WHERE
+                        cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+                        AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
                     """,
-                ).result()
-            )
-            .arrow()
-            .to_pydict()
-        )
+            ).result()
+        ).arrow()
 
-    # check that we received data back
-    assert len(result) == 9
+    # check that we received expected data back
+    assert result.shape == (4, 23)
+    assert result.slice(length=1).to_pydict() == {
+        "ImageNumber": ["1"],
+        "Cytoplasm_ObjectNumber": [1],
+        "Cytoplasm_Parent_Cells": [1],
+        "Cytoplasm_Parent_Nuclei": [1],
+        "Cytoplasm_Feature_X": [0.1],
+        "cytotable_meta_source_path": ["image.csv"],
+        "cytotable_meta_offset": [50],
+        "cytotable_meta_rownum": [1],
+        "Cells_ObjectNumber": [1],
+        "Cells_Feature_Y": [0.01],
+        "Nuclei_ObjectNumber": [1],
+        "Nuclei_Feature_Z": [0.001],
+        "Image_Metadata_Plate": ["001"],
+        "Image_Metadata_Well": ["A1"],
+    }
 
 
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
@@ -401,10 +413,8 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
         dest_path=f"{fx_tempdir}/destination.parquet",
         joins=f"""
             SELECT *
-            FROM read_parquet('{fx_tempdir}/example_a_merged.parquet') as example_a
-            JOIN read_parquet('{fx_tempdir}/example_b_merged.parquet') as example_b ON
-                example_b.id1 = example_a.id1
-                AND example_b.id2 = example_a.id2
+            FROM read_parquet('{test_path_a}') as example_a
+            JOIN read_parquet('{test_path_b}') as example_b USING(id1, id2)
         """,
         chunk_size=2,
         offset=0,
@@ -417,10 +427,10 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     assert result_table.equals(
         other=pa.Table.from_pydict(
             {
-                "field1": ["foo", "foo"],
-                "field2": [True, True],
-                "id1": [1, 1],
-                "id2": ["a", "b"],
+                "field1": ["foo", "bar"],
+                "field2": [True, False],
+                "id1": [1, 2],
+                "id2": ["a", "a"],
             },
             # use schema from result as a reference for col order
             schema=result_table.schema,

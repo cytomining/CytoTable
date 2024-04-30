@@ -228,6 +228,8 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
         {
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Cytoplasm_ObjectNumber": pa.array([1, 2, 1, 2]),
+            "Cytoplasm_Parent_Cells": pa.array([1, 2, 1, 2]),
+            "Cytoplasm_Parent_Nuclei": pa.array([1, 2, 1, 2]),
             "Cytoplasm_Feature_X": pa.array([0.1, 0.2, 0.1, 0.2]),
             "cytotable_meta_source_path": pa.array(["cytoplasm.csv", "cytoplasm.csv", "cytoplasm.csv", "cytoplasm.csv"]),
             "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
