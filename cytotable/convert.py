@@ -499,7 +499,7 @@ def _prepend_column_name(
         if (
             column_name not in identifying_columns
             and not column_name.startswith(source_group_name_stem.capitalize())
-            and column_name not in list(CYOTABLE_META_COLUMN_TYPES.keys())
+            and column_name not in CYOTABLE_META_COLUMN_TYPES
         ):
             updated_column_names.append(f"{source_group_name_stem}_{column_name}")
         # if-condition for prepending 'Metadata_' to column name
@@ -731,24 +731,24 @@ def _prepare_join_sql(
     order_by_tables = []
     for key, val in sources.items():
         if pathlib.Path(key).stem.lower() in joins.lower():
+            table_name = str(pathlib.Path(key).stem.lower())
             joins = joins.replace(
-                f"'{str(pathlib.Path(key).stem.lower())}.parquet'",
+                f"'{table_name}.parquet'",
                 str([str(table) for table in val[0]["table"]]),
             )
-            order_by_tables.append(str(pathlib.Path(key).stem.lower()))
+            order_by_tables.append(table_name)
 
+    # create order by statement with from all tables using cytotable metadata
     order_by_sql = "ORDER BY " + ", ".join(
         [
             f"{table}.{meta_column}"
             for table in order_by_tables
-            for meta_column in list(CYOTABLE_META_COLUMN_TYPES.keys())
+            for meta_column in CYOTABLE_META_COLUMN_TYPES
         ]
     )
-    joins = f"""{joins}
-    {order_by_sql}
-    """
 
-    return joins
+    # add the order by statements to the join
+    return joins + order_by_sql
 
 
 @python_app

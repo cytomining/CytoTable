@@ -391,7 +391,10 @@ def test_prepare_join_sql(
                 # simplified join for example dataset
                 joins="""
                     SELECT
-                        *
+                        image.ImageNumber,
+                        cytoplasm.*,
+                        cells.*,
+                        nuclei.*
                     FROM
                         read_parquet('cytoplasm.parquet') AS cytoplasm
                     LEFT JOIN read_parquet('cells.parquet') AS cells USING (ImageNumber)
@@ -402,25 +405,32 @@ def test_prepare_join_sql(
                         AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
                     """,
             ).result()
-        ).arrow()
+        ).df()
 
     # check that we received expected data back
-    assert result.shape == (4, 23)
-    assert result.slice(length=1).to_pydict() == {
-        "ImageNumber": ["1"],
-        "Cytoplasm_ObjectNumber": [1],
-        "Cytoplasm_Parent_Cells": [1],
-        "Cytoplasm_Parent_Nuclei": [1],
-        "Cytoplasm_Feature_X": [0.1],
-        "cytotable_meta_source_path": ["image.csv"],
-        "cytotable_meta_offset": [50],
-        "cytotable_meta_rownum": [1],
-        "Cells_ObjectNumber": [1],
-        "Cells_Feature_Y": [0.01],
-        "Nuclei_ObjectNumber": [1],
-        "Nuclei_Feature_Z": [0.001],
-        "Image_Metadata_Plate": ["001"],
-        "Image_Metadata_Well": ["A1"],
+    assert result.shape == (4, 21)
+    assert result.iloc[0].to_dict() == {
+        "ImageNumber": "1",
+        "ImageNumber_1": "1",
+        "Cytoplasm_ObjectNumber": 1,
+        "Cytoplasm_Parent_Cells": 1,
+        "Cytoplasm_Parent_Nuclei": 1,
+        "Cytoplasm_Feature_X": 0.1,
+        "cytotable_meta_source_path": "cytoplasm.csv",
+        "cytotable_meta_offset": 50,
+        "cytotable_meta_rownum": 1,
+        "ImageNumber_2": "1",
+        "Cells_ObjectNumber": 1,
+        "Cells_Feature_Y": 0.01,
+        "cytotable_meta_source_path_1": "cells.csv",
+        "cytotable_meta_offset_1": 50,
+        "cytotable_meta_rownum_1": 1,
+        "ImageNumber_3": "1",
+        "Nuclei_ObjectNumber": 1,
+        "Nuclei_Feature_Z": 0.001,
+        "cytotable_meta_source_path_2": "nuclei_1.csv",
+        "cytotable_meta_offset_2": 50,
+        "cytotable_meta_rownum_2": 1,
     }
 
 
