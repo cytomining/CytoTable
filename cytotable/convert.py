@@ -801,7 +801,8 @@ def _join_source_chunk(
                 LIMIT {chunk_size} OFFSET {offset}
                 )
                 SELECT
-                /* exclude metadata columns from the results by using a CTE */
+                /* exclude metadata columns from the results
+                by using a lambda on column names based on exclude_meta_cols. */
                 COLUMNS (c -> ({" AND ".join(exclude_meta_cols)}))
                 FROM joined;
                 """
