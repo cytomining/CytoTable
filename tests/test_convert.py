@@ -17,6 +17,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
 from cloudpathlib import CloudPath
+from parsl.app.app import python_app
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
@@ -41,6 +42,7 @@ from cytotable.utils import (
     _get_cytotable_version,
     _sqlite_mixed_type_query_to_parquet,
     _write_parquet_table_with_metadata,
+    evaluate_futures,
 )
 
 
@@ -183,6 +185,51 @@ def test_extend_path(fx_tempdir: str):
     subdir = f"{fx_tempdir}/test_subdir"
     pathlib.Path(subdir).mkdir()
     assert _expand_path(path=f"{subdir}/..") == pathlib.Path(fx_tempdir).resolve()
+
+
+def test_evaluate_futures(load_parsl_default: None):
+    """
+    Tests evaluate_futures
+    """
+
+    @python_app
+    def example_parsl_task(i: int):
+        # an example of a parsl task
+        return i
+
+    example_sources = {
+        "a": [
+            {
+                "one": example_parsl_task(i=1),
+                "two": [example_parsl_task(i=1), example_parsl_task(i=1)],
+            }
+        ],
+        "b": [
+            {
+                "one": example_parsl_task(i=2),
+                "two": [example_parsl_task(i=2), example_parsl_task(i=2)],
+            }
+        ],
+    }
+
+    example_result = example_parsl_task(i=3)
+
+    assert evaluate_futures(sources=example_sources) == {
+        "a": [
+            {
+                "one": 1,
+                "two": [1, 1],
+            }
+        ],
+        "b": [
+            {
+                "one": 2,
+                "two": [2, 2],
+            }
+        ],
+    }
+
+    assert evaluate_futures(sources=example_result) == 3
 
 
 def test_prepend_column_name(load_parsl_default: None, fx_tempdir: str):
@@ -581,7 +628,7 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
-        ).result(),
+        ),
     )
 
     flattened_results = list(itertools.chain(*list(result.values())))

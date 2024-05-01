@@ -8,16 +8,17 @@ import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import parsl
-import pyarrow as pa
-from parsl.app.app import join_app, python_app
+from parsl.app.app import python_app
 
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
+from cytotable.sources import _gather_sources
 from cytotable.utils import (
     _column_sort,
     _default_parsl_config,
     _expand_path,
     _parsl_loaded,
+    evaluate_futures,
 )
 
 logger = logging.getLogger(__name__)
@@ -1009,34 +1010,13 @@ def _infer_source_group_common_schema(
     )
 
 
-@python_app
-def _return_future(input: Any) -> Any:
-    """
-    This is a simple wrapper python_app to allow
-    the return of join_app-compliant output (must be a Parsl future)
-
-    Args:
-        input: Any
-            Any input which will be used within the context of a
-            Parsl join_app future return.
-
-    Returns:
-        Any
-            Returns the input as provided wrapped within the context
-            of a python_app for the purpose of a join_app.
-    """
-
-    return input
-
-
-@join_app
 def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
     source_datatype: Optional[str],
-    metadata: Union[List[str], Tuple[str, ...]],
-    compartments: Union[List[str], Tuple[str, ...]],
-    identifying_columns: Union[List[str], Tuple[str, ...]],
+    metadata: Optional[Union[List[str], Tuple[str, ...]]],
+    compartments: Optional[Union[List[str], Tuple[str, ...]]],
+    identifying_columns: Optional[Union[List[str], Tuple[str, ...]]],
     concat: bool,
     join: bool,
     joins: Optional[str],
@@ -1096,24 +1076,15 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             result.
     """
 
-    from cytotable.convert import (
-        _concat_join_sources,
-        _concat_source_group,
-        _get_table_chunk_offsets,
-        _infer_source_group_common_schema,
-        _join_source_chunk,
-        _prepend_column_name,
-        _return_future,
-        _source_chunk_to_parquet,
-    )
-    from cytotable.sources import _gather_sources
-    from cytotable.utils import _expand_path
-
     # gather sources to be processed
     sources = _gather_sources(
         source_path=source_path,
         source_datatype=source_datatype,
-        targets=list(metadata) + list(compartments),
+        targets=(
+            list(metadata) + list(compartments)
+            if metadata is not None and compartments is not None
+            else []
+        ),
         **kwargs,
     ).result()
 
@@ -1129,7 +1100,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                     "offsets": _get_table_chunk_offsets(
                         source=source,
                         chunk_size=chunk_size,
-                    ).result()
+                    )
                 },
             )
             for source in source_group_vals
@@ -1146,7 +1117,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             for source in source_group_vals
             if source["offsets"] is not None
         ]
-        for source_group_name, source_group_vals in offsets_prepared.items()
+        for source_group_name, source_group_vals in evaluate_futures(
+            offsets_prepared
+        ).items()
         # ensure we have source_groups with at least one source table
         if len(source_group_vals) > 0
     }
@@ -1162,7 +1135,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                             source=source,
                         ),
                         data_type_cast_map=data_type_cast_map,
-                    ).result()
+                    )
                 },
             )
             for source in source_group_vals
@@ -1190,28 +1163,34 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                             identifying_columns=identifying_columns,
                             metadata=metadata,
                             compartments=compartments,
-                        ).result()
+                        )
                         for offset in source["offsets"]
                     ]
                 },
             )
             for source in source_group_vals
         ]
-        for source_group_name, source_group_vals in column_names_and_types_gathered.items()
+        for source_group_name, source_group_vals in evaluate_futures(
+            column_names_and_types_gathered
+        ).items()
     }
 
     # if we're concatting or joining and need to infer the common schema
     if (concat or join) and infer_common_schema:
         # create a common schema for concatenation work
         common_schema_determined = {
-            source_group_name: {
-                "sources": source_group_vals,
-                "common_schema": _infer_source_group_common_schema(
-                    source_group=source_group_vals,
-                    data_type_cast_map=data_type_cast_map,
-                ),
-            }
-            for source_group_name, source_group_vals in results.items()
+            source_group_name: [
+                {
+                    "sources": source_group_vals,
+                    "common_schema": _infer_source_group_common_schema(
+                        source_group=source_group_vals,
+                        data_type_cast_map=data_type_cast_map,
+                    ),
+                }
+            ]
+            for source_group_name, source_group_vals in evaluate_futures(
+                results
+            ).items()
         }
 
     # if concat or join, concat the source groups
@@ -1223,17 +1202,24 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         results = {
             source_group_name: _concat_source_group(
                 source_group_name=source_group_name,
-                source_group=source_group_vals["sources"],
+                source_group=source_group_vals[0]["sources"],
                 dest_path=expanded_dest_path,
-                common_schema=source_group_vals["common_schema"],
-            ).result()
-            for source_group_name, source_group_vals in common_schema_determined.items()
+                common_schema=source_group_vals[0]["common_schema"],
+            )
+            for source_group_name, source_group_vals in evaluate_futures(
+                common_schema_determined
+            ).items()
         }
 
     # conditional section for merging
     # note: join implies a concat, but concat does not imply a join
     if join:
-        prepared_joins_sql = _prepare_join_sql(sources=results, joins=joins).result()
+        # evaluate the results as they're used multiple times below
+        evaluated_results = evaluate_futures(results)
+
+        prepared_joins_sql = _prepare_join_sql(
+            sources=evaluated_results, joins=joins
+        ).result()
 
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
@@ -1247,7 +1233,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 chunk_size=chunk_size,
                 offset=offset,
                 drop_null=drop_null,
-            ).result()
+            )
             # create join group for querying the concatenated
             # data in order to perform memory-safe joining
             # per user chunk size specification.
@@ -1262,12 +1248,12 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # for lineage and debugging
         results = _concat_join_sources(
             dest_path=expanded_dest_path,
-            join_sources=join_sources_result,
-            sources=results,
-        ).result()
+            join_sources=[join.result() for join in join_sources_result],
+            sources=evaluated_results,
+        )
 
     # wrap the final result as a future and return
-    return _return_future(results)
+    return evaluate_futures(results)
 
 
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
@@ -1443,6 +1429,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             drop_null=drop_null,
             data_type_cast_map=data_type_cast_map,
             **kwargs,
-        ).result()
+        )
 
     return output

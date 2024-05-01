@@ -5,7 +5,7 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import duckdb
 import parsl
@@ -487,4 +487,98 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
             metadata=CYTOTABLE_DEFAULT_PARQUET_METADATA
         ),
         **kwargs,
+    )
+
+
+def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
+    """
+    Helper function to unwrap futures from values or return values
+    where there are no futures.
+
+    Args:
+        val: Union[parsl.dataflow.futures.AppFuture, Any]
+            A value which may or may not be a Parsl future which
+            needs to be evaluated.
+
+    Returns:
+        Any
+            Returns the value as-is if there's no future, the future
+            result if Parsl futures are encountered.
+    """
+
+    # if we have a future value, evaluate the result
+    if isinstance(val, parsl.dataflow.futures.AppFuture):
+        return val.result()
+    elif isinstance(val, list):
+        # if we have a list of futures, return the results
+        if isinstance(val[0], parsl.dataflow.futures.AppFuture):
+            return [elem.result() for elem in val]
+    # otherwise return the value
+    return val
+
+
+def _unwrap_source(
+    source: Union[
+        Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
+        Union[parsl.dataflow.futures.AppFuture, Any],
+    ]
+) -> Union[Dict[str, Any], Any]:
+    """
+    Helper function to unwrap futures from sources.
+
+    Args:
+        source: Union[
+            Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
+            Union[parsl.dataflow.futures.AppFuture, Any],
+        ]
+            A source is a portion of an internal data structure used by
+            CytoTable for processing and organizing data results.
+    Returns:
+        Union[Dict[str, Any], Any]
+            An evaluated dictionary or other value type.
+    """
+    # if we have a dictionary, unwrap any values which may be futures
+    if isinstance(source, dict):
+        return {key: _unwrap_value(val) for key, val in source.items()}
+    else:
+        # otherwise try to unwrap the source as-is without dictionary nesting
+        return _unwrap_value(source)
+
+
+def evaluate_futures(sources: Union[Dict[str, List[Dict[str, Any]]], str]) -> Any:
+    """
+    Evaluates any Parsl futures for use within other tasks.
+    This enables a pattern of Parsl app usage as "tasks" and delayed
+    future result evaluation for concurrency.
+
+    Args:
+        sources: Union[Dict[str, List[Dict[str, Any]]], str]
+            Sources are an internal data structure used by CytoTable for
+            processing and organizing data results. They may include futures
+            which require asynchronous processing through Parsl, so we
+            process them through this function.
+
+    Returns:
+        Union[Dict[str, List[Dict[str, Any]]], str]
+            A data structure which includes evaluated futures where they were found.
+    """
+
+    return (
+        {
+            source_group_name: [
+                # unwrap sources into future results
+                _unwrap_source(source)
+                for source in (
+                    source_group_vals.result()
+                    # if we have a future, return the result
+                    if isinstance(source_group_vals, parsl.dataflow.futures.AppFuture)
+                    # otherwise return the value
+                    else source_group_vals
+                )
+            ]
+            for source_group_name, source_group_vals in sources.items()
+            # if we have a dict, use the above, otherwise unwrap the value in case of future
+        }
+        if isinstance(sources, dict)
+        else _unwrap_value(sources)
     )
