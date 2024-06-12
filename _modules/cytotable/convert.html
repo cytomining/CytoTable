@@ -60,7 +60,9 @@
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_get_table_columns_and_types</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="k">def</span> <span class="nf">_get_table_columns_and_types</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Gather column data from table through duckdb.</span>
 
@@ -68,6 +70,8 @@
 <span class="sd">        source: Dict[str, Any]</span>
 <span class="sd">            Contains the source data to be chunked. Represents a single</span>
 <span class="sd">            file or table of some kind.</span>
+<span class="sd">        sort_output:</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Dict[str, str]]</span>
@@ -145,6 +149,8 @@
                 <span class="c1"># offset is set to 0 start at first row</span>
                 <span class="c1"># result from table</span>
                 <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">add_cytotable_meta</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">(</span>
@@ -311,6 +317,7 @@
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Export source data to chunked parquet file using chunk size and offsets.</span>
@@ -327,6 +334,8 @@
 <span class="sd">            The offset for chunking the data from source.</span>
 <span class="sd">        dest_path: str</span>
 <span class="sd">            Path to store the output data.</span>
+<span class="sd">        sort_output: bool</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str</span>
@@ -339,6 +348,7 @@
     <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
     <span class="kn">from</span> <span class="nn">pyarrow</span> <span class="kn">import</span> <span class="n">parquet</span>
 
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
         <span class="n">_duckdb_reader</span><span class="p">,</span>
         <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">,</span>
@@ -352,13 +362,39 @@
     <span class="p">)</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="n">source_path_str</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;table_name&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">_table_</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
     <span class="c1"># build the column selection block of query</span>
+
+    <span class="c1"># add cytotable metadata columns</span>
+    <span class="n">cytotable_metadata_cols</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;CAST( &#39;</span><span class="si">{</span><span class="n">source_path_str</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;AS </span><span class="si">{</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_source_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="s1">&#39; AS &quot;cytotable_meta_source_path&quot;&#39;</span>
+        <span class="p">),</span>
+        <span class="sa">f</span><span class="s2">&quot;CAST( </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2"> AS </span><span class="si">{</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_offset&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="se">\&quot;</span><span class="s2">cytotable_meta_offset</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;CAST( (row_number() OVER ()) AS </span><span class="si">{</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_rownum&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="s1">&#39; AS &quot;cytotable_meta_rownum&quot;&#39;</span>
+        <span class="p">),</span>
+    <span class="p">]</span>
+    <span class="c1"># add source table columns</span>
+    <span class="n">casted_source_cols</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
+        <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="se">\&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2"> AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_dtype&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span>
+    <span class="p">]</span>
+
+    <span class="c1"># create selection statement from lists above</span>
     <span class="n">select_columns</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
-            <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="se">\&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2"> AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_dtype&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="se">\&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2">&quot;</span>
-            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span>
-        <span class="p">]</span>
+        <span class="c1"># if we should sort the output, add the metadata_cols</span>
+        <span class="n">cytotable_metadata_cols</span> <span class="o">+</span> <span class="n">casted_source_cols</span>
+        <span class="k">if</span> <span class="n">sort_output</span>
+        <span class="k">else</span> <span class="n">casted_source_cols</span>
     <span class="p">)</span>
 
     <span class="c1"># build output query and filepath base</span>
@@ -388,6 +424,11 @@
 <span class="s2">                    ORDER BY ALL</span>
 <span class="s2">                    LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
 <span class="s2">                    &quot;&quot;&quot;</span>
+                    <span class="k">if</span> <span class="n">sort_output</span>
+                    <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                    </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
+<span class="s2">                    LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">                    &quot;&quot;&quot;</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
@@ -410,6 +451,8 @@
                     <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
                     <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                     <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+                    <span class="n">add_cytotable_meta</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">sort_output</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
@@ -458,7 +501,10 @@
 
     <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="p">(</span>
+        <span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">,</span>
+        <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -506,8 +552,10 @@
         <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
         <span class="c1">#   column_name: &#39;AreaShape_Area&#39;</span>
         <span class="c1">#   updated_column_name: &#39;Cells_AreaShape_Area&#39;</span>
-        <span class="k">if</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
-            <span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">())</span>
+            <span class="ow">and</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
         <span class="p">):</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="c1"># if-condition for prepending &#39;Metadata_&#39; to column name</span>
@@ -715,6 +763,7 @@
 <span class="k">def</span> <span class="nf">_prepare_join_sql</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Prepare join SQL statement with actual locations of data based on the sources.</span>
@@ -726,6 +775,8 @@
 <span class="sd">        joins: str:</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join</span>
 <span class="sd">            operations using the join_group keys as a reference.</span>
+<span class="sd">        sort_output: bool</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
@@ -733,15 +784,30 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
+
     <span class="c1"># replace with real location of sources for join sql</span>
+    <span class="n">order_by_tables</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">joins</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">table_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
             <span class="n">joins</span> <span class="o">=</span> <span class="n">joins</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">.parquet&#39;&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.parquet&#39;&quot;</span><span class="p">,</span>
                 <span class="nb">str</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]]),</span>
             <span class="p">)</span>
+            <span class="n">order_by_tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">joins</span>
+    <span class="c1"># create order by statement with from all tables using cytotable metadata</span>
+    <span class="n">order_by_sql</span> <span class="o">=</span> <span class="s2">&quot;ORDER BY &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">meta_column</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">order_by_tables</span>
+            <span class="k">for</span> <span class="n">meta_column</span> <span class="ow">in</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
+        <span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="c1"># add the order by statements to the join</span>
+    <span class="k">return</span> <span class="n">joins</span> <span class="o">+</span> <span class="n">order_by_sql</span> <span class="k">if</span> <span class="n">sort_output</span> <span class="k">else</span> <span class="n">joins</span>
 
 
 <span class="nd">@python_app</span>
@@ -775,8 +841,7 @@
 
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
-
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_write_parquet_table_with_metadata</span>
 
     <span class="c1"># Attempt to read the data to parquet file</span>
@@ -784,12 +849,21 @@
     <span class="c1"># writing data to a parquet file.</span>
     <span class="c1"># read data with chunk size + offset</span>
     <span class="c1"># and export to parquet</span>
+    <span class="n">exclude_meta_cols</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">&quot;c NOT LIKE &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">%&#39;&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="p">]</span>
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                WITH joined AS (</span>
 <span class="s2">                </span><span class="si">{</span><span class="n">joins</span><span class="si">}</span>
-<span class="s2">                </span><span class="si">{</span><span class="s2">&quot;ORDER BY ALL&quot;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="s2">&quot;ORDER BY&quot;</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">joins</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span>
 <span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">                )</span>
+<span class="s2">                SELECT</span>
+<span class="s2">                /* exclude metadata columns from the results</span>
+<span class="s2">                by using a lambda on column names based on exclude_meta_cols. */</span>
+<span class="s2">                COLUMNS (c -&gt; (</span><span class="si">{</span><span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">exclude_meta_cols</span><span class="p">)</span><span class="si">}</span><span class="s2">))</span>
+<span class="s2">                FROM joined;</span>
 <span class="s2">                &quot;&quot;&quot;</span>
         <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
 
@@ -1009,6 +1083,7 @@
     <span class="n">chunk_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">]:</span>
@@ -1047,6 +1122,8 @@
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
 <span class="sd">        drop_null: bool:</span>
 <span class="sd">            Whether to drop null results.</span>
+<span class="sd">        sort_output: bool</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 <span class="sd">        data_type_cast_map: Dict[str, str]</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
@@ -1118,7 +1195,7 @@
                 <span class="o">**</span><span class="p">{</span>
                     <span class="s2">&quot;columns&quot;</span><span class="p">:</span> <span class="n">_prep_cast_column_data_types</span><span class="p">(</span>
                         <span class="n">columns</span><span class="o">=</span><span class="n">_get_table_columns_and_types</span><span class="p">(</span>
-                            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+                            <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span>
                         <span class="p">),</span>
                         <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
                     <span class="p">)</span>
@@ -1144,6 +1221,7 @@
                                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                                 <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
                                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
+                                <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                             <span class="p">),</span>
                             <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
                             <span class="n">identifying_columns</span><span class="o">=</span><span class="n">identifying_columns</span><span class="p">,</span>
@@ -1204,7 +1282,7 @@
         <span class="n">evaluated_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
         <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span>
-            <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">,</span> <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span>
         <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
         <span class="c1"># map joined results based on the join groups gathered above</span>
@@ -1257,6 +1335,7 @@
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
@@ -1298,8 +1377,14 @@
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
 <span class="sd">        chunk_size: Optional[int] (Default value = None)</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
-<span class="sd">        infer_common_schema: bool: (Default value = True)</span>
+<span class="sd">        infer_common_schema: bool (Default value = True)</span>
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
+<span class="sd">        data_type_cast_map: Dict[str, str], (Default value = None)</span>
+<span class="sd">            A dictionary mapping data type groups to specific types.</span>
+<span class="sd">            Roughly includes Arrow data types language from:</span>
+<span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
+<span class="sd">        sort_output: bool (Default value = True)</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 <span class="sd">        drop_null: bool (Default value = False)</span>
 <span class="sd">            Whether to drop nan/null values from results</span>
 <span class="sd">        preset: str (Default value = &quot;cellprofiler_csv&quot;)</span>
@@ -1414,6 +1499,7 @@
             <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
+            <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
