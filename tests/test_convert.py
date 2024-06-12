@@ -404,6 +404,7 @@ def test_prepare_join_sql(
                         cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
                         AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
                     """,
+                sort_output=True
             ).result()
         ).df()
 
@@ -638,6 +639,7 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
+            sort_output=True
         ),
     )
 
