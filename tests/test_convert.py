@@ -665,6 +665,64 @@ def test_to_parquet(
         assert parquet_result.shape == csv_source.shape
 
 
+def test_to_parquet_unsorted(
+    load_parsl_default: None,
+    fx_tempdir: str,
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
+):
+    """
+    Tests _to_parquet with sort_output == False (unsorted)
+    """
+
+    flattened_example_sources = list(
+        itertools.chain(*list(example_local_sources.values()))
+    )
+
+    # note: we cast here for mypy linting (dict and str treatment differ)
+    result: Dict[str, List[Dict[str, Any]]] = cast(
+        dict,
+        _to_parquet(
+            source_path=str(
+                example_local_sources["image.csv"][0]["source_path"].parent
+            ),
+            dest_path=fx_tempdir,
+            source_datatype=None,
+            compartments=["cytoplasm", "cells", "nuclei"],
+            metadata=["image"],
+            identifying_columns=["imagenumber"],
+            concat=False,
+            join=False,
+            joins=None,
+            chunk_columns=None,
+            chunk_size=4,
+            infer_common_schema=False,
+            drop_null=True,
+            sort_output=False,
+        ),
+    )
+
+    flattened_results = list(itertools.chain(*list(result.values())))
+    for i, flattened_result in enumerate(flattened_results):
+        csv_source = (
+            _duckdb_reader()
+            .execute(
+                f"""
+                select * from
+                read_csv_auto('{str(flattened_example_sources[i]["source_path"])}',
+                ignore_errors=TRUE)
+                """
+            )
+            .arrow()
+        )
+        parquet_result = parquet.ParquetDataset(
+            path_or_paths=flattened_result["table"],
+            # set the order of the columns uniformly for schema comparison
+            schema=csv_source.schema,
+        ).read()
+        assert parquet_result.schema.equals(csv_source.schema)
+        assert parquet_result.shape == csv_source.shape
+
+
 def test_infer_source_group_common_schema(
     load_parsl_default: None,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
