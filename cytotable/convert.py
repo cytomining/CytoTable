@@ -277,6 +277,7 @@ def _source_chunk_to_parquet(
     chunk_size: int,
     offset: int,
     dest_path: str,
+    sort_output: bool
 ) -> str:
     """
     Export source data to chunked parquet file using chunk size and offsets.
@@ -293,6 +294,8 @@ def _source_chunk_to_parquet(
             The offset for chunking the data from source.
         dest_path: str
             Path to store the output data.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
 
     Returns:
         str
@@ -325,9 +328,9 @@ def _source_chunk_to_parquet(
         else f"{source['source_path']}_table_{source['table_name']}"
     )
     # build the column selection block of query
-    select_columns = ",".join(
-        # add cytotable metadata columns
-        [
+
+    # add cytotable metadata columns
+    cytotable_metadata_cols = [
             (
                 f"CAST( '{source_path_str}' "
                 f"AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path']})"
@@ -339,12 +342,17 @@ def _source_chunk_to_parquet(
                 ' AS "cytotable_meta_rownum"'
             ),
         ]
-        # add source table columns
-        + [
+    # add source table columns
+    casted_source_cols = [
             # here we cast the column to the specified type ensure the colname remains the same
             f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
             for column in source["columns"]
         ]
+
+    # create selection statement from lists above
+    select_columns = ",".join(
+        # if we should sort the output, add the metadata_cols
+        cytotable_metadata_cols + casted_source_cols if sort_output else casted_source_cols
     )
 
     # build output query and filepath base
@@ -396,7 +404,7 @@ def _source_chunk_to_parquet(
                     table_name=str(source["table_name"]),
                     chunk_size=chunk_size,
                     offset=offset,
-                    add_cytotable_meta=True,
+                    add_cytotable_meta=True if sort_output else False,
                 ),
                 where=result_filepath,
             )
@@ -707,6 +715,7 @@ def _concat_source_group(
 def _prepare_join_sql(
     sources: Dict[str, List[Dict[str, Any]]],
     joins: str,
+    sort_output: bool,
 ) -> str:
     """
     Prepare join SQL statement with actual locations of data based on the sources.
@@ -718,6 +727,8 @@ def _prepare_join_sql(
         joins: str:
             DuckDB-compatible SQL which will be used to perform the join
             operations using the join_group keys as a reference.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
 
     Returns:
         str:
@@ -748,7 +759,7 @@ def _prepare_join_sql(
     )
 
     # add the order by statements to the join
-    return joins + order_by_sql
+    return joins + order_by_sql if sort_output else joins
 
 
 @python_app
@@ -1024,6 +1035,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     chunk_size: Optional[int],
     infer_common_schema: bool,
     drop_null: bool,
+    sort_output: bool,
     data_type_cast_map: Optional[Dict[str, str]] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], str]:
@@ -1062,6 +1074,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to infer a common schema when concatenating sources.
         drop_null: bool:
             Whether to drop null results.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
@@ -1159,6 +1173,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                                 chunk_size=chunk_size,
                                 offset=offset,
                                 dest_path=expanded_dest_path,
+                                sort_output=sort_output
                             ),
                             source_group_name=source_group_name,
                             identifying_columns=identifying_columns,
@@ -1219,7 +1234,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         evaluated_results = evaluate_futures(results)
 
         prepared_joins_sql = _prepare_join_sql(
-            sources=evaluated_results, joins=joins
+            sources=evaluated_results, joins=joins, sort_output=sort_output
         ).result()
 
         # map joined results based on the join groups gathered above
@@ -1272,6 +1287,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     infer_common_schema: bool = True,
     drop_null: bool = False,
     data_type_cast_map: Optional[Dict[str, str]] = None,
+    sort_output: bool = True,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
@@ -1313,8 +1329,14 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             DuckDB-compatible SQL which will be used to perform the join operations.
         chunk_size: Optional[int] (Default value = None)
             Size of join chunks which is used to limit data size during join ops
-        infer_common_schema: bool: (Default value = True)
+        infer_common_schema: bool (Default value = True)
             Whether to infer a common schema when concatenating sources.
+        data_type_cast_map: Dict[str, str], (Default value = None)
+            A dictionary mapping data type groups to specific types.
+            Roughly includes Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
+        sort_output: bool (Default value = True)
+            Specifies whether to sort cytotable output or not.
         drop_null: bool (Default value = False)
             Whether to drop nan/null values from results
         preset: str (Default value = "cellprofiler_csv")
@@ -1429,6 +1451,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             infer_common_schema=infer_common_schema,
             drop_null=drop_null,
             data_type_cast_map=data_type_cast_map,
+            sort_output=sort_output,
             **kwargs,
         )
 
