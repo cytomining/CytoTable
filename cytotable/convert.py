@@ -25,7 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 @python_app
-def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]:
+def _get_table_columns_and_types(
+    source: Dict[str, Any], sort_output: bool
+) -> List[Dict[str, str]]:
     """
     Gather column data from table through duckdb.
 
@@ -33,6 +35,8 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
         source: Dict[str, Any]
             Contains the source data to be chunked. Represents a single
             file or table of some kind.
+        sort_output:
+            Specifies whether to sort cytotable output or not.
 
     Returns:
         List[Dict[str, str]]
@@ -111,6 +115,7 @@ def _get_table_columns_and_types(source: Dict[str, Any]) -> List[Dict[str, str]]
                 # result from table
                 offset=0,
                 add_cytotable_meta=False,
+                sort_output=sort_output,
             )
             with _duckdb_reader() as ddb_reader:
                 return (
@@ -277,7 +282,7 @@ def _source_chunk_to_parquet(
     chunk_size: int,
     offset: int,
     dest_path: str,
-    sort_output: bool
+    sort_output: bool,
 ) -> str:
     """
     Export source data to chunked parquet file using chunk size and offsets.
@@ -331,28 +336,30 @@ def _source_chunk_to_parquet(
 
     # add cytotable metadata columns
     cytotable_metadata_cols = [
-            (
-                f"CAST( '{source_path_str}' "
-                f"AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path']})"
-                ' AS "cytotable_meta_source_path"'
-            ),
-            f"CAST( {offset} AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset']}) AS \"cytotable_meta_offset\"",
-            (
-                f"CAST( (row_number() OVER ()) AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum']})"
-                ' AS "cytotable_meta_rownum"'
-            ),
-        ]
+        (
+            f"CAST( '{source_path_str}' "
+            f"AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path']})"
+            ' AS "cytotable_meta_source_path"'
+        ),
+        f"CAST( {offset} AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset']}) AS \"cytotable_meta_offset\"",
+        (
+            f"CAST( (row_number() OVER ()) AS {CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum']})"
+            ' AS "cytotable_meta_rownum"'
+        ),
+    ]
     # add source table columns
     casted_source_cols = [
-            # here we cast the column to the specified type ensure the colname remains the same
-            f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
-            for column in source["columns"]
-        ]
+        # here we cast the column to the specified type ensure the colname remains the same
+        f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
+        for column in source["columns"]
+    ]
 
     # create selection statement from lists above
     select_columns = ",".join(
         # if we should sort the output, add the metadata_cols
-        cytotable_metadata_cols + casted_source_cols if sort_output else casted_source_cols
+        cytotable_metadata_cols + casted_source_cols
+        if sort_output
+        else casted_source_cols
     )
 
     # build output query and filepath base
@@ -382,6 +389,11 @@ def _source_chunk_to_parquet(
                     ORDER BY ALL
                     LIMIT {chunk_size} OFFSET {offset}
                     """
+                    if sort_output
+                    else f"""
+                    {base_query}
+                    LIMIT {chunk_size} OFFSET {offset}
+                    """
                 ).arrow(),
                 where=result_filepath,
             )
@@ -405,6 +417,7 @@ def _source_chunk_to_parquet(
                     chunk_size=chunk_size,
                     offset=offset,
                     add_cytotable_meta=True if sort_output else False,
+                    sort_output=sort_output,
                 ),
                 where=result_filepath,
             )
@@ -1147,7 +1160,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 **{
                     "columns": _prep_cast_column_data_types(
                         columns=_get_table_columns_and_types(
-                            source=source,
+                            source=source, sort_output=sort_output
                         ),
                         data_type_cast_map=data_type_cast_map,
                     )
@@ -1173,7 +1186,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                                 chunk_size=chunk_size,
                                 offset=offset,
                                 dest_path=expanded_dest_path,
-                                sort_output=sort_output
+                                sort_output=sort_output,
                             ),
                             source_group_name=source_group_name,
                             identifying_columns=identifying_columns,

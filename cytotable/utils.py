@@ -171,6 +171,7 @@ def _sqlite_mixed_type_query_to_parquet(
     table_name: str,
     chunk_size: int,
     offset: int,
+    sort_output: bool,
     add_cytotable_meta: bool = False,
 ) -> str:
     """
@@ -187,6 +188,8 @@ def _sqlite_mixed_type_query_to_parquet(
             Row count to use for chunked output.
         offset: int:
             The offset for chunking the data from source.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
         add_cytotable_meta: bool, default=False:
             Whether to add CytoTable metadata fields or not
 
@@ -281,7 +284,7 @@ def _sqlite_mixed_type_query_to_parquet(
             ]
 
         # perform the select using the cases built above and using chunksize + offset
-        cursor.execute(
+        sql_stmt = (
             f"""
             SELECT
                 {', '.join(query_parts)}
@@ -289,7 +292,17 @@ def _sqlite_mixed_type_query_to_parquet(
             ORDER BY {', '.join([col['column_name'] for col in column_info])}
             LIMIT {chunk_size} OFFSET {offset};
             """
+            if sort_output
+            else f"""
+            SELECT
+                {', '.join(query_parts)}
+            FROM {table_name}
+            LIMIT {chunk_size} OFFSET {offset};
+            """
         )
+
+        # execute the sql stmt
+        cursor.execute(sql_stmt)
         # collect the results and include the column name with values
         results = [
             dict(zip([desc[0] for desc in cursor.description], row))

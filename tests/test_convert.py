@@ -404,7 +404,7 @@ def test_prepare_join_sql(
                         cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
                         AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
                     """,
-                sort_output=True
+                sort_output=True,
             ).result()
         ).df()
 
@@ -639,7 +639,7 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
-            sort_output=True
+            sort_output=True,
         ),
     )
 
@@ -1027,6 +1027,7 @@ def test_sqlite_mixed_type_query_to_parquet(
                     table_name=table_name,
                     chunk_size=2,
                     offset=0,
+                    sort_output=True,
                 ),
                 where=result_filepath,
             )
