@@ -21,6 +21,7 @@ from parsl.app.app import python_app
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
+from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
@@ -367,7 +368,7 @@ def test_prepare_join_sql(
     example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
-    Tests _prepare_join_sql
+    Tests _prepare_join_sql by using sources to run the SQL join statement.
 
     After running _prepare_join_sql we'd expect something like:
         SELECT
@@ -384,31 +385,54 @@ def test_prepare_join_sql(
 
     # attempt to run query against prepared_join_sql with test data
     with _duckdb_reader() as ddb_reader:
-        result = (
-            ddb_reader.execute(
-                _prepare_join_sql(
-                    sources=example_local_sources,
-                    # simplified join for example dataset
-                    joins="""
+        result = ddb_reader.execute(
+            _prepare_join_sql(
+                sources=example_local_sources,
+                # simplified join for example dataset
+                joins="""
                     SELECT
-                        *
+                        image.ImageNumber,
+                        cytoplasm.*,
+                        cells.*,
+                        nuclei.*
                     FROM
-                        read_parquet('image.parquet') AS image
-                    LEFT JOIN read_parquet('cytoplasm.parquet') AS cytoplasm ON
-                        cytoplasm.ImageNumber = image.ImageNumber
-                    LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                        cells.ImageNumber = cytoplasm.ImageNumber
-                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                        nuclei.ImageNumber = cytoplasm.ImageNumber
+                        read_parquet('cytoplasm.parquet') AS cytoplasm
+                    LEFT JOIN read_parquet('cells.parquet') AS cells USING (ImageNumber)
+                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei USING (ImageNumber)
+                    LEFT JOIN read_parquet('image.parquet') AS image USING (ImageNumber)
+                    WHERE
+                        cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+                        AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
                     """,
-                ).result()
-            )
-            .arrow()
-            .to_pydict()
-        )
+                sort_output=True,
+            ).result()
+        ).df()
 
-    # check that we received data back
-    assert len(result) == 9
+    # check that we received expected data back
+    assert result.shape == (4, 21)
+    assert result.iloc[0].to_dict() == {
+        "ImageNumber": "1",
+        "ImageNumber_1": "1",
+        "Cytoplasm_ObjectNumber": 1,
+        "Cytoplasm_Parent_Cells": 1,
+        "Cytoplasm_Parent_Nuclei": 1,
+        "Cytoplasm_Feature_X": 0.1,
+        "cytotable_meta_source_path": "cytoplasm.csv",
+        "cytotable_meta_offset": 50,
+        "cytotable_meta_rownum": 1,
+        "ImageNumber_2": "1",
+        "Cells_ObjectNumber": 1,
+        "Cells_Feature_Y": 0.01,
+        "cytotable_meta_source_path_1": "cells.csv",
+        "cytotable_meta_offset_1": 50,
+        "cytotable_meta_rownum_1": 1,
+        "ImageNumber_3": "1",
+        "Nuclei_ObjectNumber": 1,
+        "Nuclei_Feature_Z": 0.001,
+        "cytotable_meta_source_path_2": "nuclei_1.csv",
+        "cytotable_meta_offset_2": 50,
+        "cytotable_meta_rownum_2": 1,
+    }
 
 
 def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
@@ -448,10 +472,8 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
         dest_path=f"{fx_tempdir}/destination.parquet",
         joins=f"""
             SELECT *
-            FROM read_parquet('{fx_tempdir}/example_a_merged.parquet') as example_a
-            JOIN read_parquet('{fx_tempdir}/example_b_merged.parquet') as example_b ON
-                example_b.id1 = example_a.id1
-                AND example_b.id2 = example_a.id2
+            FROM read_parquet('{test_path_a}') as example_a
+            JOIN read_parquet('{test_path_b}') as example_b USING(id1, id2)
         """,
         chunk_size=2,
         offset=0,
@@ -464,10 +486,10 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
     assert result_table.equals(
         other=pa.Table.from_pydict(
             {
-                "field1": ["foo", "foo"],
-                "field2": [True, True],
-                "id1": [1, 1],
-                "id2": ["a", "b"],
+                "field1": ["foo", "bar"],
+                "field2": [True, False],
+                "id1": [1, 2],
+                "id2": ["a", "a"],
             },
             # use schema from result as a reference for col order
             schema=result_table.schema,
@@ -617,6 +639,65 @@ def test_to_parquet(
             chunk_size=4,
             infer_common_schema=False,
             drop_null=True,
+            sort_output=True,
+        ),
+    )
+
+    flattened_results = list(itertools.chain(*list(result.values())))
+    for i, flattened_result in enumerate(flattened_results):
+        csv_source = (
+            _duckdb_reader()
+            .execute(
+                f"""
+                select * from
+                read_csv_auto('{str(flattened_example_sources[i]["source_path"])}',
+                ignore_errors=TRUE)
+                """
+            )
+            .arrow()
+        )
+        parquet_result = parquet.ParquetDataset(
+            path_or_paths=flattened_result["table"],
+            # set the order of the columns uniformly for schema comparison
+            schema=csv_source.schema,
+        ).read()
+        assert parquet_result.schema.equals(csv_source.schema)
+        assert parquet_result.shape == csv_source.shape
+
+
+def test_to_parquet_unsorted(
+    load_parsl_default: None,
+    fx_tempdir: str,
+    example_local_sources: Dict[str, List[Dict[str, Any]]],
+):
+    """
+    Tests _to_parquet with sort_output == False (unsorted)
+    """
+
+    flattened_example_sources = list(
+        itertools.chain(*list(example_local_sources.values()))
+    )
+
+    # note: we cast here for mypy linting (dict and str treatment differ)
+    result: Dict[str, List[Dict[str, Any]]] = cast(
+        dict,
+        _to_parquet(
+            source_path=str(
+                example_local_sources["image.csv"][0]["source_path"].parent
+            ),
+            dest_path=fx_tempdir,
+            source_datatype=None,
+            compartments=["cytoplasm", "cells", "nuclei"],
+            metadata=["image"],
+            identifying_columns=["imagenumber"],
+            concat=False,
+            join=False,
+            joins=None,
+            chunk_columns=None,
+            chunk_size=4,
+            infer_common_schema=False,
+            drop_null=True,
+            sort_output=False,
         ),
     )
 
@@ -1004,6 +1085,7 @@ def test_sqlite_mixed_type_query_to_parquet(
                     table_name=table_name,
                     chunk_size=2,
                     offset=0,
+                    sort_output=True,
                 ),
                 where=result_filepath,
             )
@@ -1048,6 +1130,12 @@ def test_sqlite_mixed_type_query_to_parquet(
         "Tbl_a_col_text": ["sample", "sample"],
         "Tbl_a_col_blob": [b"another_blob", b"sample_blob"],
         "Tbl_a_col_real": [None, 0.5],
+        "cytotable_meta_source_path": [
+            f"{pathlib.Path(fx_tempdir).resolve()}/example_mixed_types.sqlite_table_tbl_a",
+            f"{pathlib.Path(fx_tempdir).resolve()}/example_mixed_types.sqlite_table_tbl_a",
+        ],
+        "cytotable_meta_offset": [0, 0],
+        "cytotable_meta_rownum": [2, 1],
     }
 
 
@@ -1157,6 +1245,15 @@ def test_in_carta_to_parquet(
             cast(list, cytotable_result[list(cast(dict, cytotable_result).keys())[0]])[
                 0
             ]["table"][0]
+        )
+
+        # drop cytotable metadata columns for comparisons (example sources won't contain these)
+        cytotable_result_table = cytotable_result_table.select(
+            [
+                column
+                for column in cytotable_result_table.column_names
+                if column not in CYOTABLE_META_COLUMN_TYPES
+            ]
         )
 
         # check the data against one another

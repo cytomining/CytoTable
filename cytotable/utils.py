@@ -171,6 +171,8 @@ def _sqlite_mixed_type_query_to_parquet(
     table_name: str,
     chunk_size: int,
     offset: int,
+    sort_output: bool,
+    add_cytotable_meta: bool = False,
 ) -> str:
     """
     Performs SQLite table data extraction where one or many
@@ -186,6 +188,10 @@ def _sqlite_mixed_type_query_to_parquet(
             Row count to use for chunked output.
         offset: int:
             The offset for chunking the data from source.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
+        add_cytotable_meta: bool, default=False:
+            Whether to add CytoTable metadata fields or not
 
     Returns:
         pyarrow.Table:
@@ -195,7 +201,10 @@ def _sqlite_mixed_type_query_to_parquet(
 
     import pyarrow as pa
 
-    from cytotable.constants import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
+    from cytotable.constants import (
+        CYOTABLE_META_COLUMN_TYPES,
+        SQLITE_AFFINITY_DATA_TYPE_SYNONYMS,
+    )
     from cytotable.exceptions import DatatypeException
 
     # open sqlite3 connection
@@ -207,7 +216,7 @@ def _sqlite_mixed_type_query_to_parquet(
         # See the following for more information:
         # https://sqlite.org/pragma.html#pragma_table_info
         cursor.execute(
-            f"""
+            """
             SELECT :table_name as table_name,
                     name as column_name,
                     type as column_type
@@ -255,15 +264,45 @@ def _sqlite_mixed_type_query_to_parquet(
             for col in column_info
         ]
 
+        if add_cytotable_meta:
+            query_parts += [
+                (
+                    f"CAST( '{f'{source_path}_table_{table_name}'}' "
+                    f"AS {_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path'].lower())}) "
+                    "AS cytotable_meta_source_path"
+                ),
+                (
+                    f"CAST( {offset} "
+                    f"AS {_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset'].lower())}) "
+                    "AS cytotable_meta_offset"
+                ),
+                (
+                    f"CAST( (ROW_NUMBER() OVER ()) AS "
+                    f"{_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum'].lower())}) "
+                    "AS cytotable_meta_rownum"
+                ),
+            ]
+
         # perform the select using the cases built above and using chunksize + offset
-        cursor.execute(
+        sql_stmt = (
             f"""
-            SELECT {', '.join(query_parts)}
+            SELECT
+                {', '.join(query_parts)}
             FROM {table_name}
             ORDER BY {', '.join([col['column_name'] for col in column_info])}
             LIMIT {chunk_size} OFFSET {offset};
             """
+            if sort_output
+            else f"""
+            SELECT
+                {', '.join(query_parts)}
+            FROM {table_name}
+            LIMIT {chunk_size} OFFSET {offset};
+            """
         )
+
+        # execute the sql stmt
+        cursor.execute(sql_stmt)
         # collect the results and include the column name with values
         results = [
             dict(zip([desc[0] for desc in cursor.description], row))
