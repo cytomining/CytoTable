@@ -59,9 +59,7 @@ def test_convert_tpe_cellprofiler_csv(
 
 
 def test_convert_s3_path_csv(
-    load_parsl_threaded: None,
-    fx_tempdir: str,
-    example_s3_path_csv_jump: str
+    load_parsl_threaded: None, fx_tempdir: str, example_s3_path_csv_jump: str
 ):
     """
     Tests convert with mocked csv s3 object storage endpoint

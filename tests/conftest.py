@@ -639,6 +639,7 @@ def example_sqlite_mixed_types_database(
         # after completing the tests, remove the file
         pathlib.Path(filepath).unlink()
 
+
 @pytest.fixture(name="example_s3_path_csv_jump")
 def fixture_example_s3_path_csv_jump() -> int:
     """
@@ -649,6 +650,7 @@ def fixture_example_s3_path_csv_jump() -> int:
         "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/"
         "workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/"
     )
+
 
 @pytest.fixture(scope="session", name="example_s3_path_sqlite_jump")
 def fixture_example_s3_path() -> int:
