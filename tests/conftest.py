@@ -24,6 +24,7 @@ from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 from sqlalchemy.util import deprecations
 
+from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 
 # filters sqlalchemy 2.0 uber warning
@@ -211,13 +212,25 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Image_Metadata_Plate": pa.array(["001", "001", "002", "002"]),
             "Image_Metadata_Well": pa.array(["A1", "A1", "A2", "A2"]),
+            "cytotable_meta_source_path": pa.array(
+                ["image.csv", "image.csv", "image.csv", "image.csv"]
+            ),
+            "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
+            "cytotable_meta_rownum": pa.array([1, 2, 3, 4]),
         }
     )
     table_cytoplasm = pa.Table.from_pydict(
         {
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Cytoplasm_ObjectNumber": pa.array([1, 2, 1, 2]),
+            "Cytoplasm_Parent_Cells": pa.array([1, 2, 1, 2]),
+            "Cytoplasm_Parent_Nuclei": pa.array([1, 2, 1, 2]),
             "Cytoplasm_Feature_X": pa.array([0.1, 0.2, 0.1, 0.2]),
+            "cytotable_meta_source_path": pa.array(
+                ["cytoplasm.csv", "cytoplasm.csv", "cytoplasm.csv", "cytoplasm.csv"]
+            ),
+            "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
+            "cytotable_meta_rownum": pa.array([1, 2, 3, 4]),
         }
     )
     table_cells = pa.Table.from_pydict(
@@ -225,6 +238,11 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Cells_ObjectNumber": pa.array([1, 2, 1, 2]),
             "Cells_Feature_Y": pa.array([0.01, 0.02, 0.01, 0.02]),
+            "cytotable_meta_source_path": pa.array(
+                ["cells.csv", "cells.csv", "cells.csv", "cells.csv"]
+            ),
+            "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
+            "cytotable_meta_rownum": pa.array([1, 2, 3, 4]),
         }
     )
     table_nuclei_1 = pa.Table.from_pydict(
@@ -247,6 +265,9 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
                     0.002,
                 ]
             ),
+            "cytotable_meta_source_path": pa.array(["nuclei_1.csv", "nuclei_1.csv"]),
+            "cytotable_meta_offset": pa.array([50, 50]),
+            "cytotable_meta_rownum": pa.array([1, 2]),
         }
     )
 
@@ -255,6 +276,9 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
             "ImageNumber": pa.array(["2", "2"]),
             "Nuclei_ObjectNumber": pa.array([1, 2]),
             "Nuclei_Feature_Z": pa.array([0.001, 0.002]),
+            "cytotable_meta_source_path": pa.array(["nuclei_1.csv", "nuclei_1.csv"]),
+            "cytotable_meta_offset": pa.array([50, 50]),
+            "cytotable_meta_rownum": pa.array([1, 2]),
         }
     )
 
@@ -283,7 +307,18 @@ def fixture_example_local_sources(
             parents=True, exist_ok=True
         )
         # write example input
-        csv.write_csv(table, f"{fx_tempdir}/example/{number}/{name}.csv")
+        csv.write_csv(
+            # we remove simulated cytotable metadata columns to be more realistic
+            # (incoming sources would not usually contain these)
+            table.select(
+                [
+                    column
+                    for column in table.column_names
+                    if column not in CYOTABLE_META_COLUMN_TYPES
+                ]
+            ),
+            f"{fx_tempdir}/example/{number}/{name}.csv",
+        )
         # write example output
         parquet.write_table(
             table, f"{fx_tempdir}/example_dest/{name}/{number}/{name}.parquet"
@@ -348,13 +383,25 @@ def fixture_cellprofiler_merged_examplehuman(
         """
         return table.rename_columns(
             [
-                f"Metadata_{colname}"
-                if colname in ["ImageNumber", "ObjectNumber"]
-                else f"Metadata_{name}_{colname}"
-                if any(name in colname for name in ["Parent_Cells", "Parent_Nuclei"])
-                else f"{name}_{colname}"
-                if not (colname.startswith(name) or colname.startswith("Metadata_"))
-                else colname
+                (
+                    f"Metadata_{colname}"
+                    if colname in ["ImageNumber", "ObjectNumber"]
+                    else (
+                        f"Metadata_{name}_{colname}"
+                        if any(
+                            name in colname
+                            for name in ["Parent_Cells", "Parent_Nuclei"]
+                        )
+                        else (
+                            f"{name}_{colname}"
+                            if not (
+                                colname.startswith(name)
+                                or colname.startswith("Metadata_")
+                            )
+                            else colname
+                        )
+                    )
+                )
                 for colname in table.column_names
             ]
         )
@@ -440,22 +487,19 @@ def fixture_cellprofiler_merged_nf1data(
         .execute(
             """
             /* perform query on sqlite tables through duckdb */
-            WITH Per_Image_Filtered AS (
-                SELECT
-                    ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
-                FROM Per_Image
-            )
-            SELECT *
-            FROM Per_Image_Filtered image
-            LEFT JOIN Per_Cytoplasm cytoplasm ON
-                image.ImageNumber = cytoplasm.ImageNumber
-            LEFT JOIN Per_Cells cells ON
-                cells.ImageNumber = cytoplasm.ImageNumber
-                AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
-            LEFT JOIN Per_Nuclei nuclei ON
-                nuclei.ImageNumber = cytoplasm.ImageNumber
+            SELECT
+                image.ImageNumber,
+                image.Image_Metadata_Well,
+                image.Image_Metadata_Plate,
+                cytoplasm.*,
+                cells.*,
+                nuclei.*
+            FROM Per_Cytoplasm cytoplasm
+            LEFT JOIN Per_Cells cells USING (ImageNumber)
+            LEFT JOIN Per_Nuclei nuclei USING (ImageNumber)
+            LEFT JOIN Per_Image image USING (ImageNumber)
+            WHERE
+                cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
         """
         )
@@ -497,7 +541,7 @@ def fixture_cytominerdatabase_merged_cellhealth(
     """
 
     sql_stmt = """
-        WITH Image_Filtered AS (
+        WITH image_filtered AS (
             SELECT
                 TableNumber,
                 ImageNumber,
@@ -526,9 +570,9 @@ def fixture_cytominerdatabase_merged_cellhealth(
             FROM Nuclei
         )
         SELECT DISTINCT *
-        FROM Image_Filtered image
+        FROM image_filtered
         LEFT JOIN Cytoplasm_renamed cytoplasm ON
-            image.ImageNumber = cytoplasm.ImageNumber
+            image_filtered.ImageNumber = cytoplasm.ImageNumber
         LEFT JOIN Cells_renamed cells ON
             cells.ImageNumber = cytoplasm.ImageNumber
             AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells

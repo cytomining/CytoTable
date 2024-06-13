@@ -29,25 +29,19 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Image_Filtered AS (
-                SELECT
-                    /* seeks columns by name, avoiding failure if some do not exist */
-                    COLUMNS('^Metadata_ImageNumber$|^Image_Metadata_Well$|^Image_Metadata_Plate$')
-                FROM
-                    read_parquet('image.parquet')
-                )
             SELECT
-                *
+                image.Metadata_ImageNumber,
+                cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                cells.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber),
+                nuclei.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber)
             FROM
                 read_parquet('cytoplasm.parquet') AS cytoplasm
-            LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-                AND cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+            LEFT JOIN read_parquet('cells.parquet') AS cells USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('image.parquet') AS image USING (Metadata_ImageNumber)
+            WHERE
+                cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN Image_Filtered AS image ON
-                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
             """,
     },
     "cellprofiler_sqlite": {
@@ -74,26 +68,21 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Per_Image_Filtered AS (
-                SELECT
-                    Metadata_ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
-                FROM
-                    read_parquet('per_image.parquet')
-                )
             SELECT
-                *
+                per_image.Metadata_ImageNumber,
+                per_image.Image_Metadata_Well,
+                per_image.Image_Metadata_Plate,
+                per_cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                per_cells.* EXCLUDE (Metadata_ImageNumber),
+                per_nuclei.* EXCLUDE (Metadata_ImageNumber)
             FROM
                 read_parquet('per_cytoplasm.parquet') AS per_cytoplasm
-            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells ON
-                per_cells.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
-                AND per_cells.Cells_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Cells
-            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
-                per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
+            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('per_image.parquet') AS per_image USING (Metadata_ImageNumber)
+            WHERE
+                per_cells.Cells_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Cells
                 AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Nuclei
-            LEFT JOIN  Per_Image_Filtered AS per_image ON
-                per_image.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
             """,
     },
     "cellprofiler_sqlite_pycytominer": {
@@ -125,26 +114,21 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Per_Image_Filtered AS (
-                SELECT
-                    Metadata_ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
-                FROM
-                    read_parquet('per_image.parquet')
-                )
             SELECT
-                *
+                per_image.Metadata_ImageNumber,
+                per_image.Image_Metadata_Well,
+                per_image.Image_Metadata_Plate,
+                per_cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                per_cells.* EXCLUDE (Metadata_ImageNumber),
+                per_nuclei.* EXCLUDE (Metadata_ImageNumber)
             FROM
                 read_parquet('per_cytoplasm.parquet') AS per_cytoplasm
-            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells ON
-                per_cells.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
-                AND per_cells.Metadata_Cells_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei ON
-                per_nuclei.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
+            LEFT JOIN read_parquet('per_cells.parquet') AS per_cells USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('per_nuclei.parquet') AS per_nuclei USING (Metadata_ImageNumber)
+            LEFT JOIN read_parquet('per_image.parquet') AS per_image USING (Metadata_ImageNumber)
+            WHERE
+                per_cells.Metadata_Cells_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Cells
                 AND per_nuclei.Metadata_Nuclei_Number_Object_Number = per_cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN Per_Image_Filtered AS per_image ON
-                per_image.Metadata_ImageNumber = per_cytoplasm.Metadata_ImageNumber
             """,
     },
     "cell-health-cellprofiler-to-cytominer-database": {
@@ -178,30 +162,22 @@ config = {
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
         "CONFIG_JOINS": """
-            WITH Image_Filtered AS (
-                SELECT
-                    Metadata_TableNumber,
-                    Metadata_ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
-                FROM
-                    read_parquet('image.parquet')
-                )
             SELECT
-                *
+                image.Metadata_TableNumber,
+                image.Metadata_ImageNumber,
+                image.Image_Metadata_Well,
+                image.Image_Metadata_Plate,
+                cytoplasm.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber),
+                cells.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber),
+                nuclei.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber)
             FROM
                 read_parquet('cytoplasm.parquet') AS cytoplasm
-            LEFT JOIN read_parquet('cells.parquet') AS cells ON
-                cells.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
-                AND cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-                AND cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
-            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
-                nuclei.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
-                AND nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+            LEFT JOIN read_parquet('cells.parquet') AS cells USING (Metadata_TableNumber, Metadata_ImageNumber)
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei USING (Metadata_TableNumber, Metadata_ImageNumber)
+            LEFT JOIN read_parquet('image.parquet') AS image USING (Metadata_TableNumber, Metadata_ImageNumber)
+            WHERE
+                cells.Cells_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
                 AND nuclei.Nuclei_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-            LEFT JOIN  Image_Filtered AS image ON
-                image.Metadata_TableNumber = cytoplasm.Metadata_TableNumber
-                AND image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
         """,
     },
     "in-carta": {
