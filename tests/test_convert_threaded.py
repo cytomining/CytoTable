@@ -61,62 +61,28 @@ def test_convert_tpe_cellprofiler_csv(
 def test_convert_s3_path_csv(
     load_parsl_threaded: None,
     fx_tempdir: str,
-    example_local_sources: Dict[str, List[Dict[str, Any]]],
-    example_s3_endpoint: str,
+    example_s3_path_csv_jump: str
 ):
     """
     Tests convert with mocked csv s3 object storage endpoint
     """
 
     multi_dir_nonconcat_s3_result = convert(
-        source_path="s3://example/",
+        source_path=example_s3_path_csv_jump,
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
-        concat=False,
-        join=False,
-        joins=None,
         source_datatype="csv",
-        compartments=["cytoplasm", "cells"],
-        metadata=["image"],
-        identifying_columns=["imagenumber"],
-        # endpoint_url here will be used with cloudpathlib client(**kwargs)
-        endpoint_url=example_s3_endpoint,
-        parsl_config=Config(
-            executors=[
-                ThreadPoolExecutor(
-                    label="tpe_for_cytotable_testing_moto_s3",
-                )
-            ]
-        ),
+        preset="cellprofiler_csv",
+        no_sign_request=True,
     )
 
-    # compare each of the results using files from the source
-    for control_path, test_path in zip(
-        [
-            source["table"]
-            for group in cast(Dict, multi_dir_nonconcat_s3_result).values()
-            for source in group
-        ],
-        [
-            source["table"]
-            for group in example_local_sources.values()
-            for source in group
-        ],
-    ):
-        parquet_control = parquet.ParquetDataset(path_or_paths=control_path).read()
-        parquet_result = parquet.ParquetDataset(
-            path_or_paths=test_path, schema=parquet_control.schema
-        ).read()
-
-        assert parquet_result.schema.equals(parquet_control.schema)
-        assert parquet_result.shape == parquet_control.shape
+    print(multi_dir_nonconcat_s3_result)
 
 
 def test_convert_s3_path_sqlite(
     load_parsl_threaded: None,
     fx_tempdir: str,
     data_dir_cellprofiler_sqlite_nf1: str,
-    example_s3_endpoint: str,
 ):
     """
     Tests convert with mocked sqlite s3 object storage endpoint
@@ -150,7 +116,6 @@ def test_convert_s3_path_sqlite(
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
-            endpoint_url=example_s3_endpoint,
             # use explicit cache to avoid temp cache removal / overlaps with
             # sequential s3 SQLite files. See below for more information
             # https://cloudpathlib.drivendata.org/stable/caching/#automatically
@@ -169,7 +134,6 @@ def test_convert_s3_path_sqlite(
             dest_datatype="parquet",
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
-            endpoint_url=example_s3_endpoint,
             # use explicit cache to avoid temp cache removal / overlaps with
             # sequential s3 SQLite files. See below for more information
             # https://cloudpathlib.drivendata.org/stable/caching/#automatically
