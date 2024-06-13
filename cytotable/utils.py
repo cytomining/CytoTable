@@ -337,24 +337,21 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
             A local pathlib.Path to cached version of cloudpath file.
     """
 
-    candidate_path = AnyPath(path)
-
     # check that the path is a file (caching won't work with a dir)
     # and check that the file is of sqlite type
     # (other file types will be handled remotely in cloud)
-    if candidate_path.is_file() and candidate_path.suffix.lower() == ".sqlite":
+    if path.is_file() and path.suffix.lower() == ".sqlite" and isinstance(path, CloudPath):
         try:
             # update the path to be the local filepath for reference in CytoTable ops
             # note: incurs a data read which will trigger caching of the file
-            path = CloudPath(path).fspath
+            path = path.fspath
         except InvalidPrefixError:
             # share information about not finding a cloud path
             logger.info(
                 "Did not detect a cloud path based on prefix. Defaulting to use local path operations."
             )
 
-    # cast the result as a pathlib.Path
-    return pathlib.Path(path)
+    return path
 
 
 def _arrow_type_cast_if_specified(

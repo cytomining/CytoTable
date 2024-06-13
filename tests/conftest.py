@@ -692,7 +692,7 @@ def fixture_example_s3_path_csv_jump() -> int:
 
     return (
         "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/"
-        "workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/"
+        "workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1"
     )
 
 

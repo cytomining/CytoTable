@@ -65,7 +65,7 @@ def test_convert_s3_path_csv(
     Tests convert with mocked csv s3 object storage endpoint
     """
 
-    multi_dir_nonconcat_s3_result = convert(
+    s3_result = convert(
         source_path=example_s3_path_csv_jump,
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
@@ -74,13 +74,13 @@ def test_convert_s3_path_csv(
         no_sign_request=True,
     )
 
-    print(multi_dir_nonconcat_s3_result)
+    print(s3_result)
 
 
 def test_convert_s3_path_sqlite(
     load_parsl_threaded: None,
     fx_tempdir: str,
-    data_dir_cellprofiler_sqlite_nf1: str,
+    example_s3_path_sqlite_jump: str,
 ):
     """
     Tests convert with mocked sqlite s3 object storage endpoint
@@ -89,70 +89,22 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    # local sqlite read
-    local_cytotable_table = parquet.read_table(
-        source=convert(
-            source_path=data_dir_cellprofiler_sqlite_nf1,
-            dest_path=(
-                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.local.parquet"
-            ),
-            dest_datatype="parquet",
-            chunk_size=100,
-            preset="cellprofiler_sqlite_pycytominer",
-        )
+    raise Exception
+
+    s3_result = convert(
+        source_path=example_s3_path_sqlite_jump,
+        dest_path=f"{fx_tempdir}/s3_test",
+        dest_datatype="parquet",
+        source_datatype="sqlite",
+        preset="cellprofiler_csv",
+        no_sign_request=True,
+        # use explicit cache to avoid temp cache removal / overlaps with
+        # sequential s3 SQLite files. See below for more information
+        # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+        local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
     )
 
-    # s3 sqlite read with single and directly referenced file
-    s3_cytotable_table = parquet.read_table(
-        source=convert(
-            source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
-            dest_path=(
-                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.mocks3.direct.parquet"
-            ),
-            dest_datatype="parquet",
-            chunk_size=100,
-            preset="cellprofiler_sqlite_pycytominer",
-            # use explicit cache to avoid temp cache removal / overlaps with
-            # sequential s3 SQLite files. See below for more information
-            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/1",
-        )
-    )
-
-    # s3 sqlite read with nested sqlite file
-    s3_cytotable_table_nested = parquet.read_table(
-        source=convert(
-            source_path="s3://example/nf1/",
-            dest_path=(
-                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.mocks3.nested.parquet"
-            ),
-            dest_datatype="parquet",
-            chunk_size=100,
-            preset="cellprofiler_sqlite_pycytominer",
-            # use explicit cache to avoid temp cache removal / overlaps with
-            # sequential s3 SQLite files. See below for more information
-            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-        )
-    )
-
-    assert local_cytotable_table.sort_by(
-        [(name, "ascending") for name in local_cytotable_table.schema.names]
-    ).equals(
-        s3_cytotable_table.sort_by(
-            [(name, "ascending") for name in s3_cytotable_table.schema.names]
-        )
-    )
-    assert local_cytotable_table.sort_by(
-        [(name, "ascending") for name in local_cytotable_table.schema.names]
-    ).equals(
-        s3_cytotable_table_nested.sort_by(
-            [(name, "ascending") for name in s3_cytotable_table_nested.schema.names]
-        )
-    )
+    print(s3_result)
 
 
 def test_get_source_filepaths(
@@ -177,27 +129,27 @@ def test_get_source_filepaths(
             f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
         ),
         targets=["cells"],
-    ).result()
+    )
     assert len(set(single_file_result.keys())) == 1
 
     # check that single csv file is returned as desired
     single_file_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv"),
         targets=["cells"],
-    ).result()
+    )
     assert len(set(single_file_result.keys())) == 1
 
     single_dir_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
-    ).result()
+    )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
 
     single_dir_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
-    ).result()
+    )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
 

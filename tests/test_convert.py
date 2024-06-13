@@ -45,7 +45,6 @@ from cytotable.utils import (
     evaluate_futures,
 )
 
-
 def test_config():
     """
     Tests config to ensure proper values
@@ -594,17 +593,17 @@ def test_infer_source_datatype(
         "sample_1.csv": [{"source_path": "stub"}],
         "sample_2.CSV": [{"source_path": "stub"}],
     }
-    assert _infer_source_datatype(sources=data).result() == "csv"
+    assert _infer_source_datatype(sources=data) == "csv"
     with pytest.raises(Exception):
-        _infer_source_datatype(sources=data, source_datatype="parquet").result()
+        _infer_source_datatype(sources=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
     assert (
-        _infer_source_datatype(sources=data, source_datatype="parquet").result()
+        _infer_source_datatype(sources=data, source_datatype="parquet")
         == "parquet"
     )
     with pytest.raises(Exception):
-        _infer_source_datatype(sources=data).result()
+        _infer_source_datatype(sources=data)
 
 
 def test_to_parquet(
