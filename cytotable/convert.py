@@ -1114,7 +1114,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             else []
         ),
         **kwargs,
-    ).result()
+    )
 
     # expand the destination path
     expanded_dest_path = _expand_path(path=dest_path)

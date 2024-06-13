@@ -265,7 +265,6 @@ def _filter_source_filepaths(
     }
 
 
-@join_app
 def _gather_sources(
     source_path: str,
     source_datatype: Optional[str] = None,
@@ -295,17 +294,17 @@ def _gather_sources(
         _infer_source_datatype,
     )
 
-    source_path = _build_path(path=source_path, **kwargs)
+    source_path = _build_path(path=source_path, **kwargs).result()
 
     # gather filepaths which will be used as the basis for this work
     sources = _get_source_filepaths(
         path=source_path, targets=targets, source_datatype=source_datatype
-    )
+    ).result()
 
     # infer or validate the source datatype based on source filepaths
     source_datatype = _infer_source_datatype(
         sources=sources, source_datatype=source_datatype
-    )
+    ).result()
 
     # filter source filepaths to inferred or source datatype
-    return _filter_source_filepaths(sources=sources, source_datatype=source_datatype)
+    return _filter_source_filepaths(sources=sources, source_datatype=source_datatype).result()
