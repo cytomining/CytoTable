@@ -69,5 +69,5 @@ filterwarnings = [
   "ignore::DeprecationWarning:cytominer_database",
 ]
 markers = [
-    "large_data_test: tests which involve the use of large data.')",
+    "large_data_tests: tests which involve the use of large data.",
 ]

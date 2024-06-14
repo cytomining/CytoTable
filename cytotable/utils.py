@@ -348,7 +348,7 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
         try:
             # update the path to be the local filepath for reference in CytoTable ops
             # note: incurs a data read which will trigger caching of the file
-            path = path.fspath
+            path = pathlib.Path(path.fspath)
         except InvalidPrefixError:
             # share information about not finding a cloud path
             logger.info(
