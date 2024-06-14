@@ -340,7 +340,11 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
     # check that the path is a file (caching won't work with a dir)
     # and check that the file is of sqlite type
     # (other file types will be handled remotely in cloud)
-    if path.is_file() and path.suffix.lower() == ".sqlite" and isinstance(path, CloudPath):
+    if (
+        path.is_file()
+        and path.suffix.lower() == ".sqlite"
+        and isinstance(path, CloudPath)
+    ):
         try:
             # update the path to be the local filepath for reference in CytoTable ops
             # note: incurs a data read which will trigger caching of the file

@@ -7,8 +7,9 @@ import pathlib
 from typing import Any, Dict, List, Optional, Union
 
 from cloudpathlib import AnyPath
-from parsl.app.app import join_app, python_app
+
 from cytotable.exceptions import NoInputDataException
+
 
 def _build_path(
     path: Union[str, pathlib.Path, AnyPath], **kwargs
@@ -99,6 +100,8 @@ def _get_source_filepaths(
             or subpath.suffix.lower() == ".sqlite"
         )
     ]
+
+    print(sources)
 
     # expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []
@@ -257,43 +260,42 @@ def _filter_source_filepaths(
             # ensure the datatype matches the source datatype
             and file["source_path"].suffix == f".{source_datatype}"
             and _file_is_more_than_one_line(path=file["source_path"])
-            
         ]
         for filegroup, files in sources.items()
     }
 
+
 def _file_is_more_than_one_line(path: Union[pathlib.Path, AnyPath]) -> bool:
-        """
-        Check if the file has more than one line.
+    """
+    Check if the file has more than one line.
 
-        Args:
-            path (Union[pathlib.Path, AnyPath]):
-                The path to the file.
+    Args:
+        path (Union[pathlib.Path, AnyPath]):
+            The path to the file.
 
-        Returns:
-            bool:
-                True if the file has more than one line, False otherwise.
+    Returns:
+        bool:
+            True if the file has more than one line, False otherwise.
 
-        Raises:
-            NoInputDataException: If the file has zero lines.
-        """
+    Raises:
+        NoInputDataException: If the file has zero lines.
+    """
 
-        # if we don't have a sqlite file
-        # (we can't check sqlite files for lines)
-        if path.suffix.lower() != ".sqlite":
-            with path.open('r') as f:
+    # if we don't have a sqlite file
+    # (we can't check sqlite files for lines)
+    if path.suffix.lower() != ".sqlite":
+        with path.open("r") as f:
+            try:
+                # read two lines, if the second is empty return false
+                return bool(f.readline() and f.readline())
 
-                try:
-                    # read two lines, if the second is empty return false
-                    return bool(f.readline() and f.readline())
-
-                except StopIteration:
-                    # If we encounter the end of the file, it has only one line
-                    raise NoInputDataException(
-                        f"Data file has 0 rows of values. Error in file: {path}"
-                    )
-        else:
-            return True
+            except StopIteration:
+                # If we encounter the end of the file, it has only one line
+                raise NoInputDataException(
+                    f"Data file has 0 rows of values. Error in file: {path}"
+                )
+    else:
+        return True
 
 
 def _gather_sources(

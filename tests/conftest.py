@@ -6,11 +6,9 @@ conftest.py for pytest
 
 import pathlib
 import shutil
-import socket
 import sqlite3
 import subprocess
 import tempfile
-from contextlib import closing
 from typing import Any, Dict, Generator, List, Tuple
 
 import duckdb
@@ -87,9 +85,11 @@ def fixture_get_tempdir() -> Generator:
 
     tmpdir = tempfile.mkdtemp()
 
+
+
     yield tmpdir
 
-    shutil.rmtree(path=tmpdir, ignore_errors=True)
+    # shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 @pytest.fixture(name="data_dir_cellprofiler")

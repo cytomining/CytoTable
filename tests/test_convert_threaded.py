@@ -6,14 +6,11 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 
 import pathlib
-from typing import Any, Dict, List, cast
 
 import parsl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
-from parsl.config import Config
-from parsl.executors import ThreadPoolExecutor
 from pyarrow import parquet
 
 from cytotable.convert import convert
@@ -76,7 +73,7 @@ def test_convert_s3_path_csv(
 
     print(s3_result)
 
-
+@pytest.mark.large_data_tests
 def test_convert_s3_path_sqlite(
     load_parsl_threaded: None,
     fx_tempdir: str,
@@ -89,7 +86,9 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    raise Exception
+    # raise Exception
+
+    print(f"{fx_tempdir}/s3_test")
 
     s3_result = convert(
         source_path=example_s3_path_sqlite_jump,

@@ -68,3 +68,6 @@ filterwarnings = [
   "ignore::DeprecationWarning:pkg_resources",
   "ignore::DeprecationWarning:cytominer_database",
 ]
+markers = [
+    "large_data_test: tests which involve the use of large data.')",
+]

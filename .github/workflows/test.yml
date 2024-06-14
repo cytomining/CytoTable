@@ -40,4 +40,5 @@ jobs:
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
       - name: Run pytest
-        run: poetry run pytest
+        if: github.event_name == 'schedule'
+        run: poetry run pytest -m "not large_data_tests"

@@ -46,8 +46,8 @@ def _get_table_columns_and_types(
     import pathlib
 
     import duckdb
-
     from cloudpathlib import AnyPath
+
     from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
     source_path = source["source_path"]
@@ -210,12 +210,10 @@ def _get_table_chunk_offsets(
     import pathlib
 
     import duckdb
-    from cloudpathlib import AnyPath
+    from cloudpathlib import AnyPath, CloudPath
 
     from cytotable.exceptions import NoInputDataException
     from cytotable.utils import _duckdb_reader
-
-    from cloudpathlib import CloudPath
 
     logger = logging.getLogger(__name__)
 

@@ -45,6 +45,7 @@ from cytotable.utils import (
     evaluate_futures,
 )
 
+
 def test_config():
     """
     Tests config to ensure proper values
@@ -598,10 +599,7 @@ def test_infer_source_datatype(
         _infer_source_datatype(sources=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
-    assert (
-        _infer_source_datatype(sources=data, source_datatype="parquet")
-        == "parquet"
-    )
+    assert _infer_source_datatype(sources=data, source_datatype="parquet") == "parquet"
     with pytest.raises(Exception):
         _infer_source_datatype(sources=data)
 
