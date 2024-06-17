@@ -71,7 +71,7 @@ def test_convert_s3_path_csv(
         no_sign_request=True,
     )
 
-    print(s3_result)
+    print(parquet.read_table(s3_result).shape)
 
 
 @pytest.mark.large_data_tests
@@ -86,8 +86,6 @@ def test_convert_s3_path_sqlite(
     Note: we use a dedicated tmpdir for work in this test to avoid
     race conditions with nested pytest fixture post-yield deletions.
     """
-
-    # raise Exception
 
     print(f"{fx_tempdir}/s3_test")
 
@@ -105,7 +103,7 @@ def test_convert_s3_path_sqlite(
         local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
     )
 
-    print(s3_result)
+    print(parquet.read_table(s3_result).shape)
 
 
 def test_get_source_filepaths(
