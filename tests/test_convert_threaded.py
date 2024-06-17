@@ -96,7 +96,8 @@ def test_convert_s3_path_sqlite(
         dest_datatype="parquet",
         source_datatype="sqlite",
         preset="cellprofiler_csv",
-        chunk_size=100000,
+        chunk_size=5000,
+        preset="cellprofiler_sqlite_cpg0016_jump",
         no_sign_request=True,
         # use explicit cache to avoid temp cache removal / overlaps with
         # sequential s3 SQLite files. See below for more information
