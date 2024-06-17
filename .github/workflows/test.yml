@@ -3,7 +3,7 @@ name: run tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, move-to-real-s3-tests]
   pull_request:
     branches: [main]
   schedule:
@@ -46,5 +46,5 @@ jobs:
         # run large data tests every Tuesday
         # to conserve resources and verify large data handling
       - name: Run pytest for large data tests
-        if: github.event.schedule == "0 7 * * 2"
+        if: github.event.schedule == "0 7 * * 2" || github.ref == 'refs/heads/move-to-real-s3-tests'
         run: poetry run pytest -m "large_data_tests"
