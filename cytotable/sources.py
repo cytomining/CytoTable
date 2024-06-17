@@ -11,9 +11,7 @@ from cloudpathlib import AnyPath
 from cytotable.exceptions import NoInputDataException
 
 
-def _build_path(
-    path: Union[str, pathlib.Path, AnyPath], **kwargs
-) -> Union[pathlib.Path, AnyPath]:
+def _build_path(path: str, **kwargs) -> Union[pathlib.Path, AnyPath]:
     """
     Build a path client or return local path.
 
@@ -45,7 +43,7 @@ def _build_path(
 
 def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
-    targets: List[str],
+    targets: Optional[List[str]] = None,
     source_datatype: Optional[str] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -101,8 +99,6 @@ def _get_source_filepaths(
         )
     ]
 
-    print(sources)
-
     # expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []
     with _duckdb_reader() as ddb_reader:
@@ -130,7 +126,8 @@ def _get_source_filepaths(
                     .arrow()["table_name"]
                     .to_pylist()
                     # make sure the table names match with compartment + metadata names
-                    if any(target.lower() in table_name.lower() for target in targets)
+                    if targets is not None
+                    and any(target.lower() in table_name.lower() for target in targets)
                 ]
             else:
                 # if we don't have sqlite source, append the existing element
@@ -327,11 +324,11 @@ def _gather_sources(
         _infer_source_datatype,
     )
 
-    source_path = _build_path(path=source_path, **kwargs)
+    built_path = _build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
     sources = _get_source_filepaths(
-        path=source_path, targets=targets, source_datatype=source_datatype
+        path=built_path, targets=targets, source_datatype=source_datatype
     )
 
     # infer or validate the source datatype based on source filepaths

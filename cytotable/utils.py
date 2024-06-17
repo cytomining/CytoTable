@@ -322,7 +322,7 @@ def _sqlite_mixed_type_query_to_parquet(
     return pa.Table.from_pylist(results)
 
 
-def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
+def _cache_cloudpath_to_local(path: AnyPath) -> pathlib.Path:
     """
     Takes a cloudpath and uses cache to convert to a local copy
     for use in scenarios where remote work is not possible (sqlite).
@@ -341,9 +341,9 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
     # and check that the file is of sqlite type
     # (other file types will be handled remotely in cloud)
     if (
-        path.is_file()
+        isinstance(path, CloudPath)
+        and path.is_file()
         and path.suffix.lower() == ".sqlite"
-        and isinstance(path, CloudPath)
     ):
         try:
             # update the path to be the local filepath for reference in CytoTable ops

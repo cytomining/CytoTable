@@ -73,6 +73,7 @@ def test_convert_s3_path_csv(
 
     print(s3_result)
 
+
 @pytest.mark.large_data_tests
 def test_convert_s3_path_sqlite(
     load_parsl_threaded: None,
@@ -95,7 +96,6 @@ def test_convert_s3_path_sqlite(
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
         source_datatype="sqlite",
-        preset="cellprofiler_csv",
         chunk_size=5000,
         preset="cellprofiler_sqlite_cpg0016_jump",
         no_sign_request=True,
@@ -122,7 +122,7 @@ def test_get_source_filepaths(
         single_dir_result = _get_source_filepaths(
             path=empty_dir,
             targets=["image", "cells", "nuclei", "cytoplasm"],
-        ).result()
+        )
 
     # check that single sqlite file is returned as desired
     single_file_result = _get_source_filepaths(

@@ -85,11 +85,9 @@ def fixture_get_tempdir() -> Generator:
 
     tmpdir = tempfile.mkdtemp()
 
-
-
     yield tmpdir
 
-    # shutil.rmtree(path=tmpdir, ignore_errors=True)
+    shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 @pytest.fixture(name="data_dir_cellprofiler")
@@ -685,7 +683,7 @@ def example_sqlite_mixed_types_database(
 
 
 @pytest.fixture(name="example_s3_path_csv_jump")
-def fixture_example_s3_path_csv_jump() -> int:
+def fixture_example_s3_path_csv_jump() -> str:
     """
     Provides an example s3 endpoint for use with tests
     """
@@ -697,7 +695,7 @@ def fixture_example_s3_path_csv_jump() -> int:
 
 
 @pytest.fixture(scope="session", name="example_s3_path_sqlite_jump")
-def fixture_example_s3_path() -> int:
+def fixture_example_s3_path() -> str:
     """
     Provides an example s3 endpoint for use with tests
     """
