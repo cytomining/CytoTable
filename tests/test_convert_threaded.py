@@ -50,10 +50,7 @@ def test_convert_tpe_cellprofiler_csv(
 
     assert test_result.shape == control_result.shape
     assert test_result.equals(control_result)
-
-    # clean up the parsl config for other tests
-    parsl.clear()
-
+    
 
 def test_convert_s3_path_csv(
     load_parsl_threaded: None, fx_tempdir: str, example_s3_path_csv_jump: str
@@ -71,7 +68,7 @@ def test_convert_s3_path_csv(
         no_sign_request=True,
     )
 
-    print(parquet.read_table(s3_result).shape)
+    assert parquet.read_table(s3_result).shape == (109, 5794)
 
 
 @pytest.mark.large_data_tests
@@ -87,8 +84,6 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    print(f"{fx_tempdir}/s3_test")
-
     s3_result = convert(
         source_path=example_s3_path_sqlite_jump,
         dest_path=f"{fx_tempdir}/s3_test",
@@ -103,7 +98,7 @@ def test_convert_s3_path_sqlite(
         local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
     )
 
-    print(parquet.read_table(s3_result).shape)
+    assert parquet.read_table(s3_result).shape == (74226, 5928)
 
 
 def test_get_source_filepaths(
