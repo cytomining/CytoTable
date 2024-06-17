@@ -9,6 +9,8 @@ on:
   schedule:
     # runs every Wednesday at 7 AM UTC
     - cron: "0 7 * * 3"
+    # runs every Tuesady at 7 AM UTC
+    - cron: "0 7 * * 2"
 
 jobs:
   run_tests:
@@ -30,7 +32,7 @@ jobs:
       # remove poetry.lock file for scheduled tests
       # to help simulate possible upstream issues
       - name: Remove poetry.lock for scheduled tests
-        if: github.event_name == 'schedule'
+        if: github.event.schedule == "0 7 * * 3"
         run: |
           rm poetry.lock
       - name: Setup for poetry
@@ -40,5 +42,9 @@ jobs:
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
       - name: Run pytest
-        if: github.event_name == 'schedule'
         run: poetry run pytest -m "not large_data_tests"
+        # run large data tests every Tuesday
+        # to conserve resources and verify large data handling
+      - name: Run pytest for large data tests
+        if: github.event.schedule == "0 7 * * 2"
+        run: poetry run pytest -m "large_data_tests"
