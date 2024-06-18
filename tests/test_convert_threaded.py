@@ -7,7 +7,6 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 import pathlib
 
-import parsl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
@@ -50,7 +49,7 @@ def test_convert_tpe_cellprofiler_csv(
 
     assert test_result.shape == control_result.shape
     assert test_result.equals(control_result)
-    
+
 
 def test_convert_s3_path_csv(
     load_parsl_threaded: None, fx_tempdir: str, example_s3_path_csv_jump: str
@@ -68,7 +67,9 @@ def test_convert_s3_path_csv(
         no_sign_request=True,
     )
 
-    assert parquet.read_table(s3_result).shape == (109, 5794)
+    parquet_file_meta = parquet.ParquetFile(s3_result).metadata
+
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (109, 5794)
 
 
 @pytest.mark.large_data_tests
@@ -98,7 +99,9 @@ def test_convert_s3_path_sqlite(
         local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
     )
 
-    assert parquet.read_table(s3_result).shape == (74226, 5928)
+    parquet_file_meta = parquet.ParquetFile(s3_result).metadata
+
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (74226, 5928)
 
 
 def test_get_source_filepaths(
