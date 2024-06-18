@@ -162,6 +162,13 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         https://duckdb.org/docs/sql/configuration#configuration-reference
         */
         PRAGMA preserve_insertion_order=FALSE;
+
+        /*
+        Enable larger-than-memory data reads from in-memory duckdb connection
+        See the following for more information:
+        https://duckdb.org/docs/configuration/pragmas.html#temp-directory-for-spilling-data-to-disk
+        */
+        SET temp_directory = '.'; 
         """,
     )
 

@@ -62,4 +62,4 @@ jobs:
         if: >
           github.event.schedule == '0 7 * * 2' ||
            github.ref == 'refs/heads/move-to-real-s3-tests'
-        run: poetry run pytest -m "large_data_tests"
+        run: poetry run pytest -m "large_data_tests" -s
