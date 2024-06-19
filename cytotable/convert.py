@@ -811,21 +811,6 @@ def _join_source_chunk(
     ]
 
     with _duckdb_reader() as ddb_reader:
-        analyze_plan = ddb_reader.execute(
-            f"""
-            EXPLAIN ANALYZE
-            WITH joined AS (
-            {joins}
-            LIMIT {chunk_size} OFFSET {offset}
-            )
-            SELECT
-            /* exclude metadata columns from the results
-            by using a lambda on column names based on exclude_meta_cols. */
-            COLUMNS (c -> ({" AND ".join(exclude_meta_cols)}))
-            FROM joined;
-            """
-        ).fetchall()
-        print(analyze_plan[0][1])
         result = ddb_reader.execute(
             f"""
                 WITH joined AS (
