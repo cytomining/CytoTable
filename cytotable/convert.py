@@ -829,7 +829,7 @@ def _join_source_chunk(
     if drop_null:
         result = result.drop_null()
 
-    # account for duplicate column names from joins
+    """    # account for duplicate column names from joins
     cols = []
     # reversed order column check as col removals will change index order
     for i, colname in reversed(list(enumerate(result.column_names))):
@@ -840,7 +840,7 @@ def _join_source_chunk(
 
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
-    result = result.select(sorted(sorted(result.column_names), key=_column_sort))
+    result = result.select(sorted(sorted(result.column_names), key=_column_sort))"""
 
     result_file_path = (
         # store the result in the parent of the dest_path
