@@ -48,7 +48,7 @@ jobs:
       fail-fast: false
     runs-on: ubuntu-22.04
     env:
-      CYTOTABLE_DUCKDB_MEMORY_LIMIT: 10GB
+      CYTOTABLE_DUCKDB_MEMORY_LIMIT: 8GB
     steps:
       - name: Checkout
         uses: actions/checkout@v4
