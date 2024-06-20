@@ -139,7 +139,7 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
 
     import duckdb
 
-    from cytotable.constants import MAX_THREADS, CYTOTABLE_DUCKDB_MEMORY_LIMIT
+    from cytotable.constants import MAX_THREADS
 
     return duckdb.connect().execute(
         # note: we use an f-string here to
@@ -169,12 +169,7 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         https://duckdb.org/docs/configuration/pragmas.html#temp-directory-for-spilling-data-to-disk
         */
         SET temp_directory = '.'; 
-        """ + (f"""
-        /*
-        Set memory limit based on env variable
-        */
-        SET memory_limit = '{CYTOTABLE_DUCKDB_MEMORY_LIMIT}';       
-        """ if CYTOTABLE_DUCKDB_MEMORY_LIMIT != "None" else ""),
+        """,
     )
 
 
