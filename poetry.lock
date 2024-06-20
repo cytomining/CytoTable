@@ -825,6 +825,22 @@ files = [
 test = ["pytest (>=6)"]
 
 [[package]]
+name = "filelock"
+version = "3.15.3"
+description = "A platform independent file lock."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "filelock-3.15.3-py3-none-any.whl", hash = "sha256:0151273e5b5d6cf753a61ec83b3a9b7d8821c39ae9af9d7ecf2f9e2f17404103"},
+    {file = "filelock-3.15.3.tar.gz", hash = "sha256:e1199bf5194a2277273dacd50269f0d87d0682088a3c561c15674ea9005d8635"},
+]
+
+[package.extras]
+docs = ["furo (>=2023.9.10)", "sphinx (>=7.2.6)", "sphinx-autodoc-typehints (>=1.25.2)"]
+testing = ["covdefaults (>=2.3)", "coverage (>=7.3.2)", "diff-cover (>=8.0.1)", "pytest (>=7.4.3)", "pytest-asyncio (>=0.21)", "pytest-cov (>=4.1)", "pytest-mock (>=3.12)", "pytest-timeout (>=2.2)", "virtualenv (>=20.26.2)"]
+typing = ["typing-extensions (>=4.8)"]
+
+[[package]]
 name = "globus-sdk"
 version = "3.39.0"
 description = "Globus SDK for Python"
@@ -1613,17 +1629,18 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2024.3.18"
+version = "2024.6.17"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "parsl-2024.3.18-py3-none-any.whl", hash = "sha256:6a08884c0f296148bd77cc0b918aed2a71123e7ea8894a438caecc9b17fd43ae"},
-    {file = "parsl-2024.3.18.tar.gz", hash = "sha256:855065146720abc2aa467f43673f98bab3c7bbf4816218edf6f5d5029e19b0fd"},
+    {file = "parsl-2024.6.17-py3-none-any.whl", hash = "sha256:95cdbff3657efbe61d0b0dc501b10bd8d23b238d527e0a6327d58639d24f7e87"},
+    {file = "parsl-2024.6.17.tar.gz", hash = "sha256:78e31ec46dcb9f665c0b5c50090dbf755b8cddb43b2bc39d467e50ce9c7eabfc"},
 ]
 
 [package.dependencies]
 dill = "*"
+filelock = ">=3.13,<4"
 globus-sdk = "*"
 paramiko = "*"
 psutil = ">=5.5.1"
@@ -1635,7 +1652,7 @@ typeguard = ">=2.10,<3.dev0 || ==4.*"
 typing-extensions = ">=4.6,<5"
 
 [package.extras]
-all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "oauth-ssh (>=0.9)", "pandas (<2.2)", "plotly", "proxystore", "pydot", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
+all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "oauth-ssh (>=0.9)", "pandas (<2.2)", "plotly", "proxystore", "pydot", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.60)", "radical.utils (==1.60)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
 aws = ["boto3"]
 azure = ["azure (<=4)", "msrestazure"]
 docs = ["ipython (<=8.6.0)", "nbsphinx", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme"]
@@ -1646,7 +1663,7 @@ kubernetes = ["kubernetes"]
 monitoring = ["sqlalchemy (>=1.4,<2)"]
 oauth-ssh = ["oauth-ssh (>=0.9)"]
 proxystore = ["proxystore"]
-radical-pilot = ["radical.pilot"]
+radical-pilot = ["radical.pilot (==1.60)", "radical.utils (==1.60)"]
 visualization = ["Flask (>=1.0.2)", "flask-sqlalchemy", "networkx (>=2.5,<2.6)", "pandas (<2.2)", "plotly", "pydot", "python-daemon"]
 workqueue = ["work-queue"]
 
