@@ -124,7 +124,7 @@ def test_convert_s3_path_sqlite_join(
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
         source_datatype="sqlite",
-        chunk_size=4000,
+        chunk_size=2000,
         preset="cellprofiler_sqlite_cpg0016_jump",
         no_sign_request=True,
         # use explicit cache to avoid temp cache removal / overlaps with
