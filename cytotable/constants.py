@@ -21,6 +21,9 @@ CYTOTABLE_ARROW_USE_MEMORY_MAPPING = (
     os.environ.get("CYTOTABLE_ARROW_USE_MEMORY_MAPPING", "1") == "1"
 )
 
+# enables configuration of duckdb memory amount
+CYTOTABLE_DUCKDB_MEMORY_LIMIT = os.environ.get("CYTOTABLE_DUCKDB_MEMORY_LIMIT", "None")
+
 DDB_DATA_TYPE_SYNONYMS = {
     "real": ["float32", "float4", "float"],
     "double": ["float64", "float8", "numeric", "decimal"],
