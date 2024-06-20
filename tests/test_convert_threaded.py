@@ -74,6 +74,7 @@ def test_convert_s3_path_csv(
 
 @pytest.mark.large_data_tests
 def test_convert_s3_path_sqlite(
+    load_parsl_threaded: None,
     fx_tempdir: str,
     example_s3_path_sqlite_jump: str,
 ):
