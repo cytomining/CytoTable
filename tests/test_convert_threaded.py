@@ -73,40 +73,6 @@ def test_convert_s3_path_csv(
 
 
 @pytest.mark.large_data_tests
-def test_convert_s3_path_sqlite_concat(
-    load_parsl_threaded: None,
-    fx_tempdir: str,
-    example_s3_path_sqlite_jump: str,
-):
-    """
-    Tests convert with mocked sqlite s3 object storage endpoint
-
-    Note: we use a dedicated tmpdir for work in this test to avoid
-    race conditions with nested pytest fixture post-yield deletions.
-    """
-
-    s3_result = convert(
-        source_path=example_s3_path_sqlite_jump,
-        dest_path=f"{fx_tempdir}/s3_test",
-        dest_datatype="parquet",
-        source_datatype="sqlite",
-        chunk_size=4000,
-        preset="cellprofiler_sqlite_cpg0016_jump",
-        no_sign_request=True,
-        join=False,
-        # use explicit cache to avoid temp cache removal / overlaps with
-        # sequential s3 SQLite files. See below for more information
-        # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-        local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-    )
-
-    # parquet_file_meta = parquet.ParquetFile(s3_result).metadata
-
-    # assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (74226, 5928)
-
-    print(s3_result)
-
-@pytest.mark.large_data_tests
 def test_convert_s3_path_sqlite_join(
     load_parsl_threaded: None,
     fx_tempdir: str,
