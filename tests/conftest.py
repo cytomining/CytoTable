@@ -155,8 +155,8 @@ def fixture_cytominerdatabase_sqlite(
         output_path = f"sqlite:///{fx_tempdir}/{pathlib.Path(data_dir).name}.sqlite"
 
         # run cytominer-database as command-line call
-        subprocess.call(
-            [
+        subprocess.run(
+            args=[
                 "cytominer-database",
                 "ingest",
                 data_dir,
