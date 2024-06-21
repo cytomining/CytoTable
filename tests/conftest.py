@@ -87,7 +87,7 @@ def fixture_get_tempdir() -> Generator:
 
     yield tmpdir
 
-    # shutil.rmtree(path=tmpdir, ignore_errors=True)
+    shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 @pytest.fixture(name="data_dir_cellprofiler")
@@ -167,7 +167,6 @@ def fixture_cytominerdatabase_sqlite(
         )
         import time
 
-        time.sleep(300)
         # store the sqlite output file within list to be returned
         output_paths.append(output_path)
 
