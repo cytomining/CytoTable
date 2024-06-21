@@ -141,7 +141,7 @@ def fixture_data_dir_in_carta() -> List[str]:
 
 @pytest.fixture(name="cytominerdatabase_sqlite", scope="function")
 def fixture_cytominerdatabase_sqlite(
-    fx_tempdir: str,
+    tmp_path: str,
     data_dirs_cytominerdatabase: List[str],
 ) -> List[str]:
     """
@@ -152,7 +152,7 @@ def fixture_cytominerdatabase_sqlite(
     for data_dir in data_dirs_cytominerdatabase:
         # example command for reference as subprocess below
         # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
-        output_path = f"sqlite:///{fx_tempdir}/{pathlib.Path(data_dir).name}.sqlite"
+        output_path = f"sqlite:///{tmp_path}/{pathlib.Path(data_dir).name}.sqlite"
 
         # run cytominer-database as command-line call
         subprocess.run(
