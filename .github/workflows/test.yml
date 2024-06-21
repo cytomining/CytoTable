@@ -44,8 +44,6 @@ jobs:
       - name: Run pytest
         run: poetry run pytest -m "not large_data_tests"
   run_large_data_tests:
-    strategy:
-      fail-fast: false
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout

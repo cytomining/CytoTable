@@ -165,6 +165,9 @@ def fixture_cytominerdatabase_sqlite(
                 f"{data_dir}/config_SQLite.ini",
             ]
         )
+        import time
+
+        time.sleep(300)
         # store the sqlite output file within list to be returned
         output_paths.append(output_path)
 
