@@ -139,7 +139,7 @@ def fixture_data_dir_in_carta() -> List[str]:
     return [f"{pathlib.Path(__file__).parent}/data/in-carta/colas-lab"]
 
 
-@pytest.fixture(name="cytominerdatabase_sqlite")
+@pytest.fixture(name="cytominerdatabase_sqlite", scope="function")
 def fixture_cytominerdatabase_sqlite(
     fx_tempdir: str,
     data_dirs_cytominerdatabase: List[str],
@@ -165,7 +165,6 @@ def fixture_cytominerdatabase_sqlite(
                 f"{data_dir}/config_SQLite.ini",
             ]
         )
-        import time
 
         # store the sqlite output file within list to be returned
         output_paths.append(output_path)
