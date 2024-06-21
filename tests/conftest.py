@@ -87,7 +87,7 @@ def fixture_get_tempdir() -> Generator:
 
     yield tmpdir
 
-    shutil.rmtree(path=tmpdir, ignore_errors=True)
+    # shutil.rmtree(path=tmpdir, ignore_errors=True)
 
 
 @pytest.fixture(name="data_dir_cellprofiler")
