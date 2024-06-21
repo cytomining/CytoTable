@@ -830,13 +830,13 @@ def _join_source_chunk(
         result = result.drop_null()
 
     # account for duplicate column names from joins
-    """cols = []
+    cols = []
     # reversed order column check as col removals will change index order
     for i, colname in reversed(list(enumerate(result.column_names))):
         if colname not in cols:
             cols.append(colname)
         else:
-            result = result.remove_column(i)"""
+            result = result.remove_column(i)
 
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
