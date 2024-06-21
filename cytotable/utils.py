@@ -146,6 +146,7 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         # dynamically configure threads as appropriate
         f"""
         /* Install and load sqlite plugin for duckdb */
+        INSTALL httpfs;
         INSTALL sqlite_scanner;
         LOAD sqlite_scanner;
 
