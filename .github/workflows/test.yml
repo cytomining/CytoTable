@@ -42,7 +42,7 @@ jobs:
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
       - name: Run pytest
-        run: poetry run pytest -m "not large_data_tests"
+        run: poetry run pytest -m "not large_data_tests" -s
   run_large_data_tests:
     runs-on: ubuntu-22.04
     steps:

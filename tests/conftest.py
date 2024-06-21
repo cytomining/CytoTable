@@ -182,6 +182,10 @@ def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
     pycytominer merged single cell parquet files
     """
 
+    for sqlite_file in cytominerdatabase_sqlite:
+        print(pathlib.Path(sqlite_file.replace("sqlite:///", "")))
+        print(pathlib.Path(sqlite_file.replace("sqlite:///", "")).is_file())
+
     output_paths = []
     for sqlite_file in cytominerdatabase_sqlite:
         # build SingleCells from database and merge single cells into parquet file
