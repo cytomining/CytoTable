@@ -154,6 +154,19 @@ def fixture_cytominerdatabase_sqlite(
         # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
         output_path = f"sqlite:///{tmp_path}/{pathlib.Path(data_dir).name}.sqlite"
 
+        print([
+                "cytominer-database",
+                "ingest",
+                data_dir,
+                output_path,
+                "-c",
+                f"{data_dir}/config_SQLite.ini",
+            ])
+
+        print(data_dir)
+        print(output_path)
+
+
         # run cytominer-database as command-line call
         subprocess.run(
             args=[
