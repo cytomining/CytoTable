@@ -43,7 +43,7 @@ jobs:
         run: poetry run sphinx-build docs/source doctest -W
       - name: Test cytominer-database cmd
         run: |
-          cytominer-database ingest
+          poetry run cytominer-database ingest
       - name: Run pytest
         run: poetry run pytest -m "not large_data_tests" -s
   run_large_data_tests:
