@@ -68,8 +68,10 @@ def test_convert_s3_path_csv(
         no_sign_request=True,
     )
 
+    # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
+    # check the shape of the data
     assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (109, 5794)
 
 
@@ -91,6 +93,8 @@ def test_convert_s3_path_sqlite_join(
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
         source_datatype="sqlite",
+        # set chunk size to amount which operates within
+        # github actions runner images and related resource constraints.
         chunk_size=30000,
         preset="cellprofiler_sqlite_cpg0016_jump",
         sort_output=False,
@@ -101,8 +105,10 @@ def test_convert_s3_path_sqlite_join(
         local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
     )
 
+    # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
+    # check the shape of the data
     assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (74226, 5928)
 
 
