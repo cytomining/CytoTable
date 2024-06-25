@@ -42,10 +42,12 @@ jobs:
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
       - name: Run pytest
-        run: poetry run pytest -m "not large_data_tests" -s
+        run: poetry run pytest -m "not large_data_tests"
   run_large_data_tests:
     runs-on: ubuntu-22.04
-    needs: run_tests
+    if: >
+      github.event.schedule == '0 7 * * 2' ||
+        github.ref == 'refs/heads/move-to-real-s3-tests'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,7 +62,4 @@ jobs:
       # run large data tests every Tuesday
       # to conserve resources and verify large data handling
       - name: Run pytest for large data tests
-        if: >
-          github.event.schedule == '0 7 * * 2' ||
-           github.ref == 'refs/heads/move-to-real-s3-tests'
-        run: poetry run pytest -m "large_data_tests" -s
+        run: poetry run pytest -m "large_data_tests"
