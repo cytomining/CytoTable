@@ -245,8 +245,10 @@ def _get_table_chunk_offsets(
 
             return None
 
+
     # find chunk offsets from sql statement
     elif sql_stmt is not None:
+        print(sql_stmt)
         # gather the total rowcount from csv or sqlite data input sources
         with _duckdb_reader() as ddb_reader:
             rowcount = int(
