@@ -326,15 +326,22 @@ def _gather_sources(
 
     built_path = _build_path(path=source_path, **kwargs)
 
+    print(built_path)
     # gather filepaths which will be used as the basis for this work
     sources = _get_source_filepaths(
         path=built_path, targets=targets, source_datatype=source_datatype
     )
 
+    print(sources)
+
     # infer or validate the source datatype based on source filepaths
     source_datatype = _infer_source_datatype(
         sources=sources, source_datatype=source_datatype
     )
+
+    print(source_datatype)
+
+    print(_filter_source_filepaths(sources=sources, source_datatype=source_datatype))
 
     # filter source filepaths to inferred or source datatype
     return _filter_source_filepaths(sources=sources, source_datatype=source_datatype)
