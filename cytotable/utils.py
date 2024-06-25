@@ -149,6 +149,10 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         INSTALL sqlite_scanner;
         LOAD sqlite_scanner;
 
+        /* Install httpfs plugin to avoid error
+        https://github.com/duckdb/duckdb/issues/3243 */
+        INSTALL httpfs;
+
         /*
         Set threads available to duckdb
         See the following for more information:
