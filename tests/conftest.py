@@ -139,6 +139,9 @@ def fixture_data_dir_in_carta() -> List[str]:
     return [f"{pathlib.Path(__file__).parent}/data/in-carta/colas-lab"]
 
 
+# skip this fixture to avoid issues with ubuntu 22.04 and CLI usage of
+# cytominer-database. Use instead fixture cytominerdatabase_sqlite_static.
+@pytest.mark.skip
 @pytest.fixture(name="cytominerdatabase_sqlite", scope="function")
 def fixture_cytominerdatabase_sqlite(
     tmp_path: str,
@@ -152,20 +155,7 @@ def fixture_cytominerdatabase_sqlite(
     for data_dir in data_dirs_cytominerdatabase:
         # example command for reference as subprocess below
         # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
-        output_path = f"sqlite:///{tmp_path}/{pathlib.Path(data_dir).name}.sqlite"
-
-        print([
-                "cytominer-database",
-                "ingest",
-                data_dir,
-                output_path,
-                "-c",
-                f"{data_dir}/config_SQLite.ini",
-            ])
-
-        print(data_dir)
-        print(output_path)
-
+        output_path = f"sqlite:///{data_dir}/{pathlib.Path(data_dir).name}.sqlite"
 
         # run cytominer-database as command-line call
         subprocess.run(
@@ -185,22 +175,26 @@ def fixture_cytominerdatabase_sqlite(
     return output_paths
 
 
+@pytest.fixture(name="cytominerdatabase_sqlite_static", scope="function")
+def fixture_cytominerdatabase_sqlite_static():
+    return [
+        f"sqlite:///{pathlib.Path(__file__).parent}/data/cytominer-database/data_a/data_a.sqlite",
+        f"sqlite:///{pathlib.Path(__file__).parent}/data/cytominer-database/data_b/data_b.sqlite",
+    ]
+
+
 @pytest.fixture()
 def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
     fx_tempdir: str,
-    cytominerdatabase_sqlite: List[str],
+    cytominerdatabase_sqlite_static: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test sqlite data as
     pycytominer merged single cell parquet files
     """
 
-    for sqlite_file in cytominerdatabase_sqlite:
-        print(pathlib.Path(sqlite_file.replace("sqlite:///", "")))
-        print(pathlib.Path(sqlite_file.replace("sqlite:///", "")).is_file())
-
     output_paths = []
-    for sqlite_file in cytominerdatabase_sqlite:
+    for sqlite_file in cytominerdatabase_sqlite_static:
         # build SingleCells from database and merge single cells into parquet file
         output_paths.append(
             SingleCells(

@@ -90,7 +90,7 @@ def test_convert_s3_path_sqlite_join(
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
         source_datatype="sqlite",
-        chunk_size=31000,
+        chunk_size=30000,
         preset="cellprofiler_sqlite_cpg0016_jump",
         sort_output=False,
         no_sign_request=True,
