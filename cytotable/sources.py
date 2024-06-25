@@ -335,6 +335,6 @@ def _gather_sources(
     source_datatype = _infer_source_datatype(
         sources=sources, source_datatype=source_datatype
     )
-    
+
     # filter source filepaths to inferred or source datatype
     return _filter_source_filepaths(sources=sources, source_datatype=source_datatype)

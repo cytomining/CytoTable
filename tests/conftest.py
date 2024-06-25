@@ -158,7 +158,7 @@ def fixture_cytominerdatabase_sqlite(
         output_path = f"sqlite:///{data_dir}/{pathlib.Path(data_dir).name}.sqlite"
 
         # run cytominer-database as command-line call
-        subprocess.run(
+        subprocess.call(
             args=[
                 "cytominer-database",
                 "ingest",
@@ -177,6 +177,10 @@ def fixture_cytominerdatabase_sqlite(
 
 @pytest.fixture(name="cytominerdatabase_sqlite_static", scope="function")
 def fixture_cytominerdatabase_sqlite_static():
+    """
+    Fixture for returning pre-created cytominer-database SQLite files which
+    align to what was created from fixture_cytominerdatabase_sqlite.
+    """
     return [
         f"sqlite:///{pathlib.Path(__file__).parent.resolve()}/data/cytominer-database/data_a_sqlite/data_a.sqlite",
         f"sqlite:///{pathlib.Path(__file__).parent.resolve()}/data/cytominer-database/data_b_sqlite/data_b.sqlite",

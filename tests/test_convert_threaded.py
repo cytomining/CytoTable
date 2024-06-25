@@ -6,7 +6,6 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 
 import pathlib
-from typing import List
 
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -194,4 +193,3 @@ def test_avoid_na_row_output(
             ).column("Metadata_ImageNumber")
         )
     ).as_py()
-

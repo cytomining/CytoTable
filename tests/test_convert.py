@@ -779,7 +779,8 @@ def test_convert_cytominerdatabase_csv(
             source=convert(
                 source_path=cytominerdatabase_dir,
                 dest_path=(
-                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
+                    f"{fx_tempdir}/"
+                    f"{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
@@ -975,7 +976,6 @@ def test_cast_data_types(
             if field.name in string_cols_to_check
         }.pop()
     )
-
 
 
 def test_convert_cellprofiler_sqlite_pycytominer_merge(
