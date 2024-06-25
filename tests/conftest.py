@@ -178,8 +178,8 @@ def fixture_cytominerdatabase_sqlite(
 @pytest.fixture(name="cytominerdatabase_sqlite_static", scope="function")
 def fixture_cytominerdatabase_sqlite_static():
     return [
-        f"sqlite:///{pathlib.Path(__file__).parent}/data/cytominer-database/data_a/data_a.sqlite",
-        f"sqlite:///{pathlib.Path(__file__).parent}/data/cytominer-database/data_b/data_b.sqlite",
+        f"sqlite:///{pathlib.Path(__file__).parent.resolve()}/data/cytominer-database/data_a/data_a.sqlite",
+        f"sqlite:///{pathlib.Path(__file__).parent.resolve()}/data/cytominer-database/data_b/data_b.sqlite",
     ]
 
 
