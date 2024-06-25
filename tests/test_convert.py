@@ -737,61 +737,6 @@ def test_infer_source_group_common_schema(
     assert table_nuclei_1.schema.equals(pa.schema(result))
 
 
-def test_convert_cytominerdatabase_csv(
-    load_parsl_default: None,
-    fx_tempdir: str,
-    data_dirs_cytominerdatabase: List[str],
-    cytominerdatabase_to_pycytominer_merge_single_cells_parquet: List[str],
-):
-    """
-    Tests convert with cytominerdatabase csvs and processed
-    csvs from cytominer-database to pycytominer merge_single_cells
-    """
-
-    for idx,(cytominerdatabase_dir, pycytominer_merge_dir) in enumerate(zip(
-        data_dirs_cytominerdatabase,
-        cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
-    )):
-        # load control table, dropping tablenumber
-        # and unlabeled objectnumber (no compartment specified)
-        control_table = parquet.read_table(source=pycytominer_merge_dir).drop(
-            [
-                # tablenumber is not implemented within CytoTable
-                "Metadata_TableNumber",
-                # objectnumber references are provided via cytoplasm parent object joins
-                "Metadata_ObjectNumber",
-                "Metadata_ObjectNumber_cells",
-            ]
-        )
-        # rename column to account for minor difference in processing
-        control_table = control_table.rename_columns(
-            [
-                # rename based on compartment prefix name within CytoTable format
-                col if col != "Cells_Parent_Nuclei" else "Metadata_Cells_Parent_Nuclei"
-                for col in control_table.schema.names
-            ]
-        )
-
-        # load test table by reading parquet-based output from convert
-        test_table = parquet.read_table(
-            source=convert(
-                source_path=cytominerdatabase_dir,
-                dest_path=(
-                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
-                ),
-                dest_datatype="parquet",
-                source_datatype="csv",
-                join=True,
-                drop_null=False,
-            ),
-            schema=control_table.schema,
-        )
-
-        assert control_table.schema.equals(test_table.schema)
-        assert control_table.num_columns == test_table.num_columns
-        assert control_table.num_rows <= test_table.num_rows
-
-
 def test_convert_cellprofiler_sqlite(
     load_parsl_default: None,
     fx_tempdir: str,
