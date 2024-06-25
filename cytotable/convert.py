@@ -248,7 +248,6 @@ def _get_table_chunk_offsets(
 
     # find chunk offsets from sql statement
     elif sql_stmt is not None:
-        print(sql_stmt)
         # gather the total rowcount from csv or sqlite data input sources
         with _duckdb_reader() as ddb_reader:
             rowcount = int(
@@ -1111,7 +1110,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         **kwargs,
     )
 
-    print(sources)
 
     # expand the destination path
     expanded_dest_path = _expand_path(path=dest_path)

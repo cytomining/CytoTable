@@ -72,24 +72,9 @@ def _get_source_filepaths(
 
     if (targets is None or targets == []) and source_datatype is None:
         raise DatatypeException(
-            f"A source_datatype must be specified when using undefined compartments and metadata names."
+            "A source_datatype must be specified when using undefined compartments and metadata names."
         )
 
-    print([
-        # build source_paths for all files
-        # note: builds local cache for sqlite files from cloud
-        {"source_path": _cache_cloudpath_to_local(subpath)}
-        # loop for navigating single file or subpaths
-        for subpath in (
-            (path,)
-            # used if the source path is a single file
-            if path.is_file()
-            # iterates through a source directory
-            else (x for x in path.glob("**/*") if x.is_file())
-        )
-        # ensure the subpaths meet certain specifications
-        
-    ])
     # gathers files from provided path using compartments + metadata as a filter
     sources = [
         # build source_paths for all files
@@ -341,22 +326,15 @@ def _gather_sources(
 
     built_path = _build_path(path=source_path, **kwargs)
 
-    print(built_path)
     # gather filepaths which will be used as the basis for this work
     sources = _get_source_filepaths(
         path=built_path, targets=targets, source_datatype=source_datatype
     )
 
-    print(sources)
-
     # infer or validate the source datatype based on source filepaths
     source_datatype = _infer_source_datatype(
         sources=sources, source_datatype=source_datatype
     )
-
-    print(source_datatype)
-
-    print(_filter_source_filepaths(sources=sources, source_datatype=source_datatype))
-
+    
     # filter source filepaths to inferred or source datatype
     return _filter_source_filepaths(sources=sources, source_datatype=source_datatype)
