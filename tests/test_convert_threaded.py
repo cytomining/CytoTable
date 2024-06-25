@@ -232,7 +232,7 @@ def test_convert_cytominerdatabase_csv(
             source=convert(
                 source_path=cytominerdatabase_dir,
                 dest_path=(
-                    f"{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
+                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
