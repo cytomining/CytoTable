@@ -3,7 +3,7 @@ name: run tests
 
 on:
   push:
-    branches: [main, move-to-real-s3-tests]
+    branches: [main]
   pull_request:
     branches: [main]
   schedule:
