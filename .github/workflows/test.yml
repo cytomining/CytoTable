@@ -9,8 +9,6 @@ on:
   schedule:
     # runs every Wednesday at 7 AM UTC
     - cron: "0 7 * * 3"
-    # runs every Tuesady at 7 AM UTC
-    - cron: "0 7 * * 2"
 
 jobs:
   run_tests:
@@ -41,25 +39,10 @@ jobs:
         run: poetry install --no-interaction --no-ansi
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
+      # run large data tests as a separate step to help
+      # conserve resources by detecting failure with
+      # smaller tests first.
       - name: Run pytest
         run: poetry run pytest -m "not large_data_tests"
-  run_large_data_tests:
-    runs-on: ubuntu-22.04
-    if: >
-      github.event.schedule == '0 7 * * 2' ||
-        github.ref == 'refs/heads/move-to-real-s3-tests'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Python setup
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Setup for poetry
-        uses: ./.github/actions/setup-poetry
-      - name: Install environment
-        run: poetry install --no-interaction --no-ansi
-      # run large data tests every Tuesday
-      # to conserve resources and verify large data handling
       - name: Run pytest for large data tests
         run: poetry run pytest -m "large_data_tests"
