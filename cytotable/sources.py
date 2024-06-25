@@ -75,6 +75,21 @@ def _get_source_filepaths(
             f"A source_datatype must be specified when using undefined compartments and metadata names."
         )
 
+    print([
+        # build source_paths for all files
+        # note: builds local cache for sqlite files from cloud
+        {"source_path": _cache_cloudpath_to_local(subpath)}
+        # loop for navigating single file or subpaths
+        for subpath in (
+            (path,)
+            # used if the source path is a single file
+            if path.is_file()
+            # iterates through a source directory
+            else (x for x in path.glob("**/*") if x.is_file())
+        )
+        # ensure the subpaths meet certain specifications
+        
+    ])
     # gathers files from provided path using compartments + metadata as a filter
     sources = [
         # build source_paths for all files
