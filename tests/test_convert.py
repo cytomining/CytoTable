@@ -748,10 +748,10 @@ def test_convert_cytominerdatabase_csv(
     csvs from cytominer-database to pycytominer merge_single_cells
     """
 
-    for cytominerdatabase_dir, pycytominer_merge_dir in zip(
+    for idx,(cytominerdatabase_dir, pycytominer_merge_dir) in enumerate(zip(
         data_dirs_cytominerdatabase,
         cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
-    ):
+    )):
         # load control table, dropping tablenumber
         # and unlabeled objectnumber (no compartment specified)
         control_table = parquet.read_table(source=pycytominer_merge_dir).drop(
@@ -777,7 +777,7 @@ def test_convert_cytominerdatabase_csv(
             source=convert(
                 source_path=cytominerdatabase_dir,
                 dest_path=(
-                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet"
+                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
