@@ -7,13 +7,11 @@ import pathlib
 from typing import Any, Dict, List, Optional, Union
 
 from cloudpathlib import AnyPath
-from parsl.app.app import join_app, python_app
+
+from cytotable.exceptions import NoInputDataException
 
 
-@python_app
-def _build_path(
-    path: Union[str, pathlib.Path, AnyPath], **kwargs
-) -> Union[pathlib.Path, AnyPath]:
+def _build_path(path: str, **kwargs) -> Union[pathlib.Path, AnyPath]:
     """
     Build a path client or return local path.
 
@@ -43,10 +41,9 @@ def _build_path(
     return processed_path
 
 
-@python_app
 def _get_source_filepaths(
     path: Union[pathlib.Path, AnyPath],
-    targets: List[str],
+    targets: Optional[List[str]] = None,
     source_datatype: Optional[str] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
@@ -75,7 +72,7 @@ def _get_source_filepaths(
 
     if (targets is None or targets == []) and source_datatype is None:
         raise DatatypeException(
-            f"A source_datatype must be specified when using undefined compartments and metadata names."
+            "A source_datatype must be specified when using undefined compartments and metadata names."
         )
 
     # gathers files from provided path using compartments + metadata as a filter
@@ -87,9 +84,9 @@ def _get_source_filepaths(
         for subpath in (
             (path,)
             # used if the source path is a single file
-            if AnyPath(path).is_file()
+            if path.is_file()
             # iterates through a source directory
-            else (x for x in AnyPath(path).glob("**/*") if AnyPath(x).is_file())
+            else (x for x in path.glob("**/*") if x.is_file())
         )
         # ensure the subpaths meet certain specifications
         if (
@@ -129,7 +126,8 @@ def _get_source_filepaths(
                     .arrow()["table_name"]
                     .to_pylist()
                     # make sure the table names match with compartment + metadata names
-                    if any(target.lower() in table_name.lower() for target in targets)
+                    if targets is not None
+                    and any(target.lower() in table_name.lower() for target in targets)
                 ]
             else:
                 # if we don't have sqlite source, append the existing element
@@ -181,7 +179,6 @@ def _get_source_filepaths(
     return grouped_sources
 
 
-@python_app
 def _infer_source_datatype(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: Optional[str] = None
 ) -> str:
@@ -230,7 +227,6 @@ def _infer_source_datatype(
     return source_datatype
 
 
-@python_app
 def _filter_source_filepaths(
     sources: Dict[str, List[Dict[str, Any]]], source_datatype: str
 ) -> Dict[str, List[Dict[str, Any]]]:
@@ -260,12 +256,45 @@ def _filter_source_filepaths(
             if file["source_path"].stat().st_size > 0
             # ensure the datatype matches the source datatype
             and file["source_path"].suffix == f".{source_datatype}"
+            and _file_is_more_than_one_line(path=file["source_path"])
         ]
         for filegroup, files in sources.items()
     }
 
 
-@join_app
+def _file_is_more_than_one_line(path: Union[pathlib.Path, AnyPath]) -> bool:
+    """
+    Check if the file has more than one line.
+
+    Args:
+        path (Union[pathlib.Path, AnyPath]):
+            The path to the file.
+
+    Returns:
+        bool:
+            True if the file has more than one line, False otherwise.
+
+    Raises:
+        NoInputDataException: If the file has zero lines.
+    """
+
+    # if we don't have a sqlite file
+    # (we can't check sqlite files for lines)
+    if path.suffix.lower() != ".sqlite":
+        with path.open("r") as f:
+            try:
+                # read two lines, if the second is empty return false
+                return bool(f.readline() and f.readline())
+
+            except StopIteration:
+                # If we encounter the end of the file, it has only one line
+                raise NoInputDataException(
+                    f"Data file has 0 rows of values. Error in file: {path}"
+                )
+    else:
+        return True
+
+
 def _gather_sources(
     source_path: str,
     source_datatype: Optional[str] = None,
@@ -295,11 +324,11 @@ def _gather_sources(
         _infer_source_datatype,
     )
 
-    source_path = _build_path(path=source_path, **kwargs)
+    built_path = _build_path(path=source_path, **kwargs)
 
     # gather filepaths which will be used as the basis for this work
     sources = _get_source_filepaths(
-        path=source_path, targets=targets, source_datatype=source_datatype
+        path=built_path, targets=targets, source_datatype=source_datatype
     )
 
     # infer or validate the source datatype based on source filepaths

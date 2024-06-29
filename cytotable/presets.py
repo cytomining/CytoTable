@@ -85,6 +85,54 @@ config = {
                 AND per_nuclei.Nuclei_Number_Object_Number = per_cytoplasm.Cytoplasm_Parent_Nuclei
             """,
     },
+    "cellprofiler_sqlite_cpg0016_jump": {
+        # version specifications using related references
+        "CONFIG_SOURCE_VERSION": {
+            "cellprofiler": "v4.0.0",
+        },
+        # names of source table compartments (for ex. cells.csv, etc.)
+        "CONFIG_NAMES_COMPARTMENTS": ("cells", "nuclei", "cytoplasm"),
+        # names of source table metadata (for ex. image.csv, etc.)
+        "CONFIG_NAMES_METADATA": ("image",),
+        # column names in any compartment or metadata tables which contain
+        # unique names to avoid renaming
+        "CONFIG_IDENTIFYING_COLUMNS": (
+            "ImageNumber",
+            "ObjectNumber",
+            "Metadata_Well",
+            "Metadata_Plate",
+            "Parent_Cells",
+            "Parent_Nuclei",
+        ),
+        # chunk size to use for join operations to help with possible performance issues
+        # note: this number is an estimate and is may need changes contingent on data
+        # and system used by this library.
+        "CONFIG_CHUNK_SIZE": 1000,
+        # compartment and metadata joins performed using DuckDB SQL
+        # and modified at runtime as needed
+        "CONFIG_JOINS": """
+            SELECT
+                image.Image_TableNumber,
+                image.Metadata_ImageNumber,
+                image.Metadata_Plate,
+                image.Metadata_Well,
+                image.Image_Metadata_Site,
+                image.Image_Metadata_Row,
+                cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                cells.* EXCLUDE (Metadata_ImageNumber),
+                nuclei.* EXCLUDE (Metadata_ImageNumber)
+            FROM
+                read_parquet('cytoplasm.parquet') AS cytoplasm
+            LEFT JOIN read_parquet('cells.parquet') AS cells ON
+                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND cells.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN read_parquet('nuclei.parquet') AS nuclei ON
+                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND nuclei.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
+            LEFT JOIN read_parquet('image.parquet') AS image ON
+                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+            """,
+    },
     "cellprofiler_sqlite_pycytominer": {
         # version specifications using related references
         "CONFIG_SOURCE_VERSION": {

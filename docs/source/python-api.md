@@ -64,22 +64,6 @@ Sources
 
 |
 
-.. autofunction:: _build_path
-
-|
-
-.. autofunction:: _filter_source_filepaths
-
-|
-
-.. autofunction:: _get_source_filepaths
-
-|
-
-.. autofunction:: _infer_source_datatype
-
-|
-
 Utils
 -----
 

@@ -594,17 +594,14 @@ def test_infer_source_datatype(
         "sample_1.csv": [{"source_path": "stub"}],
         "sample_2.CSV": [{"source_path": "stub"}],
     }
-    assert _infer_source_datatype(sources=data).result() == "csv"
+    assert _infer_source_datatype(sources=data) == "csv"
     with pytest.raises(Exception):
-        _infer_source_datatype(sources=data, source_datatype="parquet").result()
+        _infer_source_datatype(sources=data, source_datatype="parquet")
 
     data["sample_3.parquet"] = [{"source_path": "stub"}]
-    assert (
-        _infer_source_datatype(sources=data, source_datatype="parquet").result()
-        == "parquet"
-    )
+    assert _infer_source_datatype(sources=data, source_datatype="parquet") == "parquet"
     with pytest.raises(Exception):
-        _infer_source_datatype(sources=data).result()
+        _infer_source_datatype(sources=data)
 
 
 def test_to_parquet(
@@ -751,9 +748,11 @@ def test_convert_cytominerdatabase_csv(
     csvs from cytominer-database to pycytominer merge_single_cells
     """
 
-    for cytominerdatabase_dir, pycytominer_merge_dir in zip(
-        data_dirs_cytominerdatabase,
-        cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
+    for idx, (cytominerdatabase_dir, pycytominer_merge_dir) in enumerate(
+        zip(
+            data_dirs_cytominerdatabase,
+            cytominerdatabase_to_pycytominer_merge_single_cells_parquet,
+        )
     ):
         # load control table, dropping tablenumber
         # and unlabeled objectnumber (no compartment specified)
@@ -780,7 +779,8 @@ def test_convert_cytominerdatabase_csv(
             source=convert(
                 source_path=cytominerdatabase_dir,
                 dest_path=(
-                    f"{fx_tempdir}/{pathlib.Path(cytominerdatabase_dir).name}.test_table.parquet"
+                    f"{fx_tempdir}/"
+                    f"{pathlib.Path(cytominerdatabase_dir).name}.test_table_{idx}.parquet"
                 ),
                 dest_datatype="parquet",
                 source_datatype="csv",
