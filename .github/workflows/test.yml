@@ -30,6 +30,7 @@ jobs:
       # remove poetry.lock file for scheduled tests
       # to help simulate possible upstream issues
       - name: Remove poetry.lock for scheduled tests
+        # runs every Wednesday at 7 AM UTC
         if: github.event.schedule == '0 7 * * 3'
         run: |
           rm poetry.lock
