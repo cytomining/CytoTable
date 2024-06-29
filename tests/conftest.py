@@ -701,7 +701,11 @@ def example_sqlite_mixed_types_database(
 @pytest.fixture(name="example_s3_path_csv_jump")
 def fixture_example_s3_path_csv_jump() -> str:
     """
-    Provides an example s3 endpoint for use with tests
+    Provides an example s3 endpoint for use with tests.
+
+    This points to an object storage directory which includes CSV files
+    related to processing within CytoTable. For example, image.csv,
+    nuclei.csv, cytoplasm.csv, cells.csv, etc.
     """
 
     return (
