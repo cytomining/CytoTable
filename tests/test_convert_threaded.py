@@ -7,6 +7,7 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 import pathlib
 
+import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
@@ -96,20 +97,46 @@ def test_convert_s3_path_sqlite_join(
         # github actions runner images and related resource constraints.
         chunk_size=30000,
         preset="cellprofiler_sqlite_cpg0016_jump",
-        sort_output=False,
         no_sign_request=True,
         # use explicit cache to avoid temp cache removal / overlaps with
         # sequential s3 SQLite files. See below for more information
         # https://cloudpathlib.drivendata.org/stable/caching/#automatically
         local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
+        # note: we use a custom join to limit the
+        # data processing required within the context
+        # of GitHub Actions runner image resources.
+        joins="""
+            SELECT
+                image.Image_TableNumber,
+                image.Metadata_ImageNumber,
+                image.Metadata_Plate,
+                image.Metadata_Well,
+                image.Image_Metadata_Site,
+                image.Image_Metadata_Row,
+                cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                cells.* EXCLUDE (Metadata_ImageNumber),
+                nuclei.* EXCLUDE (Metadata_ImageNumber)
+            FROM
+                (SELECT * FROM read_parquet('cytoplasm.parquet') LIMIT 5000) AS cytoplasm
+            LEFT JOIN (SELECT * FROM read_parquet('cells.parquet') LIMIT 5000) AS cells ON
+                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND cells.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN (SELECT * FROM read_parquet('nuclei.parquet') LIMIT 5000) AS nuclei ON
+                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND nuclei.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
+            LEFT JOIN (SELECT * FROM read_parquet('image.parquet') LIMIT 5000) AS image ON
+                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+        """
     )
 
     # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
     # check the shape of the data
-    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (74226, 5928)
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (5000, 5928)
 
+    # check that dropping duplicates results in the same shape
+    assert pd.read_parquet(s3_result).drop_duplicates().shape == (5000, 5928)
 
 def test_get_source_filepaths(
     load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
