@@ -126,7 +126,7 @@ def test_convert_s3_path_sqlite_join(
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
             LEFT JOIN (SELECT * FROM read_parquet('image.parquet') LIMIT 5000) AS image ON
                 image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-        """
+        """,
     )
 
     # read only the metadata from parquet file
@@ -137,6 +137,7 @@ def test_convert_s3_path_sqlite_join(
 
     # check that dropping duplicates results in the same shape
     assert pd.read_parquet(s3_result).drop_duplicates().shape == (5000, 5928)
+
 
 def test_get_source_filepaths(
     load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
