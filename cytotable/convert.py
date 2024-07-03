@@ -46,11 +46,12 @@ def _get_table_columns_and_types(
     import pathlib
 
     import duckdb
+    from cloudpathlib import AnyPath
 
     from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
     source_path = source["source_path"]
-    source_type = str(pathlib.Path(source_path).suffix).lower()
+    source_type = str(source_path.suffix).lower()
 
     # prepare the data source in the form of a duckdb query
     select_source = (
@@ -209,7 +210,7 @@ def _get_table_chunk_offsets(
     import pathlib
 
     import duckdb
-    from cloudpathlib import AnyPath
+    from cloudpathlib import AnyPath, CloudPath
 
     from cytotable.exceptions import NoInputDataException
     from cytotable.utils import _duckdb_reader
@@ -219,18 +220,9 @@ def _get_table_chunk_offsets(
     if source is not None:
         table_name = source["table_name"] if "table_name" in source.keys() else None
         source_path = source["source_path"]
-        source_type = str(pathlib.Path(source_path).suffix).lower()
+        source_type = str(source_path.suffix).lower()
 
         try:
-            # for csv's, check that we have more than one row (a header and data values)
-            if (
-                source_type == ".csv"
-                and sum(1 for _ in AnyPath(source_path).open("r")) <= 1
-            ):
-                raise NoInputDataException(
-                    f"Data file has 0 rows of values. Error in file: {source_path}"
-                )
-
             # gather the total rowcount from csv or sqlite data input sources
             with _duckdb_reader() as ddb_reader:
                 rowcount = int(
@@ -322,8 +314,8 @@ def _source_chunk_to_parquet(
 
     # attempt to build dest_path
     source_dest_path = (
-        f"{dest_path}/{str(pathlib.Path(source_group_name).stem).lower()}/"
-        f"{str(pathlib.Path(source['source_path']).parent.name).lower()}"
+        f"{dest_path}/{str(AnyPath(source_group_name).stem).lower()}/"
+        f"{str(source['source_path'].parent.name).lower()}"
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
@@ -364,11 +356,11 @@ def _source_chunk_to_parquet(
 
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)
-    if str(AnyPath(source["source_path"]).suffix).lower() == ".csv":
+    if str(source["source_path"].suffix).lower() == ".csv":
         base_query = f"SELECT {select_columns} FROM read_csv_auto('{str(source['source_path'])}', header=TRUE, delim=',')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
 
-    elif str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite":
+    elif str(source["source_path"].suffix).lower() == ".sqlite":
         base_query = f"SELECT {select_columns} FROM sqlite_scan('{str(source['source_path'])}', '{str(source['table_name'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
 
@@ -405,7 +397,7 @@ def _source_chunk_to_parquet(
         # to handle the mixed types
         if (
             "Mismatch Type Error" in str(e)
-            and str(AnyPath(source["source_path"]).suffix).lower() == ".sqlite"
+            and str(source["source_path"].suffix).lower() == ".sqlite"
         ):
             _write_parquet_table_with_metadata(
                 # here we use sqlite instead of duckdb to extract
@@ -817,6 +809,7 @@ def _join_source_chunk(
     exclude_meta_cols = [
         f"c NOT LIKE '{col}%'" for col in list(CYOTABLE_META_COLUMN_TYPES.keys())
     ]
+
     with _duckdb_reader() as ddb_reader:
         result = ddb_reader.execute(
             f"""
@@ -1114,7 +1107,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             else []
         ),
         **kwargs,
-    ).result()
+    )
 
     # expand the destination path
     expanded_dest_path = _expand_path(path=dest_path)
