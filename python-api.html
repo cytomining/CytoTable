@@ -550,40 +550,145 @@ Specifies whether to sort cytotable output or not.</p></li>
 <span id="sources"></span><h2>Sources<a class="headerlink" href="#module-cytotable.sources" title="Permalink to this heading">¶</a></h2>
 <p>CytoTable: sources - tasks and flows related to
 source data and metadata for performing conversion work.</p>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._build_path">
-<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_build_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._build_path" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extends AppBase to cover the Python App.</p>
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_build_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_build_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._build_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a path client or return local path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
+Path to seek filepaths within.</p></li>
+<li><p><strong>**kwargs</strong> – Any
+keyword arguments to be used with
+Cloudpathlib.CloudPath.client .</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Union[pathlib.Path, Any]</dt><dd><p>A local pathlib.Path or Cloudpathlib.AnyPath type path.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.sources._file_is_more_than_one_line">
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_file_is_more_than_one_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_file_is_more_than_one_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._file_is_more_than_one_line" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the file has more than one line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>Union</em><em>[</em><em>pathlib.Path</em><em>, </em><em>AnyPath</em><em>]</em>) – The path to the file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the file has more than one line, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.NoInputDataException" title="cytotable.exceptions.NoInputDataException"><strong>NoInputDataException</strong></a> – If the file has zero lines.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._filter_source_filepaths">
-<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_filter_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._filter_source_filepaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extends AppBase to cover the Python App.</p>
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_filter_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_filter_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._filter_source_filepaths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Filter source filepaths based on provided source_datatype.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]
+Grouped datasets of files which will be used by other functions.</p></li>
+<li><p><strong>source_datatype</strong> – str
+Source datatype to use for filtering the dataset.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the datatype.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.sources._gather_sources">
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_gather_sources</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_gather_sources"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._gather_sources" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flow for gathering data sources for conversion.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_path</strong> – str:
+Where to gather file-based data from.</p></li>
+<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
+The source datatype (extension) to use for reading the tables.</p></li>
+<li><p><strong>targets</strong> – Optional[List[str]]:  (Default value = None)
+The source file names to target within the provided path.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the compartments.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._get_source_filepaths">
-<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._get_source_filepaths" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extends AppBase to cover the Python App.</p>
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_get_source_filepaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">targets</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_get_source_filepaths"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._get_source_filepaths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gather dataset of filepaths from a provided directory path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – Union[pathlib.Path, Any]:
+Either a directory path to seek filepaths within or a path directly to a file.</p></li>
+<li><p><strong>targets</strong> – List[str]:
+Compartment and metadata names to seek within the provided path.</p></li>
+<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
+The source datatype (extension) to use for reading the tables.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Dict[str, List[Dict[str, Any]]]</dt><dd><p>Data structure which groups related files based on the compartments.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.sources._infer_source_datatype">
-<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_infer_source_datatype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.sources._infer_source_datatype" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extends AppBase to cover the Python App.</p>
+<span class="sig-prename descclassname"><span class="pre">cytotable.sources.</span></span><span class="sig-name descname"><span class="pre">_infer_source_datatype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_datatype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/sources.html#_infer_source_datatype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.sources._infer_source_datatype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infers and optionally validates datatype (extension) of files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> – Dict[str, List[Dict[str, Any]]]:
+Grouped datasets of files which will be used by other functions.</p></li>
+<li><p><strong>source_datatype</strong> – Optional[str]:  (Default value = None)
+Optional source datatype to validate within the context of
+detected datatypes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>str</dt><dd><p>A string of the datatype detected or validated source_datatype.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
 </dd></dl>
 
 <div class="line-block">
@@ -630,7 +735,7 @@ Example: {“float”: “float32”}</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._cache_cloudpath_to_local">
-<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_cache_cloudpath_to_local</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">AnyPath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_cache_cloudpath_to_local"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._cache_cloudpath_to_local" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_cache_cloudpath_to_local</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AnyPath</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_cache_cloudpath_to_local"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._cache_cloudpath_to_local" title="Permalink to this definition">¶</a></dt>
 <dd><p>Takes a cloudpath and uses cache to convert to a local copy
 for use in scenarios where remote work is not possible (sqlite).</p>
 <dl class="field-list simple">
@@ -945,7 +1050,9 @@ with CytoTable.</p>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-cytotable.sources">Sources</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.sources._build_path"><code class="docutils literal notranslate"><span class="pre">_build_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.sources._file_is_more_than_one_line"><code class="docutils literal notranslate"><span class="pre">_file_is_more_than_one_line()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.sources._filter_source_filepaths"><code class="docutils literal notranslate"><span class="pre">_filter_source_filepaths()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.sources._gather_sources"><code class="docutils literal notranslate"><span class="pre">_gather_sources()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.sources._get_source_filepaths"><code class="docutils literal notranslate"><span class="pre">_get_source_filepaths()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.sources._infer_source_datatype"><code class="docutils literal notranslate"><span class="pre">_infer_source_datatype()</span></code></a></li>
 </ul>
