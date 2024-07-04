@@ -1271,12 +1271,12 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             # for lineage and debugging
             results = _concat_join_sources(
                 dest_path=expanded_dest_path,
-                join_sources=[join.result() for join in join_sources_result],
+                join_sources=evaluate_futures(join_sources_result),
                 sources=evaluated_results,
             )
         else:
             # else we leave the joined chunks as-is and return them
-            return join_sources_result
+            return evaluate_futures(join_sources_result)
 
     # wrap the final result as a future and return
     return evaluate_futures(results)

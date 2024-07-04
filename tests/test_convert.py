@@ -845,11 +845,6 @@ def test_convert_cellprofiler_sqlite_join_with_no_concat(
 
     control_result = cellprofiler_merged_nf1data
 
-    # create a modified join sql for deterministic comparisons
-    modified_joins = (
-        str(config["cellprofiler_sqlite"]["CONFIG_JOINS"]) + " ORDER BY ALL"
-    )
-
     # gather results as a joined list of chunk files which aren't concatenated
     test_result_data = convert(
         source_path=(
@@ -859,7 +854,6 @@ def test_convert_cellprofiler_sqlite_join_with_no_concat(
         dest_datatype="parquet",
         source_datatype="sqlite",
         preset="cellprofiler_sqlite",
-        joins=modified_joins,
         # explicitly set the chunk size to receive multiple chunk files
         chunk_size=100,
         join=True,
