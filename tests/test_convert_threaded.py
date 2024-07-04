@@ -6,17 +6,14 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 
 import pathlib
-from typing import Any, Dict, List, cast
 
-import parsl
+import pandas as pd
 import pyarrow as pa
+import pyarrow.compute as pc
 import pytest
-from parsl.config import Config
-from parsl.executors import ThreadPoolExecutor
 from pyarrow import parquet
 
 from cytotable.convert import convert
-from cytotable.presets import config
 from cytotable.sources import _get_source_filepaths
 
 
@@ -54,69 +51,35 @@ def test_convert_tpe_cellprofiler_csv(
     assert test_result.shape == control_result.shape
     assert test_result.equals(control_result)
 
-    # clean up the parsl config for other tests
-    parsl.clear()
-
 
 def test_convert_s3_path_csv(
-    load_parsl_threaded: None,
-    fx_tempdir: str,
-    example_local_sources: Dict[str, List[Dict[str, Any]]],
-    example_s3_endpoint: str,
+    load_parsl_threaded: None, fx_tempdir: str, example_s3_path_csv_jump: str
 ):
     """
     Tests convert with mocked csv s3 object storage endpoint
     """
 
-    multi_dir_nonconcat_s3_result = convert(
-        source_path="s3://example/",
+    s3_result = convert(
+        source_path=example_s3_path_csv_jump,
         dest_path=f"{fx_tempdir}/s3_test",
         dest_datatype="parquet",
-        concat=False,
-        join=False,
-        joins=None,
         source_datatype="csv",
-        compartments=["cytoplasm", "cells"],
-        metadata=["image"],
-        identifying_columns=["imagenumber"],
-        # endpoint_url here will be used with cloudpathlib client(**kwargs)
-        endpoint_url=example_s3_endpoint,
-        parsl_config=Config(
-            executors=[
-                ThreadPoolExecutor(
-                    label="tpe_for_cytotable_testing_moto_s3",
-                )
-            ]
-        ),
+        preset="cellprofiler_csv",
+        no_sign_request=True,
     )
 
-    # compare each of the results using files from the source
-    for control_path, test_path in zip(
-        [
-            source["table"]
-            for group in cast(Dict, multi_dir_nonconcat_s3_result).values()
-            for source in group
-        ],
-        [
-            source["table"]
-            for group in example_local_sources.values()
-            for source in group
-        ],
-    ):
-        parquet_control = parquet.ParquetDataset(path_or_paths=control_path).read()
-        parquet_result = parquet.ParquetDataset(
-            path_or_paths=test_path, schema=parquet_control.schema
-        ).read()
+    # read only the metadata from parquet file
+    parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
-        assert parquet_result.schema.equals(parquet_control.schema)
-        assert parquet_result.shape == parquet_control.shape
+    # check the shape of the data
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (109, 5794)
 
 
-def test_convert_s3_path_sqlite(
+@pytest.mark.large_data_tests
+def test_convert_s3_path_sqlite_join(
     load_parsl_threaded: None,
     fx_tempdir: str,
-    data_dir_cellprofiler_sqlite_nf1: str,
-    example_s3_endpoint: str,
+    example_s3_path_sqlite_jump: str,
 ):
     """
     Tests convert with mocked sqlite s3 object storage endpoint
@@ -125,80 +88,55 @@ def test_convert_s3_path_sqlite(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    # create a modified join sql for deterministic comparisons
-    modified_joins = (
-        str(config["cellprofiler_sqlite_pycytominer"]["CONFIG_JOINS"]) + " ORDER BY ALL"
+    s3_result = convert(
+        source_path=example_s3_path_sqlite_jump,
+        dest_path=f"{fx_tempdir}/s3_test",
+        dest_datatype="parquet",
+        source_datatype="sqlite",
+        # set chunk size to amount which operates within
+        # github actions runner images and related resource constraints.
+        chunk_size=30000,
+        preset="cellprofiler_sqlite_cpg0016_jump",
+        no_sign_request=True,
+        # use explicit cache to avoid temp cache removal / overlaps with
+        # sequential s3 SQLite files. See below for more information
+        # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+        local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
+        # note: we use a custom join to limit the
+        # data processing required within the context
+        # of GitHub Actions runner image resources.
+        joins="""
+            SELECT
+                image.Image_TableNumber,
+                image.Metadata_ImageNumber,
+                image.Metadata_Plate,
+                image.Metadata_Well,
+                image.Image_Metadata_Site,
+                image.Image_Metadata_Row,
+                cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                cells.* EXCLUDE (Metadata_ImageNumber),
+                nuclei.* EXCLUDE (Metadata_ImageNumber)
+            FROM
+                (SELECT * FROM read_parquet('cytoplasm.parquet') LIMIT 5000) AS cytoplasm
+            LEFT JOIN (SELECT * FROM read_parquet('cells.parquet') LIMIT 5000) AS cells ON
+                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND cells.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN (SELECT * FROM read_parquet('nuclei.parquet') LIMIT 5000) AS nuclei ON
+                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+                AND nuclei.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
+            LEFT JOIN (SELECT * FROM read_parquet('image.parquet') LIMIT 5000) AS image ON
+                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
+        """,
     )
 
-    # local sqlite read
-    local_cytotable_table = parquet.read_table(
-        source=convert(
-            source_path=data_dir_cellprofiler_sqlite_nf1,
-            dest_path=(
-                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.local.parquet"
-            ),
-            dest_datatype="parquet",
-            chunk_size=100,
-            preset="cellprofiler_sqlite_pycytominer",
-            joins=modified_joins,
-        )
-    )
+    # read only the metadata from parquet file
+    parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
-    # s3 sqlite read with single and directly referenced file
-    s3_cytotable_table = parquet.read_table(
-        source=convert(
-            source_path=f"s3://example/nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
-            dest_path=(
-                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.mocks3.direct.parquet"
-            ),
-            dest_datatype="parquet",
-            chunk_size=100,
-            preset="cellprofiler_sqlite_pycytominer",
-            endpoint_url=example_s3_endpoint,
-            # use explicit cache to avoid temp cache removal / overlaps with
-            # sequential s3 SQLite files. See below for more information
-            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/1",
-            joins=modified_joins,
-        )
-    )
+    # check the shape of the data
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (5000, 5928)
 
-    # s3 sqlite read with nested sqlite file
-    s3_cytotable_table_nested = parquet.read_table(
-        source=convert(
-            source_path="s3://example/nf1/",
-            dest_path=(
-                f"{fx_tempdir}/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}"
-                ".cytotable.mocks3.nested.parquet"
-            ),
-            dest_datatype="parquet",
-            chunk_size=100,
-            preset="cellprofiler_sqlite_pycytominer",
-            endpoint_url=example_s3_endpoint,
-            # use explicit cache to avoid temp cache removal / overlaps with
-            # sequential s3 SQLite files. See below for more information
-            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-            joins=modified_joins,
-        )
-    )
-
-    assert local_cytotable_table.sort_by(
-        [(name, "ascending") for name in local_cytotable_table.schema.names]
-    ).equals(
-        s3_cytotable_table.sort_by(
-            [(name, "ascending") for name in s3_cytotable_table.schema.names]
-        )
-    )
-    assert local_cytotable_table.sort_by(
-        [(name, "ascending") for name in local_cytotable_table.schema.names]
-    ).equals(
-        s3_cytotable_table_nested.sort_by(
-            [(name, "ascending") for name in s3_cytotable_table_nested.schema.names]
-        )
-    )
+    # check that dropping duplicates results in the same shape
+    assert pd.read_parquet(s3_result).drop_duplicates().shape == (5000, 5928)
 
 
 def test_get_source_filepaths(
@@ -215,7 +153,7 @@ def test_get_source_filepaths(
         single_dir_result = _get_source_filepaths(
             path=empty_dir,
             targets=["image", "cells", "nuclei", "cytoplasm"],
-        ).result()
+        )
 
     # check that single sqlite file is returned as desired
     single_file_result = _get_source_filepaths(
@@ -223,26 +161,63 @@ def test_get_source_filepaths(
             f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
         ),
         targets=["cells"],
-    ).result()
+    )
     assert len(set(single_file_result.keys())) == 1
 
     # check that single csv file is returned as desired
     single_file_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman/Cells.csv"),
         targets=["cells"],
-    ).result()
+    )
     assert len(set(single_file_result.keys())) == 1
 
     single_dir_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["cells"],
-    ).result()
+    )
     # test that the single dir structure includes 1 unique key (for cells)
     assert len(set(single_dir_result.keys())) == 1
 
     single_dir_result = _get_source_filepaths(
         path=pathlib.Path(f"{data_dir_cellprofiler}/ExampleHuman"),
         targets=["image", "cells", "nuclei", "cytoplasm"],
-    ).result()
+    )
     # test that the single dir structure includes 4 unique keys
     assert len(set(single_dir_result.keys())) == 4
+
+
+def test_avoid_na_row_output(
+    load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
+):
+    """
+    Test to help detect and avoid scenarios where CytoTable returns rows of
+    NA-based data. This occurs when CytoTable processes CellProfiler data
+    sources with images that do not contain segmented objects. In other words,
+    this test ensures CytoTable produces correct output data when the input
+    CellProfiler image table contains imagenumbers that do not exist in any
+    compartment object.
+
+    Therefore, CytoTable does not return single-cell rows which include image
+    table metadata and NA feature data. Using compartment tables as the basis
+    of data joins avoids this issue.
+    """
+
+    # run convert using a dataset known to contain the scenario outlined above.
+    parquet_file = convert(
+        source_path=(
+            f"{data_dir_cellprofiler}"
+            "/nf1_cellpainting_data/test-Plate_3_nf1_analysis.sqlite"
+        ),
+        dest_path=f"{fx_tempdir}/nf1_cellpainting_data/test-Plate_3_nf1_analysis.parquet",
+        dest_datatype="parquet",
+        preset="cellprofiler_sqlite_pycytominer",
+    )
+
+    # check that we have no nulls within Metadata_ImageNumber column
+    assert not pc.sum(
+        pc.is_null(
+            parquet.read_table(
+                source=parquet_file,
+            ).column("Metadata_ImageNumber")
+        )
+    ).as_py()

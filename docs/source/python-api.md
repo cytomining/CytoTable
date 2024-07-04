@@ -49,15 +49,7 @@ Convert
 
 |
 
-.. autofunction:: _return_future
-
-|
-
 .. autofunction:: _source_chunk_to_parquet
-
-|
-
-.. autofunction:: _to_parquet
 
 |
 
@@ -69,22 +61,6 @@ Sources
    :private-members:
    :undoc-members:
    :show-inheritance:
-
-|
-
-.. autofunction:: _build_path
-
-|
-
-.. autofunction:: _filter_source_filepaths
-
-|
-
-.. autofunction:: _get_source_filepaths
-
-|
-
-.. autofunction:: _infer_source_datatype
 
 |
 

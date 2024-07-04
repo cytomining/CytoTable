@@ -6,6 +6,9 @@ https://nih.figshare.com/articles/dataset/
 Cell_Health_-_Cell_Painting_Single_Cell_Profiles/9995672?file=18506036
 """
 
+# disable similar line checks for pylint
+# pylint: disable=R0801
+
 import shutil
 import sqlite3
 

@@ -5,7 +5,7 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import duckdb
 import parsl
@@ -149,6 +149,10 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         INSTALL sqlite_scanner;
         LOAD sqlite_scanner;
 
+        /* Install httpfs plugin to avoid error
+        https://github.com/duckdb/duckdb/issues/3243 */
+        INSTALL httpfs;
+
         /*
         Set threads available to duckdb
         See the following for more information:
@@ -171,6 +175,8 @@ def _sqlite_mixed_type_query_to_parquet(
     table_name: str,
     chunk_size: int,
     offset: int,
+    sort_output: bool,
+    add_cytotable_meta: bool = False,
 ) -> str:
     """
     Performs SQLite table data extraction where one or many
@@ -186,6 +192,10 @@ def _sqlite_mixed_type_query_to_parquet(
             Row count to use for chunked output.
         offset: int:
             The offset for chunking the data from source.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
+        add_cytotable_meta: bool, default=False:
+            Whether to add CytoTable metadata fields or not
 
     Returns:
         pyarrow.Table:
@@ -195,7 +205,10 @@ def _sqlite_mixed_type_query_to_parquet(
 
     import pyarrow as pa
 
-    from cytotable.constants import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
+    from cytotable.constants import (
+        CYOTABLE_META_COLUMN_TYPES,
+        SQLITE_AFFINITY_DATA_TYPE_SYNONYMS,
+    )
     from cytotable.exceptions import DatatypeException
 
     # open sqlite3 connection
@@ -207,7 +220,7 @@ def _sqlite_mixed_type_query_to_parquet(
         # See the following for more information:
         # https://sqlite.org/pragma.html#pragma_table_info
         cursor.execute(
-            f"""
+            """
             SELECT :table_name as table_name,
                     name as column_name,
                     type as column_type
@@ -255,10 +268,45 @@ def _sqlite_mixed_type_query_to_parquet(
             for col in column_info
         ]
 
+        if add_cytotable_meta:
+            query_parts += [
+                (
+                    f"CAST( '{f'{source_path}_table_{table_name}'}' "
+                    f"AS {_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path'].lower())}) "
+                    "AS cytotable_meta_source_path"
+                ),
+                (
+                    f"CAST( {offset} "
+                    f"AS {_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset'].lower())}) "
+                    "AS cytotable_meta_offset"
+                ),
+                (
+                    f"CAST( (ROW_NUMBER() OVER ()) AS "
+                    f"{_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum'].lower())}) "
+                    "AS cytotable_meta_rownum"
+                ),
+            ]
+
         # perform the select using the cases built above and using chunksize + offset
-        cursor.execute(
-            f'SELECT {", ".join(query_parts)} FROM {table_name} LIMIT {chunk_size} OFFSET {offset};'
+        sql_stmt = (
+            f"""
+            SELECT
+                {', '.join(query_parts)}
+            FROM {table_name}
+            ORDER BY {', '.join([col['column_name'] for col in column_info])}
+            LIMIT {chunk_size} OFFSET {offset};
+            """
+            if sort_output
+            else f"""
+            SELECT
+                {', '.join(query_parts)}
+            FROM {table_name}
+            LIMIT {chunk_size} OFFSET {offset};
+            """
         )
+
+        # execute the sql stmt
+        cursor.execute(sql_stmt)
         # collect the results and include the column name with values
         results = [
             dict(zip([desc[0] for desc in cursor.description], row))
@@ -278,7 +326,7 @@ def _sqlite_mixed_type_query_to_parquet(
     return pa.Table.from_pylist(results)
 
 
-def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
+def _cache_cloudpath_to_local(path: AnyPath) -> pathlib.Path:
     """
     Takes a cloudpath and uses cache to convert to a local copy
     for use in scenarios where remote work is not possible (sqlite).
@@ -293,24 +341,25 @@ def _cache_cloudpath_to_local(path: Union[str, AnyPath]) -> pathlib.Path:
             A local pathlib.Path to cached version of cloudpath file.
     """
 
-    candidate_path = AnyPath(path)
-
     # check that the path is a file (caching won't work with a dir)
     # and check that the file is of sqlite type
     # (other file types will be handled remotely in cloud)
-    if candidate_path.is_file() and candidate_path.suffix.lower() == ".sqlite":
+    if (
+        isinstance(path, CloudPath)
+        and path.is_file()
+        and path.suffix.lower() == ".sqlite"
+    ):
         try:
             # update the path to be the local filepath for reference in CytoTable ops
             # note: incurs a data read which will trigger caching of the file
-            path = CloudPath(path).fspath
+            path = pathlib.Path(path.fspath)
         except InvalidPrefixError:
             # share information about not finding a cloud path
             logger.info(
                 "Did not detect a cloud path based on prefix. Defaulting to use local path operations."
             )
 
-    # cast the result as a pathlib.Path
-    return pathlib.Path(path)
+    return path
 
 
 def _arrow_type_cast_if_specified(
@@ -456,4 +505,98 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
             metadata=CYTOTABLE_DEFAULT_PARQUET_METADATA
         ),
         **kwargs,
+    )
+
+
+def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
+    """
+    Helper function to unwrap futures from values or return values
+    where there are no futures.
+
+    Args:
+        val: Union[parsl.dataflow.futures.AppFuture, Any]
+            A value which may or may not be a Parsl future which
+            needs to be evaluated.
+
+    Returns:
+        Any
+            Returns the value as-is if there's no future, the future
+            result if Parsl futures are encountered.
+    """
+
+    # if we have a future value, evaluate the result
+    if isinstance(val, parsl.dataflow.futures.AppFuture):
+        return val.result()
+    elif isinstance(val, list):
+        # if we have a list of futures, return the results
+        if isinstance(val[0], parsl.dataflow.futures.AppFuture):
+            return [elem.result() for elem in val]
+    # otherwise return the value
+    return val
+
+
+def _unwrap_source(
+    source: Union[
+        Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
+        Union[parsl.dataflow.futures.AppFuture, Any],
+    ]
+) -> Union[Dict[str, Any], Any]:
+    """
+    Helper function to unwrap futures from sources.
+
+    Args:
+        source: Union[
+            Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
+            Union[parsl.dataflow.futures.AppFuture, Any],
+        ]
+            A source is a portion of an internal data structure used by
+            CytoTable for processing and organizing data results.
+    Returns:
+        Union[Dict[str, Any], Any]
+            An evaluated dictionary or other value type.
+    """
+    # if we have a dictionary, unwrap any values which may be futures
+    if isinstance(source, dict):
+        return {key: _unwrap_value(val) for key, val in source.items()}
+    else:
+        # otherwise try to unwrap the source as-is without dictionary nesting
+        return _unwrap_value(source)
+
+
+def evaluate_futures(sources: Union[Dict[str, List[Dict[str, Any]]], str]) -> Any:
+    """
+    Evaluates any Parsl futures for use within other tasks.
+    This enables a pattern of Parsl app usage as "tasks" and delayed
+    future result evaluation for concurrency.
+
+    Args:
+        sources: Union[Dict[str, List[Dict[str, Any]]], str]
+            Sources are an internal data structure used by CytoTable for
+            processing and organizing data results. They may include futures
+            which require asynchronous processing through Parsl, so we
+            process them through this function.
+
+    Returns:
+        Union[Dict[str, List[Dict[str, Any]]], str]
+            A data structure which includes evaluated futures where they were found.
+    """
+
+    return (
+        {
+            source_group_name: [
+                # unwrap sources into future results
+                _unwrap_source(source)
+                for source in (
+                    source_group_vals.result()
+                    # if we have a future, return the result
+                    if isinstance(source_group_vals, parsl.dataflow.futures.AppFuture)
+                    # otherwise return the value
+                    else source_group_vals
+                )
+            ]
+            for source_group_name, source_group_vals in sources.items()
+            # if we have a dict, use the above, otherwise unwrap the value in case of future
+        }
+        if isinstance(sources, dict)
+        else _unwrap_value(sources)
     )
