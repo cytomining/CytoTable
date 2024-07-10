@@ -3,7 +3,7 @@ name: run tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix-dep-resolution-issues]
   pull_request:
     branches: [main]
   schedule:
@@ -30,8 +30,6 @@ jobs:
       # remove poetry.lock file for scheduled tests
       # to help simulate possible upstream issues
       - name: Remove poetry.lock for scheduled tests
-        # runs every Wednesday at 7 AM UTC
-        if: github.event.schedule == '0 7 * * 3'
         run: |
           rm poetry.lock
       - name: Setup for poetry

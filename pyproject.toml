@@ -46,6 +46,7 @@ sphinxcontrib-mermaid = "^0.9.0"
 cytominer-database = "^0.3.4"
 pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
+botocore = "^1.34.133"
 
 [tool.vulture]
 min_confidence = 80
