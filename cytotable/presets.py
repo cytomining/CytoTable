@@ -27,7 +27,7 @@ config = {
             "cells": "ObjectNumber",
             "nuclei": "ObjectNumber",
             "cytoplasm": "ObjectNumber",
-            "join": "Cytoplasm_Number_Object_Number"
+            "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
@@ -73,7 +73,7 @@ config = {
             "cells": "ObjectNumber",
             "nuclei": "ObjectNumber",
             "cytoplasm": "ObjectNumber",
-            "join": "Cytoplasm_Number_Object_Number"
+            "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
@@ -123,7 +123,7 @@ config = {
             "cells": "ObjectNumber",
             "nuclei": "ObjectNumber",
             "cytoplasm": "ObjectNumber",
-            "join": "Cytoplasm_Number_Object_Number"
+            "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
@@ -181,7 +181,7 @@ config = {
             "cells": "ObjectNumber",
             "nuclei": "ObjectNumber",
             "cytoplasm": "ObjectNumber",
-            "join": "Cytoplasm_Number_Object_Number"
+            "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
@@ -236,7 +236,7 @@ config = {
             "cells": "ObjectNumber",
             "nuclei": "ObjectNumber",
             "cytoplasm": "ObjectNumber",
-            "join": "Cytoplasm_Number_Object_Number"
+            "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data

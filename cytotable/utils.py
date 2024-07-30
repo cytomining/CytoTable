@@ -5,7 +5,7 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Union, cast, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import duckdb
 import parsl
@@ -207,9 +207,7 @@ def _sqlite_mixed_type_query_to_parquet(
 
     import pyarrow as pa
 
-    from cytotable.constants import (
-        SQLITE_AFFINITY_DATA_TYPE_SYNONYMS,
-    )
+    from cytotable.constants import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
     from cytotable.exceptions import DatatypeException
 
     # open sqlite3 connection
