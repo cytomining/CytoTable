@@ -22,6 +22,13 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number"
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -61,6 +68,13 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number"
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -104,6 +118,13 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number"
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -155,6 +176,13 @@ config = {
             "Cells_Number_Object_Number",
             "Nuclei_Number_Object_Number",
         ),
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number"
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -203,6 +231,13 @@ config = {
             "Cells_ObjectNumber",
             "Nuclei_ObjectNumber",
         ),
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number"
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -248,6 +283,9 @@ config = {
             "Z",
             "T",
         ),
+        "CONFIG_PAGE_KEYS": {
+            "test": "OBJECT ID",
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
