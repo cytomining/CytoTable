@@ -173,7 +173,6 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
 def _sqlite_mixed_type_query_to_parquet(
     source_path: str,
     table_name: str,
-    chunk_size: int,
     page_key: str,
     pageset: Tuple[int, int],
     sort_output: bool,
@@ -188,8 +187,6 @@ def _sqlite_mixed_type_query_to_parquet(
             A str which is a path to a SQLite database file.
         table_name: str:
             The name of the table being queried.
-        chunk_size: int:
-            Row count to use for chunked output.
         page_key: str,
             ...
         pageset: Tuple[int, int]:

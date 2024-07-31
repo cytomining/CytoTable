@@ -70,9 +70,9 @@ config = {
         ),
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
-            "cells": "ObjectNumber",
-            "nuclei": "ObjectNumber",
-            "cytoplasm": "ObjectNumber",
+            "cells": "Cells_Number_Object_Number",
+            "nuclei": "Nuclei_Number_Object_Number",
+            "cytoplasm": "Cytoplasm_Number_Object_Number",
             "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
@@ -178,9 +178,9 @@ config = {
         ),
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
-            "cells": "ObjectNumber",
-            "nuclei": "ObjectNumber",
-            "cytoplasm": "ObjectNumber",
+            "cells": "Cells_Number_Object_Number",
+            "nuclei": "Nuclei_Number_Object_Number",
+            "cytoplasm": "Cytoplasm_Number_Object_Number",
             "join": "Cytoplasm_Number_Object_Number",
         },
         # chunk size to use for join operations to help with possible performance issues
@@ -284,7 +284,7 @@ config = {
             "T",
         ),
         "CONFIG_PAGE_KEYS": {
-            "test": "OBJECT ID",
+            "test": '"OBJECT ID"',
         },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data

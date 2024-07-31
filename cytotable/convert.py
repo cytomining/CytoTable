@@ -109,13 +109,8 @@ def _get_table_columns_and_types(
             arrow_data_tbl = _sqlite_mixed_type_query_to_parquet(
                 source_path=str(source["source_path"]),
                 table_name=str(source["table_name"]),
-                # chunk size is set to 5 as a limit similar
-                # to above SQL within select_query variable
-                chunk_size=5,
-                # offset is set to 0 start at first row
-                # result from table
-                offset=0,
-                add_cytotable_meta=False,
+                page_key=source["page_key"],
+                pageset=source["pagesets"][0],
                 sort_output=sort_output,
             )
             with _duckdb_reader() as ddb_reader:
@@ -357,12 +352,7 @@ def _source_chunk_to_parquet(
                     {base_query}
                     WHERE {source['page_key']} BETWEEN {pageset[0]} AND {pageset[1]}
                     /* order by all columns for deterministic output */
-                    ORDER BY {source['page_key']}
-                    """
-                    if sort_output
-                    else f"""
-                    {base_query}
-                    WHERE {source['page_key']} BETWEEN {pageset[0]} AND {pageset[1]}
+                    {"ORDER BY " + source['page_key'] if sort_output else ""};
                     """
                 ).arrow(),
                 where=result_filepath,
@@ -384,7 +374,6 @@ def _source_chunk_to_parquet(
                 table=_sqlite_mixed_type_query_to_parquet(
                     source_path=str(source["source_path"]),
                     table_name=str(source["table_name"]),
-                    chunk_size=chunk_size,
                     page_key=source["page_key"],
                     pageset=pageset,
                     sort_output=sort_output,
@@ -450,7 +439,7 @@ def _prepend_column_name(
     if len(targets) == 0:
         logger.warning(
             msg=(
-                "Skipping column name prepend operations"
+                "Skipping column name prepend operations "
                 "because no compartments or metadata were provided."
             )
         )
@@ -769,23 +758,6 @@ def _join_source_chunk(
 
     from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
 
-    print(
-        f"""
-            WITH joined AS (
-                {joins}
-            )
-            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
-            ORDER BY {page_key};
-            """
-        if sort_output
-        else f"""
-            WITH joined AS (
-                {joins}
-            )
-            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]};
-            """
-    )
-
     with _duckdb_reader() as ddb_reader:
         result = ddb_reader.execute(
             f"""
@@ -795,16 +767,7 @@ def _join_source_chunk(
             SELECT *
             FROM joined
             WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
-            ORDER BY {page_key};
-            """
-            if sort_output
-            else f"""
-            WITH joined AS (
-                {joins}
-            )
-            SELECT *
-            FROM joined
-            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]};
+            {"ORDER BY " + page_key if sort_output else ""};
             """
         ).arrow()
 
@@ -1447,6 +1410,16 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             cast(dict, config[preset]["CONFIG_PAGE_KEYS"])
             if page_keys is None
             else page_keys
+        )
+
+    # Raise an exception for scenarios where one configures CytoTable to join
+    # but does not provide a pagination key for the joins.
+    if join and (page_keys is None or "join" not in page_keys.keys()):
+        raise CytoTableException(
+            (
+                "When using join=True one must pass a 'join' pagination key "
+                "in the page_keys parameter."
+            )
         )
 
     # send sources to be written to parquet if selected
