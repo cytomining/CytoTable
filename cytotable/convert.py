@@ -43,10 +43,7 @@ def _get_table_columns_and_types(
             list of dictionaries which each include column level information
     """
 
-    import pathlib
-
     import duckdb
-    from cloudpathlib import AnyPath
 
     from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
 
@@ -102,6 +99,7 @@ def _get_table_columns_and_types(
             )
 
     except duckdb.Error as e:
+        print(source["pagesets"])
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
         # to handle the mixed types
@@ -206,7 +204,8 @@ def _get_table_keyset_pagination_sets(
     import logging
 
     import duckdb
-    from cloudpathlib import AnyPath, CloudPath
+    import sqlite3
+    from contextlib import closing
 
     from cytotable.exceptions import NoInputDataException
     from cytotable.utils import _duckdb_reader
@@ -225,8 +224,20 @@ def _get_table_keyset_pagination_sets(
                 else:
                     sql_query = f"SELECT {page_key} FROM sqlite_scan('{source_path}', '{table_name}') ORDER BY {page_key}"
 
-                keys = ddb_reader.execute(sql_query).fetchall()
-                keys = [key[0] for key in keys]
+                keys = [key[0] for key in ddb_reader.execute(sql_query).fetchall()]
+
+        # exception case for when we have mixed types
+        # (i.e. integer col with string and ints) in a sqlite column
+        except duckdb.TypeMismatchException:
+            with closing(sqlite3.connect(source_path)) as cx:
+                with cx:
+                    keys = [
+                        key[0]
+                        for key in cx.execute(
+                            f"SELECT {page_key} FROM {table_name} ORDER BY {page_key};"
+                        ).fetchall()
+                        if isinstance(key[0], (int, float))
+                    ]
 
         except (
             duckdb.InvalidInputException,
@@ -245,10 +256,25 @@ def _get_table_keyset_pagination_sets(
             keys = [key[0] for key in keys]
 
     # Create chunks of keys
-    chunks = [
-        ((values := keys[i : i + chunk_size])[0], values[-1])
-        for i in range(0, len(keys), chunk_size)
-    ]
+    chunks = []
+    i = 0
+    while i < len(keys):
+        start_key = keys[i]
+        end_index = min(i + chunk_size, len(keys)) - 1
+        end_key = keys[end_index]
+
+        # Ensure non-overlapping by incrementing the start of the next range
+        next_start_index = end_index + 1
+        if next_start_index < len(keys):
+            next_start_key = keys[next_start_index]
+            while next_start_key == end_key and next_start_index + 1 < len(keys):
+                next_start_index += 1
+                next_start_key = keys[next_start_index]
+            chunks.append((start_key, next_start_key - 1))
+        else:
+            chunks.append((start_key, end_key))
+
+        i = next_start_index
 
     return chunks
 
@@ -687,7 +713,6 @@ def _concat_source_group(
 def _prepare_join_sql(
     sources: Dict[str, List[Dict[str, Any]]],
     joins: str,
-    sort_output: bool,
 ) -> str:
     """
     Prepare join SQL statement with actual locations of data based on the sources.
@@ -727,7 +752,6 @@ def _prepare_join_sql(
 def _join_source_chunk(
     dest_path: str,
     joins: str,
-    chunk_size: int,
     page_key: str,
     pageset: Tuple[int, int],
     sort_output: bool,
@@ -1062,6 +1086,16 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     # expand the destination path
     expanded_dest_path = _expand_path(path=dest_path)
 
+    # check that each source group name has a pagination key
+    for source_group_name in sources.keys():
+        matching_keys = [
+            key for key in page_keys.keys() if key.lower() in source_group_name.lower()
+        ]
+        if not matching_keys:
+            raise CytoTableException(
+                f"No matching key found in page_keys for source_group_name: {source_group_name}"
+            )
+
     # prepare pagesets for chunked data export from source tables
     pagesets_prepared = {
         source_group_name: [
@@ -1102,6 +1136,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # ensure we have source_groups with at least one source table
         if len(source_group_vals) > 0
     }
+
+    print(invalid_files_dropped)
 
     # gather column names and types from source tables
     column_names_and_types_gathered = {
@@ -1197,8 +1233,10 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # evaluate the results as they're used multiple times below
         evaluated_results = evaluate_futures(results)
 
+        print(evaluated_results)
+
         prepared_joins_sql = _prepare_join_sql(
-            sources=evaluated_results, joins=joins, sort_output=sort_output
+            sources=evaluated_results, joins=joins
         ).result()
 
         page_key_join = [
@@ -1214,7 +1252,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 # full concat results
                 dest_path=expanded_dest_path,
                 joins=prepared_joins_sql,
-                chunk_size=chunk_size,
                 page_key=page_key_join,
                 pageset=pageset,
                 sort_output=sort_output,

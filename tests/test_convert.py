@@ -61,6 +61,7 @@ def test_config():
                 "CONFIG_CHUNK_SIZE",
                 "CONFIG_JOINS",
                 "CONFIG_SOURCE_VERSION",
+                "CONFIG_PAGE_KEYS",
             ]
         ) == sorted(config_preset.keys())
 
@@ -403,8 +404,7 @@ def test_prepare_join_sql(
                     WHERE
                         cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
                         AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
-                    """,
-                sort_output=True,
+                    """
             ).result()
         ).df()
 
@@ -475,21 +475,23 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
             FROM read_parquet('{test_path_a}') as example_a
             JOIN read_parquet('{test_path_b}') as example_b USING(id1, id2)
         """,
-        chunk_size=2,
-        offset=0,
+        page_key="id1",
+        pageset=(1, 2),
         drop_null=True,
+        sort_output=True,
     ).result()
 
     assert isinstance(result, str)
 
     result_table = parquet.read_table(source=result)
+
     assert result_table.equals(
         other=pa.Table.from_pydict(
             {
-                "field1": ["foo", "bar"],
-                "field2": [True, False],
-                "id1": [1, 2],
-                "id2": ["a", "a"],
+                "field1": ["foo", "foo", "bar", "bar"],
+                "field2": [True, True, False, False],
+                "id1": [1, 1, 2, 2],
+                "id2": ["a", "b", "a", "b"],
             },
             # use schema from result as a reference for col order
             schema=result_table.schema,
@@ -629,6 +631,12 @@ def test_to_parquet(
             compartments=["cytoplasm", "cells", "nuclei"],
             metadata=["image"],
             identifying_columns=["imagenumber"],
+            page_keys={
+                "image": "ImageNumber",
+                "cells": "Cells_ObjectNumber",
+                "nuclei": "Nuclei_ObjectNumber",
+                "cytoplasm": "Cytoplasm_ObjectNumber",
+            },
             concat=False,
             join=False,
             joins=None,
@@ -687,6 +695,12 @@ def test_to_parquet_unsorted(
             compartments=["cytoplasm", "cells", "nuclei"],
             metadata=["image"],
             identifying_columns=["imagenumber"],
+            page_keys={
+                "image": "ImageNumber",
+                "cells": "Cells_ObjectNumber",
+                "nuclei": "Nuclei_ObjectNumber",
+                "cytoplasm": "Cytoplasm_ObjectNumber",
+            },
             concat=False,
             join=False,
             joins=None,
@@ -1048,6 +1062,21 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
     # note: we cast into pycytominer_table's schema types in order to
     # properly perform comparisons as pycytominer and cytotable differ in their
     # datatyping implementations
+
+    print(cytotable_table.to_pandas().drop_duplicates().shape)
+
+    import pandas as pd
+
+    pd.testing.assert_frame_equal(
+        pycytominer_table.to_pandas()
+        .sort_values(by=list(pycytominer_table.schema.names))
+        .reset_index(drop=True),
+        cytotable_table.to_pandas()
+        .drop_duplicates()
+        .sort_values(by=list(pycytominer_table.schema.names))
+        .reset_index(drop=True),
+    )
+
     assert pycytominer_table.schema.equals(
         cytotable_table.cast(target_schema=pycytominer_table.schema).schema
     )
@@ -1083,8 +1112,8 @@ def test_sqlite_mixed_type_query_to_parquet(
                 table=_sqlite_mixed_type_query_to_parquet(
                     source_path=example_sqlite_mixed_types_database,
                     table_name=table_name,
-                    chunk_size=2,
-                    offset=0,
+                    page_key="col_integer",
+                    pageset=(1, 2),
                     sort_output=True,
                 ),
                 where=result_filepath,
@@ -1106,10 +1135,11 @@ def test_sqlite_mixed_type_query_to_parquet(
     ]
     # check the values per column
     assert parquet.read_table(source=result_filepath).to_pydict() == {
-        "col_integer": [None, 1],
-        "col_text": ["sample", "sample"],
-        "col_blob": [b"another_blob", b"sample_blob"],
-        "col_real": [None, 0.5],
+        # note: we drop None / NA values due to pagination keys
+        "col_integer": [1],
+        "col_text": ["sample"],
+        "col_blob": [b"sample_blob"],
+        "col_real": [0.5],
     }
 
     # run full convert on mixed type database
@@ -1119,6 +1149,7 @@ def test_sqlite_mixed_type_query_to_parquet(
         dest_datatype="parquet",
         source_datatype="sqlite",
         compartments=[table_name],
+        page_keys={"tbl_a": "col_integer"},
         join=False,
     )
 
@@ -1126,16 +1157,10 @@ def test_sqlite_mixed_type_query_to_parquet(
     assert parquet.read_table(
         source=result["Tbl_a.sqlite"][0]["table"][0]
     ).to_pydict() == {
-        "Tbl_a_col_integer": [None, 1],
-        "Tbl_a_col_text": ["sample", "sample"],
-        "Tbl_a_col_blob": [b"another_blob", b"sample_blob"],
-        "Tbl_a_col_real": [None, 0.5],
-        "cytotable_meta_source_path": [
-            f"{pathlib.Path(fx_tempdir).resolve()}/example_mixed_types.sqlite_table_tbl_a",
-            f"{pathlib.Path(fx_tempdir).resolve()}/example_mixed_types.sqlite_table_tbl_a",
-        ],
-        "cytotable_meta_offset": [0, 0],
-        "cytotable_meta_rownum": [2, 1],
+        "Tbl_a_col_integer": [1],
+        "Tbl_a_col_text": ["sample"],
+        "Tbl_a_col_blob": [b"sample_blob"],
+        "Tbl_a_col_real": [0.5],
     }
 
 

@@ -271,14 +271,7 @@ def _sqlite_mixed_type_query_to_parquet(
                 {', '.join(query_parts)}
             FROM {table_name}
             WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
-            ORDER BY {page_key};
-            """
-            if sort_output
-            else f"""
-            SELECT
-                {', '.join(query_parts)}
-            FROM {table_name}
-            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]};
+            {"ORDER BY " + page_key if sort_output else ""};
             """
         )
 
