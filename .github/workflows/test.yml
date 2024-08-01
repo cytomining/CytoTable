@@ -3,7 +3,7 @@ name: run tests
 
 on:
   push:
-    branches: [main]
+    branches: [main, pagination-changes]
   pull_request:
     branches: [main]
   schedule:
