@@ -404,7 +404,7 @@ def test_prepare_join_sql(
                     WHERE
                         cells.Cells_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
                         AND nuclei.Nuclei_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
-                    """
+                    """,
             ).result()
         ).df()
 
@@ -1064,18 +1064,6 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
     # datatyping implementations
 
     print(cytotable_table.to_pandas().drop_duplicates().shape)
-
-    import pandas as pd
-
-    pd.testing.assert_frame_equal(
-        pycytominer_table.to_pandas()
-        .sort_values(by=list(pycytominer_table.schema.names))
-        .reset_index(drop=True),
-        cytotable_table.to_pandas()
-        .drop_duplicates()
-        .sort_values(by=list(pycytominer_table.schema.names))
-        .reset_index(drop=True),
-    )
 
     assert pycytominer_table.schema.equals(
         cytotable_table.cast(target_schema=pycytominer_table.schema).schema

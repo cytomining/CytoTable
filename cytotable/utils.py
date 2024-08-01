@@ -265,15 +265,13 @@ def _sqlite_mixed_type_query_to_parquet(
         ]
 
         # perform the select using the cases built above and using chunksize + offset
-        sql_stmt = (
-            f"""
+        sql_stmt = f"""
             SELECT
                 {', '.join(query_parts)}
             FROM {table_name}
             WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
             {"ORDER BY " + page_key if sort_output else ""};
             """
-        )
 
         # execute the sql stmt
         cursor.execute(sql_stmt)

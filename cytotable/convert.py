@@ -202,10 +202,10 @@ def _get_table_keyset_pagination_sets(
     """
 
     import logging
-
-    import duckdb
     import sqlite3
     from contextlib import closing
+
+    import duckdb
 
     from cytotable.exceptions import NoInputDataException
     from cytotable.utils import _duckdb_reader
@@ -1295,7 +1295,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     infer_common_schema: bool = True,
     drop_null: bool = False,
     data_type_cast_map: Optional[Dict[str, str]] = None,
-    page_keys: Dict[str, str] = None,
+    page_keys: Optional[Dict[str, str]] = None,
     sort_output: bool = True,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
@@ -1476,7 +1476,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             drop_null=drop_null,
             data_type_cast_map=data_type_cast_map,
             sort_output=sort_output,
-            page_keys=page_keys,
+            page_keys=cast(dict, page_keys),
             **kwargs,
         )
 
