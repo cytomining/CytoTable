@@ -99,7 +99,6 @@ def _get_table_columns_and_types(
             )
 
     except duckdb.Error as e:
-        print(source["pagesets"])
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
         # to handle the mixed types
@@ -1120,8 +1119,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         if len(source_group_vals) > 0
     }
 
-    print(invalid_files_dropped)
-
     # gather column names and types from source tables
     column_names_and_types_gathered = {
         source_group_name: [
@@ -1214,8 +1211,6 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     if join:
         # evaluate the results as they're used multiple times below
         evaluated_results = evaluate_futures(results)
-
-        print(evaluated_results)
 
         prepared_joins_sql = _prepare_join_sql(
             sources=evaluated_results, joins=joins

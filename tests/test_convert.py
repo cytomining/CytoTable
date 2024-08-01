@@ -1062,8 +1062,6 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
     # properly perform comparisons as pycytominer and cytotable differ in their
     # datatyping implementations
 
-    print(cytotable_table.to_pandas().drop_duplicates().shape)
-
     assert pycytominer_table.schema.equals(
         cytotable_table.cast(target_schema=pycytominer_table.schema).schema
     )
