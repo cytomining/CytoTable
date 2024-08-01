@@ -25,7 +25,7 @@ Convert
 
 |
 
-.. autofunction:: _get_table_chunk_offsets
+.. autofunction:: _get_table_keyset_pagination_sets
 
 |
 
