@@ -102,31 +102,6 @@ def test_convert_s3_path_sqlite_join(
         # sequential s3 SQLite files. See below for more information
         # https://cloudpathlib.drivendata.org/stable/caching/#automatically
         local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-        # note: we use a custom join to limit the
-        # data processing required within the context
-        # of GitHub Actions runner image resources.
-        joins="""
-            SELECT
-                image.Image_TableNumber,
-                image.Metadata_ImageNumber,
-                image.Metadata_Plate,
-                image.Metadata_Well,
-                image.Image_Metadata_Site,
-                image.Image_Metadata_Row,
-                cytoplasm.* EXCLUDE (Metadata_ImageNumber),
-                cells.* EXCLUDE (Metadata_ImageNumber),
-                nuclei.* EXCLUDE (Metadata_ImageNumber)
-            FROM
-                (SELECT * FROM read_parquet('cytoplasm.parquet') LIMIT 5000) AS cytoplasm
-            LEFT JOIN (SELECT * FROM read_parquet('cells.parquet') LIMIT 5000) AS cells ON
-                cells.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-                AND cells.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
-            LEFT JOIN (SELECT * FROM read_parquet('nuclei.parquet') LIMIT 5000) AS nuclei ON
-                nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-                AND nuclei.Metadata_ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
-            LEFT JOIN (SELECT * FROM read_parquet('image.parquet') LIMIT 5000) AS image ON
-                image.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
-        """,
     )
 
     # read only the metadata from parquet file
