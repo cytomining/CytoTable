@@ -86,7 +86,7 @@ def _get_table_columns_and_types(
     # with exception handling to read mixed-type data
     # using sqlite3 and special utility function
     try:
-        # isolate using new connection to read data with chunk size + offset
+        # isolate using new connection to read data based on pageset
         # and export directly to parquet via duckdb (avoiding need to return data to python)
         # perform the query and create a list of dictionaries with the column data for table
         with _duckdb_reader() as ddb_reader:
@@ -283,7 +283,6 @@ def _get_table_keyset_pagination_sets(
 def _source_chunk_to_parquet(
     source_group_name: str,
     source: Dict[str, Any],
-    chunk_size: int,
     pageset: Tuple[int, int],
     dest_path: str,
     sort_output: bool,
@@ -297,10 +296,8 @@ def _source_chunk_to_parquet(
         source: Dict[str, Any]
             Contains the source data to be chunked. Represents a single
             file or table of some kind along with collected information about table.
-        chunk_size: int
-            Row count to use for chunked output.
-        page_keys: Dict[str, str]
-            ...
+        page_keys: str:
+            The table and column names to be used for key pagination.
         pageset: Tuple[int, int]
             The pageset for chunking the data from source.
         dest_path: str
@@ -318,7 +315,6 @@ def _source_chunk_to_parquet(
     import duckdb
     from cloudpathlib import AnyPath
 
-    from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
     from cytotable.utils import (
         _duckdb_reader,
         _sqlite_mixed_type_query_to_parquet,
@@ -331,12 +327,6 @@ def _source_chunk_to_parquet(
         f"{str(source['source_path'].parent.name).lower()}"
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
-
-    source_path_str = (
-        source["source_path"]
-        if "table_name" not in source.keys()
-        else f"{source['source_path']}_table_{source['table_name']}"
-    )
 
     # add source table columns
     casted_source_cols = [
@@ -451,10 +441,7 @@ def _prepend_column_name(
 
     import pyarrow.parquet as parquet
 
-    from cytotable.constants import (
-        CYOTABLE_META_COLUMN_TYPES,
-        CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
-    )
+    from cytotable.constants import CYTOTABLE_ARROW_USE_MEMORY_MAPPING
     from cytotable.utils import _write_parquet_table_with_metadata
 
     logger = logging.getLogger(__name__)
@@ -502,10 +489,8 @@ def _prepend_column_name(
         #   source_group_name_stem: 'Cells'
         #   column_name: 'AreaShape_Area'
         #   updated_column_name: 'Cells_AreaShape_Area'
-        if (
-            column_name not in identifying_columns
-            and not column_name.startswith(source_group_name_stem.capitalize())
-            and column_name not in CYOTABLE_META_COLUMN_TYPES
+        if column_name not in identifying_columns and not column_name.startswith(
+            source_group_name_stem.capitalize()
         ):
             updated_column_names.append(f"{source_group_name_stem}_{column_name}")
         # if-condition for prepending 'Metadata_' to column name
@@ -630,7 +615,6 @@ def _concat_source_group(
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
     from cytotable.exceptions import SchemaException
-    from cytotable.utils import _write_parquet_table_with_metadata
 
     # build a result placeholder
     concatted: List[Dict[str, Any]] = [
@@ -868,7 +852,6 @@ def _concat_join_sources(
         CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
-    from cytotable.utils import _write_parquet_table_with_metadata
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
@@ -1121,11 +1104,11 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         for source_group_name, source_group_vals in sources.items()
     }
 
-    # if offsets is none and we haven't halted, remove the file as there
+    # if pagesets is none and we haven't halted, remove the file as there
     # were input formatting errors which will create challenges downstream
     invalid_files_dropped = {
         source_group_name: [
-            # ensure we have offsets
+            # ensure we have pagesets
             source
             for source in source_group_vals
             if source["pagesets"] is not None
@@ -1166,11 +1149,10 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                     "table": [
                         # perform column renaming and create potential return result
                         _prepend_column_name(
-                            # perform chunked data export to parquet using offsets
+                            # perform chunked data export to parquet using pagesets
                             table_path=_source_chunk_to_parquet(
                                 source_group_name=source_group_name,
                                 source=source,
-                                chunk_size=chunk_size,
                                 pageset=pageset,
                                 dest_path=expanded_dest_path,
                                 sort_output=sort_output,
@@ -1344,6 +1326,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
+        page_keys: str:
+            The table and column names to be used for key pagination.
         sort_output: bool (Default value = True)
             Specifies whether to sort cytotable output or not.
         drop_null: bool (Default value = False)

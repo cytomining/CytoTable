@@ -21,7 +21,6 @@ from parsl.app.app import python_app
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
@@ -1262,11 +1261,7 @@ def test_in_carta_to_parquet(
 
         # drop cytotable metadata columns for comparisons (example sources won't contain these)
         cytotable_result_table = cytotable_result_table.select(
-            [
-                column
-                for column in cytotable_result_table.column_names
-                if column not in CYOTABLE_META_COLUMN_TYPES
-            ]
+            list(cytotable_result_table.column_names)
         )
 
         # check the data against one another

@@ -187,8 +187,8 @@ def _sqlite_mixed_type_query_to_parquet(
             A str which is a path to a SQLite database file.
         table_name: str:
             The name of the table being queried.
-        page_key: str,
-            ...
+        page_key: str:
+            The column name to be used as the key for pagination.
         pageset: Tuple[int, int]:
             The pageset for chunking the data from source.
         sort_output: bool
