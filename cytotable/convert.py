@@ -180,7 +180,7 @@ def _get_table_keyset_pagination_sets(
     page_key: str,
     source: Optional[Dict[str, Any]] = None,
     sql_stmt: Optional[str] = None,
-) -> Union[List[Any], None]:
+) -> Union[List[Tuple[Union[int, float], Union[int, float]]], None]:
     """
     Get table data chunk keys for later use in capturing segments
     of values. This work also provides a chance to catch problematic
@@ -261,7 +261,7 @@ def _get_table_keyset_pagination_sets(
 def _source_chunk_to_parquet(
     source_group_name: str,
     source: Dict[str, Any],
-    pageset: Tuple[int, int],
+    pageset: Tuple[Union[int, float], Union[int, float]],
     dest_path: str,
     sort_output: bool,
 ) -> str:
@@ -274,8 +274,6 @@ def _source_chunk_to_parquet(
         source: Dict[str, Any]
             Contains the source data to be chunked. Represents a single
             file or table of some kind along with collected information about table.
-        page_keys: str:
-            The table and column names to be used for key pagination.
         pageset: Tuple[int, int]
             The pageset for chunking the data from source.
         dest_path: str
