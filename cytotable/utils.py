@@ -176,7 +176,7 @@ def _sqlite_mixed_type_query_to_parquet(
     source_path: str,
     table_name: str,
     page_key: str,
-    pageset: Tuple[int, int],
+    pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
 ) -> str:
     """

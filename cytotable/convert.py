@@ -194,6 +194,11 @@ def _get_table_keyset_pagination_sets(
             The size in rowcount of the chunks to create.
         page_key: str
             The column name to be used as the key for pagination.
+            Expected to be of numeric type (int, float) for ordering.
+        sql_stmt:
+            Optional sql statement to form the pagination set from.
+            Default behavior extracts pagination sets from the full
+            data source.
 
     Returns:
         List[Any]
@@ -1300,6 +1305,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             https://arrow.apache.org/docs/python/api/datatypes.html
         page_keys: str:
             The table and column names to be used for key pagination.
+            Uses the form: {"table_name":"column_name"}.
+            Expects columns to include numeric data (ints or floats).
+            Interacts with the `chunk_size` parameter to form
+            pages of `chunk_size`.
         sort_output: bool (Default value = True)
             Specifies whether to sort cytotable output or not.
         drop_null: bool (Default value = False)

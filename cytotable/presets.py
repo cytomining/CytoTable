@@ -22,6 +22,9 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
             "cells": "ObjectNumber",
@@ -68,6 +71,9 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
             "cells": "Cells_Number_Object_Number",
@@ -118,6 +124,9 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
             "cells": "ObjectNumber",
@@ -176,6 +185,9 @@ config = {
             "Cells_Number_Object_Number",
             "Nuclei_Number_Object_Number",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
             "cells": "Cells_Number_Object_Number",
@@ -231,6 +243,9 @@ config = {
             "Cells_ObjectNumber",
             "Nuclei_ObjectNumber",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
         "CONFIG_PAGE_KEYS": {
             "image": "ImageNumber",
             "cells": "ObjectNumber",
@@ -283,6 +298,9 @@ config = {
             "Z",
             "T",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
         "CONFIG_PAGE_KEYS": {
             "test": '"OBJECT ID"',
         },

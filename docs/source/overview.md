@@ -286,3 +286,16 @@ Also see CytoTable's presets found here: :data:`presets.config <cytotable.preset
 
 Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
 Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for example, [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
+
+## Pagination
+
+CytoTable uses keyset pagination to help manage system-specific reasonable memory usage when working with large datasets.
+[Pagination](https://en.wikipedia.org/wiki/Pagination), sometimes also called paging or "data chunking", allows CytoTable to avoid loading entire datasets into memory at once while accomplishing tasks.
+Keyset pagination leverages existing column data as _pagesets_ to perform data extractions which focus on only a subset of the data as defined within the _pageset_ keys.
+We use keyset pagination to reduce the overall memory footprint during extractions where other methods inadvertently may not scale for whole dataset work (such as offset-based pagination, which extracts then drops the offset data)([see here for more information](https://use-the-index-luke.com/no-offset)).
+
+```{eval-rst}
+Keyset pagination definitions may be defined using the ``page_keys`` parameter: :code:`convert(..., page_keys={"table_name": "column_name" }, ...)` (:mod:`convert() <cytotable.convert.convert>`).
+The ``page_keys`` parameter expects a dictionary where the keys are names of tables and values which are columns to be used for the keyset pagination pages.
+Pagination is created in conjunction with the ``chunk_size`` parameter which indicates the size of each page.
+```
