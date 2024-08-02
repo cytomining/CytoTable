@@ -3,11 +3,12 @@ Testing CytoTable utility functions found within util.py
 """
 
 import pytest
-from cytotable.utils import _generate_pagesets
+
 from cytotable.exceptions import CytoTableException
+from cytotable.utils import _generate_pagesets
 
 
-def test_generate_pageset():
+def test_generate_pageset():  # pylint: disable=too-many-statements
     """
     Test the generate_pageset function with various scenarios.
     """
