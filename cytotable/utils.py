@@ -17,6 +17,8 @@ from parsl.config import Config
 from parsl.errors import NoDataFlowKernelError
 from parsl.executors import HighThroughputExecutor
 
+from cytotable.exceptions import CytoTableException
+
 logger = logging.getLogger(__name__)
 
 # reference the original init
@@ -568,3 +570,54 @@ def evaluate_futures(sources: Union[Dict[str, List[Dict[str, Any]]], str]) -> An
         if isinstance(sources, dict)
         else _unwrap_value(sources)
     )
+
+
+def _generate_pagesets(
+    keys: List[Union[int, float]], chunk_size: int
+) -> List[Tuple[Union[int, float], Union[int, float]]]:
+    """
+    Generate a pageset (keyset pagination) from a list of keys.
+
+    Parameters:
+        keys List[Union[int, float]]:
+            List of keys to paginate.
+        chunk_size int:
+            Size of each chunk/page.
+
+    Returns:
+        List[Tuple[Union[int, float], Union[int, float]]]:
+            List of (start_key, end_key) tuples representing each page.
+    """
+
+    # if we have no keys, raise an exception
+    if not keys:
+        raise CytoTableException("No keys were provided to pageset generation process.")
+
+    # Initialize an empty list to store the chunks/pages
+    chunks = []
+
+    # Start index for iteration through the keys
+    i = 0
+
+    while i < len(keys):
+        # Get the start key for the current chunk
+        start_key = keys[i]
+
+        # Calculate the end index for the current chunk
+        end_index = min(i + chunk_size, len(keys)) - 1
+
+        # Get the end key for the current chunk
+        end_key = keys[end_index]
+
+        # Ensure non-overlapping by incrementing the start of the next range if there are duplicates
+        while end_index + 1 < len(keys) and keys[end_index + 1] == end_key:
+            end_index += 1
+
+        # Append the current chunk (start_key, end_key) to the list of chunks
+        chunks.append((start_key, end_key))
+
+        # Update the index to start from the next chunk
+        i = end_index + 1
+
+    # Return the list of chunks/pages
+    return chunks

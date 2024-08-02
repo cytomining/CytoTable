@@ -207,7 +207,7 @@ def _get_table_keyset_pagination_sets(
     import duckdb
 
     from cytotable.exceptions import NoInputDataException
-    from cytotable.utils import _duckdb_reader
+    from cytotable.utils import _duckdb_reader, _generate_pagesets
 
     logger = logging.getLogger(__name__)
 
@@ -254,28 +254,7 @@ def _get_table_keyset_pagination_sets(
             keys = ddb_reader.execute(sql_query).fetchall()
             keys = [key[0] for key in keys]
 
-    # Create chunks of keys
-    chunks = []
-    i = 0
-    while i < len(keys):
-        start_key = keys[i]
-        end_index = min(i + chunk_size, len(keys)) - 1
-        end_key = keys[end_index]
-
-        # Ensure non-overlapping by incrementing the start of the next range
-        next_start_index = end_index + 1
-        if next_start_index < len(keys):
-            next_start_key = keys[next_start_index]
-            while next_start_key == end_key and next_start_index + 1 < len(keys):
-                next_start_index += 1
-                next_start_key = keys[next_start_index]
-            chunks.append((start_key, next_start_key - 1))
-        else:
-            chunks.append((start_key, end_key))
-
-        i = next_start_index
-
-    return chunks
+    return _generate_pagesets(keys, chunk_size)
 
 
 @python_app
