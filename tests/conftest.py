@@ -22,7 +22,6 @@ from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 from sqlalchemy.util import deprecations
 
-from cytotable.constants import CYOTABLE_META_COLUMN_TYPES
 from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
 
 # filters sqlalchemy 2.0 uber warning
@@ -324,13 +323,7 @@ def fixture_example_local_sources(
         csv.write_csv(
             # we remove simulated cytotable metadata columns to be more realistic
             # (incoming sources would not usually contain these)
-            table.select(
-                [
-                    column
-                    for column in table.column_names
-                    if column not in CYOTABLE_META_COLUMN_TYPES
-                ]
-            ),
+            table.select(list(table.column_names)),
             f"{fx_tempdir}/example/{number}/{name}.csv",
         )
         # write example output

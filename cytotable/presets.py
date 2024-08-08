@@ -22,6 +22,16 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number",
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -61,6 +71,16 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "Cells_Number_Object_Number",
+            "nuclei": "Nuclei_Number_Object_Number",
+            "cytoplasm": "Cytoplasm_Number_Object_Number",
+            "join": "Cytoplasm_Number_Object_Number",
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -104,6 +124,16 @@ config = {
             "Parent_Cells",
             "Parent_Nuclei",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number",
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -155,6 +185,16 @@ config = {
             "Cells_Number_Object_Number",
             "Nuclei_Number_Object_Number",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "Cells_Number_Object_Number",
+            "nuclei": "Nuclei_Number_Object_Number",
+            "cytoplasm": "Cytoplasm_Number_Object_Number",
+            "join": "Cytoplasm_Number_Object_Number",
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -203,6 +243,16 @@ config = {
             "Cells_ObjectNumber",
             "Nuclei_ObjectNumber",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "image": "ImageNumber",
+            "cells": "ObjectNumber",
+            "nuclei": "ObjectNumber",
+            "cytoplasm": "ObjectNumber",
+            "join": "Cytoplasm_Number_Object_Number",
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.
@@ -248,6 +298,12 @@ config = {
             "Z",
             "T",
         ),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "test": '"OBJECT ID"',
+        },
         # chunk size to use for join operations to help with possible performance issues
         # note: this number is an estimate and is may need changes contingent on data
         # and system used by this library.

@@ -68,13 +68,6 @@ SQLITE_AFFINITY_DATA_TYPE_SYNONYMS = {
     ],
 }
 
-# metadata column names and types for internal use within CytoTable
-CYOTABLE_META_COLUMN_TYPES = {
-    "cytotable_meta_source_path": "VARCHAR",
-    "cytotable_meta_offset": "BIGINT",
-    "cytotable_meta_rownum": "BIGINT",
-}
-
 CYTOTABLE_DEFAULT_PARQUET_METADATA = {
     "data-producer": "https://github.com/cytomining/CytoTable",
     "data-producer-version": str(_get_cytotable_version()),
