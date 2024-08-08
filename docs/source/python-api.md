@@ -33,7 +33,7 @@ Convert
 
 |
 
-.. autofunction:: _join_source_chunk
+.. autofunction:: _join_source_pageset
 
 |
 
@@ -49,7 +49,7 @@ Convert
 
 |
 
-.. autofunction:: _source_chunk_to_parquet
+.. autofunction:: _source_pageset_to_parquet
 
 |
 

@@ -25,7 +25,7 @@ from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
     _infer_source_group_common_schema,
-    _join_source_chunk,
+    _join_source_pageset,
     _prepare_join_sql,
     _prepend_column_name,
     _to_parquet,
@@ -434,9 +434,9 @@ def test_prepare_join_sql(
     }
 
 
-def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
+def test_join_source_pageset(load_parsl_default: None, fx_tempdir: str):
     """
-    Tests _join_source_chunk
+    Tests _join_source_pageset
     """
 
     # form test path a
@@ -467,7 +467,7 @@ def test_join_source_chunk(load_parsl_default: None, fx_tempdir: str):
         where=test_path_b,
     )
 
-    result = _join_source_chunk(
+    result = _join_source_pageset(
         dest_path=f"{fx_tempdir}/destination.parquet",
         joins=f"""
             SELECT *

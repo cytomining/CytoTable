@@ -33,7 +33,7 @@ def _get_table_columns_and_types(
 
     Args:
         source: Dict[str, Any]
-            Contains the source data to be chunked. Represents a single
+            Contains source data details. Represents a single
             file or table of some kind.
         sort_output:
             Specifies whether to sort cytotable output or not.
@@ -263,7 +263,7 @@ def _get_table_keyset_pagination_sets(
 
 
 @python_app
-def _source_chunk_to_parquet(
+def _source_pageset_to_parquet(
     source_group_name: str,
     source: Dict[str, Any],
     pageset: Tuple[Union[int, float], Union[int, float]],
@@ -714,7 +714,7 @@ def _prepare_join_sql(
 
 
 @python_app
-def _join_source_chunk(
+def _join_source_pageset(
     dest_path: str,
     joins: str,
     page_key: str,
@@ -1129,7 +1129,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                         # perform column renaming and create potential return result
                         _prepend_column_name(
                             # perform chunked data export to parquet using pagesets
-                            table_path=_source_chunk_to_parquet(
+                            table_path=_source_pageset_to_parquet(
                                 source_group_name=source_group_name,
                                 source=source,
                                 pageset=pageset,
@@ -1205,7 +1205,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         # map joined results based on the join groups gathered above
         # note: after mapping we end up with a list of strings (task returns str)
         join_sources_result = [
-            _join_source_chunk(
+            _join_source_pageset(
                 # gather the result of concatted sources prior to
                 # join group merging as each mapped task run will need
                 # full concat results
