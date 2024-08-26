@@ -228,7 +228,9 @@ def _get_table_keyset_pagination_sets(
                 else:
                     sql_query = f"SELECT {page_key} FROM sqlite_scan('{source_path}', '{table_name}') ORDER BY {page_key}"
 
-                page_keys = [results[0] for results in ddb_reader.execute(sql_query).fetchall()]
+                page_keys = [
+                    results[0] for results in ddb_reader.execute(sql_query).fetchall()
+                ]
 
         # exception case for when we have mixed types
         # (i.e. integer col with string and ints) in a sqlite column
