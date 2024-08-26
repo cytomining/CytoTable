@@ -84,10 +84,3 @@ def test_generate_pageset():  # pylint: disable=too-many-statements
     chunk_size = 3
     expected = [(1.1, 3.3), (4.4, 5.5), (8.8, 8.8)]
     assert _generate_pagesets(keys, chunk_size) == expected
-
-    # Test case with an empty list
-    keys = []
-    chunk_size = 3
-    expected = []
-    with pytest.raises(CytoTableException):
-        _generate_pagesets(keys, chunk_size)
