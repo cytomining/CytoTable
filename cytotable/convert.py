@@ -4,7 +4,6 @@ CytoTable: convert - transforming data for use with pyctyominer.
 
 import itertools
 import logging
-import uuid
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import parsl
@@ -336,6 +335,7 @@ def _source_pageset_to_parquet(
         base_query = f"SELECT {select_columns} FROM sqlite_scan('{str(source['source_path'])}', '{str(source['table_name'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
 
+    # form a filepath which indicates the pageset
     result_filepath = f"{result_filepath_base}-{pageset[0]}-{pageset[1]}.parquet"
 
     # Attempt to read the data to parquet file
@@ -350,7 +350,7 @@ def _source_pageset_to_parquet(
                     f"""
                     {base_query}
                     WHERE {source['page_key']} BETWEEN {pageset[0]} AND {pageset[1]}
-                    /* order by all columns for deterministic output */
+                    /* optional ordering per pageset */
                     {"ORDER BY " + source['page_key'] if sort_output else ""};
                     """
                 ).arrow(),
@@ -535,6 +535,7 @@ def _concat_source_group(
     source_group: List[Dict[str, Any]],
     dest_path: str,
     common_schema: Optional[List[Tuple[str, str]]] = None,
+    sort_output: bool = True,
 ) -> List[Dict[str, Any]]:
     """
     Concatenate group of source data together as single file.
@@ -581,6 +582,8 @@ def _concat_source_group(
         common_schema: List[Tuple[str, str]] (Default value = None)
             Common schema to use for concatenation amongst arrow tables
             which may have slightly different but compatible schema.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
 
     Returns:
         List[Dict[str, Any]]
@@ -598,6 +601,7 @@ def _concat_source_group(
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
     from cytotable.exceptions import SchemaException
+    from cytotable.utils import _natural_sort
 
     # build a result placeholder
     concatted: List[Dict[str, Any]] = [
@@ -636,7 +640,10 @@ def _concat_source_group(
     # (all must be the same schema)
     with parquet.ParquetWriter(str(destination_path), writer_schema) as writer:
         for source in source_group:
-            for table in [table for table in source["table"]]:
+            tables = [table for table in source["table"]]
+            if sort_output:
+                tables = _natural_sort(tables)
+            for table in tables:
                 # if we haven't inferred the common schema
                 # check that our file matches the expected schema, otherwise raise an error
                 if common_schema is None and not writer_schema.equals(
@@ -758,6 +765,7 @@ def _join_source_pageset(
             SELECT *
             FROM joined
             WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
+            /* optional sorting per pagset */
             {"ORDER BY " + page_key if sort_output else ""};
             """
         ).arrow()
@@ -784,10 +792,8 @@ def _join_source_pageset(
         f"{str(pathlib.Path(dest_path).parent)}/"
         # use the dest_path stem in the name
         f"{str(pathlib.Path(dest_path).stem)}-"
-        # give the join chunk result a unique to arbitrarily
-        # differentiate from other chunk groups which are mapped
-        # and before they are brought together as one dataset
-        f"{str(uuid.uuid4().hex)}.parquet"
+        # add the pageset indication to the filename
+        f"{pageset[0]}-{pageset[1]}.parquet"
     )
 
     # write the result
@@ -804,6 +810,7 @@ def _concat_join_sources(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     join_sources: List[str],
+    sort_output: bool = True,
 ) -> str:
     """
     Concatenate join sources from parquet-based chunks.
@@ -820,6 +827,8 @@ def _concat_join_sources(
         join_sources: List[str]:
             List of local filepath destination for join source chunks
             which will be concatenated.
+        sort_output: bool
+            Specifies whether to sort cytotable output or not.
 
     Returns:
         str
@@ -835,6 +844,7 @@ def _concat_join_sources(
         CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
+    from cytotable.utils import _natural_sort
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
@@ -854,7 +864,11 @@ def _concat_join_sources(
         CYTOTABLE_DEFAULT_PARQUET_METADATA
     )
     with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
-        for table_path in join_sources:
+        for table_path in (
+            join_sources
+            if not sort_output
+            else _natural_sort(list_to_sort=join_sources)
+        ):
             writer.write_table(
                 parquet.read_table(
                     table_path,
@@ -1185,6 +1199,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 source_group=source_group_vals[0]["sources"],
                 dest_path=expanded_dest_path,
                 common_schema=source_group_vals[0]["common_schema"],
+                sort_output=sort_output,
             )
             for source_group_name, source_group_vals in evaluate_futures(
                 common_schema_determined
@@ -1236,6 +1251,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             dest_path=expanded_dest_path,
             join_sources=[join.result() for join in join_sources_result],
             sources=evaluated_results,
+            sort_output=sort_output,
         )
 
     # wrap the final result as a future and return

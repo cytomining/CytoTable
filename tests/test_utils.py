@@ -4,8 +4,7 @@ Testing CytoTable utility functions found within util.py
 
 import pytest
 
-from cytotable.exceptions import CytoTableException
-from cytotable.utils import _generate_pagesets
+from cytotable.utils import _generate_pagesets, _natural_sort
 
 
 def test_generate_pageset():  # pylint: disable=too-many-statements
@@ -84,3 +83,26 @@ def test_generate_pageset():  # pylint: disable=too-many-statements
     chunk_size = 3
     expected = [(1.1, 3.3), (4.4, 5.5), (8.8, 8.8)]
     assert _generate_pagesets(keys, chunk_size) == expected
+
+
+@pytest.mark.parametrize(
+    "input_list, expected",
+    [
+        ([], []),
+        (["a1"], ["a1"]),
+        (["a1", "a10", "a2", "a3"], ["a1", "a2", "a3", "a10"]),
+        (["1", "10", "2", "11", "21", "20"], ["1", "2", "10", "11", "20", "21"]),
+        (["b1", "a1", "b2", "a2"], ["a1", "a2", "b1", "b2"]),
+        (["apple1", "Apple10", "apple2"], ["Apple10", "apple1", "apple2"]),
+        (["a1", "A1", "a10", "A10"], ["A1", "A10", "a1", "a10"]),
+        (
+            ["a-1", "a-10", "b-2", "B-1", "b-3", "a-2", "A-3"],
+            ["A-3", "B-1", "a-1", "a-2", "a-10", "b-2", "b-3"],
+        ),
+    ],
+)
+def test_natural_sort(input_list, expected):
+    """
+    Tests for _natural_sort
+    """
+    assert _natural_sort(input_list) == expected

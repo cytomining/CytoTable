@@ -17,8 +17,6 @@ from parsl.config import Config
 from parsl.errors import NoDataFlowKernelError
 from parsl.executors import HighThroughputExecutor
 
-from cytotable.exceptions import CytoTableException
-
 logger = logging.getLogger(__name__)
 
 # reference the original init
@@ -617,3 +615,30 @@ def _generate_pagesets(
 
     # Return the list of chunks/pages
     return chunks
+
+
+def _natural_sort(list_to_sort):
+    """
+    Sorts the given iterable using natural sort adapted from approach
+    provided by the following link:
+    https://stackoverflow.com/a/4836734
+
+    Args:
+      list_to_sort: List:
+        The list to sort.
+
+    Returns:
+      List: The sorted list.
+    """
+    import re
+
+    return sorted(
+        list_to_sort,
+        # use a custom key to sort the list
+        key=lambda key: [
+            # use integer of c if it's a digit, otherwise str
+            int(c) if c.isdigit() else c
+            # Split the key into parts, separating numbers from alphabetic characters
+            for c in re.split("([0-9]+)", str(key))
+        ],
+    )
