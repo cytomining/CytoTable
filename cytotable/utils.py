@@ -589,10 +589,6 @@ def _generate_pagesets(
             List of (start_key, end_key) tuples representing each page.
     """
 
-    # if we have no keys, raise an exception
-    if not keys:
-        raise CytoTableException("Keys were not provided to the pageset generation process.")
-
     # Initialize an empty list to store the chunks/pages
     chunks = []
 
