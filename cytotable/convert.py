@@ -193,7 +193,7 @@ def _get_table_keyset_pagination_sets(
         chunk_size: int
             The size in rowcount of the chunks to create.
         page_key: str
-            The column name to be used as the key for pagination.
+            The column name to be used to identify pagination chunks.
             Expected to be of numeric type (int, float) for ordering.
         sql_stmt:
             Optional sql statement to form the pagination set from.

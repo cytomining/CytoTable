@@ -190,7 +190,7 @@ def _sqlite_mixed_type_query_to_parquet(
         table_name: str:
             The name of the table being queried.
         page_key: str:
-            The column name to be used as the key for pagination.
+            The column name to be used to identify pagination chunks.
         pageset: Tuple[int, int]:
             The pageset for chunking the data from source.
         sort_output: bool
