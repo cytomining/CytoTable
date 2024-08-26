@@ -1057,7 +1057,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         ]
         if not matching_keys:
             raise CytoTableException(
-                f"No matching key found in page_keys for source_group_name: {source_group_name}"
+                f"No matching key found in page_keys for source_group_name: {source_group_name}."
+                "Please include a pagination key based on a column name from the table."
             )
 
     # prepare pagesets for chunked data export from source tables
@@ -1420,7 +1421,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         raise CytoTableException(
             (
                 "When using join=True one must pass a 'join' pagination key "
-                "in the page_keys parameter."
+                "in the page_keys parameter. The 'join' pagination key is a column "
+                "name found within the joined results based on the SQL provided from "
+                "the joins parameter. This special key is required as not all columns "
+                "from the source tables might not be included."
             )
         )
 
