@@ -192,7 +192,7 @@ def _sqlite_mixed_type_query_to_parquet(
         page_key: str:
             The column name to be used to identify pagination chunks.
         pageset: Tuple[int, int]:
-            The pageset for chunking the data from source.
+            The range for values used for paginating data from source.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
         add_cytotable_meta: bool, default=False:
@@ -591,7 +591,7 @@ def _generate_pagesets(
 
     # if we have no keys, raise an exception
     if not keys:
-        raise CytoTableException("No keys were provided to pageset generation process.")
+        raise CytoTableException("Keys were not provided to the pageset generation process.")
 
     # Initialize an empty list to store the chunks/pages
     chunks = []
