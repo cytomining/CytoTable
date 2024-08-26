@@ -40,7 +40,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">duckdb</span>
 <span class="kn">import</span> <span class="nn">parsl</span>
@@ -208,10 +208,9 @@
 <div class="viewcode-block" id="_sqlite_mixed_type_query_to_parquet"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._sqlite_mixed_type_query_to_parquet">[docs]</a><span class="k">def</span> <span class="nf">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">table_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pageset</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-    <span class="n">add_cytotable_meta</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performs SQLite table data extraction where one or many</span>
@@ -223,10 +222,10 @@
 <span class="sd">            A str which is a path to a SQLite database file.</span>
 <span class="sd">        table_name: str:</span>
 <span class="sd">            The name of the table being queried.</span>
-<span class="sd">        chunk_size: int:</span>
-<span class="sd">            Row count to use for chunked output.</span>
-<span class="sd">        offset: int:</span>
-<span class="sd">            The offset for chunking the data from source.</span>
+<span class="sd">        page_key: str:</span>
+<span class="sd">            The column name to be used to identify pagination chunks.</span>
+<span class="sd">        pageset: Tuple[int, int]:</span>
+<span class="sd">            The range for values used for paginating data from source.</span>
 <span class="sd">        sort_output: bool</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 <span class="sd">        add_cytotable_meta: bool, default=False:</span>
@@ -240,10 +239,7 @@
 
     <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="p">(</span>
-        <span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">,</span>
-        <span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">SQLITE_AFFINITY_DATA_TYPE_SYNONYMS</span>
     <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">DatatypeException</span>
 
     <span class="c1"># open sqlite3 connection</span>
@@ -303,42 +299,14 @@
             <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_info</span>
         <span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">add_cytotable_meta</span><span class="p">:</span>
-            <span class="n">query_parts</span> <span class="o">+=</span> <span class="p">[</span>
-                <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;CAST( &#39;</span><span class="si">{</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s1">_table_</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;AS </span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">) &quot;</span>
-                    <span class="s2">&quot;AS cytotable_meta_source_path&quot;</span>
-                <span class="p">),</span>
-                <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;CAST( </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2"> &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;AS </span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_offset&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">) &quot;</span>
-                    <span class="s2">&quot;AS cytotable_meta_offset&quot;</span>
-                <span class="p">),</span>
-                <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;CAST( (ROW_NUMBER() OVER ()) AS &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_rownum&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">) &quot;</span>
-                    <span class="s2">&quot;AS cytotable_meta_rownum&quot;</span>
-                <span class="p">),</span>
-            <span class="p">]</span>
-
         <span class="c1"># perform the select using the cases built above and using chunksize + offset</span>
-        <span class="n">sql_stmt</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">sql_stmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            SELECT</span>
 <span class="s2">                </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_parts</span><span class="p">)</span><span class="si">}</span>
 <span class="s2">            FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span>
-<span class="s2">            ORDER BY </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">col</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">column_info</span><span class="p">])</span><span class="si">}</span>
-<span class="s2">            LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">            WHERE </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">            </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
 <span class="s2">            &quot;&quot;&quot;</span>
-            <span class="k">if</span> <span class="n">sort_output</span>
-            <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            SELECT</span>
-<span class="s2">                </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_parts</span><span class="p">)</span><span class="si">}</span>
-<span class="s2">            FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span>
-<span class="s2">            LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">;</span>
-<span class="s2">            &quot;&quot;&quot;</span>
-        <span class="p">)</span>
 
         <span class="c1"># execute the sql stmt</span>
         <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_stmt</span><span class="p">)</span>
@@ -634,6 +602,80 @@
         <span class="p">}</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
         <span class="k">else</span> <span class="n">_unwrap_value</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_generate_pagesets"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._generate_pagesets">[docs]</a><span class="k">def</span> <span class="nf">_generate_pagesets</span><span class="p">(</span>
+    <span class="n">keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate a pageset (keyset pagination) from a list of keys.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">        keys List[Union[int, float]]:</span>
+<span class="sd">            List of keys to paginate.</span>
+<span class="sd">        chunk_size int:</span>
+<span class="sd">            Size of each chunk/page.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Tuple[Union[int, float], Union[int, float]]]:</span>
+<span class="sd">            List of (start_key, end_key) tuples representing each page.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Initialize an empty list to store the chunks/pages</span>
+    <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># Start index for iteration through the keys</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+        <span class="c1"># Get the start key for the current chunk</span>
+        <span class="n">start_key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Calculate the end index for the current chunk</span>
+        <span class="n">end_index</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">chunk_size</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="c1"># Get the end key for the current chunk</span>
+        <span class="n">end_key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="n">end_index</span><span class="p">]</span>
+
+        <span class="c1"># Ensure non-overlapping by incrementing the start of the next range if there are duplicates</span>
+        <span class="k">while</span> <span class="n">end_index</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="ow">and</span> <span class="n">keys</span><span class="p">[</span><span class="n">end_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">end_key</span><span class="p">:</span>
+            <span class="n">end_index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Append the current chunk (start_key, end_key) to the list of chunks</span>
+        <span class="n">chunks</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start_key</span><span class="p">,</span> <span class="n">end_key</span><span class="p">))</span>
+
+        <span class="c1"># Update the index to start from the next chunk</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">end_index</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="c1"># Return the list of chunks/pages</span>
+    <span class="k">return</span> <span class="n">chunks</span></div>
+
+
+<div class="viewcode-block" id="_natural_sort"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._natural_sort">[docs]</a><span class="k">def</span> <span class="nf">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sorts the given iterable using natural sort adapted from approach</span>
+<span class="sd">    provided by the following link:</span>
+<span class="sd">    https://stackoverflow.com/a/4836734</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      list_to_sort: List:</span>
+<span class="sd">        The list to sort.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      List: The sorted list.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span> <span class="nn">re</span>
+
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">list_to_sort</span><span class="p">,</span>
+        <span class="c1"># use a custom key to sort the list</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="p">[</span>
+            <span class="c1"># use integer of c if it&#39;s a digit, otherwise str</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="n">c</span>
+            <span class="c1"># Split the key into parts, separating numbers from alphabetic characters</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;([0-9]+)&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="p">],</span>
     <span class="p">)</span></div>
 </pre></div>
 

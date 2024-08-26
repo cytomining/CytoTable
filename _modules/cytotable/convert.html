@@ -39,7 +39,6 @@
 
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">uuid</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span> <span class="nn">parsl</span>
@@ -68,7 +67,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        source: Dict[str, Any]</span>
-<span class="sd">            Contains the source data to be chunked. Represents a single</span>
+<span class="sd">            Contains source data details. Represents a single</span>
 <span class="sd">            file or table of some kind.</span>
 <span class="sd">        sort_output:</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
@@ -78,10 +77,7 @@
 <span class="sd">            list of dictionaries which each include column level information</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">pathlib</span>
-
     <span class="kn">import</span> <span class="nn">duckdb</span>
-    <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
 
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
 
@@ -124,7 +120,7 @@
     <span class="c1"># with exception handling to read mixed-type data</span>
     <span class="c1"># using sqlite3 and special utility function</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># isolate using new connection to read data with chunk size + offset</span>
+        <span class="c1"># isolate using new connection to read data based on pageset</span>
         <span class="c1"># and export directly to parquet via duckdb (avoiding need to return data to python)</span>
         <span class="c1"># perform the query and create a list of dictionaries with the column data for table</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
@@ -144,13 +140,8 @@
             <span class="n">arrow_data_tbl</span> <span class="o">=</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
                 <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
                 <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
-                <span class="c1"># chunk size is set to 5 as a limit similar</span>
-                <span class="c1"># to above SQL within select_query variable</span>
-                <span class="n">chunk_size</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-                <span class="c1"># offset is set to 0 start at first row</span>
-                <span class="c1"># result from table</span>
-                <span class="n">offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-                <span class="n">add_cytotable_meta</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">],</span>
+                <span class="n">pageset</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;pagesets&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
@@ -218,13 +209,14 @@
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_get_table_chunk_offsets</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">_get_table_keyset_pagination_sets</span><span class="p">(</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sql_stmt</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]],</span> <span class="kc">None</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Get table data chunk offsets for later use in capturing segments</span>
+<span class="sd">    Get table data chunk keys for later use in capturing segments</span>
 <span class="sd">    of values. This work also provides a chance to catch problematic</span>
 <span class="sd">    input data which will be ignored with warnings.</span>
 
@@ -234,21 +226,27 @@
 <span class="sd">            file or table of some kind.</span>
 <span class="sd">        chunk_size: int</span>
 <span class="sd">            The size in rowcount of the chunks to create.</span>
+<span class="sd">        page_key: str</span>
+<span class="sd">            The column name to be used to identify pagination chunks.</span>
+<span class="sd">            Expected to be of numeric type (int, float) for ordering.</span>
+<span class="sd">        sql_stmt:</span>
+<span class="sd">            Optional sql statement to form the pagination set from.</span>
+<span class="sd">            Default behavior extracts pagination sets from the full</span>
+<span class="sd">            data source.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[int]</span>
-<span class="sd">            List of integers which represent offsets to use for reading</span>
-<span class="sd">            the data later on.</span>
+<span class="sd">        List[Any]</span>
+<span class="sd">            List of keys to use for reading the data later on.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span> <span class="nn">logging</span>
-    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">import</span> <span class="nn">sqlite3</span>
+    <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">closing</span>
 
     <span class="kn">import</span> <span class="nn">duckdb</span>
-    <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 
     <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">NoInputDataException</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_generate_pagesets</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -258,18 +256,29 @@
         <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1"># gather the total rowcount from csv or sqlite data input sources</span>
             <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-                <span class="n">rowcount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-                    <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                        <span class="c1"># nosec</span>
-                        <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;)&quot;</span>
-                        <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
-                        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) from sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
-                    <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span><span class="p">:</span>
+                    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">&quot;</span>
 
-        <span class="c1"># catch input errors which will result in skipped files</span>
+                <span class="n">page_keys</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">results</span> <span class="ow">in</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+                <span class="p">]</span>
+
+        <span class="c1"># exception case for when we have mixed types</span>
+        <span class="c1"># (i.e. integer col with string and ints) in a sqlite column</span>
+        <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">TypeMismatchException</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">closing</span><span class="p">(</span><span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">source_path</span><span class="p">))</span> <span class="k">as</span> <span class="n">cx</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">cx</span><span class="p">:</span>
+                    <span class="n">page_keys</span> <span class="o">=</span> <span class="p">[</span>
+                        <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">cx</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">;&quot;</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
+                    <span class="p">]</span>
+
         <span class="k">except</span> <span class="p">(</span>
             <span class="n">duckdb</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">,</span>
             <span class="n">NoInputDataException</span><span class="p">,</span>
@@ -280,34 +289,20 @@
 
             <span class="k">return</span> <span class="kc">None</span>
 
-    <span class="c1"># find chunk offsets from sql statement</span>
     <span class="k">elif</span> <span class="n">sql_stmt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># gather the total rowcount from csv or sqlite data input sources</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-            <span class="n">rowcount</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
-                <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                    <span class="c1"># nosec</span>
-                    <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) FROM (</span><span class="si">{</span><span class="n">sql_stmt</span><span class="si">}</span><span class="s2">)&quot;</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="p">)</span>
+            <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM (</span><span class="si">{</span><span class="n">sql_stmt</span><span class="si">}</span><span class="s2">) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">page_keys</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+            <span class="n">page_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="p">]</span>
 
-    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
-        <span class="nb">range</span><span class="p">(</span>
-            <span class="mi">0</span><span class="p">,</span>
-            <span class="c1"># gather rowcount from table and use as maximum for range</span>
-            <span class="n">rowcount</span><span class="p">,</span>
-            <span class="c1"># step through using chunk size</span>
-            <span class="n">chunk_size</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_generate_pagesets</span><span class="p">(</span><span class="n">page_keys</span><span class="p">,</span> <span class="n">chunk_size</span><span class="p">)</span>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_source_chunk_to_parquet</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">_source_pageset_to_parquet</span><span class="p">(</span>
     <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">pageset</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -320,10 +315,8 @@
 <span class="sd">        source: Dict[str, Any]</span>
 <span class="sd">            Contains the source data to be chunked. Represents a single</span>
 <span class="sd">            file or table of some kind along with collected information about table.</span>
-<span class="sd">        chunk_size: int</span>
-<span class="sd">            Row count to use for chunked output.</span>
-<span class="sd">        offset: int</span>
-<span class="sd">            The offset for chunking the data from source.</span>
+<span class="sd">        pageset: Tuple[int, int]</span>
+<span class="sd">            The pageset for chunking the data from source.</span>
 <span class="sd">        dest_path: str</span>
 <span class="sd">            Path to store the output data.</span>
 <span class="sd">        sort_output: bool</span>
@@ -338,9 +331,7 @@
 
     <span class="kn">import</span> <span class="nn">duckdb</span>
     <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
-    <span class="kn">from</span> <span class="nn">pyarrow</span> <span class="kn">import</span> <span class="n">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
         <span class="n">_duckdb_reader</span><span class="p">,</span>
         <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">,</span>
@@ -354,26 +345,6 @@
     <span class="p">)</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-    <span class="n">source_path_str</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
-        <span class="k">if</span> <span class="s2">&quot;table_name&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">_table_</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="p">)</span>
-    <span class="c1"># build the column selection block of query</span>
-
-    <span class="c1"># add cytotable metadata columns</span>
-    <span class="n">cytotable_metadata_cols</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;CAST( &#39;</span><span class="si">{</span><span class="n">source_path_str</span><span class="si">}</span><span class="s2">&#39; &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;AS </span><span class="si">{</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_source_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
-            <span class="s1">&#39; AS &quot;cytotable_meta_source_path&quot;&#39;</span>
-        <span class="p">),</span>
-        <span class="sa">f</span><span class="s2">&quot;CAST( </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2"> AS </span><span class="si">{</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_offset&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) AS </span><span class="se">\&quot;</span><span class="s2">cytotable_meta_offset</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;CAST( (row_number() OVER ()) AS </span><span class="si">{</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">[</span><span class="s1">&#39;cytotable_meta_rownum&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
-            <span class="s1">&#39; AS &quot;cytotable_meta_rownum&quot;&#39;</span>
-        <span class="p">),</span>
-    <span class="p">]</span>
     <span class="c1"># add source table columns</span>
     <span class="n">casted_source_cols</span> <span class="o">=</span> <span class="p">[</span>
         <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
@@ -384,7 +355,7 @@
     <span class="c1"># create selection statement from lists above</span>
     <span class="n">select_columns</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="c1"># if we should sort the output, add the metadata_cols</span>
-        <span class="n">cytotable_metadata_cols</span> <span class="o">+</span> <span class="n">casted_source_cols</span>
+        <span class="n">casted_source_cols</span>
         <span class="k">if</span> <span class="n">sort_output</span>
         <span class="k">else</span> <span class="n">casted_source_cols</span>
     <span class="p">)</span>
@@ -399,7 +370,8 @@
         <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM sqlite_scan(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
         <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
 
-    <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">offset</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+    <span class="c1"># form a filepath which indicates the pageset</span>
+    <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
 
     <span class="c1"># Attempt to read the data to parquet file</span>
     <span class="c1"># using duckdb for extraction and pyarrow for</span>
@@ -412,14 +384,9 @@
                 <span class="n">table</span><span class="o">=</span><span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                    </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
-<span class="s2">                    /* order by all columns for deterministic output */</span>
-<span class="s2">                    ORDER BY ALL</span>
-<span class="s2">                    LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
-<span class="s2">                    &quot;&quot;&quot;</span>
-                    <span class="k">if</span> <span class="n">sort_output</span>
-                    <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                    </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
-<span class="s2">                    LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
+<span class="s2">                    WHERE </span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;page_key&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                    /* optional ordering per pageset */</span>
+<span class="s2">                    </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;page_key&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
 <span class="s2">                    &quot;&quot;&quot;</span>
                 <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
@@ -441,9 +408,8 @@
                 <span class="n">table</span><span class="o">=</span><span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
                     <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
                     <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
-                    <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                    <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
-                    <span class="n">add_cytotable_meta</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">sort_output</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">],</span>
+                    <span class="n">pageset</span><span class="o">=</span><span class="n">pageset</span><span class="p">,</span>
                     <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                 <span class="p">),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
@@ -493,10 +459,7 @@
 
     <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="p">(</span>
-        <span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="p">,</span>
-        <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
-    <span class="p">)</span>
+    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -507,7 +470,7 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
-                <span class="s2">&quot;Skipping column name prepend operations&quot;</span>
+                <span class="s2">&quot;Skipping column name prepend operations &quot;</span>
                 <span class="s2">&quot;because no compartments or metadata were provided.&quot;</span>
             <span class="p">)</span>
         <span class="p">)</span>
@@ -544,10 +507,8 @@
         <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
         <span class="c1">#   column_name: &#39;AreaShape_Area&#39;</span>
         <span class="c1">#   updated_column_name: &#39;Cells_AreaShape_Area&#39;</span>
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
-            <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">())</span>
-            <span class="ow">and</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
+        <span class="k">if</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+            <span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
         <span class="p">):</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="c1"># if-condition for prepending &#39;Metadata_&#39; to column name</span>
@@ -609,6 +570,7 @@
     <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">common_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Concatenate group of source data together as single file.</span>
@@ -655,6 +617,8 @@
 <span class="sd">        common_schema: List[Tuple[str, str]] (Default value = None)</span>
 <span class="sd">            Common schema to use for concatenation amongst arrow tables</span>
 <span class="sd">            which may have slightly different but compatible schema.</span>
+<span class="sd">        sort_output: bool</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Dict[str, Any]]</span>
@@ -672,7 +636,7 @@
         <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">SchemaException</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_natural_sort</span>
 
     <span class="c1"># build a result placeholder</span>
     <span class="n">concatted</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
@@ -711,7 +675,10 @@
     <span class="c1"># (all must be the same schema)</span>
     <span class="k">with</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">destination_path</span><span class="p">),</span> <span class="n">writer_schema</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">[</span><span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]]:</span>
+            <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="n">sort_output</span><span class="p">:</span>
+                <span class="n">tables</span> <span class="o">=</span> <span class="n">_natural_sort</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
                 <span class="c1"># if we haven&#39;t inferred the common schema</span>
                 <span class="c1"># check that our file matches the expected schema, otherwise raise an error</span>
                 <span class="k">if</span> <span class="n">common_schema</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">writer_schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span>
@@ -755,7 +722,6 @@
 <span class="k">def</span> <span class="nf">_prepare_join_sql</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Prepare join SQL statement with actual locations of data based on the sources.</span>
@@ -776,8 +742,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
-
     <span class="c1"># replace with real location of sources for join sql</span>
     <span class="n">order_by_tables</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -789,25 +753,17 @@
             <span class="p">)</span>
             <span class="n">order_by_tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span>
 
-    <span class="c1"># create order by statement with from all tables using cytotable metadata</span>
-    <span class="n">order_by_sql</span> <span class="o">=</span> <span class="s2">&quot;ORDER BY &quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="p">[</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">meta_column</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">order_by_tables</span>
-            <span class="k">for</span> <span class="n">meta_column</span> <span class="ow">in</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
-        <span class="p">]</span>
-    <span class="p">)</span>
-
     <span class="c1"># add the order by statements to the join</span>
-    <span class="k">return</span> <span class="n">joins</span> <span class="o">+</span> <span class="n">order_by_sql</span> <span class="k">if</span> <span class="n">sort_output</span> <span class="k">else</span> <span class="n">joins</span>
+    <span class="k">return</span> <span class="n">joins</span>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_join_source_chunk</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">_join_source_pageset</span><span class="p">(</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pageset</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -833,31 +789,20 @@
 
     <span class="kn">import</span> <span class="nn">pathlib</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYOTABLE_META_COLUMN_TYPES</span>
     <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_write_parquet_table_with_metadata</span>
-
-    <span class="c1"># Attempt to read the data to parquet file</span>
-    <span class="c1"># using duckdb for extraction and pyarrow for</span>
-    <span class="c1"># writing data to a parquet file.</span>
-    <span class="c1"># read data with chunk size + offset</span>
-    <span class="c1"># and export to parquet</span>
-    <span class="n">exclude_meta_cols</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="sa">f</span><span class="s2">&quot;c NOT LIKE &#39;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2">%&#39;&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">CYOTABLE_META_COLUMN_TYPES</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-    <span class="p">]</span>
 
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                WITH joined AS (</span>
+<span class="s2">            WITH joined AS (</span>
 <span class="s2">                </span><span class="si">{</span><span class="n">joins</span><span class="si">}</span>
-<span class="s2">                LIMIT </span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s2"> OFFSET </span><span class="si">{</span><span class="n">offset</span><span class="si">}</span>
-<span class="s2">                )</span>
-<span class="s2">                SELECT</span>
-<span class="s2">                /* exclude metadata columns from the results</span>
-<span class="s2">                by using a lambda on column names based on exclude_meta_cols. */</span>
-<span class="s2">                COLUMNS (c -&gt; (</span><span class="si">{</span><span class="s2">&quot; AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">exclude_meta_cols</span><span class="p">)</span><span class="si">}</span><span class="s2">))</span>
-<span class="s2">                FROM joined;</span>
-<span class="s2">                &quot;&quot;&quot;</span>
+<span class="s2">            )</span>
+<span class="s2">            SELECT *</span>
+<span class="s2">            FROM joined</span>
+<span class="s2">            WHERE </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">            /* optional sorting per pagset */</span>
+<span class="s2">            </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">            &quot;&quot;&quot;</span>
         <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
 
     <span class="c1"># drop nulls if specified</span>
@@ -882,10 +827,8 @@
         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">/&quot;</span>
         <span class="c1"># use the dest_path stem in the name</span>
         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">-&quot;</span>
-        <span class="c1"># give the join chunk result a unique to arbitrarily</span>
-        <span class="c1"># differentiate from other chunk groups which are mapped</span>
-        <span class="c1"># and before they are brought together as one dataset</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+        <span class="c1"># add the pageset indication to the filename</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
     <span class="p">)</span>
 
     <span class="c1"># write the result</span>
@@ -902,6 +845,7 @@
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">join_sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Concatenate join sources from parquet-based chunks.</span>
@@ -918,6 +862,8 @@
 <span class="sd">        join_sources: List[str]:</span>
 <span class="sd">            List of local filepath destination for join source chunks</span>
 <span class="sd">            which will be concatenated.</span>
+<span class="sd">        sort_output: bool</span>
+<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str</span>
@@ -933,7 +879,7 @@
         <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
         <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_natural_sort</span>
 
     <span class="c1"># remove the unjoined concatted compartments to prepare final dest_path usage</span>
     <span class="c1"># (we now have joined results)</span>
@@ -953,7 +899,11 @@
         <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span>
     <span class="p">)</span>
     <span class="k">with</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">dest_path</span><span class="p">),</span> <span class="n">writer_schema</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">join_sources</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="n">join_sources</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">sort_output</span>
+            <span class="k">else</span> <span class="n">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="o">=</span><span class="n">join_sources</span><span class="p">)</span>
+        <span class="p">):</span>
             <span class="n">writer</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span>
                 <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span>
                     <span class="n">table_path</span><span class="p">,</span>
@@ -1077,6 +1027,7 @@
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">page_keys</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">]:</span>
@@ -1117,6 +1068,9 @@
 <span class="sd">            Whether to drop null results.</span>
 <span class="sd">        sort_output: bool</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
+<span class="sd">        page_keys: Dict[str, str]</span>
+<span class="sd">            A dictionary which defines which column names are used for keyset pagination</span>
+<span class="sd">            in order to perform data extraction.</span>
 <span class="sd">        data_type_cast_map: Dict[str, str]</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
@@ -1147,16 +1101,35 @@
     <span class="c1"># expand the destination path</span>
     <span class="n">expanded_dest_path</span> <span class="o">=</span> <span class="n">_expand_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
 
-    <span class="c1"># prepare offsets for chunked data export from source tables</span>
-    <span class="n">offsets_prepared</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># check that each source group name has a pagination key</span>
+    <span class="k">for</span> <span class="n">source_group_name</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">matching_keys</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">source_group_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">matching_keys</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;No matching key found in page_keys for source_group_name: </span><span class="si">{</span><span class="n">source_group_name</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="s2">&quot;Please include a pagination key based on a column name from the table.&quot;</span>
+            <span class="p">)</span>
+
+    <span class="c1"># prepare pagesets for chunked data export from source tables</span>
+    <span class="n">pagesets_prepared</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
             <span class="nb">dict</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="o">**</span><span class="p">{</span>
-                    <span class="s2">&quot;offsets&quot;</span><span class="p">:</span> <span class="n">_get_table_chunk_offsets</span><span class="p">(</span>
+                    <span class="s2">&quot;page_key&quot;</span><span class="p">:</span> <span class="p">(</span>
+                        <span class="n">page_key</span> <span class="o">:=</span> <span class="p">[</span>
+                            <span class="n">value</span>
+                            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">source_group_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                        <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;pagesets&quot;</span><span class="p">:</span> <span class="n">_get_table_keyset_pagination_sets</span><span class="p">(</span>
                         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
                         <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                    <span class="p">)</span>
+                        <span class="n">page_key</span><span class="o">=</span><span class="n">page_key</span><span class="p">,</span>
+                    <span class="p">),</span>
                 <span class="p">},</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
@@ -1164,17 +1137,17 @@
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
 
-    <span class="c1"># if offsets is none and we haven&#39;t halted, remove the file as there</span>
+    <span class="c1"># if pagesets is none and we haven&#39;t halted, remove the file as there</span>
     <span class="c1"># were input formatting errors which will create challenges downstream</span>
     <span class="n">invalid_files_dropped</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
-            <span class="c1"># ensure we have offsets</span>
+            <span class="c1"># ensure we have pagesets</span>
             <span class="n">source</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
-            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;offsets&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;pagesets&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
-            <span class="n">offsets_prepared</span>
+            <span class="n">pagesets_prepared</span>
         <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="c1"># ensure we have source_groups with at least one source table</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">source_group_vals</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
@@ -1207,12 +1180,11 @@
                     <span class="s2">&quot;table&quot;</span><span class="p">:</span> <span class="p">[</span>
                         <span class="c1"># perform column renaming and create potential return result</span>
                         <span class="n">_prepend_column_name</span><span class="p">(</span>
-                            <span class="c1"># perform chunked data export to parquet using offsets</span>
-                            <span class="n">table_path</span><span class="o">=</span><span class="n">_source_chunk_to_parquet</span><span class="p">(</span>
+                            <span class="c1"># perform chunked data export to parquet using pagesets</span>
+                            <span class="n">table_path</span><span class="o">=</span><span class="n">_source_pageset_to_parquet</span><span class="p">(</span>
                                 <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
                                 <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-                                <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                                <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+                                <span class="n">pageset</span><span class="o">=</span><span class="n">pageset</span><span class="p">,</span>
                                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                                 <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                             <span class="p">),</span>
@@ -1221,7 +1193,7 @@
                             <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
                             <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
                         <span class="p">)</span>
-                        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;offsets&quot;</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">pageset</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;pagesets&quot;</span><span class="p">]</span>
                     <span class="p">]</span>
                 <span class="p">},</span>
             <span class="p">)</span>
@@ -1262,6 +1234,7 @@
                 <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;sources&quot;</span><span class="p">],</span>
                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                 <span class="n">common_schema</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;common_schema&quot;</span><span class="p">],</span>
+                <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
                 <span class="n">common_schema_determined</span>
@@ -1275,28 +1248,34 @@
         <span class="n">evaluated_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
         <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span>
-            <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span><span class="p">,</span> <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span>
         <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+
+        <span class="n">page_key_join</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;join&quot;</span>
+        <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c1"># map joined results based on the join groups gathered above</span>
         <span class="c1"># note: after mapping we end up with a list of strings (task returns str)</span>
         <span class="n">join_sources_result</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">_join_source_chunk</span><span class="p">(</span>
+            <span class="n">_join_source_pageset</span><span class="p">(</span>
                 <span class="c1"># gather the result of concatted sources prior to</span>
                 <span class="c1"># join group merging as each mapped task run will need</span>
                 <span class="c1"># full concat results</span>
                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                 <span class="n">joins</span><span class="o">=</span><span class="n">prepared_joins_sql</span><span class="p">,</span>
-                <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
-                <span class="n">offset</span><span class="o">=</span><span class="n">offset</span><span class="p">,</span>
+                <span class="n">page_key</span><span class="o">=</span><span class="n">page_key_join</span><span class="p">,</span>
+                <span class="n">pageset</span><span class="o">=</span><span class="n">pageset</span><span class="p">,</span>
+                <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                 <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="c1"># create join group for querying the concatenated</span>
             <span class="c1"># data in order to perform memory-safe joining</span>
             <span class="c1"># per user chunk size specification.</span>
-            <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">_get_table_chunk_offsets</span><span class="p">(</span>
+            <span class="k">for</span> <span class="n">pageset</span> <span class="ow">in</span> <span class="n">_get_table_keyset_pagination_sets</span><span class="p">(</span>
                 <span class="n">sql_stmt</span><span class="o">=</span><span class="n">prepared_joins_sql</span><span class="p">,</span>
                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
+                <span class="n">page_key</span><span class="o">=</span><span class="n">page_key_join</span><span class="p">,</span>
             <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
         <span class="p">]</span>
 
@@ -1307,6 +1286,7 @@
             <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
             <span class="n">join_sources</span><span class="o">=</span><span class="p">[</span><span class="n">join</span><span class="o">.</span><span class="n">result</span><span class="p">()</span> <span class="k">for</span> <span class="n">join</span> <span class="ow">in</span> <span class="n">join_sources_result</span><span class="p">],</span>
             <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span>
+            <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="c1"># wrap the final result as a future and return</span>
@@ -1328,6 +1308,7 @@
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">page_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1376,6 +1357,12 @@
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
+<span class="sd">        page_keys: str:</span>
+<span class="sd">            The table and column names to be used for key pagination.</span>
+<span class="sd">            Uses the form: {&quot;table_name&quot;:&quot;column_name&quot;}.</span>
+<span class="sd">            Expects columns to include numeric data (ints or floats).</span>
+<span class="sd">            Interacts with the `chunk_size` parameter to form</span>
+<span class="sd">            pages of `chunk_size`.</span>
 <span class="sd">        sort_output: bool (Default value = True)</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 <span class="sd">        drop_null: bool (Default value = False)</span>
@@ -1475,6 +1462,24 @@
             <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span>
             <span class="k">else</span> <span class="n">chunk_size</span>
         <span class="p">)</span>
+        <span class="n">page_keys</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_PAGE_KEYS&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">page_keys</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Raise an exception for scenarios where one configures CytoTable to join</span>
+    <span class="c1"># but does not provide a pagination key for the joins.</span>
+    <span class="k">if</span> <span class="n">join</span> <span class="ow">and</span> <span class="p">(</span><span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;join&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="s2">&quot;When using join=True one must pass a &#39;join&#39; pagination key &quot;</span>
+                <span class="s2">&quot;in the page_keys parameter. The &#39;join&#39; pagination key is a column &quot;</span>
+                <span class="s2">&quot;name found within the joined results based on the SQL provided from &quot;</span>
+                <span class="s2">&quot;the joins parameter. This special key is required as not all columns &quot;</span>
+                <span class="s2">&quot;from the source tables might not be included.&quot;</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
 
     <span class="c1"># send sources to be written to parquet if selected</span>
     <span class="k">if</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
@@ -1493,6 +1498,7 @@
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
             <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
+            <span class="n">page_keys</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">page_keys</span><span class="p">),</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
