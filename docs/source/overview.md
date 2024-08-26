@@ -297,5 +297,8 @@ We use keyset pagination to reduce the overall memory footprint during extractio
 ```{eval-rst}
 Keyset pagination definitions may be defined using the ``page_keys`` parameter: :code:`convert(..., page_keys={"table_name": "column_name" }, ...)` (:mod:`convert() <cytotable.convert.convert>`).
 The ``page_keys`` parameter expects a dictionary where the keys are names of tables and values which are columns to be used for the keyset pagination pages.
-Pagination is created in conjunction with the ``chunk_size`` parameter which indicates the size of each page.
+Pagination is implemented in conjunction with the ``chunk_size`` parameter which indicates the size of each page.
+We provide preset configurations for these parameters through the ``preset`` parameter :code:`convert(..., preset="", ...)`.
+Customizing the ``chunk_size`` or ``page_keys`` parameters allows you to tune the process to the size of your data and the resources available on your system.
+For large datasets, smaller chunk sizes or specific pagination columns can help manage the workload by enabling smaller, more manageable data extraction at a time.
 ```
