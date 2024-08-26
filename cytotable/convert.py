@@ -228,14 +228,14 @@ def _get_table_keyset_pagination_sets(
                 else:
                     sql_query = f"SELECT {page_key} FROM sqlite_scan('{source_path}', '{table_name}') ORDER BY {page_key}"
 
-                keys = [key[0] for key in ddb_reader.execute(sql_query).fetchall()]
+                page_keys = [results[0] for results in ddb_reader.execute(sql_query).fetchall()]
 
         # exception case for when we have mixed types
         # (i.e. integer col with string and ints) in a sqlite column
         except duckdb.TypeMismatchException:
             with closing(sqlite3.connect(source_path)) as cx:
                 with cx:
-                    keys = [
+                    page_keys = [
                         key[0]
                         for key in cx.execute(
                             f"SELECT {page_key} FROM {table_name} ORDER BY {page_key};"
@@ -256,10 +256,10 @@ def _get_table_keyset_pagination_sets(
     elif sql_stmt is not None:
         with _duckdb_reader() as ddb_reader:
             sql_query = f"SELECT {page_key} FROM ({sql_stmt}) ORDER BY {page_key}"
-            keys = ddb_reader.execute(sql_query).fetchall()
-            keys = [key[0] for key in keys]
+            page_keys = ddb_reader.execute(sql_query).fetchall()
+            page_keys = [key[0] for key in page_keys]
 
-    return _generate_pagesets(keys, chunk_size)
+    return _generate_pagesets(page_keys, chunk_size)
 
 
 @python_app
