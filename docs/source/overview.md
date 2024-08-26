@@ -291,7 +291,7 @@ Within CytoTable, we opt to describe these operations with "join" to avoid confu
 
 CytoTable uses keyset pagination to help manage system-specific reasonable memory usage when working with large datasets.
 [Pagination](https://en.wikipedia.org/wiki/Pagination), sometimes also called paging or "data chunking", allows CytoTable to avoid loading entire datasets into memory at once while accomplishing tasks.
-Keyset pagination leverages existing column data as _pagesets_ to perform data extractions which focus on only a subset of the data as defined within the _pageset_ keys.
+Keyset pagination leverages existing column data as _pagesets_ to perform data extractions which focus on only a subset of the data as defined within the _pageset_ keys (see example usage below).
 We use keyset pagination to reduce the overall memory footprint during extractions where other methods inadvertently may not scale for whole dataset work (such as offset-based pagination, which extracts then drops the offset data)([see here for more information](https://use-the-index-luke.com/no-offset)).
 
 ```{eval-rst}
