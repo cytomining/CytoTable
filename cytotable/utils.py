@@ -5,7 +5,7 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Union, cast
 
 import duckdb
 import parsl
@@ -173,10 +173,9 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
 def _sqlite_mixed_type_query_to_parquet(
     source_path: str,
     table_name: str,
-    chunk_size: int,
-    offset: int,
+    page_key: str,
+    pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
-    add_cytotable_meta: bool = False,
 ) -> str:
     """
     Performs SQLite table data extraction where one or many
@@ -188,10 +187,10 @@ def _sqlite_mixed_type_query_to_parquet(
             A str which is a path to a SQLite database file.
         table_name: str:
             The name of the table being queried.
-        chunk_size: int:
-            Row count to use for chunked output.
-        offset: int:
-            The offset for chunking the data from source.
+        page_key: str:
+            The column name to be used to identify pagination chunks.
+        pageset: Tuple[int, int]:
+            The range for values used for paginating data from source.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
         add_cytotable_meta: bool, default=False:
@@ -205,10 +204,7 @@ def _sqlite_mixed_type_query_to_parquet(
 
     import pyarrow as pa
 
-    from cytotable.constants import (
-        CYOTABLE_META_COLUMN_TYPES,
-        SQLITE_AFFINITY_DATA_TYPE_SYNONYMS,
-    )
+    from cytotable.constants import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
     from cytotable.exceptions import DatatypeException
 
     # open sqlite3 connection
@@ -268,42 +264,14 @@ def _sqlite_mixed_type_query_to_parquet(
             for col in column_info
         ]
 
-        if add_cytotable_meta:
-            query_parts += [
-                (
-                    f"CAST( '{f'{source_path}_table_{table_name}'}' "
-                    f"AS {_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_source_path'].lower())}) "
-                    "AS cytotable_meta_source_path"
-                ),
-                (
-                    f"CAST( {offset} "
-                    f"AS {_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_offset'].lower())}) "
-                    "AS cytotable_meta_offset"
-                ),
-                (
-                    f"CAST( (ROW_NUMBER() OVER ()) AS "
-                    f"{_sqlite_affinity_data_type_lookup(CYOTABLE_META_COLUMN_TYPES['cytotable_meta_rownum'].lower())}) "
-                    "AS cytotable_meta_rownum"
-                ),
-            ]
-
         # perform the select using the cases built above and using chunksize + offset
-        sql_stmt = (
-            f"""
+        sql_stmt = f"""
             SELECT
                 {', '.join(query_parts)}
             FROM {table_name}
-            ORDER BY {', '.join([col['column_name'] for col in column_info])}
-            LIMIT {chunk_size} OFFSET {offset};
+            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
+            {"ORDER BY " + page_key if sort_output else ""};
             """
-            if sort_output
-            else f"""
-            SELECT
-                {', '.join(query_parts)}
-            FROM {table_name}
-            LIMIT {chunk_size} OFFSET {offset};
-            """
-        )
 
         # execute the sql stmt
         cursor.execute(sql_stmt)
@@ -599,4 +567,78 @@ def evaluate_futures(sources: Union[Dict[str, List[Dict[str, Any]]], str]) -> An
         }
         if isinstance(sources, dict)
         else _unwrap_value(sources)
+    )
+
+
+def _generate_pagesets(
+    keys: List[Union[int, float]], chunk_size: int
+) -> List[Tuple[Union[int, float], Union[int, float]]]:
+    """
+    Generate a pageset (keyset pagination) from a list of keys.
+
+    Parameters:
+        keys List[Union[int, float]]:
+            List of keys to paginate.
+        chunk_size int:
+            Size of each chunk/page.
+
+    Returns:
+        List[Tuple[Union[int, float], Union[int, float]]]:
+            List of (start_key, end_key) tuples representing each page.
+    """
+
+    # Initialize an empty list to store the chunks/pages
+    chunks = []
+
+    # Start index for iteration through the keys
+    i = 0
+
+    while i < len(keys):
+        # Get the start key for the current chunk
+        start_key = keys[i]
+
+        # Calculate the end index for the current chunk
+        end_index = min(i + chunk_size, len(keys)) - 1
+
+        # Get the end key for the current chunk
+        end_key = keys[end_index]
+
+        # Ensure non-overlapping by incrementing the start of the next range if there are duplicates
+        while end_index + 1 < len(keys) and keys[end_index + 1] == end_key:
+            end_index += 1
+
+        # Append the current chunk (start_key, end_key) to the list of chunks
+        chunks.append((start_key, end_key))
+
+        # Update the index to start from the next chunk
+        i = end_index + 1
+
+    # Return the list of chunks/pages
+    return chunks
+
+
+def _natural_sort(list_to_sort):
+    """
+    Sorts the given iterable using natural sort adapted from approach
+    provided by the following link:
+    https://stackoverflow.com/a/4836734
+
+    Args:
+      list_to_sort: List:
+        The list to sort.
+
+    Returns:
+      List: The sorted list.
+    """
+    import re
+
+    return sorted(
+        list_to_sort,
+        # use a custom key to sort the list
+        key=lambda key: [
+            # use integer of c if it's a digit, otherwise str
+            int(c) if c.isdigit() else c
+            # Split the key into parts, separating numbers from alphabetic characters
+            for c in re.split("([0-9]+)", str(key))
+        ],
     )
