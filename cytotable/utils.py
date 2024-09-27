@@ -166,6 +166,12 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         https://duckdb.org/docs/sql/configuration#configuration-reference
         */
         PRAGMA preserve_insertion_order=FALSE;
+
+        /*
+        Disable progress bar from displaying (defaults to TRUE)
+        See earlier documentation references above for more information.
+        */
+        SET enable_progress_bar=FALSE;
         """,
     )
 
