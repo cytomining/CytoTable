@@ -6,6 +6,7 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 
 import pathlib
+from typing import List
 
 import pandas as pd
 import pyarrow as pa
@@ -212,8 +213,12 @@ def test_gather_tablenumber(
         )
         control_table = parquet.read_table(source=processed_cytominerdatabase)
 
-        # test_unique_tablenumbers = pc.unique(test_table["Metadata_TableNumber"])
+        test_unique_tablenumbers = pc.unique(test_table["Metadata_TableNumber"])
+        print(test_unique_tablenumbers)
         control_unique_tablenumbers = pc.unique(control_table["Metadata_TableNumber"])
+        print(control_unique_tablenumbers)
+        print(test_table.column_names)
+        print(control_table.column_names)
 
         assert (
             test_table.filter(
