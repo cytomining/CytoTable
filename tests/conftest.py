@@ -6,22 +6,16 @@ conftest.py for pytest
 
 import pathlib
 import shutil
-import socket
 import sqlite3
 import subprocess
 import tempfile
-from contextlib import closing
 from typing import Any, Dict, Generator, List, Tuple
 
-import boto3
-import boto3.session
 import duckdb
 import pandas as pd
 import parsl
 import pyarrow as pa
 import pytest
-from moto import mock_s3
-from moto.server import ThreadedMotoServer
 from parsl.config import Config
 from parsl.executors import ThreadPoolExecutor
 from pyarrow import csv, parquet
@@ -57,10 +51,6 @@ def fixture_load_parsl_threaded(clear_parsl_config: None) -> None:
 
     See the following for more details.
     https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.ThreadPoolExecutor.html
-
-    Note: we use the threadpoolexecutor in some occasions to avoid issues
-    with multiprocessing in moto / mocked S3 environments.
-    See here for more: https://docs.getmoto.org/en/latest/docs/faq.html#is-moto-concurrency-safe
     """
 
     parsl.load(
@@ -148,9 +138,12 @@ def fixture_data_dir_in_carta() -> List[str]:
     return [f"{pathlib.Path(__file__).parent}/data/in-carta/colas-lab"]
 
 
-@pytest.fixture(name="cytominerdatabase_sqlite")
+# skip this fixture to avoid issues with ubuntu 22.04 and CLI usage of
+# cytominer-database. Use instead fixture cytominerdatabase_sqlite_static.
+@pytest.mark.skip
+@pytest.fixture(name="cytominerdatabase_sqlite", scope="function")
 def fixture_cytominerdatabase_sqlite(
-    fx_tempdir: str,
+    tmp_path: str,
     data_dirs_cytominerdatabase: List[str],
 ) -> List[str]:
     """
@@ -161,11 +154,11 @@ def fixture_cytominerdatabase_sqlite(
     for data_dir in data_dirs_cytominerdatabase:
         # example command for reference as subprocess below
         # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
-        output_path = f"sqlite:///{fx_tempdir}/{pathlib.Path(data_dir).name}.sqlite"
+        output_path = f"sqlite:///{data_dir}/{pathlib.Path(data_dir).name}.sqlite"
 
         # run cytominer-database as command-line call
         subprocess.call(
-            [
+            args=[
                 "cytominer-database",
                 "ingest",
                 data_dir,
@@ -174,16 +167,29 @@ def fixture_cytominerdatabase_sqlite(
                 f"{data_dir}/config_SQLite.ini",
             ]
         )
+
         # store the sqlite output file within list to be returned
         output_paths.append(output_path)
 
     return output_paths
 
 
+@pytest.fixture(name="cytominerdatabase_sqlite_static", scope="function")
+def fixture_cytominerdatabase_sqlite_static():
+    """
+    Fixture for returning pre-created cytominer-database SQLite files which
+    align to what was created from fixture_cytominerdatabase_sqlite.
+    """
+    return [
+        f"sqlite:///{pathlib.Path(__file__).parent.resolve()}/data/cytominer-database/data_a_sqlite/data_a.sqlite",
+        f"sqlite:///{pathlib.Path(__file__).parent.resolve()}/data/cytominer-database/data_b_sqlite/data_b.sqlite",
+    ]
+
+
 @pytest.fixture()
 def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
     fx_tempdir: str,
-    cytominerdatabase_sqlite: List[str],
+    cytominerdatabase_sqlite_static: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test sqlite data as
@@ -191,7 +197,7 @@ def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
     """
 
     output_paths = []
-    for sqlite_file in cytominerdatabase_sqlite:
+    for sqlite_file in cytominerdatabase_sqlite_static:
         # build SingleCells from database and merge single cells into parquet file
         output_paths.append(
             SingleCells(
@@ -311,13 +317,25 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Image_Metadata_Plate": pa.array(["001", "001", "002", "002"]),
             "Image_Metadata_Well": pa.array(["A1", "A1", "A2", "A2"]),
+            "cytotable_meta_source_path": pa.array(
+                ["image.csv", "image.csv", "image.csv", "image.csv"]
+            ),
+            "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
+            "cytotable_meta_rownum": pa.array([1, 2, 3, 4]),
         }
     )
     table_cytoplasm = pa.Table.from_pydict(
         {
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Cytoplasm_ObjectNumber": pa.array([1, 2, 1, 2]),
+            "Cytoplasm_Parent_Cells": pa.array([1, 2, 1, 2]),
+            "Cytoplasm_Parent_Nuclei": pa.array([1, 2, 1, 2]),
             "Cytoplasm_Feature_X": pa.array([0.1, 0.2, 0.1, 0.2]),
+            "cytotable_meta_source_path": pa.array(
+                ["cytoplasm.csv", "cytoplasm.csv", "cytoplasm.csv", "cytoplasm.csv"]
+            ),
+            "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
+            "cytotable_meta_rownum": pa.array([1, 2, 3, 4]),
         }
     )
     table_cells = pa.Table.from_pydict(
@@ -325,6 +343,11 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
             "ImageNumber": pa.array(["1", "1", "2", "2"]),
             "Cells_ObjectNumber": pa.array([1, 2, 1, 2]),
             "Cells_Feature_Y": pa.array([0.01, 0.02, 0.01, 0.02]),
+            "cytotable_meta_source_path": pa.array(
+                ["cells.csv", "cells.csv", "cells.csv", "cells.csv"]
+            ),
+            "cytotable_meta_offset": pa.array([50, 50, 100, 100]),
+            "cytotable_meta_rownum": pa.array([1, 2, 3, 4]),
         }
     )
     table_nuclei_1 = pa.Table.from_pydict(
@@ -347,6 +370,9 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
                     0.002,
                 ]
             ),
+            "cytotable_meta_source_path": pa.array(["nuclei_1.csv", "nuclei_1.csv"]),
+            "cytotable_meta_offset": pa.array([50, 50]),
+            "cytotable_meta_rownum": pa.array([1, 2]),
         }
     )
 
@@ -355,6 +381,9 @@ def fixture_example_tables() -> Tuple[pa.Table, ...]:
             "ImageNumber": pa.array(["2", "2"]),
             "Nuclei_ObjectNumber": pa.array([1, 2]),
             "Nuclei_Feature_Z": pa.array([0.001, 0.002]),
+            "cytotable_meta_source_path": pa.array(["nuclei_1.csv", "nuclei_1.csv"]),
+            "cytotable_meta_offset": pa.array([50, 50]),
+            "cytotable_meta_rownum": pa.array([1, 2]),
         }
     )
 
@@ -383,7 +412,12 @@ def fixture_example_local_sources(
             parents=True, exist_ok=True
         )
         # write example input
-        csv.write_csv(table, f"{fx_tempdir}/example/{number}/{name}.csv")
+        csv.write_csv(
+            # we remove simulated cytotable metadata columns to be more realistic
+            # (incoming sources would not usually contain these)
+            table.select(list(table.column_names)),
+            f"{fx_tempdir}/example/{number}/{name}.csv",
+        )
         # write example output
         parquet.write_table(
             table, f"{fx_tempdir}/example_dest/{name}/{number}/{name}.parquet"
@@ -552,22 +586,19 @@ def fixture_cellprofiler_merged_nf1data(
         .execute(
             """
             /* perform query on sqlite tables through duckdb */
-            WITH Per_Image_Filtered AS (
-                SELECT
-                    ImageNumber,
-                    Image_Metadata_Well,
-                    Image_Metadata_Plate
-                FROM Per_Image
-            )
-            SELECT *
-            FROM Per_Image_Filtered image
-            LEFT JOIN Per_Cytoplasm cytoplasm ON
-                image.ImageNumber = cytoplasm.ImageNumber
-            LEFT JOIN Per_Cells cells ON
-                cells.ImageNumber = cytoplasm.ImageNumber
-                AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
-            LEFT JOIN Per_Nuclei nuclei ON
-                nuclei.ImageNumber = cytoplasm.ImageNumber
+            SELECT
+                image.ImageNumber,
+                image.Image_Metadata_Well,
+                image.Image_Metadata_Plate,
+                cytoplasm.*,
+                cells.*,
+                nuclei.*
+            FROM Per_Cytoplasm cytoplasm
+            LEFT JOIN Per_Cells cells USING (ImageNumber)
+            LEFT JOIN Per_Nuclei nuclei USING (ImageNumber)
+            LEFT JOIN Per_Image image USING (ImageNumber)
+            WHERE
+                cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
         """
         )
@@ -609,7 +640,7 @@ def fixture_cytominerdatabase_merged_cellhealth(
     """
 
     sql_stmt = """
-        WITH Image_Filtered AS (
+        WITH image_filtered AS (
             SELECT
                 TableNumber,
                 ImageNumber,
@@ -638,9 +669,9 @@ def fixture_cytominerdatabase_merged_cellhealth(
             FROM Nuclei
         )
         SELECT DISTINCT *
-        FROM Image_Filtered image
+        FROM image_filtered
         LEFT JOIN Cytoplasm_renamed cytoplasm ON
-            image.ImageNumber = cytoplasm.ImageNumber
+            image_filtered.ImageNumber = cytoplasm.ImageNumber
         LEFT JOIN Cells_renamed cells ON
             cells.ImageNumber = cytoplasm.ImageNumber
             AND cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
@@ -687,108 +718,6 @@ def fixture_cytominerdatabase_merged_cellhealth(
     )
 
     return control_result
-
-
-@pytest.fixture(scope="session", name="infer_open_port")
-def fixture_infer_open_port() -> int:
-    """
-    Infers an open port for use with tests.
-    """
-
-    # Referenced with modifications from https://stackoverflow.com/a/45690594/22216869.
-    # Note: this implementation opens, temporarily uses an available port, and returns
-    # that same port for use in tests. The contextlib.closing context relieves the use
-    # of the returned available port.
-
-    # Context for a socket which is opened and automatically closed
-    # using family=AF_INET (internet address family socket default)
-    # and type=SOCK_STREAM (a socket stream)
-    with closing(
-        socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-    ) as open_socket:
-        # Bind the socket to address of format (hostname, port),
-        # in this case, localhost and port 0.
-        # Using 0 indicates to use an available open port for this work.
-        # see: https://docs.python.org/3/library/socket.html#socket-families
-        open_socket.bind(("localhost", 0))
-
-        # Set the value of 1 to SO_REUSEADDR as a socket option.
-        # see bottom of: https://docs.python.org/3/library/socket.html
-        # "The SO_REUSEADDR flag tells the kernel to reuse a local socket in TIME_WAIT state,
-        #  without waiting for its natural timeout to expire."
-        open_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        # Return the port value of the socket address of format (hostname, port).
-        return open_socket.getsockname()[1]
-
-
-@pytest.fixture(scope="session", name="s3_session")
-def fixture_s3_session(
-    infer_open_port: int,
-) -> Generator[Tuple[boto3.session.Session, int], None, None]:
-    """
-    Yield a mocked boto session for s3 tests.
-    Return includes port related to session.
-
-    Referenced from:
-    https://docs.getmoto.org/en/latest/docs/getting_started.html
-    and
-    https://docs.getmoto.org/en/latest/docs/server_mode.html#start-within-python
-    """
-
-    # start a moto server for use in testing
-    server = ThreadedMotoServer(port=infer_open_port)
-    server.start()
-
-    with mock_s3():
-        yield boto3.session.Session(), infer_open_port
-
-
-@pytest.fixture()
-def example_s3_endpoint(
-    s3_session: Tuple[boto3.session.Session, int],
-    example_local_sources: Dict[str, List[Dict[str, Any]]],
-    data_dir_cellprofiler_sqlite_nf1: str,
-) -> str:
-    """
-    Create an mocked bucket which includes example sources
-
-    Referenced with changes from:
-    https://docs.getmoto.org/en/latest/docs/getting_started.html
-    """
-    # s3 is a fixture defined above that yields a boto3 s3 client.
-    endpoint_url = f"http://localhost:{s3_session[1]}"
-    bucket_name = "example"
-
-    # create s3 client
-    s3_client = s3_session[0].client("s3", endpoint_url=endpoint_url)
-
-    # create a bucket for content to land in
-    s3_client.create_bucket(Bucket=bucket_name)
-
-    # upload each example file to the mock bucket
-    for source_path in [
-        source["source_path"]
-        for group in example_local_sources.values()
-        for source in group
-    ]:
-        s3_client.upload_file(
-            Filename=str(source_path),
-            Bucket=bucket_name,
-            # mock nested directory structure within bucket per each file's parent
-            Key=f"{source_path.parent.name}/{source_path.name}",
-        )
-
-    # upload sqlite example
-    s3_client.upload_file(
-        Filename=data_dir_cellprofiler_sqlite_nf1,
-        Bucket=bucket_name,
-        # mock nested directory structure within bucket
-        Key=f"nf1/{pathlib.Path(data_dir_cellprofiler_sqlite_nf1).name}",
-    )
-
-    # return endpoint url for use in testing
-    return endpoint_url
 
 
 @pytest.fixture()
@@ -852,3 +781,32 @@ def example_sqlite_mixed_types_database(
     finally:
         # after completing the tests, remove the file
         pathlib.Path(filepath).unlink()
+
+
+@pytest.fixture(name="example_s3_path_csv_jump")
+def fixture_example_s3_path_csv_jump() -> str:
+    """
+    Provides an example s3 endpoint for use with tests.
+
+    This points to an object storage directory which includes CSV files
+    related to processing within CytoTable. For example, image.csv,
+    nuclei.csv, cytoplasm.csv, cells.csv, etc.
+    """
+
+    return (
+        "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/"
+        "workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1"
+    )
+
+
+@pytest.fixture(scope="session", name="example_s3_path_sqlite_jump")
+def fixture_example_s3_path() -> str:
+    """
+    Provides an example s3 endpoint for use with tests
+    """
+
+    return (
+        "s3://cellpainting-gallery/cpg0016-jump/source_4/"
+        "workspace/backend/2021_08_23_Batch12/BR00126114"
+        "/BR00126114.sqlite"
+    )

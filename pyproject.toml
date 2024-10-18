@@ -1,40 +1,33 @@
+[build-system]
+build-backend = "poetry_dynamic_versioning.backend"
+requires = [ "poetry-core>=1", "poetry-dynamic-versioning>=1,<2" ]
+
 [tool.poetry]
 name = "CytoTable"
 # note: version data is maintained by poetry-dynamic-versioning (do not edit)
 version = "0.0.0"
 description = "Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools."
-authors = ["Cytomining Community"]
+authors = [ "Cytomining Community" ]
 license = "BSD-3-Clause License"
-packages = [{include = "cytotable"}]
+packages = [ { include = "cytotable" } ]
 readme = "readme.md"
 repository = "https://github.com/cytomining/CytoTable"
 documentation = "https://cytomining.github.io/CytoTable/"
-keywords = ["python", "cellprofiler","single-cell-analysis", "way-lab"]
-
-[tool.poetry-dynamic-versioning]
-enable = true
-style = "pep440"
-vcs = "git"
-
-[build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
-
-[tool.setuptools_scm]
+keywords = [ "python", "cellprofiler", "single-cell-analysis", "way-lab" ]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.13"
 pyarrow = ">=13.0.0"
-cloudpathlib = {extras = ["all"], version = "^0.18.0"}
+cloudpathlib = { extras = [ "all", "s3" ], version = "^0.18.0" }
 duckdb = ">=0.8.0,!=0.10.0,>=0.10.1"
 parsl = ">=2023.9.25"
 numpy = [
-  {version = "<=1.24.4", python = "<3.12"},
-  {version = ">=1.26.0", python = ">=3.12"}
+  { version = "<=1.24.4", python = "<3.12" },
+  { version = ">=1.26.0", python = ">=3.12" },
 ]
 scipy = [
-  {version = "<1.12.0", python = "<3.9"},
-  {version = "^1.12.0", python = ">=3.9"}
+  { version = "<1.12.0", python = "<3.9" },
+  { version = "^1.12.0", python = ">=3.9" },
 ]
 
 [tool.poetry.group.dev.dependencies]
@@ -43,29 +36,40 @@ pytest-cov = "^4.1.0"
 Sphinx = "^6.0.0"
 myst-parser = "^2.0.0"
 sphinxcontrib-mermaid = "^0.9.0"
-moto = {extras = ["s3", "server"], version = "^4.0.0"}
 cytominer-database = "^0.3.4"
 pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
+botocore = "^1.34.133"           # added to help avoid dependency reolution issues
 
-[tool.vulture]
-min_confidence = 80
-paths = ["cytotable"]
-sort_by_size = true
-verbose = true
+[tool.poetry-dynamic-versioning]
+enable = true
+style = "pep440"
+vcs = "git"
+
+[tool.setuptools_scm]
+root = "."
 
 [tool.isort]
 profile = "black"
 
-[tool.bandit]
-exclude_dirs = ["tests"]
-skips = ["B608"]
-
 [tool.codespell]
-ignore-words=".codespell-ignore"
+ignore-words = ".codespell-ignore"
 
 [tool.pytest.ini_options]
 filterwarnings = [
   "ignore::DeprecationWarning:pkg_resources",
   "ignore::DeprecationWarning:cytominer_database",
 ]
+markers = [
+  "large_data_tests: tests which involve the use of large data.",
+]
+
+[tool.vulture]
+min_confidence = 80
+paths = [ "cytotable" ]
+sort_by_size = true
+verbose = true
+
+[tool.bandit]
+exclude_dirs = [ "tests" ]
+skips = [ "B608" ]
