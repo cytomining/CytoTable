@@ -217,7 +217,7 @@ def cytominerdatabase_to_pycytominer_merge_single_cells_parquet(
 @pytest.fixture()
 def cytominerdatabase_to_manual_join_parquet(
     fx_tempdir: str,
-    cytominerdatabase_sqlite: List[str],
+    cytominerdatabase_sqlite_static: List[str],
 ) -> List[str]:
     """
     Processed cytominer-database test sqlite data as
@@ -225,7 +225,7 @@ def cytominerdatabase_to_manual_join_parquet(
     """
 
     output_paths = []
-    for sqlite_file in cytominerdatabase_sqlite:
+    for sqlite_file in cytominerdatabase_sqlite_static:
         destination_path = (
             f"{fx_tempdir}/manual_join.{pathlib.Path(sqlite_file).name}.parquet"
         )
