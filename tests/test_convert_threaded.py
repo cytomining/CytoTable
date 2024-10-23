@@ -238,6 +238,8 @@ def test_gather_tablenumber(
         )
 
     assert False
+
+
 def test_avoid_na_row_output(
     load_parsl_threaded: None, fx_tempdir: str, data_dir_cellprofiler: str
 ):

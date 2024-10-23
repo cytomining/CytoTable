@@ -182,6 +182,7 @@ def _sqlite_mixed_type_query_to_parquet(
     page_key: str,
     pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
+    tablenumber: Optional[int] = None,
 ) -> str:
     """
     Performs SQLite table data extraction where one or many
@@ -201,6 +202,9 @@ def _sqlite_mixed_type_query_to_parquet(
             Specifies whether to sort cytotable output or not.
         add_cytotable_meta: bool, default=False:
             Whether to add CytoTable metadata fields or not
+        tablenumber: Optional[int], default=None:
+            An optional table number to append to the results.
+            Defaults to None.
 
     Returns:
         pyarrow.Table:
@@ -284,7 +288,7 @@ def _sqlite_mixed_type_query_to_parquet(
         # perform the select using the cases built above and using chunksize + offset
         sql_stmt = f"""
             SELECT
-                {', '.join(query_parts)}
+                {query_parts}
             FROM {table_name}
             WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
             {"ORDER BY " + page_key if sort_output else ""};
@@ -532,6 +536,8 @@ def _gather_tablenumber_checksum(pathname: str, buffer_size: int = 1048576) -> i
             result = zlib.crc32(buffer, result)
 
     return result & 0xFFFFFFFF
+
+
 def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
     """
     Helper function to unwrap futures from values or return values

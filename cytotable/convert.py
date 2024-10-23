@@ -1246,7 +1246,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 
     # add tablenumber details, appending None if not add_tablenumber
     tablenumber_prepared = _set_tablenumber(
-        sources=column_names_and_types_gathered, add_tablenumber=add_tablenumber
+        sources=evaluate_futures(column_names_and_types_gathered),
+        add_tablenumber=add_tablenumber,
     ).result()
 
     results = {
