@@ -193,7 +193,10 @@ def test_gather_tablenumber(
                             read_parquet('image.parquet')
                         )
                     SELECT
-                        *
+                        image.*,
+                        cytoplasm.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber),
+                        nuclei.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber),
+                        cells.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber)
                     FROM
                         read_parquet('cytoplasm.parquet') AS cytoplasm
                     LEFT JOIN read_parquet('cells.parquet') AS cells ON
@@ -213,14 +216,13 @@ def test_gather_tablenumber(
         )
         control_table = parquet.read_table(source=processed_cytominerdatabase)
 
-        test_unique_tablenumbers = pc.unique(test_table["Metadata_TableNumber"])
-        print(test_unique_tablenumbers)
         control_unique_tablenumbers = pc.unique(control_table["Metadata_TableNumber"])
-        print(control_unique_tablenumbers)
-        print(test_table.column_names)
-        print(control_table.column_names)
 
-        assert (
+        # use pandas to assert a test of equality to help with differences in how
+        # data may be rounded by CytoTable vs cytominer-database (which use different data parsers
+        # and related conversions).
+        # See here for more information: https://github.com/cytomining/CytoTable/issues/187
+        pd.testing.assert_frame_equal(
             test_table.filter(
                 # we use only those tablenumbers which appear in cytominer-database related results
                 # to help compare. CytoTable only removes datasets which have no image table whereas
@@ -230,14 +232,11 @@ def test_gather_tablenumber(
                 pc.field("Metadata_TableNumber").isin(control_unique_tablenumbers)
             )
             .sort_by([(name, "ascending") for name in test_table.column_names])
-            .equals(
-                control_table.sort_by(
-                    [(name, "ascending") for name in control_table.column_names]
-                )
-            )
+            .to_pandas(),
+            control_table.sort_by(
+                [(name, "ascending") for name in control_table.column_names]
+            ).to_pandas(),
         )
-
-    assert False
 
 
 def test_avoid_na_row_output(
