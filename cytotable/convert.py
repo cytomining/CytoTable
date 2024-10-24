@@ -1439,6 +1439,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         add_tablenumber: Optional[bool]
             Whether to add a calculated tablenumber which helps differentiate
             various repeated values (such as ObjectNumber) within source data.
+            Useful for processing multiple SQLite or CSV data sources together
+            to retain distinction from each dataset.
         page_keys: str:
             The table and column names to be used for key pagination.
             Uses the form: {"table_name":"column_name"}.
