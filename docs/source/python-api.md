@@ -45,6 +45,10 @@ Convert
 
 |
 
+.. autofunction:: _set_tablenumber
+
+|
+
 .. autofunction:: _prepend_column_name
 
 |
