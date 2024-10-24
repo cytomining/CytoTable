@@ -572,14 +572,16 @@
         <span class="k">return</span> <span class="n">_unwrap_value</span><span class="p">(</span><span class="n">source</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="evaluate_futures"><a class="viewcode-back" href="../../python-api.html#cytotable.utils.evaluate_futures">[docs]</a><span class="k">def</span> <span class="nf">evaluate_futures</span><span class="p">(</span><span class="n">sources</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<div class="viewcode-block" id="evaluate_futures"><a class="viewcode-back" href="../../python-api.html#cytotable.utils.evaluate_futures">[docs]</a><span class="k">def</span> <span class="nf">evaluate_futures</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Evaluates any Parsl futures for use within other tasks.</span>
 <span class="sd">    This enables a pattern of Parsl app usage as &quot;tasks&quot; and delayed</span>
 <span class="sd">    future result evaluation for concurrency.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Union[Dict[str, List[Dict[str, Any]]], str]</span>
+<span class="sd">        sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]</span>
 <span class="sd">            Sources are an internal data structure used by CytoTable for</span>
 <span class="sd">            processing and organizing data results. They may include futures</span>
 <span class="sd">            which require asynchronous processing through Parsl, so we</span>
