@@ -179,9 +179,9 @@ def _set_tablenumber(
     add_tablenumber: Optional[bool] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Gathers a "TableNumber" from the image table (if CSV) or 
+    Gathers a "TableNumber" from the image table (if CSV) or
     SQLite file (if SQLite source) which is a unique identifier
-    intended to help differentiate between imagenumbers 
+    intended to help differentiate between imagenumbers
     to create distinct records for single-cell profiles
     referenced across multiple source data exports.
     For example, ImageNumber column values from CellProfiler
@@ -218,7 +218,6 @@ def _set_tablenumber(
             if source["source_path"].suffix != "sqlite"
             else source["source_path"]
         ): source["source_path"]
-
         for source_group_name, source_group_vals in sources.items()
         # use the image tables references only for the basis of the
         # these calculations.
@@ -418,7 +417,7 @@ def _source_pageset_to_parquet(
         # misaligned automatic data typing.
         f"CAST({source['tablenumber']} AS BIGINT) as TableNumber, "
         if source["tablenumber"] is not None
-        # don't introduce the column if we aren't supposed to add tablenumber 
+        # don't introduce the column if we aren't supposed to add tablenumber
         # as per parameter.
         else ""
     )
