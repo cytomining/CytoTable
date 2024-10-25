@@ -182,6 +182,7 @@ def _sqlite_mixed_type_query_to_parquet(
     page_key: str,
     pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
+    tablenumber: Optional[int] = None,
 ) -> str:
     """
     Performs SQLite table data extraction where one or many
@@ -201,6 +202,9 @@ def _sqlite_mixed_type_query_to_parquet(
             Specifies whether to sort cytotable output or not.
         add_cytotable_meta: bool, default=False:
             Whether to add CytoTable metadata fields or not
+        tablenumber: Optional[int], default=None:
+            An optional table number to append to the results.
+            Defaults to None.
 
     Returns:
         pyarrow.Table:
@@ -256,9 +260,19 @@ def _sqlite_mixed_type_query_to_parquet(
             # return the translated type for use in SQLite
             return translated_type[0]
 
+        # build tablenumber segment addition (if necessary)
+        tablenumber_sql = (
+            # to become tablenumber in sql select later with integer
+            f"CAST({tablenumber} AS INTEGER) as TableNumber, "
+            if tablenumber is not None
+            # if we don't have a tablenumber value, don't introduce the column
+            else ""
+        )
+
         # create cases for mixed-type handling in each column discovered above
-        query_parts = [
-            f"""
+        query_parts = tablenumber_sql + ", ".join(
+            [
+                f"""
             CASE
                 /* when the storage class type doesn't match the column, return nulltype */
                 WHEN typeof({col['column_name']}) !=
@@ -267,13 +281,14 @@ def _sqlite_mixed_type_query_to_parquet(
                 ELSE {col['column_name']}
             END AS {col['column_name']}
             """
-            for col in column_info
-        ]
+                for col in column_info
+            ]
+        )
 
         # perform the select using the cases built above and using chunksize + offset
         sql_stmt = f"""
             SELECT
-                {', '.join(query_parts)}
+                {query_parts}
             FROM {table_name}
             WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
             {"ORDER BY " + page_key if sort_output else ""};
@@ -480,6 +495,47 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
         ),
         **kwargs,
     )
+
+
+def _gather_tablenumber_checksum(pathname: str, buffer_size: int = 1048576) -> int:
+    """
+    Build and return a checksum for use as a unique identifier across datasets
+    referenced from cytominer-database:
+    https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129
+
+    Args:
+        pathname: str:
+            A path to a file with which to generate the checksum on.
+        buffer_size: int:
+            Buffer size to use for reading data.
+
+    Returns:
+        int
+            an integer representing the checksum of the pathname file.
+    """
+
+    import os
+    import zlib
+
+    # check whether the buffer size is larger than the file_size
+    file_size = os.path.getsize(pathname)
+    if file_size < buffer_size:
+        buffer_size = file_size
+
+    # open file
+    with open(str(pathname), "rb") as stream:
+        # begin result formation
+        result = zlib.crc32(bytes(0))
+        while True:
+            # read data from stream using buffer size
+            buffer = stream.read(buffer_size)
+            if not buffer:
+                # if we have no more data to use, break while loop
+                break
+            # use buffer read data to form checksum
+            result = zlib.crc32(buffer, result)
+
+    return result & 0xFFFFFFFF
 
 
 def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:

@@ -25,6 +25,7 @@ Data are organized into tables of generally two categories:
 
 Identifying or key fields for image and compartment tables may include the following:
 
+- __TableNumber__: Provides a unique number based on the file referenced to build CytoTable output to help distinguish from repeated values in ImageNumber, ObjectNumber or other metadata columns which are referenced. Typically useful when using multiple SQLite or CSV-based source datasets.
 - __ImageNumber__: Provides specificity on what image is being referenced (there may be many).
 - __ObjectNumber__: Provides specificity for a specific compartment object within an ImageNumber.
 - __Parent_Cells__: Provides a related Cell compartment ObjectNumber. This field is canonically referenced from the Cytoplasm compartment for joining Cytoplasm and Cell compartment data. (see [Cytoplasm Compartment Data Relationships](architecture.data.md#cytoplasm-compartment-data-relationships) below for greater detail)
