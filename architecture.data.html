@@ -62,6 +62,7 @@
 <h3>Identifying or Key Fields<a class="headerlink" href="#identifying-or-key-fields" title="Permalink to this heading">¶</a></h3>
 <p>Identifying or key fields for image and compartment tables may include the following:</p>
 <ul class="simple">
+<li><p><strong>TableNumber</strong>: Provides a unique number based on the file referenced to build CytoTable output to help distinguish from repeated values in ImageNumber, ObjectNumber or other metadata columns which are referenced. Typically useful when using multiple SQLite or CSV-based source datasets.</p></li>
 <li><p><strong>ImageNumber</strong>: Provides specificity on what image is being referenced (there may be many).</p></li>
 <li><p><strong>ObjectNumber</strong>: Provides specificity for a specific compartment object within an ImageNumber.</p></li>
 <li><p><strong>Parent_Cells</strong>: Provides a related Cell compartment ObjectNumber. This field is canonically referenced from the Cytoplasm compartment for joining Cytoplasm and Cell compartment data. (see <a class="reference internal" href="#cytoplasm-compartment-data-relationships"><span class="std std-ref">Cytoplasm Compartment Data Relationships</span></a> below for greater detail)</p></li>

@@ -209,6 +209,106 @@
 
 
 <span class="nd">@python_app</span>
+<span class="k">def</span> <span class="nf">_set_tablenumber</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">add_tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gathers a &quot;TableNumber&quot; from the image table (if CSV) or</span>
+<span class="sd">    SQLite file (if SQLite source) which is a unique identifier</span>
+<span class="sd">    intended to help differentiate between imagenumbers</span>
+<span class="sd">    to create distinct records for single-cell profiles</span>
+<span class="sd">    referenced across multiple source data exports.</span>
+<span class="sd">    For example, ImageNumber column values from CellProfiler</span>
+<span class="sd">    will repeat across exports, meaning we may lose distinction</span>
+<span class="sd">    when combining multiple export files together through CytoTable.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">    - If using CSV data sources, the image.csv table is used for checksum.</span>
+<span class="sd">    - If using SQLite data sources, the entire SQLite database is used for checksum.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">            Contains metadata about data tables and related contents.</span>
+<span class="sd">        add_tablenumber: Optional[bool]</span>
+<span class="sd">            Whether to add a calculated tablenumber.</span>
+<span class="sd">            Note: when False, adds None as the tablenumber</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, Any]]</span>
+<span class="sd">            New source group with added TableNumber details.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
+
+    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_gather_tablenumber_checksum</span>
+
+    <span class="n">image_table_groups</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># create a data structure with the common parent for each dataset</span>
+        <span class="c1"># and the calculated checksum from the image table.</span>
+        <span class="c1"># note: the source_path parent is used for non-SQLite files</span>
+        <span class="c1"># whereas the direct source path is used for SQLite files.</span>
+        <span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">!=</span> <span class="s2">&quot;sqlite&quot;</span>
+            <span class="k">else</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+        <span class="p">):</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="c1"># use the image tables references only for the basis of the</span>
+        <span class="c1"># these calculations.</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="n">value</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;per_image&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
+    <span class="p">}</span>
+
+    <span class="c1"># determine if we need to add tablenumber data</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="c1"># case for detecting multiple image tables which need to be differentiated</span>
+        <span class="n">add_tablenumber</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="ow">and</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">image_table_groups</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+        <span class="c1"># case for explicitly set no tablenumbers</span>
+        <span class="n">add_tablenumber</span>
+        <span class="ow">is</span> <span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
+                <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">source</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">{</span>
+                        <span class="s2">&quot;tablenumber&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="p">},</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
+
+    <span class="c1"># gather the image table from the source_group</span>
+    <span class="n">tablenumber_table</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># create a data structure with the common parent for each dataset</span>
+        <span class="c1"># and the calculated checksum from the image table</span>
+        <span class="n">group</span><span class="p">:</span> <span class="n">_gather_tablenumber_checksum</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">image_table_groups</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+
+    <span class="c1"># return a modified sources data structure with the tablenumber added</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
+            <span class="nb">dict</span><span class="p">(</span>
+                <span class="n">source</span><span class="p">,</span>
+                <span class="o">**</span><span class="p">{</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">:</span> <span class="n">tablenumber_table</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)]},</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tablenumber_table</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="p">]</span>
+        <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+
+
+<span class="nd">@python_app</span>
 <span class="k">def</span> <span class="nf">_get_table_keyset_pagination_sets</span><span class="p">(</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -345,6 +445,18 @@
     <span class="p">)</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1"># build tablenumber segment addition (if necessary)</span>
+    <span class="n">tablenumber_sql</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="c1"># to become tablenumber in sql select later with bigint (8-byte integer)</span>
+        <span class="c1"># we cast here to bigint to avoid concat or join conflicts later due to</span>
+        <span class="c1"># misaligned automatic data typing.</span>
+        <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;tablenumber&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> AS BIGINT) as TableNumber, &quot;</span>
+        <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="c1"># don&#39;t introduce the column if we aren&#39;t supposed to add tablenumber</span>
+        <span class="c1"># as per parameter.</span>
+        <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+    <span class="p">)</span>
+
     <span class="c1"># add source table columns</span>
     <span class="n">casted_source_cols</span> <span class="o">=</span> <span class="p">[</span>
         <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
@@ -352,8 +464,8 @@
         <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span>
     <span class="p">]</span>
 
-    <span class="c1"># create selection statement from lists above</span>
-    <span class="n">select_columns</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="c1"># create selection statement from tablenumber_sql + lists above</span>
+    <span class="n">select_columns</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="c1"># if we should sort the output, add the metadata_cols</span>
         <span class="n">casted_source_cols</span>
         <span class="k">if</span> <span class="n">sort_output</span>
@@ -411,6 +523,7 @@
                     <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">],</span>
                     <span class="n">pageset</span><span class="o">=</span><span class="n">pageset</span><span class="p">,</span>
                     <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
+                    <span class="n">tablenumber</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">],</span>
                 <span class="p">),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
@@ -1029,6 +1142,7 @@
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">page_keys</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">add_tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1172,6 +1286,12 @@
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">invalid_files_dropped</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
 
+    <span class="c1"># add tablenumber details, appending None if not add_tablenumber</span>
+    <span class="n">tablenumber_prepared</span> <span class="o">=</span> <span class="n">_set_tablenumber</span><span class="p">(</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">evaluate_futures</span><span class="p">(</span><span class="n">column_names_and_types_gathered</span><span class="p">),</span>
+        <span class="n">add_tablenumber</span><span class="o">=</span><span class="n">add_tablenumber</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+
     <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
             <span class="nb">dict</span><span class="p">(</span>
@@ -1200,7 +1320,7 @@
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
-            <span class="n">column_names_and_types_gathered</span>
+            <span class="n">tablenumber_prepared</span>
         <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
 
@@ -1312,6 +1432,7 @@
     <span class="n">infer_common_schema</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">add_tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">page_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
@@ -1361,6 +1482,11 @@
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
+<span class="sd">        add_tablenumber: Optional[bool]</span>
+<span class="sd">            Whether to add a calculated tablenumber which helps differentiate</span>
+<span class="sd">            various repeated values (such as ObjectNumber) within source data.</span>
+<span class="sd">            Useful for processing multiple SQLite or CSV data sources together</span>
+<span class="sd">            to retain distinction from each dataset.</span>
 <span class="sd">        page_keys: str:</span>
 <span class="sd">            The table and column names to be used for key pagination.</span>
 <span class="sd">            Uses the form: {&quot;table_name&quot;:&quot;column_name&quot;}.</span>
@@ -1501,6 +1627,7 @@
             <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
+            <span class="n">add_tablenumber</span><span class="o">=</span><span class="n">add_tablenumber</span><span class="p">,</span>
             <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="n">page_keys</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">page_keys</span><span class="p">),</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>

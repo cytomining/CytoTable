@@ -217,6 +217,7 @@
     <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">pageset</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performs SQLite table data extraction where one or many</span>
@@ -236,6 +237,9 @@
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 <span class="sd">        add_cytotable_meta: bool, default=False:</span>
 <span class="sd">            Whether to add CytoTable metadata fields or not</span>
+<span class="sd">        tablenumber: Optional[int], default=None:</span>
+<span class="sd">            An optional table number to append to the results.</span>
+<span class="sd">            Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        pyarrow.Table:</span>
@@ -291,9 +295,19 @@
             <span class="c1"># return the translated type for use in SQLite</span>
             <span class="k">return</span> <span class="n">translated_type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
+        <span class="c1"># build tablenumber segment addition (if necessary)</span>
+        <span class="n">tablenumber_sql</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="c1"># to become tablenumber in sql select later with integer</span>
+            <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="si">{</span><span class="n">tablenumber</span><span class="si">}</span><span class="s2"> AS INTEGER) as TableNumber, &quot;</span>
+            <span class="k">if</span> <span class="n">tablenumber</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="c1"># if we don&#39;t have a tablenumber value, don&#39;t introduce the column</span>
+            <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="p">)</span>
+
         <span class="c1"># create cases for mixed-type handling in each column discovered above</span>
-        <span class="n">query_parts</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">query_parts</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            CASE</span>
 <span class="s2">                /* when the storage class type doesn&#39;t match the column, return nulltype */</span>
 <span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) !=</span>
@@ -302,13 +316,14 @@
 <span class="s2">                ELSE </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span>
 <span class="s2">            END AS </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span>
 <span class="s2">            &quot;&quot;&quot;</span>
-            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_info</span>
-        <span class="p">]</span>
+                <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_info</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
 
         <span class="c1"># perform the select using the cases built above and using chunksize + offset</span>
         <span class="n">sql_stmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            SELECT</span>
-<span class="s2">                </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">query_parts</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">                </span><span class="si">{</span><span class="n">query_parts</span><span class="si">}</span>
 <span class="s2">            FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span>
 <span class="s2">            WHERE </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
 <span class="s2">            </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
@@ -515,6 +530,47 @@
         <span class="p">),</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_gather_tablenumber_checksum"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._gather_tablenumber_checksum">[docs]</a><span class="k">def</span> <span class="nf">_gather_tablenumber_checksum</span><span class="p">(</span><span class="n">pathname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">buffer_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1048576</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build and return a checksum for use as a unique identifier across datasets</span>
+<span class="sd">    referenced from cytominer-database:</span>
+<span class="sd">    https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pathname: str:</span>
+<span class="sd">            A path to a file with which to generate the checksum on.</span>
+<span class="sd">        buffer_size: int:</span>
+<span class="sd">            Buffer size to use for reading data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int</span>
+<span class="sd">            an integer representing the checksum of the pathname file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">os</span>
+    <span class="kn">import</span> <span class="nn">zlib</span>
+
+    <span class="c1"># check whether the buffer size is larger than the file_size</span>
+    <span class="n">file_size</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">file_size</span> <span class="o">&lt;</span> <span class="n">buffer_size</span><span class="p">:</span>
+        <span class="n">buffer_size</span> <span class="o">=</span> <span class="n">file_size</span>
+
+    <span class="c1"># open file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">pathname</span><span class="p">),</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+        <span class="c1"># begin result formation</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">crc32</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># read data from stream using buffer size</span>
+            <span class="n">buffer</span> <span class="o">=</span> <span class="n">stream</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">buffer</span><span class="p">:</span>
+                <span class="c1"># if we have no more data to use, break while loop</span>
+                <span class="k">break</span>
+            <span class="c1"># use buffer read data to form checksum</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">crc32</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span> <span class="o">&amp;</span> <span class="mh">0xFFFFFFFF</span></div>
 
 
 <div class="viewcode-block" id="_unwrap_value"><a class="viewcode-back" href="../../python-api.html#cytotable.utils._unwrap_value">[docs]</a><span class="k">def</span> <span class="nf">_unwrap_value</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">dataflow</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">AppFuture</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
