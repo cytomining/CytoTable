@@ -179,8 +179,14 @@ def _set_tablenumber(
     add_tablenumber: Optional[bool] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     """
-    Gathers a "TableNumber" for the table which is a unique identifier intended
-    to help differentiate between imagenumbers to create distinct results.
+    Gathers a "TableNumber" from the image table (if CSV) or 
+    SQLite file (if SQLite source) which is a unique identifier
+    intended to help differentiate between imagenumbers 
+    to create distinct records for single-cell profiles
+    referenced across multiple source data exports.
+    For example, ImageNumber column values from CellProfiler
+    will repeat across exports, meaning we may lose distinction
+    when combining multiple export files together through CytoTable.
 
     Note:
     - If using CSV data sources, the image.csv table is used for checksum.
@@ -412,7 +418,8 @@ def _source_pageset_to_parquet(
         # misaligned automatic data typing.
         f"CAST({source['tablenumber']} AS BIGINT) as TableNumber, "
         if source["tablenumber"] is not None
-        # if we don't have a tablenumber value, don't introduce the column
+        # don't introduce the column if we aren't supposed to add tablenumber 
+        # as per parameter.
         else ""
     )
 
