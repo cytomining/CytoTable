@@ -212,6 +212,7 @@ def _set_tablenumber(
             if source["source_path"].suffix != "sqlite"
             else source["source_path"]
         ): source["source_path"]
+
         for source_group_name, source_group_vals in sources.items()
         # use the image tables references only for the basis of the
         # these calculations.
