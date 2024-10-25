@@ -593,14 +593,16 @@ def _unwrap_source(
         return _unwrap_value(source)
 
 
-def evaluate_futures(sources: Union[Dict[str, List[Dict[str, Any]]], str]) -> Any:
+def evaluate_futures(
+    sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]
+) -> Any:
     """
     Evaluates any Parsl futures for use within other tasks.
     This enables a pattern of Parsl app usage as "tasks" and delayed
     future result evaluation for concurrency.
 
     Args:
-        sources: Union[Dict[str, List[Dict[str, Any]]], str]
+        sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]
             Sources are an internal data structure used by CytoTable for
             processing and organizing data results. They may include futures
             which require asynchronous processing through Parsl, so we

@@ -1109,7 +1109,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     data_type_cast_map: Optional[Dict[str, str]] = None,
     add_tablenumber: Optional[bool] = None,
     **kwargs,
-) -> Union[Dict[str, List[Dict[str, Any]]], str]:
+) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
     Export data to parquet.
 
@@ -1364,15 +1364,19 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             ).result()
         ]
 
-        # concat our join chunks together as one cohesive dataset
-        # return results in common format which includes metadata
-        # for lineage and debugging
-        results = _concat_join_sources(
-            dest_path=expanded_dest_path,
-            join_sources=[join.result() for join in join_sources_result],
-            sources=evaluated_results,
-            sort_output=sort_output,
-        )
+        if concat:
+            # concat our join chunks together as one cohesive dataset
+            # return results in common format which includes metadata
+            # for lineage and debugging
+            results = _concat_join_sources(
+                dest_path=expanded_dest_path,
+                join_sources=[join.result() for join in join_sources_result],
+                sources=evaluated_results,
+                sort_output=sort_output,
+            )
+        else:
+            # else we leave the joined chunks as-is and return them
+            return evaluate_futures(join_sources_result)
 
     # wrap the final result as a future and return
     return evaluate_futures(results)
@@ -1399,7 +1403,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
-) -> Union[Dict[str, List[Dict[str, Any]]], str]:
+) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
     Convert file-based data from various sources to Pycytominer-compatible standards.
 
