@@ -33,7 +33,7 @@ scipy = [
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pytest-cov = ">=4.1,<6.0"
-Sphinx = "^6.0.0"
+Sphinx = ">=6,<8"
 myst-parser = ">=2,<4"
 sphinxcontrib-mermaid = "^0.9.0"
 cytominer-database = "^0.3.4"
