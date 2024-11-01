@@ -163,14 +163,17 @@ def _get_source_filepaths(
         for unique_source in set(source["source_path"].name for source in sources):
             grouped_sources[unique_source.capitalize()] = [
                 # case for files besides sqlite
-                source if source["source_path"].suffix.lower() != ".sqlite"
-                # if we have sqlite entries, update the source_path to the parent
-                # (the parent table database file) as grouped key name will now
-                # encapsulate the table name details.
-                else {
-                    "source_path": source["source_path"].parent,
-                    "table_name": source["table_name"],
-                }
+                (
+                    source
+                    if source["source_path"].suffix.lower() != ".sqlite"
+                    # if we have sqlite entries, update the source_path to the parent
+                    # (the parent table database file) as grouped key name will now
+                    # encapsulate the table name details.
+                    else {
+                        "source_path": source["source_path"].parent,
+                        "table_name": source["table_name"],
+                    }
+                )
                 for source in sources
                 # focus only on entries which include the unique_source name
                 if source["source_path"].name == unique_source
