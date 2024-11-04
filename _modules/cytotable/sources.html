@@ -198,14 +198,17 @@
         <span class="k">for</span> <span class="n">unique_source</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">):</span>
             <span class="n">grouped_sources</span><span class="p">[</span><span class="n">unique_source</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()]</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="c1"># case for files besides sqlite</span>
-                <span class="n">source</span> <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;.sqlite&quot;</span>
-                <span class="c1"># if we have sqlite entries, update the source_path to the parent</span>
-                <span class="c1"># (the parent table database file) as grouped key name will now</span>
-                <span class="c1"># encapsulate the table name details.</span>
-                <span class="k">else</span> <span class="p">{</span>
-                    <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
-                    <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">],</span>
-                <span class="p">}</span>
+                <span class="p">(</span>
+                    <span class="n">source</span>
+                    <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;.sqlite&quot;</span>
+                    <span class="c1"># if we have sqlite entries, update the source_path to the parent</span>
+                    <span class="c1"># (the parent table database file) as grouped key name will now</span>
+                    <span class="c1"># encapsulate the table name details.</span>
+                    <span class="k">else</span> <span class="p">{</span>
+                        <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                        <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">],</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
                 <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span>
                 <span class="c1"># focus only on entries which include the unique_source name</span>
                 <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
