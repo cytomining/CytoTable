@@ -50,7 +50,7 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
         # as a pyarrow table then output to a new and
         # smaller csv for testing purposes.
 
-        output_filename = (
+        OUTPUT_FILENAME = (
             f"Test 0 Day{idx} Test Test_2024_Jan-0{idx+1}-{idx+12}-12-12_Test.csv"
         )
 
@@ -67,9 +67,11 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
                 """
             ).arrow(),
             # output the filtered data as a CSV to a new location
-            output_file=f"{TARGET_DATA_DIR}/{output_filename}"
-            # For some files lowercase the first letter of the file
-            # as a simulation of the source data.
-            if idx < 3
-            else f"{TARGET_DATA_DIR}/{output_filename[0].lower() + output_filename[1:]}",
+            output_file=(
+                f"{TARGET_DATA_DIR}/{OUTPUT_FILENAME}"
+                # For some files lowercase the first letter of the file
+                # as a simulation of the source data.
+                if idx < 3
+                else f"{TARGET_DATA_DIR}/{OUTPUT_FILENAME[0].lower() + OUTPUT_FILENAME[1:]}"
+            ),
         )
