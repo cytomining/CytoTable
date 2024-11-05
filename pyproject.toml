@@ -35,11 +35,11 @@ pytest = ">=7.4,<9.0"
 pytest-cov = ">=4.1,<6.0"
 Sphinx = ">=6,<8"
 myst-parser = ">=2,<4"
-sphinxcontrib-mermaid = "^0.9.0"
+sphinxcontrib-mermaid = ">=0.9,<1.1"
 cytominer-database = "^0.3.4"
 pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
-botocore = "^1.34.133"           # added to help avoid dependency reolution issues
+botocore = "^1.34.133"               # added to help avoid dependency reolution issues
 
 [tool.poetry-dynamic-versioning]
 enable = true
