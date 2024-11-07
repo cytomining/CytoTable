@@ -1,18 +1,17 @@
-
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Technical Architecture &#8212; CytoTable v0.0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=99150370" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=01d9ba92" />
+    <script src="_static/documentation_options.js?v=2fea6348"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Data Architecture" href="architecture.data.html" />
@@ -20,8 +19,9 @@
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   
@@ -34,16 +34,16 @@
           <div class="body" role="main">
             
   <section id="technical-architecture">
-<h1>Technical Architecture<a class="headerlink" href="#technical-architecture" title="Permalink to this heading">¶</a></h1>
+<h1>Technical Architecture<a class="headerlink" href="#technical-architecture" title="Link to this heading">¶</a></h1>
 <p>Documentation covering technical architecture for CytoTable.</p>
 <section id="workflows">
-<h2>Workflows<a class="headerlink" href="#workflows" title="Permalink to this heading">¶</a></h2>
+<h2>Workflows<a class="headerlink" href="#workflows" title="Link to this heading">¶</a></h2>
 <p>CytoTable uses <a class="reference external" href="https://parsl.readthedocs.io/">Parsl</a> to execute collections of tasks as <a class="reference external" href="https://parsl.readthedocs.io/en/stable/quickstart.html#application-types"><code class="docutils literal notranslate"><span class="pre">python_app</span></code>’s</a>.
 In Parsl, work may be isolated using Python functions decorated with the <code class="docutils literal notranslate"><span class="pre">&#64;python_app</span></code> decorator.
 <a class="reference external" href="https://parsl.readthedocs.io/en/stable/1-parsl-introduction.html#Dynamic-workflows-with-apps-that-generate-other-apps"><code class="docutils literal notranslate"><span class="pre">join_app</span></code>’s</a> are collections of one or more other apps and are decorated using the <code class="docutils literal notranslate"><span class="pre">&#64;join_app</span></code> decorator.
 See the following documentation for more information on how apps may be used within Parsl: <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/apps.html">Parsl: Apps</a></p>
 <section id="workflow-execution">
-<h3>Workflow Execution<a class="headerlink" href="#workflow-execution" title="Permalink to this heading">¶</a></h3>
+<h3>Workflow Execution<a class="headerlink" href="#workflow-execution" title="Link to this heading">¶</a></h3>
 <p>Procedures within CytoTable are executed using <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/execution.html">Parsl Executors</a>.
 Parsl Executors may be configured through <a class="reference external" href="https://parsl.readthedocs.io/en/stable/userguide/execution.html#configuration">Parsl Configuration’s</a>.</p>
 <p>Parsl configurations may be passed to <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">parsl_config=parsl.Config)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>)</p>
@@ -52,15 +52,15 @@ For greater scalability, CytoTable may be used with a <a class="reference extern
 </section>
 </section>
 <section id="data-technologies">
-<h2>Data Technologies<a class="headerlink" href="#data-technologies" title="Permalink to this heading">¶</a></h2>
+<h2>Data Technologies<a class="headerlink" href="#data-technologies" title="Link to this heading">¶</a></h2>
 <section id="data-paths">
-<h3>Data Paths<a class="headerlink" href="#data-paths" title="Permalink to this heading">¶</a></h3>
+<h3>Data Paths<a class="headerlink" href="#data-paths" title="Link to this heading">¶</a></h3>
 <p>Data source paths handled by CytoTable may be local or cloud-based paths.
 Local data paths are handled using <a class="reference external" href="https://docs.python.org/3/library/pathlib.html">Python’s Pathlib</a> module.
 Cloud-based data paths are managed by <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a>.
 Reference the following page for how cloudpathlib client arguments may be used: <a class="reference internal" href="overview.html#data-source-locations"><span class="std std-ref">Overview: Data Source Locations</span></a></p>
 <section id="data-paths-cloud-based-sqlite">
-<h4>Data Paths - Cloud-based SQLite<a class="headerlink" href="#data-paths-cloud-based-sqlite" title="Permalink to this heading">¶</a></h4>
+<h4>Data Paths - Cloud-based SQLite<a class="headerlink" href="#data-paths-cloud-based-sqlite" title="Link to this heading">¶</a></h4>
 <p>SQLite data stored in cloud-based paths are downloaded locally using cloudpathlib’s <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/caching/">caching capabilities</a> to perform SQL queries.
 Using data in this way may require the use of an additional parameter for the cloud storage provider to set the cache directory explicitly to avoid storage limitations (some temporary directories are constrained to system memory, etc).</p>
 <p>For example:</p>
@@ -80,25 +80,25 @@ Using data in this way may require the use of an additional parameter for the cl
 </section>
 </section>
 <section id="in-process-data-format">
-<h3>In-process Data Format<a class="headerlink" href="#in-process-data-format" title="Permalink to this heading">¶</a></h3>
+<h3>In-process Data Format<a class="headerlink" href="#in-process-data-format" title="Link to this heading">¶</a></h3>
 <p>In addition to using Python native data types, we also accomplish internal data management for CytoTable using <a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.Table.html">PyArrow (Apache Arrow) Tables</a>.
 Using Arrow-compatible formats is intended to assist cross-platform utility, encourage high-performance, and enable advanced data integration with non-Python tools.</p>
 <section id="arrow-memory-allocator-selection">
-<h4>Arrow Memory Allocator Selection<a class="headerlink" href="#arrow-memory-allocator-selection" title="Permalink to this heading">¶</a></h4>
+<h4>Arrow Memory Allocator Selection<a class="headerlink" href="#arrow-memory-allocator-selection" title="Link to this heading">¶</a></h4>
 <p>PyArrow may select to use <a class="reference external" href="https://en.wikipedia.org/wiki/C_dynamic_memory_allocation"><code class="docutils literal notranslate"><span class="pre">malloc</span></code></a>, <a class="reference external" href="https://github.com/jemalloc/jemalloc"><code class="docutils literal notranslate"><span class="pre">jemalloc</span></code></a>, or <a class="reference external" href="https://github.com/microsoft/mimalloc"><code class="docutils literal notranslate"><span class="pre">mimalloc</span></code></a> depending on the operating system and allocator availability.
 This memory allocator selection may also be overridden by a developer implementing CytoTable to help with performance aspects related to user environments.
 PyArrow inherits environment configuration from the Arrow C++ implementation (<a class="reference external" href="https://arrow.apache.org/docs/python/env_vars.html">see note on this page</a>).
 Use the <a class="reference external" href="https://arrow.apache.org/docs/cpp/env_vars.html#envvar-ARROW_DEFAULT_MEMORY_POOL"><code class="docutils literal notranslate"><span class="pre">ARROW_DEFAULT_MEMORY_POOL</span></code> environment variable</a> to statically define which memory allocator will be used when implementing CytoTable.</p>
 </section>
 <section id="arrow-memory-mapping-selection">
-<h4>Arrow Memory Mapping Selection<a class="headerlink" href="#arrow-memory-mapping-selection" title="Permalink to this heading">¶</a></h4>
+<h4>Arrow Memory Mapping Selection<a class="headerlink" href="#arrow-memory-mapping-selection" title="Link to this heading">¶</a></h4>
 <p>PyArrow includes functionality which enables <a class="reference external" href="https://en.wikipedia.org/wiki/Memory-mapped_file">memory mapped</a> parquet file reads for performance benefits (<a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.read_table.html">see <code class="docutils literal notranslate"><span class="pre">memory_map</span></code> parameter</a>).
 This functionality is enabled by default in CytoTable.
 You may disable this functionality by setting environment variable <code class="docutils literal notranslate"><span class="pre">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span></code> to <code class="docutils literal notranslate"><span class="pre">0</span></code> (for example: <code class="docutils literal notranslate"><span class="pre">export</span> <span class="pre">CYTOTABLE_ARROW_USE_MEMORY_MAPPING=0</span></code>).</p>
 </section>
 </section>
 <section id="sql-based-data-management">
-<h3>SQL-based Data Management<a class="headerlink" href="#sql-based-data-management" title="Permalink to this heading">¶</a></h3>
+<h3>SQL-based Data Management<a class="headerlink" href="#sql-based-data-management" title="Link to this heading">¶</a></h3>
 <p>We use the <a class="reference external" href="https://duckdb.org/docs/api/python/overview">DuckDB Python API client</a> in some areas to interface with <a class="reference external" href="https://en.wikipedia.org/wiki/SQL">SQL</a> (for example, SQLite databases) and other data formats.
 We use DuckDB SQL statements to organize joined datasets or tables as Arrow format results.</p>
 </section>
@@ -110,7 +110,7 @@ We use DuckDB SQL statements to organize joined datasets or tables as Arrow form
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="index.html">CytoTable</a></h1>
 
@@ -158,7 +158,7 @@ We use DuckDB SQL statements to organize joined datasets or tables as Arrow form
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
@@ -166,7 +166,7 @@ We use DuckDB SQL statements to organize joined datasets or tables as Arrow form
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -181,11 +181,11 @@ We use DuckDB SQL statements to organize joined datasets or tables as Arrow form
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2022, Cytomining Community.
+      &#169;2022, Cytomining Community.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.2.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |
       <a href="_sources/architecture.technical.md.txt"

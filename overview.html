@@ -1,20 +1,25 @@
-
 <!DOCTYPE html>
 
-<html lang="en">
+<html lang="en" data-content_root="./">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>Overview &#8212; CytoTable v0.0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
-    <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/sphinx_highlight.js"></script>
-    <script src="https://unpkg.com/mermaid@10.2.0/dist/mermaid.min.js"></script>
-    <script>mermaid.initialize({startOnLoad:true});</script>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=99150370" />
+    <link rel="stylesheet" type="text/css" href="_static/custom.css?v=01d9ba92" />
+    <script src="_static/documentation_options.js?v=2fea6348"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";import elkLayouts from "https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.4/dist/mermaid-layout-elk.esm.min.mjs";mermaid.registerLayoutLoaders(elkLayouts);mermaid.initialize({startOnLoad:false});</script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.2.0/dist/mermaid.esm.min.mjs";
+window.addEventListener("load", () => mermaid.run());
+</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Tutorial" href="tutorial.html" />
@@ -22,8 +27,9 @@
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
+
   
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  
 
   </head><body>
   
@@ -36,11 +42,11 @@
           <div class="body" role="main">
             
   <section id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h1>
+<h1>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h1>
 <p>This page provides a brief overview of CytoTable topics.
 For a brief introduction on how to use CytoTable, please see the <a class="reference internal" href="tutorial.html"><span class="std std-doc">tutorial</span></a> page.</p>
 <section id="presets-and-manual-overrides">
-<h2>Presets and Manual Overrides<a class="headerlink" href="#presets-and-manual-overrides" title="Permalink to this heading">¶</a></h2>
+<h2>Presets and Manual Overrides<a class="headerlink" href="#presets-and-manual-overrides" title="Link to this heading">¶</a></h2>
 <p>Various preset configurations are available for use within CytoTable which affect how data are read and produced under <a class="reference internal" href="python-api.html#cytotable.presets.config" title="cytotable.presets.config"><code class="xref py py-data docutils literal notranslate"><span class="pre">presets.config</span></code></a>.
 These presets are intended to assist with common data source expectations.
 By default, CytoTable will use the “cellprofiler_csv” preset.
@@ -48,23 +54,23 @@ Please note that these presets may not capture all possible outcomes.
 Use manual overrides within <a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a> as needed.</p>
 </section>
 <section id="data-sources">
-<h2>Data Sources<a class="headerlink" href="#data-sources" title="Permalink to this heading">¶</a></h2>
-<div class="mermaid">
-            flowchart LR
+<h2>Data Sources<a class="headerlink" href="#data-sources" title="Link to this heading">¶</a></h2>
+<pre  class="mermaid">
+        flowchart LR
     images[(&quot;Image\nfile(s)&quot;)]:::outlined --&gt; image-tools[Image Analysis Tools]:::outlined
     image-tools --&gt; measurements[(&quot;Measurement\nfile(s)&quot;)]:::green
     measurements --&gt; CytoTable:::green
 
     classDef outlined fill:#fff,stroke:#333
     classDef green fill:#97F0B4,stroke:#333
-        </div><p>Data sources for CytoTable are measurement data created from other cell biology image analysis tools.
+    </pre><p>Data sources for CytoTable are measurement data created from other cell biology image analysis tools.
 These measurement data are the focus of the data source content which follows.</p>
 <section id="data-source-locations">
-<h3>Data Source Locations<a class="headerlink" href="#data-source-locations" title="Permalink to this heading">¶</a></h3>
+<h3>Data Source Locations<a class="headerlink" href="#data-source-locations" title="Link to this heading">¶</a></h3>
 <p>Data sources may be provided to CytoTable using local filepaths or remote object-storage filepaths (for example, AWS S3, GCP Cloud Storage, Azure Storage).
 We use <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a>  under the hood to reference files in a unified way, whether they’re local or remote.</p>
 <section id="cloud-data-sources">
-<h4>Cloud Data Sources<a class="headerlink" href="#cloud-data-sources" title="Permalink to this heading">¶</a></h4>
+<h4>Cloud Data Sources<a class="headerlink" href="#cloud-data-sources" title="Link to this heading">¶</a></h4>
 <p>CytoTable uses <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a> to access cloud-based data sources.
 CytoTable supports:</p>
 <ul class="simple">
@@ -73,14 +79,14 @@ CytoTable supports:</p>
 <li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Microsoft_Azure#Storage_services">Azure Blob Storage</a>: <code class="docutils literal notranslate"><span class="pre">az://container_name/blob_name</span></code></p></li>
 </ul>
 <section id="cloud-service-configuration-and-authentication">
-<h5>Cloud Service Configuration and Authentication<a class="headerlink" href="#cloud-service-configuration-and-authentication" title="Permalink to this heading">¶</a></h5>
+<h5>Cloud Service Configuration and Authentication<a class="headerlink" href="#cloud-service-configuration-and-authentication" title="Link to this heading">¶</a></h5>
 <p>Remote object storage paths which require authentication or other specialized configuration may use cloudpathlib client arguments (<a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/s3client/">S3Client</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/azblobclient/">AzureBlobClient</a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/api-reference/gsclient/">GSClient</a>) and <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">**kwargs)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 <p>For example, remote AWS S3 paths which are public-facing and do not require authentication (like, or similar to, <code class="code docutils literal notranslate"><span class="pre">aws</span> <span class="pre">s3</span> <span class="pre">...</span> <span class="pre">--no-sign-request</span></code>) may be used via <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">no_sign_request=True)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 <p>Each cloud service provider may have different requirements for authentication (there is no fully unified API for these).
 Please see the <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a> client documentation for more information on which arguments may be used for configuration with specific cloud providers (for example, <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/api-reference/s3client/"><code class="docutils literal notranslate"><span class="pre">S3Client</span></code></a>, <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/api-reference/gsclient/"><code class="docutils literal notranslate"><span class="pre">GSClient</span></code></a>, or <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/api-reference/azblobclient/"><code class="docutils literal notranslate"><span class="pre">AzureBlobClient</span></code></a>).</p>
 </section>
 <section id="cloud-service-file-type-parsing-differences">
-<h5>Cloud Service File Type Parsing Differences<a class="headerlink" href="#cloud-service-file-type-parsing-differences" title="Permalink to this heading">¶</a></h5>
+<h5>Cloud Service File Type Parsing Differences<a class="headerlink" href="#cloud-service-file-type-parsing-differences" title="Link to this heading">¶</a></h5>
 <p>Data sources retrieved from cloud services are not all treated the same due to technical constraints.
 See below for a description of how each file type is treated for a better understanding of expectations.</p>
 <p><strong>Comma-separated values (.csv)</strong>:</p>
@@ -96,10 +102,10 @@ This argument helps ensure constraints surrounding temporary local file storage 
 </section>
 </section>
 <section id="data-source-types">
-<h3>Data Source Types<a class="headerlink" href="#data-source-types" title="Permalink to this heading">¶</a></h3>
+<h3>Data Source Types<a class="headerlink" href="#data-source-types" title="Link to this heading">¶</a></h3>
 <p>Data source compatibility for CytoTable is focused (but not explicitly limited to) the following.</p>
 <section id="cellprofiler-data-sources">
-<h4>CellProfiler Data Sources<a class="headerlink" href="#cellprofiler-data-sources" title="Permalink to this heading">¶</a></h4>
+<h4>CellProfiler Data Sources<a class="headerlink" href="#cellprofiler-data-sources" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><strong>Comma-separated values (.csv)</strong>: “A comma-separated values (CSV) file is a delimited text file that uses a comma to separate values.” (<a class="reference external" href="https://en.wikipedia.org/wiki/Comma-separated_values">reference</a>)
 CellProfiler CSV data sources generally follow the format provided as output by <a class="reference external" href="https://cellprofiler-manual.s3.amazonaws.com/CPmanual/ExportToSpreadsheet.html">CellProfiler ExportToSpreadsheet</a>.</p></li>
@@ -122,7 +128,7 @@ CellProfiler SQLite database sources may follow a format provided as output by <
 </div></blockquote>
 </section>
 <section id="in-carta-data-sources">
-<h4>IN Carta Data Sources<a class="headerlink" href="#in-carta-data-sources" title="Permalink to this heading">¶</a></h4>
+<h4>IN Carta Data Sources<a class="headerlink" href="#in-carta-data-sources" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><strong>Comma-separated values (.csv)</strong>: <a class="reference external" href="https://www.moleculardevices.com/products/cellular-imaging-systems/high-content-analysis/in-carta-image-analysis-software">Molecular Devices IN Carta</a> software provides output data in CSV format.</p></li>
 </ul>
@@ -136,14 +142,14 @@ CellProfiler SQLite database sources may follow a format provided as output by <
 </section>
 </section>
 <section id="data-destinations">
-<h2>Data Destinations<a class="headerlink" href="#data-destinations" title="Permalink to this heading">¶</a></h2>
+<h2>Data Destinations<a class="headerlink" href="#data-destinations" title="Link to this heading">¶</a></h2>
 <section id="data-destination-locations">
-<h3>Data Destination Locations<a class="headerlink" href="#data-destination-locations" title="Permalink to this heading">¶</a></h3>
+<h3>Data Destination Locations<a class="headerlink" href="#data-destination-locations" title="Link to this heading">¶</a></h3>
 <p>Converted data destinations are may be provided to CytoTable using only local filepaths (in contrast to data sources, which may also be remote).
 Specify the converted data destination using the  <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_path=&quot;&lt;a</span> <span class="pre">local</span> <span class="pre">filepath&gt;&quot;)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 </section>
 <section id="data-destination-types">
-<h3>Data Destination Types<a class="headerlink" href="#data-destination-types" title="Permalink to this heading">¶</a></h3>
+<h3>Data Destination Types<a class="headerlink" href="#data-destination-types" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>Apache Parquet (.parquet)</strong>: “Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.
 It provides efficient data compression and encoding schemes with enhanced performance to handle complex data in bulk.” (<a class="reference external" href="https://parquet.apache.org/">reference</a>)</p></li>
@@ -154,12 +160,12 @@ It provides efficient data compression and encoding schemes with enhanced perfor
 </section>
 </section>
 <section id="data-transformations">
-<h2>Data Transformations<a class="headerlink" href="#data-transformations" title="Permalink to this heading">¶</a></h2>
+<h2>Data Transformations<a class="headerlink" href="#data-transformations" title="Link to this heading">¶</a></h2>
 <p>CytoTable performs various types of data transformations.
 This section help define terminology and expectations surrounding the use of this terminology.
 CytoTable might use one or all of these depending on user configuration.</p>
 <section id="data-chunking">
-<h3>Data Chunking<a class="headerlink" href="#data-chunking" title="Permalink to this heading">¶</a></h3>
+<h3>Data Chunking<a class="headerlink" href="#data-chunking" title="Link to this heading">¶</a></h3>
 <table>
 <tr><th>Original</th><th>Changes</th></tr>
 <tr>
@@ -192,7 +198,7 @@ CytoTable may be used to create chunked data output by disabling concatenation a
 Parquet “datasets” are an abstraction which may be used to read CytoTable output data chunks which are not concatenated or joined (for example, see <a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetDataset.html">PyArrow documentation</a> or <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_parquet.html">Pandas documentation</a> on using source paths which are directories).</p>
 </section>
 <section id="data-concatenations">
-<h3>Data Concatenations<a class="headerlink" href="#data-concatenations" title="Permalink to this heading">¶</a></h3>
+<h3>Data Concatenations<a class="headerlink" href="#data-concatenations" title="Link to this heading">¶</a></h3>
 <table>
 <tr><th>Original</th><th>Changes</th></tr>
 <tr>
@@ -224,7 +230,7 @@ Just as chunking slices data apart, concatenation brings them together.
 Data concatenation within CytoTable typically occurs using a <a class="reference external" href="https://arrow.apache.org/docs/python/generated/pyarrow.parquet.ParquetWriter.html">ParquetWriter</a> to assist with composing a single file from many individual files.</p>
 </section>
 <section id="data-joins">
-<h3>Data Joins<a class="headerlink" href="#data-joins" title="Permalink to this heading">¶</a></h3>
+<h3>Data Joins<a class="headerlink" href="#data-joins" title="Link to this heading">¶</a></h3>
 <table>
 <tr><th>Original</th><th>Changes</th></tr>
 <tr>
@@ -274,7 +280,7 @@ Within CytoTable, we opt to describe these operations with “join” to avoid c
 </section>
 </section>
 <section id="pagination">
-<h2>Pagination<a class="headerlink" href="#pagination" title="Permalink to this heading">¶</a></h2>
+<h2>Pagination<a class="headerlink" href="#pagination" title="Link to this heading">¶</a></h2>
 <p>CytoTable uses keyset pagination to help manage system-specific reasonable memory usage when working with large datasets.
 <a class="reference external" href="https://en.wikipedia.org/wiki/Pagination">Pagination</a>, sometimes also called paging or “data chunking”, allows CytoTable to avoid loading entire datasets into memory at once while accomplishing tasks.
 Keyset pagination leverages existing column data as <em>pagesets</em> to perform data extractions which focus on only a subset of the data as defined within the <em>pageset</em> keys (see example usage below).
@@ -293,7 +299,7 @@ For large datasets, smaller chunk sizes or specific pagination columns can help 
           
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
         <div class="sphinxsidebarwrapper">
 <h1 class="logo"><a href="index.html">CytoTable</a></h1>
 
@@ -351,7 +357,7 @@ For large datasets, smaller chunk sizes or specific pagination columns can help 
   </ul></li>
 </ul>
 </div>
-<div id="searchbox" style="display: none" role="search">
+<search id="searchbox" style="display: none" role="search">
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
@@ -359,7 +365,7 @@ For large datasets, smaller chunk sizes or specific pagination columns can help 
       <input type="submit" value="Go" />
     </form>
     </div>
-</div>
+</search>
 <script>document.getElementById('searchbox').style.display = "block"</script>
 
 
@@ -374,11 +380,11 @@ For large datasets, smaller chunk sizes or specific pagination columns can help 
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2022, Cytomining Community.
+      &#169;2022, Cytomining Community.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 6.2.1</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
       
       |
       <a href="_sources/overview.md.txt"
