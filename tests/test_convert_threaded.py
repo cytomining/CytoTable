@@ -38,6 +38,14 @@ def test_convert_tpe_cellprofiler_csv(
             source_datatype="csv",
             preset="cellprofiler_csv",
         )
+        # drop image FileName columns which won't be present in the comparison dataset
+    ).drop(
+        [
+            "Image_FileName_DNA",
+            "Image_FileName_OrigOverlay",
+            "Image_FileName_PH3",
+            "Image_FileName_cellbody",
+        ]
     )
 
     # sort all values by the same columns
@@ -73,7 +81,8 @@ def test_convert_s3_path_csv(
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
     # check the shape of the data
-    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (109, 5794)
+    # note: includes filename columns
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (109, 5812)
 
 
 @pytest.mark.large_data_tests

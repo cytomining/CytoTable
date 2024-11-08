@@ -7,7 +7,6 @@ conftest.py for pytest
 import pathlib
 import shutil
 import sqlite3
-import subprocess
 import tempfile
 from typing import Any, Dict, Generator, List, Tuple
 
@@ -136,42 +135,6 @@ def fixture_data_dir_in_carta() -> List[str]:
     """
 
     return [f"{pathlib.Path(__file__).parent}/data/in-carta/colas-lab"]
-
-
-# skip this fixture to avoid issues with ubuntu 22.04 and CLI usage of
-# cytominer-database. Use instead fixture cytominerdatabase_sqlite_static.
-@pytest.mark.skip
-@pytest.fixture(name="cytominerdatabase_sqlite", scope="function")
-def fixture_cytominerdatabase_sqlite(
-    tmp_path: str,
-    data_dirs_cytominerdatabase: List[str],
-) -> List[str]:
-    """
-    Processed cytominer-database test data as sqlite data
-    """
-
-    output_paths = []
-    for data_dir in data_dirs_cytominerdatabase:
-        # example command for reference as subprocess below
-        # cytominer-database ingest source_directory sqlite:///backend.sqlite -c ingest_config.ini
-        output_path = f"sqlite:///{data_dir}/{pathlib.Path(data_dir).name}.sqlite"
-
-        # run cytominer-database as command-line call
-        subprocess.call(
-            args=[
-                "cytominer-database",
-                "ingest",
-                data_dir,
-                output_path,
-                "-c",
-                f"{data_dir}/config_SQLite.ini",
-            ]
-        )
-
-        # store the sqlite output file within list to be returned
-        output_paths.append(output_path)
-
-    return output_paths
 
 
 @pytest.fixture(name="cytominerdatabase_sqlite_static", scope="function")
@@ -590,6 +553,7 @@ def fixture_cellprofiler_merged_nf1data(
                 image.ImageNumber,
                 image.Image_Metadata_Well,
                 image.Image_Metadata_Plate,
+                COLUMNS('Image_FileName_.*'),
                 cytoplasm.*,
                 cells.*,
                 nuclei.*
