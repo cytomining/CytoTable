@@ -799,7 +799,7 @@ def test_convert_cytominerdatabase_csv(
                 source_datatype="csv",
                 join=True,
                 drop_null=False,
-                # cytominer-database test datasets don't include image FileName columns
+                # These test datasets don't include image FileName columns
                 # so we use a custom join SQL here to avoid errors on querying for
                 # columns which aren't present.
                 joins="""
