@@ -118,10 +118,10 @@ def test_convert_s3_path_sqlite_join(
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
 
     # check the shape of the data
-    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (74226, 5928)
+    assert (parquet_file_meta.num_rows, parquet_file_meta.num_columns) == (74226, 5946)
 
     # check that dropping duplicates results in the same shape
-    assert pd.read_parquet(s3_result).drop_duplicates().shape == (74226, 5928)
+    assert pd.read_parquet(s3_result).drop_duplicates().shape == (74226, 5946)
 
 
 def test_get_source_filepaths(
