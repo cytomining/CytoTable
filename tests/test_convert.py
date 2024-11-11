@@ -799,6 +799,24 @@ def test_convert_cytominerdatabase_csv(
                 source_datatype="csv",
                 join=True,
                 drop_null=False,
+                # These test datasets don't include image FileName columns
+                # so we use a custom join SQL here to avoid errors on querying for
+                # columns which aren't present.
+                joins="""
+                    SELECT
+                        image.Metadata_ImageNumber,
+                        cytoplasm.* EXCLUDE (Metadata_ImageNumber),
+                        cells.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber),
+                        nuclei.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber)
+                    FROM
+                        read_parquet('cytoplasm.parquet') AS cytoplasm
+                    LEFT JOIN read_parquet('cells.parquet') AS cells USING (Metadata_ImageNumber)
+                    LEFT JOIN read_parquet('nuclei.parquet') AS nuclei USING (Metadata_ImageNumber)
+                    LEFT JOIN read_parquet('image.parquet') AS image USING (Metadata_ImageNumber)
+                    WHERE
+                        cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
+                        AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
+                """,
             ),
             schema=control_table.schema,
         )
@@ -922,6 +940,14 @@ def test_convert_cellprofiler_csv(
             source_datatype="csv",
             preset="cellprofiler_csv",
         )
+        # drop image filenames which won't be present in the comparison dataset
+    ).drop(
+        [
+            "Image_FileName_DNA",
+            "Image_FileName_OrigOverlay",
+            "Image_FileName_PH3",
+            "Image_FileName_cellbody",
+        ]
     )
 
     # sort all values by the same columns
@@ -1091,11 +1117,12 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
             chunk_size=100,
             preset="cellprofiler_sqlite_pycytominer",
         )
-    )
+        # drop image columns which won't be present in Pycytominer output.
+    ).drop(["Image_FileName_GFP", "Image_FileName_DAPI", "Image_FileName_RFP"])
 
-    # find the difference in column names and display it as part of an assertion
+    # find the symmetric difference in column names and display it as part of an assertion
     column_diff = list(
-        set(pycytominer_table.schema.names) - set(cytotable_table.schema.names)
+        set(pycytominer_table.schema.names) ^ set(cytotable_table.schema.names)
     )
     # if there are no differences in column names, we should pass the assertion
     # (empty collections evaluate to false)
@@ -1217,7 +1244,7 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
     )
 
     # check that we have the expected shape
-    assert test_result.shape == (12, 1790)
+    assert test_result.shape == (12, 1802)
     # check that the tablenumber data arrived properly
     assert set(test_result["Metadata_TableNumber"].to_pylist()) == {
         "88ac13033d9baf49fda78c3458bef89e",
@@ -1247,7 +1274,23 @@ def test_cell_health_cellprofiler_to_cytominer_database_legacy(
             )["Nuclei_Correlation_Costes_AGP_DNA"].to_pylist()
         )
     )
-
+    # drop image filenames which won't be present in fixture output
+    test_result = test_result.drop(
+        [
+            "Image_FileName_CellOutlines",
+            "Image_FileName_IllumAGP",
+            "Image_FileName_IllumDNA",
+            "Image_FileName_IllumER",
+            "Image_FileName_IllumMito",
+            "Image_FileName_IllumRNA",
+            "Image_FileName_NucleiOutlines",
+            "Image_FileName_OrigAGP",
+            "Image_FileName_OrigDNA",
+            "Image_FileName_OrigER",
+            "Image_FileName_OrigMito",
+            "Image_FileName_OrigRNA",
+        ]
+    )
     # assert that a manually configured table is equal to the cytotable result
     # note: we sort values by all column names ascendingly for equality comparisons
     assert test_result.sort_by(

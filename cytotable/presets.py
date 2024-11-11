@@ -41,6 +41,7 @@ config = {
         "CONFIG_JOINS": """
             SELECT
                 image.Metadata_ImageNumber,
+                COLUMNS('Image_FileName_.*'),
                 cytoplasm.* EXCLUDE (Metadata_ImageNumber),
                 cells.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber),
                 nuclei.* EXCLUDE (Metadata_ImageNumber, Metadata_ObjectNumber)
@@ -92,6 +93,7 @@ config = {
                 per_image.Metadata_ImageNumber,
                 per_image.Image_Metadata_Well,
                 per_image.Image_Metadata_Plate,
+                COLUMNS('Image_FileName_.*'),
                 per_cytoplasm.* EXCLUDE (Metadata_ImageNumber),
                 per_cells.* EXCLUDE (Metadata_ImageNumber),
                 per_nuclei.* EXCLUDE (Metadata_ImageNumber)
@@ -148,6 +150,7 @@ config = {
                 image.Metadata_Well,
                 image.Image_Metadata_Site,
                 image.Image_Metadata_Row,
+                COLUMNS('Image_FileName_.*'),
                 cytoplasm.* EXCLUDE (Metadata_ImageNumber),
                 cells.* EXCLUDE (Metadata_ImageNumber),
                 nuclei.* EXCLUDE (Metadata_ImageNumber)
@@ -206,6 +209,7 @@ config = {
                 per_image.Metadata_ImageNumber,
                 per_image.Image_Metadata_Well,
                 per_image.Image_Metadata_Plate,
+                COLUMNS('Image_FileName_.*'),
                 per_cytoplasm.* EXCLUDE (Metadata_ImageNumber),
                 per_cells.* EXCLUDE (Metadata_ImageNumber),
                 per_nuclei.* EXCLUDE (Metadata_ImageNumber)
@@ -265,6 +269,7 @@ config = {
                 image.Metadata_ImageNumber,
                 image.Image_Metadata_Well,
                 image.Image_Metadata_Plate,
+                COLUMNS('Image_FileName_.*'),
                 cytoplasm.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber),
                 cells.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber),
                 nuclei.* EXCLUDE (Metadata_TableNumber, Metadata_ImageNumber)
