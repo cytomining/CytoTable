@@ -130,6 +130,26 @@ typing-extensions = ">=4.3.0"
 aio = ["azure-core[aio] (>=1.28.0,<2.0.0)"]
 
 [[package]]
+name = "azure-storage-file-datalake"
+version = "12.14.0"
+description = "Microsoft Azure File DataLake Storage Client Library for Python"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "azure-storage-file-datalake-12.14.0.tar.gz", hash = "sha256:358f1616db479b8272b74fb7d5f10f93dfc695a264137dd1959b50b50dcd6346"},
+    {file = "azure_storage_file_datalake-12.14.0-py3-none-any.whl", hash = "sha256:736b565e8c46fc0a36f64102d5fa63e1367b698496d845b7572fc7cad4925cec"},
+]
+
+[package.dependencies]
+azure-core = ">=1.28.0,<2.0.0"
+azure-storage-blob = ">=12.19.0,<13.0.0"
+isodate = ">=0.6.1"
+typing-extensions = ">=4.3.0"
+
+[package.extras]
+aio = ["azure-core[aio] (>=1.28.0,<2.0.0)"]
+
+[[package]]
 name = "babel"
 version = "2.14.0"
 description = "Internationalization utilities"
@@ -385,26 +405,27 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudpathlib"
-version = "0.18.1"
+version = "0.20.0"
 description = "pathlib-style classes for cloud storage services."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "cloudpathlib-0.18.1-py3-none-any.whl", hash = "sha256:20efd5d772c75df91bb2ac52e053be53fd9000f5e9755fd92375a2a9fe6005e0"},
-    {file = "cloudpathlib-0.18.1.tar.gz", hash = "sha256:ffd22f324bfbf9c3f2bc1bec6e8372cb372a0feef17c7f2b48030cd6810ea859"},
+    {file = "cloudpathlib-0.20.0-py3-none-any.whl", hash = "sha256:7af3bcefbf73392ae7f31c08b3660ec31607f8c01b7f6262d4d73469a845f641"},
+    {file = "cloudpathlib-0.20.0.tar.gz", hash = "sha256:f6ef7ca409a510f7ba4639ba50ab3fc5b6dee82d6dff0d7f5715fd0c9ab35891"},
 ]
 
 [package.dependencies]
 azure-storage-blob = {version = ">=12", optional = true, markers = "extra == \"azure\""}
-boto3 = {version = "*", optional = true, markers = "extra == \"s3\""}
+azure-storage-file-datalake = {version = ">=12", optional = true, markers = "extra == \"azure\""}
+boto3 = {version = ">=1.34.0", optional = true, markers = "extra == \"s3\""}
 google-cloud-storage = {version = "*", optional = true, markers = "extra == \"gs\""}
 typing_extensions = {version = ">4", markers = "python_version < \"3.11\""}
 
 [package.extras]
 all = ["cloudpathlib[azure]", "cloudpathlib[gs]", "cloudpathlib[s3]"]
-azure = ["azure-storage-blob (>=12)"]
+azure = ["azure-storage-blob (>=12)", "azure-storage-file-datalake (>=12)"]
 gs = ["google-cloud-storage"]
-s3 = ["boto3"]
+s3 = ["boto3 (>=1.34.0)"]
 
 [[package]]
 name = "colorama"
@@ -2653,4 +2674,4 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-it
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.14"
-content-hash = "a7bcd849e75c9497ba2145215256bd7809b03e77a14c2cf8c0126fb4e52ffbdc"
+content-hash = "63df2b82fade879e60d66e44e9fcc543e7bcc82362efe11ef581e5fd78311858"
