@@ -1510,13 +1510,13 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2024.12.16"
+version = "2024.12.23"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 files = [
-    {file = "parsl-2024.12.16-py3-none-any.whl", hash = "sha256:3d03a65cc2f23f1a2ce1b98a1b58a81ab98aa635d62abe4c18bf0d9aa3d3c804"},
-    {file = "parsl-2024.12.16.tar.gz", hash = "sha256:9d0214a5bc561853688eeabf1888b0c13c3115b46426cb4d936ee2612644a29d"},
+    {file = "parsl-2024.12.23-py3-none-any.whl", hash = "sha256:0ced216118b25191440dc6d3cf73664efe76b969ea5270fee138eeefccf58a4c"},
+    {file = "parsl-2024.12.23.tar.gz", hash = "sha256:0938e1ee06bc2e4193ef8658052863d072d31682bf6e8e20c05ed69c3991fb14"},
 ]
 
 [package.dependencies]
@@ -1532,7 +1532,7 @@ typeguard = ">=2.10,<3.dev0 || ==4.*"
 typing-extensions = ">=4.6,<5"
 
 [package.extras]
-all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "pandas (<2.2)", "plotly", "proxystore", "pydot", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.60)", "radical.utils (==1.60)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
+all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "pandas (<2.2)", "plotly", "proxystore", "pydot", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.90)", "radical.utils (==1.90)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
 aws = ["boto3"]
 azure = ["azure (<=4)", "msrestazure"]
 docs = ["ipython (<=8.6.0)", "nbsphinx", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme"]
@@ -1542,7 +1542,7 @@ gssapi = ["python-gssapi"]
 kubernetes = ["kubernetes"]
 monitoring = ["sqlalchemy (>=1.4,<2)"]
 proxystore = ["proxystore"]
-radical-pilot = ["radical.pilot (==1.60)", "radical.utils (==1.60)"]
+radical-pilot = ["radical.pilot (==1.90)", "radical.utils (==1.90)"]
 visualization = ["Flask (>=1.0.2)", "flask-sqlalchemy", "networkx (>=2.5,<2.6)", "pandas (<2.2)", "plotly", "pydot", "python-daemon"]
 workqueue = ["work-queue"]
 
