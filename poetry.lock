@@ -1510,13 +1510,13 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2024.12.23"
+version = "2024.12.30"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 files = [
-    {file = "parsl-2024.12.23-py3-none-any.whl", hash = "sha256:0ced216118b25191440dc6d3cf73664efe76b969ea5270fee138eeefccf58a4c"},
-    {file = "parsl-2024.12.23.tar.gz", hash = "sha256:0938e1ee06bc2e4193ef8658052863d072d31682bf6e8e20c05ed69c3991fb14"},
+    {file = "parsl-2024.12.30-py3-none-any.whl", hash = "sha256:54d96dd5c03c74812131a8ded7a3c6991b85211489d74c160c4b2e69f08ac8d5"},
+    {file = "parsl-2024.12.30.tar.gz", hash = "sha256:a169bee8c4d55bbaeb6edc3204380e21fc6b52b61c2c65539e3eb15e47c3651a"},
 ]
 
 [package.dependencies]
