@@ -1510,13 +1510,13 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2024.12.30"
+version = "2025.1.13"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 files = [
-    {file = "parsl-2024.12.30-py3-none-any.whl", hash = "sha256:54d96dd5c03c74812131a8ded7a3c6991b85211489d74c160c4b2e69f08ac8d5"},
-    {file = "parsl-2024.12.30.tar.gz", hash = "sha256:a169bee8c4d55bbaeb6edc3204380e21fc6b52b61c2c65539e3eb15e47c3651a"},
+    {file = "parsl-2025.1.13-py3-none-any.whl", hash = "sha256:86d1c8951a8ecb137e6ca52119e7efff90dfc6921acbde97af7bcd52a7271f78"},
+    {file = "parsl-2025.1.13.tar.gz", hash = "sha256:c985911cc5e13eb77093e2c2c22e8935e6031abdd5d4cddc7303eb2b90e4f7fb"},
 ]
 
 [package.dependencies]
@@ -1532,7 +1532,7 @@ typeguard = ">=2.10,<3.dev0 || ==4.*"
 typing-extensions = ">=4.6,<5"
 
 [package.extras]
-all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=2.5,<2.6)", "pandas (<2.2)", "plotly", "proxystore", "pydot", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.90)", "radical.utils (==1.90)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=1.4,<2)", "work-queue"]
+all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=3.2,<3.3)", "pandas (>=2.2,<3)", "plotly", "proxystore", "pydot (>=1.4.2)", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.90)", "radical.utils (==1.90)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=2,<2.1)", "work-queue"]
 aws = ["boto3"]
 azure = ["azure (<=4)", "msrestazure"]
 docs = ["ipython (<=8.6.0)", "nbsphinx", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme"]
@@ -1540,10 +1540,10 @@ flux = ["cffi", "jsonschema", "pyyaml"]
 google-cloud = ["google-api-python-client", "google-auth"]
 gssapi = ["python-gssapi"]
 kubernetes = ["kubernetes"]
-monitoring = ["sqlalchemy (>=1.4,<2)"]
+monitoring = ["sqlalchemy (>=2,<2.1)"]
 proxystore = ["proxystore"]
 radical-pilot = ["radical.pilot (==1.90)", "radical.utils (==1.90)"]
-visualization = ["Flask (>=1.0.2)", "flask-sqlalchemy", "networkx (>=2.5,<2.6)", "pandas (<2.2)", "plotly", "pydot", "python-daemon"]
+visualization = ["Flask (>=1.0.2)", "flask-sqlalchemy", "networkx (>=3.2,<3.3)", "pandas (>=2.2,<3)", "plotly", "pydot (>=1.4.2)", "python-daemon"]
 workqueue = ["work-queue"]
 
 [[package]]
