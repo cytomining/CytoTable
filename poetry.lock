@@ -1510,13 +1510,13 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.1.13"
+version = "2025.1.20"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 files = [
-    {file = "parsl-2025.1.13-py3-none-any.whl", hash = "sha256:86d1c8951a8ecb137e6ca52119e7efff90dfc6921acbde97af7bcd52a7271f78"},
-    {file = "parsl-2025.1.13.tar.gz", hash = "sha256:c985911cc5e13eb77093e2c2c22e8935e6031abdd5d4cddc7303eb2b90e4f7fb"},
+    {file = "parsl-2025.1.20-py3-none-any.whl", hash = "sha256:0c21310f808fe4be7006e6bb1edb4416aa1c224a52d48b3ba764f3c00b7c6c24"},
+    {file = "parsl-2025.1.20.tar.gz", hash = "sha256:60a19670239a17ace292baa6920799e2fcaed9da7c0726ee4f407444b93f4203"},
 ]
 
 [package.dependencies]
@@ -1532,11 +1532,12 @@ typeguard = ">=2.10,<3.dev0 || ==4.*"
 typing-extensions = ">=4.6,<5"
 
 [package.extras]
-all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=3.2,<3.3)", "pandas (>=2.2,<3)", "plotly", "proxystore", "pydot (>=1.4.2)", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.90)", "radical.utils (==1.90)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=2,<2.1)", "work-queue"]
+all = ["Flask (>=1.0.2)", "azure (<=4)", "boto3", "cffi", "flask-sqlalchemy", "globus-compute-sdk (>=2.34.0)", "google-api-python-client", "google-auth", "ipython (<=8.6.0)", "jsonschema", "kubernetes", "msrestazure", "nbsphinx", "networkx (>=3.2,<3.3)", "pandas (>=2.2,<3)", "plotly", "proxystore", "pydot (>=1.4.2)", "python-daemon", "python-gssapi", "pyyaml", "radical.pilot (==1.90)", "radical.utils (==1.90)", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme", "sqlalchemy (>=2,<2.1)", "work-queue"]
 aws = ["boto3"]
 azure = ["azure (<=4)", "msrestazure"]
 docs = ["ipython (<=8.6.0)", "nbsphinx", "sphinx (>=7.1,<7.2)", "sphinx-rtd-theme"]
 flux = ["cffi", "jsonschema", "pyyaml"]
+globus-compute = ["globus-compute-sdk (>=2.34.0)"]
 google-cloud = ["google-api-python-client", "google-auth"]
 gssapi = ["python-gssapi"]
 kubernetes = ["kubernetes"]
