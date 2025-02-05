@@ -415,7 +415,7 @@ def _arrow_type_cast_if_specified(
 
 
 def _expand_path(
-    path: Union[str, pathlib.Path, AnyPath]
+    path: Union[str, pathlib.Path, AnyPath],
 ) -> Union[pathlib.Path, AnyPath]:
     """
     Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.
@@ -569,7 +569,7 @@ def _unwrap_source(
     source: Union[
         Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
         Union[parsl.dataflow.futures.AppFuture, Any],
-    ]
+    ],
 ) -> Union[Dict[str, Any], Any]:
     """
     Helper function to unwrap futures from sources.
@@ -594,7 +594,7 @@ def _unwrap_source(
 
 
 def evaluate_futures(
-    sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]
+    sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str],
 ) -> Any:
     """
     Evaluates any Parsl futures for use within other tasks.
