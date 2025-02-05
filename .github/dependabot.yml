@@ -23,3 +23,7 @@ updates:
     schedule:
       # Check for updates to poetry lockfile every week
       interval: "weekly"
+    groups:
+      python-packages:
+        patterns:
+          - "*"
