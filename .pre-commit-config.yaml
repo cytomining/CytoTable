@@ -3,77 +3,77 @@
 default_language_version:
   python: python3.10
 repos:
-  - repo: https://github.com/pre-commit/pre-commit-hooks
+-   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
-      - id: check-added-large-files
-      - id: check-toml
-  - repo: https://github.com/python-poetry/poetry
-    rev: 1.8.0
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: check-toml
+-   repo: https://github.com/python-poetry/poetry
+    rev: 2.0.1
     hooks:
-      - id: poetry-check
-  - repo: https://github.com/tox-dev/pyproject-fmt
+    -   id: poetry-check
+-   repo: https://github.com/tox-dev/pyproject-fmt
     rev: "v2.5.0"
     hooks:
-      - id: pyproject-fmt
-  - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    -   id: pyproject-fmt
+-   repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
     hooks:
-      - id: codespell
+    -   id: codespell
         exclude: >
           (?x)^(
               .*\.lock|.*\.csv|.*\.cff
           )$
         additional_dependencies:
-          - tomli
-  - repo: https://github.com/executablebooks/mdformat
+        -   tomli
+-   repo: https://github.com/executablebooks/mdformat
     rev: 0.7.18
     hooks:
-      - id: mdformat
+    -   id: mdformat
         additional_dependencies:
-          - mdformat-myst
-          - mdformat-gfm
-  - repo: https://github.com/adrienverge/yamllint
+        -   mdformat-myst
+        -   mdformat-gfm
+-   repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
-      - id: yamllint
-  - repo: https://github.com/psf/black
-    rev: 24.10.0
+    -   id: yamllint
+-   repo: https://github.com/psf/black
+    rev: 25.1.0
     hooks:
-      - id: black
-  - repo: https://github.com/asottile/blacken-docs
+    -   id: black
+-   repo: https://github.com/asottile/blacken-docs
     rev: 1.19.1
     hooks:
-      - id: blacken-docs
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.10
+    -   id: blacken-docs
+-   repo: https://github.com/PyCQA/bandit
+    rev: 1.8.2
     hooks:
-      - id: bandit
+    -   id: bandit
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+-   repo: https://github.com/PyCQA/isort
+    rev: 6.0.0
     hooks:
-      - id: isort
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: v2.13
+    -   id: isort
+-   repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
     hooks:
-      - id: vulture
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+    -   id: vulture
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
     hooks:
-      - id: mypy
-  - repo: https://github.com/citation-file-format/cffconvert
+    -   id: mypy
+-   repo: https://github.com/citation-file-format/cffconvert
     rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
     hooks:
-      - id: validate-cff
-  - repo: https://github.com/PyCQA/pylint
-    rev: v3.3.1
+    -   id: validate-cff
+-   repo: https://github.com/PyCQA/pylint
+    rev: v3.3.4
     hooks:
-      - id: pylint
+    -   id: pylint
         name: pylint
         entry: pylint
         language: python
@@ -82,10 +82,15 @@ repos:
         # pylint due to it's dynamic analysis capabilities
         # and the way pre-commit references virtual environments.
         additional_dependencies:
-          - "cloudpathlib[all]>=0.13.0"
-          - "pyarrow>=13.0.0"
-          - "pytest>=7.2.0"
-          - "moto[server,s3]>=4.0.0,<5.0.0"
-          - "duckdb>=0.8.0"
-          - "parsl>=2023.4.24"
-          - "git+https://github.com/cytomining/pycytominer.git@09b2c79aa94908e3520f0931a844db4fba7fd3fb"
+        -   "cloudpathlib[all]>=0.13.0"
+        -   "pyarrow>=13.0.0"
+        -   "pytest>=7.2.0"
+        -   "moto[server,s3]>=4.0.0,<5.0.0"
+        -   "duckdb>=0.8.0"
+        -   "parsl>=2023.4.24"
+        -   "git+https://github.com/cytomining/pycytominer.git@09b2c79aa94908e3520f0931a844db4fba7fd3fb"
+-   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
+    rev: v0.6.0
+    hooks:
+    -   id: pre-commit-update
+        args: ["--keep", "mdformat", "--keep", "pre-commit-update", "--keep", "cffconvert"]
