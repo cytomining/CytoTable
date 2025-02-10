@@ -482,7 +482,7 @@ window.addEventListener("load", () => mermaid.run());
 <div class="viewcode-block" id="_expand_path">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._expand_path">[docs]</a>
 <span class="k">def</span> <span class="nf">_expand_path</span><span class="p">(</span>
-    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Expands &quot;~&quot; user directory references with the user&#39;s home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.</span>
@@ -651,7 +651,7 @@ window.addEventListener("load", () => mermaid.run());
     <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">dataflow</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">AppFuture</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
         <span class="n">Union</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">dataflow</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">AppFuture</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="p">]</span>
+    <span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Helper function to unwrap futures from sources.</span>
@@ -679,7 +679,7 @@ window.addEventListener("load", () => mermaid.run());
 <div class="viewcode-block" id="evaluate_futures">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils.evaluate_futures">[docs]</a>
 <span class="k">def</span> <span class="nf">evaluate_futures</span><span class="p">(</span>
-    <span class="n">sources</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Evaluates any Parsl futures for use within other tasks.</span>
