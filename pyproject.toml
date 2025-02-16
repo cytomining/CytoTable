@@ -41,6 +41,9 @@ pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
 botocore = "^1.34.133"               # added to help avoid dependency reolution issues
 
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = [ "plugin" ] }
+
 [tool.poetry-dynamic-versioning]
 enable = true
 style = "pep440"
