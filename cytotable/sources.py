@@ -36,7 +36,10 @@ def _build_path(path: str, **kwargs) -> Union[pathlib.Path, AnyPath]:
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
-        processed_path.client = processed_path.client.__class__(**kwargs)
+        # Create a new client instance with the provided kwargs
+        client = processed_path.client.__class__(**kwargs)
+        # Recreate the CloudPath object with the new client
+        processed_path = client.CloudPath(processed_path)
 
     return processed_path
 
