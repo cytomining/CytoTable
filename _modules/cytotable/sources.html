@@ -79,7 +79,10 @@ window.addEventListener("load", () => mermaid.run());
 
     <span class="c1"># set the client for a CloudPath</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processed_path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
-        <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Create a new client instance with the provided kwargs</span>
+        <span class="n">client</span> <span class="o">=</span> <span class="n">processed_path</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># Recreate the CloudPath object with the new client</span>
+        <span class="n">processed_path</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">CloudPath</span><span class="p">(</span><span class="n">processed_path</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">processed_path</span></div>
 
