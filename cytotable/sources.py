@@ -78,7 +78,12 @@ def _get_source_filepaths(
             "A source_datatype must be specified when using undefined compartments and metadata names."
         )
 
-    # gathers files from provided path using compartments + metadata as a filter
+    if source_datatype:
+        source_datatypes = [f".{ext.strip()}" for ext in source_datatype.split("/")]
+    else:
+        source_datatypes = [".csv", ".npz", ".sqlite"]  # Default supported extensions
+
+    # Gather files from the provided path using compartments + metadata as a filter
     sources = [
         # build source_paths for all files
         # note: builds local cache for sqlite files from cloud
@@ -97,12 +102,11 @@ def _get_source_filepaths(
             or targets == []
             # checks for name of the file from targets (compartment + metadata names)
             or str(subpath.stem).lower() in [target.lower() for target in targets]
-            # checks for sqlite extension (which may include compartment + metadata names)
-            or subpath.suffix.lower() == ".sqlite"
+            or subpath.suffix.lower() in source_datatypes
         )
     ]
 
-    # expand sources to include sqlite tables similarly to files (one entry per table)
+    # Expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []
     with _duckdb_reader() as ddb_reader:
         for element in sources:
@@ -121,8 +125,8 @@ def _get_source_filepaths(
                         """
                         /* perform query on sqlite_master table for metadata on tables */
                         SELECT name as table_name
-                        from sqlite_scan(?, 'sqlite_master')
-                        where type='table'
+                        FROM sqlite_scan(?, 'sqlite_master')
+                        WHERE type='table'
                         """,
                         parameters=[str(element["source_path"])],
                     )
@@ -156,7 +160,7 @@ def _get_source_filepaths(
                 # use lowercase version of the path to infer a commonprefix
                 source["source_path"].stem.lower()
                 for source in sources
-                if source["source_path"].suffix == f".{source_datatype}"
+                if source["source_path"].suffix in source_datatypes
             ]
         )
         grouped_sources[f"{common_prefix}.{source_datatype}"] = sources
