@@ -216,7 +216,7 @@ references:
     title: Pycytominer DeepProfiler Test Data
     type: data
     repository-code: "https://github.com/cytomining/pycytominer"
-    url: "https://github.com/cytomining/pycytominer/tree/main/tests/test_data/DeepProfiler_example_data/
+    url: "https://github.com/cytomining/pycytominer/tree/main/tests/test_data/DeepProfiler_example_data/"
     notes: >-
       DeepProfiler and CellProfiler generated data from Pycytominer project are used to help validate
       expected results for CytoTable.
@@ -224,4 +224,3 @@ references:
       - description: "Github Link with Contributors"
         type: url
         value: "https://github.com/cytomining/pycytominer/graphs/contributors"
-
