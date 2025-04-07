@@ -78,10 +78,7 @@ def _get_source_filepaths(
             "A source_datatype must be specified when using undefined compartments and metadata names."
         )
 
-    if source_datatype:
-        source_datatypes = [f".{ext.strip()}" for ext in source_datatype.split("/")]
-    else:
-        source_datatypes = [".csv", ".npz", ".sqlite"]  # Default supported extensions
+    source_datatypes = [".csv", ".npz", ".sqlite"]  # Default supported extensions
 
     # Gather files from the provided path using compartments + metadata as a filter
     sources = [
@@ -290,7 +287,7 @@ def _file_is_more_than_one_line(path: Union[pathlib.Path, AnyPath]) -> bool:
 
     # if we don't have a sqlite file
     # (we can't check sqlite files for lines)
-    if path.suffix.lower() != ".sqlite":
+    if path.suffix.lower() not in [".sqlite", ".npz"]:
         with path.open("r") as f:
             try:
                 # read two lines, if the second is empty return false

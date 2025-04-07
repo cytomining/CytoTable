@@ -317,6 +317,33 @@ config = {
         # and modified at runtime as needed
         "CONFIG_JOINS": "",
     },
+    "deepprofiler": {
+        # version specifications using related references
+        "CONFIG_SOURCE_VERSION": {
+            "deepprofiler": "v0.3.1",
+            "cellprofiler": "v4.2.x",
+        },
+        # names of source table compartments (for ex. cells.csv, etc.)
+        "CONFIG_NAMES_COMPARTMENTS": tuple(),
+        # names of source table metadata (for ex. image.csv, etc.)
+        "CONFIG_NAMES_METADATA": tuple(),
+        # column names in any compartment or metadata tables which contain
+        # unique names to avoid renaming
+        "CONFIG_IDENTIFYING_COLUMNS": tuple(),
+        # pagination keys for use with this data
+        # of the rough format "table" -> "column".
+        # note: page keys are expected to be numeric (int, float)
+        "CONFIG_PAGE_KEYS": {
+            "join": "Metadata_Site",
+        },
+        # chunk size to use for join operations to help with possible performance issues
+        # note: this number is an estimate and is may need changes contingent on data
+        # and system used by this library.
+        "CONFIG_CHUNK_SIZE": 1000,
+        # compartment and metadata joins performed using DuckDB SQL
+        # and modified at runtime as needed
+        "CONFIG_JOINS": "",
+    },
 }
 """
 Configuration presets for CytoTable

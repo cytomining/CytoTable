@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 @python_app
 def _get_table_columns_and_types(
     source: Dict[str, Any], sort_output: bool
-) -> List[Dict[str, str]]:
+) -> List[Optional[Dict[str, str]]]:
     """
     Gather column data from table through duckdb.
 
@@ -38,7 +38,7 @@ def _get_table_columns_and_types(
             Specifies whether to sort cytotable output or not.
 
     Returns:
-        List[Dict[str, str]]
+        List[Optional[Dict[str, str]]]
             list of dictionaries which each include column level information
     """
 
@@ -48,6 +48,12 @@ def _get_table_columns_and_types(
 
     source_path = source["source_path"]
     source_type = str(source_path.suffix).lower()
+
+    # If we have .npz files, return a list with None
+    # because we're querying a non-tabular data source.
+    # These will be handled later by _extract_npz_to_parquet.
+    if source_type == ".npz":
+        return [None]
 
     # prepare the data source in the form of a duckdb query
     select_source = (
@@ -279,7 +285,9 @@ def _get_table_keyset_pagination_sets(
     page_key: str,
     source: Optional[Dict[str, Any]] = None,
     sql_stmt: Optional[str] = None,
-) -> Union[List[Tuple[Union[int, float], Union[int, float]]], None]:
+) -> Union[
+    List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None
+]:
     """
     Get table data chunk keys for later use in capturing segments
     of values. This work also provides a chance to catch problematic
@@ -300,7 +308,7 @@ def _get_table_keyset_pagination_sets(
             data source.
 
     Returns:
-        List[Any]
+         Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], None]
             List of keys to use for reading the data later on.
     """
 
@@ -324,8 +332,15 @@ def _get_table_keyset_pagination_sets(
             with _duckdb_reader() as ddb_reader:
                 if source_type == ".csv":
                     sql_query = f"SELECT {page_key} FROM read_csv_auto('{source_path}', header=TRUE, delim=',') ORDER BY {page_key}"
-                else:
+                elif source_type == ".sqlite":
                     sql_query = f"SELECT {page_key} FROM sqlite_scan('{source_path}', '{table_name}') ORDER BY {page_key}"
+                elif source_type == ".npz":
+                    # If we have npz files there's no need to paginate
+                    # so we return None. None within a list is used as
+                    # a special "passthrough" case within the pipeline
+                    # so we may specially handle NPZ files later on via
+                    # _source_pageset_to_parquet and _extract_npz_to_parquet.
+                    return [None]
 
                 page_keys = [
                     results[0] for results in ddb_reader.execute(sql_query).fetchall()
@@ -360,14 +375,16 @@ def _get_table_keyset_pagination_sets(
             page_keys = ddb_reader.execute(sql_query).fetchall()
             page_keys = [key[0] for key in page_keys]
 
-    return _generate_pagesets(page_keys, chunk_size)
+    # The type: mention below is used to ignore a mypy linting error
+    # wherein it considers _generate_pagesets to be invalid.
+    return _generate_pagesets(page_keys, chunk_size)  # type: ignore[return-value]
 
 
 @python_app
 def _source_pageset_to_parquet(
     source_group_name: str,
     source: Dict[str, Any],
-    pageset: Tuple[Union[int, float], Union[int, float]],
+    pageset: Optional[Tuple[Union[int, float], Union[int, float]]],
     dest_path: str,
     sort_output: bool,
 ) -> str:
@@ -380,7 +397,7 @@ def _source_pageset_to_parquet(
         source: Dict[str, Any]
             Contains the source data to be chunked. Represents a single
             file or table of some kind along with collected information about table.
-        pageset: Tuple[int, int]
+        pageset: Optional[Tuple[Union[int, float], Union[int, float]]]
             The pageset for chunking the data from source.
         dest_path: str
             Path to store the output data.
@@ -403,12 +420,31 @@ def _source_pageset_to_parquet(
         _write_parquet_table_with_metadata,
     )
 
+    source_type = str(source["source_path"].suffix).lower()
+
     # attempt to build dest_path
     source_dest_path = (
         f"{dest_path}/{str(AnyPath(source_group_name).stem).lower()}/"
         f"{str(source['source_path'].parent.name).lower()}"
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
+
+    # If we have npz files, we need to extract them in a specialized manner.
+    # See below for CSV and SQLite handling.
+    if source_type == ".npz":
+        return _extract_npz_to_parquet(
+            source_path=str(source["source_path"]),
+            dest_path=f"{source_dest_path}/{str(source['source_path'].stem)}.parquet",
+            tablenumber=source["tablenumber"],
+        )
+
+    if pageset is None:
+        # if we have a `None` pagest tand we're not using
+        # npz, then we have an exception (this shouldn't happen
+        # because we will need a pageset range to work with for
+        # table queries and npz files are handled above with
+        # the none case).
+        raise CytoTableException("No pageset range provided for source data.")
 
     # build tablenumber segment addition (if necessary)
     tablenumber_sql = (
@@ -439,11 +475,11 @@ def _source_pageset_to_parquet(
 
     # build output query and filepath base
     # (chunked output will append offset to keep output paths unique)
-    if str(source["source_path"].suffix).lower() == ".csv":
+    if source_type == ".csv":
         base_query = f"SELECT {select_columns} FROM read_csv_auto('{str(source['source_path'])}', header=TRUE, delim=',')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}"
 
-    elif str(source["source_path"].suffix).lower() == ".sqlite":
+    elif source_type == ".sqlite":
         base_query = f"SELECT {select_columns} FROM sqlite_scan('{str(source['source_path'])}', '{str(source['table_name'])}')"
         result_filepath_base = f"{source_dest_path}/{str(source['source_path'].stem)}.{source['table_name']}"
 
@@ -1185,9 +1221,9 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         matching_keys = [
             key for key in page_keys.keys() if key.lower() in source_group_name.lower()
         ]
-        if not matching_keys:
+        if not matching_keys and source_datatype != "npz":
             raise CytoTableException(
-                f"No matching key found in page_keys for source_group_name: {source_group_name}."
+                f"No matching key found in page_keys for source_group_name: {source_group_name}. "
                 "Please include a pagination key based on a column name from the table."
             )
 
@@ -1198,11 +1234,16 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
                 source,
                 **{
                     "page_key": (
-                        page_key := [
-                            value
-                            for key, value in page_keys.items()
-                            if key.lower() in source_group_name.lower()
-                        ][0]
+                        page_key := next(
+                            (
+                                value
+                                for key, value in page_keys.items()
+                                if key.lower() in source_group_name.lower()
+                            ),
+                            # Placeholder value if no match is found
+                            # used in cases for .npz source types.
+                            "placeholder",
+                        )
                     ),
                     "pagesets": _get_table_keyset_pagination_sets(
                         source=source,
@@ -1380,6 +1421,98 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 
     # wrap the final result as a future and return
     return evaluate_futures(results)
+
+
+def _extract_npz_to_parquet(
+    source_path: str,
+    dest_path: str,
+    tablenumber: Optional[int] = None,
+) -> str:
+    """
+    Extract data from an .npz file created by DeepProfiler
+    as a tabular dataset and write to parquet.
+
+    DeepProfiler creates datasets which look somewhat like this:
+    Keys in the .npz file: ['features', 'metadata', 'locations']
+
+    Variable: features
+    Shape: (229, 6400)
+    Data type: float32
+
+    Variable: locations
+    Shape: (229, 2)
+    Data type: float64
+
+    Variable: metadata
+    Shape: ()
+    Data type: object
+    Whole object: {
+        'Metadata_Plate': 'SQ00014812',
+        'Metadata_Well': 'A01',
+        'Metadata_Site': 1,
+        'Plate_Map_Name': 'C-7161-01-LM6-022',
+        'RNA': 'SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png',
+        'ER': 'SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png',
+        'AGP': 'SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png',
+        'Mito': 'SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png',
+        'DNA': 'SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png',
+        'Treatment_ID': 0,
+        'Treatment_Replicate': 1,
+        'Treatment': 'DMSO@NA',
+        'Compound': 'DMSO',
+        'Concentration': '',
+        'Split': 'Training',
+        'Metadata_Model': 'efficientnet'
+    }
+
+    Args:
+        source_path: str
+            Path to the .npz file.
+        dest_path: str
+            Destination path for the parquet file.
+        tablenumber: Optional[int]
+            Optional tablenumber to be added to the data.
+
+    Returns:
+        str
+            Path to the exported parquet file.
+    """
+
+    import pathlib
+
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    # Load features from the .npz file
+    with open(source_path, "rb") as data:
+        loaded_npz = np.load(file=data, allow_pickle=True)
+        # find the shape of the features, which will help structure
+        # data which doesn't yet conform to the same shape (by row count).
+        rows = loaded_npz["features"].shape[0]
+        # note: we use [()] to load the numpy array as a python dict
+        metadata = loaded_npz["metadata"][()]
+
+        npz_as_pydict = {
+            # add the tablenumber to the table
+            "Metadata_TableNumber": [tablenumber] * rows,
+            # add metadata to the table
+            # note: metadata within npz files corresponds to a dictionary of
+            # various keys and values related to the feature and location data.
+            "Metadata_NPZSource": [pathlib.Path(source_path).name] * rows,
+            **{
+                key: [metadata[key]] * rows
+                for key in metadata.keys()
+            },
+            # add features and locations data to the table
+            "features": [loaded_npz["features"][i] for i in range(rows)],
+            "locations": [loaded_npz["locations"][i] for i in range(rows)],
+        }
+
+    # convert the numpy arrays to a PyArrow table and write to parquet
+    parquet.write_table(pa.Table.from_pydict(npz_as_pydict), dest_path)
+
+    return dest_path
 
 
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
