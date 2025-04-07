@@ -196,7 +196,7 @@ def _sqlite_mixed_type_query_to_parquet(
             The name of the table being queried.
         page_key: str:
             The column name to be used to identify pagination chunks.
-        pageset: Tuple[int, int]:
+        pageset: Tuple[Union[int, float], Union[int, float]]:
             The range for values used for paginating data from source.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
