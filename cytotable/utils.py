@@ -819,10 +819,10 @@ def map_pyarrow_type(
             A dictionary mapping data type groups to specific types.
             This allows for custom type casting.
             For example:
-                - {"float": "float32"} maps
-                floating-point types to `float32`.
-                - {"int": "int64"} maps integer
-                types to `int64`.
+            - {"float": "float32"} maps
+            floating-point types to `float32`.
+            - {"int": "int64"} maps integer
+            types to `int64`.
             If `data_type_cast_map` is
             None, default PyArrow types are used.
 
