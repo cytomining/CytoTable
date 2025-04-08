@@ -706,3 +706,95 @@ def _natural_sort(list_to_sort):
             for c in re.split("([0-9]+)", str(key))
         ],
     )
+
+
+def _extract_npz_to_parquet(
+    source_path: str,
+    dest_path: str,
+    tablenumber: Optional[int] = None,
+) -> str:
+    """
+    Extract data from an .npz file created by DeepProfiler
+    as a tabular dataset and write to parquet.
+
+    DeepProfiler creates datasets which look somewhat like this:
+    Keys in the .npz file: ['features', 'metadata', 'locations']
+
+    Variable: features
+    Shape: (229, 6400)
+    Data type: float32
+
+    Variable: locations
+    Shape: (229, 2)
+    Data type: float64
+
+    Variable: metadata
+    Shape: ()
+    Data type: object
+    Whole object: {
+        'Metadata_Plate': 'SQ00014812',
+        'Metadata_Well': 'A01',
+        'Metadata_Site': 1,
+        'Plate_Map_Name': 'C-7161-01-LM6-022',
+        'RNA': 'SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png',
+        'ER': 'SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png',
+        'AGP': 'SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png',
+        'Mito': 'SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png',
+        'DNA': 'SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png',
+        'Treatment_ID': 0,
+        'Treatment_Replicate': 1,
+        'Treatment': 'DMSO@NA',
+        'Compound': 'DMSO',
+        'Concentration': '',
+        'Split': 'Training',
+        'Metadata_Model': 'efficientnet'
+    }
+
+    Args:
+        source_path: str
+            Path to the .npz file.
+        dest_path: str
+            Destination path for the parquet file.
+        tablenumber: Optional[int]
+            Optional tablenumber to be added to the data.
+
+    Returns:
+        str
+            Path to the exported parquet file.
+    """
+
+    import pathlib
+
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    from cytotable.constants import NUMPY_TO_PYARROW_TYPE_MAP
+
+    # Load features from the .npz file
+    with open(source_path, "rb") as data:
+        loaded_npz = np.load(file=data, allow_pickle=True)
+        # find the shape of the features, which will help structure
+        # data which doesn't yet conform to the same shape (by row count).
+        rows = loaded_npz["features"].shape[0]
+        # note: we use [()] to load the numpy array as a python dict
+        metadata = loaded_npz["metadata"][()]
+
+        npz_as_pydict = {
+            # add metadata to the table
+            # note: metadata within npz files corresponds to a dictionary of
+            # various keys and values related to the feature and location data.
+            "Metadata_TableNumber": pa.array([tablenumber] * rows, type=pa.int64()),
+            "Metadata_NPZSource": pa.array(
+                [pathlib.Path(source_path).name] * rows, type=pa.string()
+            ),
+            **{key: [metadata[key]] * rows for key in metadata.keys()},
+            # add features and locations data to the table
+            "features": [loaded_npz["features"][i] for i in range(rows)],
+            "locations": [loaded_npz["locations"][i] for i in range(rows)],
+        }
+
+    # convert the numpy arrays to a PyArrow table and write to parquet
+    parquet.write_table(pa.Table.from_pydict(npz_as_pydict), dest_path)
+
+    return dest_path
