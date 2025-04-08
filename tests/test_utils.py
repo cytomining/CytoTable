@@ -124,7 +124,7 @@ def test_map_pyarrow_type():
     assert map_pyarrow_type(pa.list_(pa.int32()), None) == pa.list_(pa.int64())
 
     # Test custom type casting with data_type_cast_map
-    data_type_cast_map = {"float": "float32", "int": "int32"}
+    data_type_cast_map = {"float": "float32", "integer": "int32"}
     assert map_pyarrow_type(pa.float64(), data_type_cast_map) == pa.float32()
     assert map_pyarrow_type(pa.int64(), data_type_cast_map) == pa.int32()
     assert map_pyarrow_type(pa.list_(pa.float64()), data_type_cast_map) == pa.list_(

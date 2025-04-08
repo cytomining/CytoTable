@@ -95,11 +95,18 @@ def _get_source_filepaths(
         )
         # ensure the subpaths meet certain specifications
         if (
-            targets is None
-            or targets == []
-            # checks for name of the file from targets (compartment + metadata names)
-            or str(subpath.stem).lower() in [target.lower() for target in targets]
-            or subpath.suffix.lower() in source_datatypes
+            # If targets are specified, only include files matching targets
+            (
+                targets is not None
+                and str(subpath.stem).lower() in [target.lower() for target in targets]
+                or subpath.suffix.lower() == ".sqlite"
+            )
+            # Otherwise, include files matching the source_datatypes
+            or (
+                targets is None
+                or targets == []
+                and subpath.suffix.lower() in source_datatypes
+            )
         )
     ]
 

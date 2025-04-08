@@ -294,7 +294,7 @@ def test_npz_deepprofiler_convert(
     """
 
     test_result = parquet.read_table(
-        convert(
+        source=convert(  # type: ignore[call-overload]
             source_path="tests/data/deepprofiler/pycytominer_example",
             dest_path=f"{fx_tempdir}/test_deepprofiler.parquet",
             dest_datatype="parquet",
@@ -302,10 +302,16 @@ def test_npz_deepprofiler_convert(
             concat=True,
             join=False,
             preset="deepprofiler",
-        )["all_files.npz"][0]["table"]
+        )[
+            "all_files.npz"  # type: ignore[index]
+        ][
+            0
+        ][
+            "table"  # type: ignore[index]
+        ]
     )
 
-    assert test_result.shape == (1656, 20)
+    assert test_result.shape == (10132, 20)
     assert {field.name: str(field.type) for field in test_result.schema} == {
         "Metadata_TableNumber": "int64",
         "Metadata_NPZSource": "string",

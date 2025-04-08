@@ -55,7 +55,7 @@ def test_get_source_filepaths_with_npz():
 
         # Create temporary .npz file
         npz_file = tmp_dir_path / "test_file.npz"
-        with open(npz_file, mode="wb", encoding="utf-8") as f:
+        with open(npz_file, mode="wb") as f:
             f.write(b"dummy binary content")
 
         # Call _get_source_filepaths

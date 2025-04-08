@@ -336,7 +336,7 @@ def _cache_cloudpath_to_local(path: AnyPath) -> pathlib.Path:
     if (
         isinstance(path, CloudPath)
         and path.is_file()
-        and path.suffix.lower() == ".sqlite"
+        and path.suffix.lower() in [".sqlite", ".npz"]
     ):
         try:
             # update the path to be the local filepath for reference in CytoTable ops
@@ -854,6 +854,7 @@ def map_pyarrow_type(
         - The function defaults to returning the
         original `field_type` if no mapping is required.
     """
+
     if pa.types.is_list(field_type):
         # Handle list types (e.g., list<element: float>)
         return pa.list_(
@@ -876,18 +877,14 @@ def map_pyarrow_type(
         )
     elif pa.types.is_floating(field_type):
         # Handle floating-point types
-        return (
-            pa.float64()
-            if data_type_cast_map is None
-            else pa.type_for_alias(data_type_cast_map.get("float", "float64"))
-        )
+        if data_type_cast_map and "float" in data_type_cast_map:
+            return pa.type_for_alias(data_type_cast_map["float"])
+        return pa.float64()  # Default to float64 if no mapping is provided
     elif pa.types.is_integer(field_type):
         # Handle integer types
-        return (
-            pa.int64()
-            if data_type_cast_map is None
-            else pa.type_for_alias(data_type_cast_map.get("int", "int64"))
-        )
+        if data_type_cast_map and "integer" in data_type_cast_map:
+            return pa.type_for_alias(data_type_cast_map["integer"])
+        return pa.int64()  # Default to int64 if no mapping is provided
     elif pa.types.is_string(field_type):
         # Handle string types
         return pa.string()
