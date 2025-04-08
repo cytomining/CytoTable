@@ -108,7 +108,7 @@ Data source compatibility for CytoTable is focused (but not explicitly limited t
 
 #### DeepProfiler Data Sources
 
-- __NumPy Zipped Archive (.npz)__: [DeepProfiler](<>) software provides output data in NPZ format.
+- __NumPy Zipped Archive (.npz)__: [DeepProfiler](https://github.com/cytomining/DeepProfiler) software provides output data in NPZ format.
 
 ```{eval-rst}
   * **Manual specification:** NPZ data source types may be manually specified by using :code:`convert(..., source_datatype="npz", ...)` (:mod:`convert() <cytotable.convert.convert>`).

@@ -732,22 +732,22 @@ def _extract_npz_to_parquet(
     Shape: ()
     Data type: object
     Whole object: {
-        'Metadata_Plate': 'SQ00014812',
-        'Metadata_Well': 'A01',
-        'Metadata_Site': 1,
-        'Plate_Map_Name': 'C-7161-01-LM6-022',
-        'RNA': 'SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png',
-        'ER': 'SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png',
-        'AGP': 'SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png',
-        'Mito': 'SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png',
-        'DNA': 'SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png',
-        'Treatment_ID': 0,
-        'Treatment_Replicate': 1,
-        'Treatment': 'DMSO@NA',
-        'Compound': 'DMSO',
-        'Concentration': '',
-        'Split': 'Training',
-        'Metadata_Model': 'efficientnet'
+    'Metadata_Plate': 'SQ00014812',
+    'Metadata_Well': 'A01',
+    'Metadata_Site': 1,
+    'Plate_Map_Name': 'C-7161-01-LM6-022',
+    'RNA': 'SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png',
+    'ER': 'SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png',
+    'AGP': 'SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png',
+    'Mito': 'SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png',
+    'DNA': 'SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png',
+    'Treatment_ID': 0,
+    'Treatment_Replicate': 1,
+    'Treatment': 'DMSO@NA',
+    'Compound': 'DMSO',
+    'Concentration': '',
+    'Split': 'Training',
+    'Metadata_Model': 'efficientnet'
     }
 
     Args:
@@ -831,28 +831,6 @@ def map_pyarrow_type(
             The mapped PyArrow data type.
             If no mapping is needed, the original
             `field_type` is returned.
-
-    Examples:
-        >>> import pyarrow as pa
-        >>> map_pyarrow_type(pa.float32(), None)
-        DataType(float64)
-
-        >>> map_pyarrow_type(pa.list_(pa.float32()), None)
-        ListType(list<item: float64>)
-
-        >>> map_pyarrow_type(pa.int32(), {"int": "int64"})
-        DataType(int64)
-
-        >>> map_pyarrow_type(pa.list_(pa.int32()), {"int": "int64"})
-        ListType(list<item: int64>)
-
-    Notes:
-        - This function is designed to handle nested
-        types like lists and structs recursively.
-        - If `data_type_cast_map` is provided,
-        it overrides the default type mappings for specific groups.
-        - The function defaults to returning the
-        original `field_type` if no mapping is required.
     """
 
     if pa.types.is_list(field_type):
