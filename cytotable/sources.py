@@ -160,7 +160,11 @@ def _get_source_filepaths(
                 if source["source_path"].suffix in source_datatypes
             ]
         )
-        grouped_sources[f"{common_prefix}.{source_datatype}"] = sources
+        grouped_sources[
+            # construct a grouped source name, deferring to use 'all_files'
+            # if no common prefix is found.
+            f"{common_prefix if common_prefix != '' else 'all_files'}.{source_datatype}"
+        ] = sources
 
     # otherwise, use the unique names in the paths to determine source grouping
     else:

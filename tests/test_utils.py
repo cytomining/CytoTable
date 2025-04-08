@@ -2,9 +2,10 @@
 Testing CytoTable utility functions found within util.py
 """
 
+import pyarrow as pa
 import pytest
 
-from cytotable.utils import _generate_pagesets, _natural_sort
+from cytotable.utils import _generate_pagesets, _natural_sort, map_pyarrow_type
 
 
 def test_generate_pageset():  # pylint: disable=too-many-statements
@@ -106,3 +107,48 @@ def test_natural_sort(input_list, expected):
     Tests for _natural_sort
     """
     assert _natural_sort(input_list) == expected
+
+
+def test_map_pyarrow_type():
+    """
+    Testing map_pyarrow_type
+    """
+    # Test simple types
+    assert map_pyarrow_type(pa.float32(), None) == pa.float64()
+    assert map_pyarrow_type(pa.int32(), None) == pa.int64()
+    assert map_pyarrow_type(pa.string(), None) == pa.string()
+    assert map_pyarrow_type(pa.null(), None) == pa.null()
+
+    # Test nested list types
+    assert map_pyarrow_type(pa.list_(pa.float32()), None) == pa.list_(pa.float64())
+    assert map_pyarrow_type(pa.list_(pa.int32()), None) == pa.list_(pa.int64())
+
+    # Test custom type casting with data_type_cast_map
+    data_type_cast_map = {"float": "float32", "int": "int32"}
+    assert map_pyarrow_type(pa.float64(), data_type_cast_map) == pa.float32()
+    assert map_pyarrow_type(pa.int64(), data_type_cast_map) == pa.int32()
+    assert map_pyarrow_type(pa.list_(pa.float64()), data_type_cast_map) == pa.list_(
+        pa.float32()
+    )
+    assert map_pyarrow_type(pa.list_(pa.int64()), data_type_cast_map) == pa.list_(
+        pa.int32()
+    )
+
+    # Test unsupported types (should return the original type)
+    unsupported_type = pa.binary()
+    assert map_pyarrow_type(unsupported_type, None) == unsupported_type
+
+    # Test nested struct types
+    struct_type = pa.struct([("field1", pa.float32()), ("field2", pa.int32())])
+    expected_struct_type = pa.struct([("field1", pa.float64()), ("field2", pa.int64())])
+    assert map_pyarrow_type(struct_type, None) == expected_struct_type
+
+    # Test custom type casting with nested struct types
+    custom_struct_type = pa.struct([("field1", pa.float64()), ("field2", pa.int64())])
+    expected_custom_struct_type = pa.struct(
+        [("field1", pa.float32()), ("field2", pa.int32())]
+    )
+    assert (
+        map_pyarrow_type(custom_struct_type, data_type_cast_map)
+        == expected_custom_struct_type
+    )

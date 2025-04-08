@@ -283,3 +283,48 @@ def test_avoid_na_row_output(
             ).column("Metadata_ImageNumber")
         )
     ).as_py()
+
+
+def test_npz_deepprofiler_convert(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+):
+    """
+    Tests convert with NPZ source and Deepprofiler preset
+    """
+
+    test_result = parquet.read_table(
+        convert(
+            source_path="tests/data/deepprofiler/pycytominer_example",
+            dest_path=f"{fx_tempdir}/test_deepprofiler.parquet",
+            dest_datatype="parquet",
+            source_datatype="npz",
+            concat=True,
+            join=False,
+            preset="deepprofiler",
+        )["all_files.npz"][0]["table"]
+    )
+
+    assert test_result.shape == (1656, 20)
+    assert {field.name: str(field.type) for field in test_result.schema} == {
+        "Metadata_TableNumber": "int64",
+        "Metadata_NPZSource": "string",
+        "Metadata_Plate": "string",
+        "Metadata_Well": "string",
+        "Metadata_Site": "int64",
+        "Plate_Map_Name": "string",
+        "RNA": "string",
+        "ER": "string",
+        "AGP": "string",
+        "Mito": "string",
+        "DNA": "string",
+        "Treatment_ID": "int64",
+        "Treatment_Replicate": "int64",
+        "Treatment": "string",
+        "Compound": "string",
+        "Concentration": "string",
+        "Split": "string",
+        "Metadata_Model": "string",
+        "locations": "list<element: double>",
+        "features": "list<element: double>",
+    }

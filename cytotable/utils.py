@@ -769,8 +769,6 @@ def _extract_npz_to_parquet(
     import pyarrow as pa
     import pyarrow.parquet as parquet
 
-    from cytotable.constants import NUMPY_TO_PYARROW_TYPE_MAP
-
     # Load features from the .npz file
     with open(source_path, "rb") as data:
         loaded_npz = np.load(file=data, allow_pickle=True)
@@ -790,11 +788,112 @@ def _extract_npz_to_parquet(
             ),
             **{key: [metadata[key]] * rows for key in metadata.keys()},
             # add features and locations data to the table
-            "features": [loaded_npz["features"][i] for i in range(rows)],
             "locations": [loaded_npz["locations"][i] for i in range(rows)],
+            "features": [loaded_npz["features"][i] for i in range(rows)],
         }
 
     # convert the numpy arrays to a PyArrow table and write to parquet
     parquet.write_table(pa.Table.from_pydict(npz_as_pydict), dest_path)
 
     return dest_path
+
+
+def map_pyarrow_type(
+    field_type: pa.DataType, data_type_cast_map: Optional[Dict[str, str]]
+) -> pa.DataType:
+    """
+    Map PyArrow types dynamically to handle nested types and casting.
+
+    This function takes a PyArrow `field_type` and dynamically maps
+    it to a valid PyArrow type, handling nested types (e.g., lists,
+    structs) and resolving type conflicts (e.g., integer to float).
+    It also supports custom type casting using the
+    `data_type_cast_map` parameter.
+
+    Args:
+        field_type: pa.DataType
+            The PyArrow data type to be mapped.
+            This can include simple types (e.g., int, float, string)
+            or nested types (e.g., list, struct).
+        data_type_cast_map: Optional[Dict[str, str]], default None
+            A dictionary mapping data type groups to specific types.
+            This allows for custom type casting.
+            For example:
+                - {"float": "float32"} maps
+                floating-point types to `float32`.
+                - {"int": "int64"} maps integer
+                types to `int64`.
+            If `data_type_cast_map` is
+            None, default PyArrow types are used.
+
+    Returns:
+        pa.DataType
+            The mapped PyArrow data type.
+            If no mapping is needed, the original
+            `field_type` is returned.
+
+    Examples:
+        >>> import pyarrow as pa
+        >>> map_pyarrow_type(pa.float32(), None)
+        DataType(float64)
+
+        >>> map_pyarrow_type(pa.list_(pa.float32()), None)
+        ListType(list<item: float64>)
+
+        >>> map_pyarrow_type(pa.int32(), {"int": "int64"})
+        DataType(int64)
+
+        >>> map_pyarrow_type(pa.list_(pa.int32()), {"int": "int64"})
+        ListType(list<item: int64>)
+
+    Notes:
+        - This function is designed to handle nested
+        types like lists and structs recursively.
+        - If `data_type_cast_map` is provided,
+        it overrides the default type mappings for specific groups.
+        - The function defaults to returning the
+        original `field_type` if no mapping is required.
+    """
+    if pa.types.is_list(field_type):
+        # Handle list types (e.g., list<element: float>)
+        return pa.list_(
+            map_pyarrow_type(
+                field_type=field_type.value_type, data_type_cast_map=data_type_cast_map
+            )
+        )
+    elif pa.types.is_struct(field_type):
+        # Handle struct types recursively
+        return pa.struct(
+            [
+                (
+                    field.name,
+                    map_pyarrow_type(
+                        field_type=field.type, data_type_cast_map=data_type_cast_map
+                    ),
+                )
+                for field in field_type
+            ]
+        )
+    elif pa.types.is_floating(field_type):
+        # Handle floating-point types
+        return (
+            pa.float64()
+            if data_type_cast_map is None
+            else pa.type_for_alias(data_type_cast_map.get("float", "float64"))
+        )
+    elif pa.types.is_integer(field_type):
+        # Handle integer types
+        return (
+            pa.int64()
+            if data_type_cast_map is None
+            else pa.type_for_alias(data_type_cast_map.get("int", "int64"))
+        )
+    elif pa.types.is_string(field_type):
+        # Handle string types
+        return pa.string()
+    elif pa.types.is_null(field_type):
+        # Handle null types
+        return pa.null()
+    else:
+        # Default to the original type if no mapping is needed
+        return field_type

@@ -7,6 +7,7 @@ import logging
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import parsl
+import pyarrow as pa
 from parsl.app.app import python_app
 
 from cytotable.exceptions import CytoTableException
@@ -416,9 +417,9 @@ def _source_pageset_to_parquet(
 
     from cytotable.utils import (
         _duckdb_reader,
+        _extract_npz_to_parquet,
         _sqlite_mixed_type_query_to_parquet,
         _write_parquet_table_with_metadata,
-        _extract_npz_to_parquet
     )
 
     source_type = str(source["source_path"].suffix).lower()
@@ -1038,56 +1039,41 @@ def _concat_join_sources(
 def _infer_source_group_common_schema(
     source_group: List[Dict[str, Any]],
     data_type_cast_map: Optional[Dict[str, str]] = None,
-) -> List[Tuple[str, str]]:
+) -> List[Tuple[str, pa.DataType]]:
     """
-    Infers a common schema for group of parquet files which may have
+    Infers a common schema for a group of parquet files which may have
     similar but slightly different schema or data. Intended to assist with
     data concatenation and other operations.
-
-    Args:
-        source_group: List[Dict[str, Any]]:
-            Group of one or more data sources which includes metadata about
-            path to parquet data.
-        data_type_cast_map: Optional[Dict[str, str]], default None
-            A dictionary mapping data type groups to specific types.
-            Roughly includes Arrow data types language from:
-            https://arrow.apache.org/docs/python/api/datatypes.html
-
-    Returns:
-        List[Tuple[str, str]]
-            A list of tuples which includes column name and PyArrow datatype.
-            This data will later be used as the basis for forming a PyArrow schema.
     """
 
     import pyarrow as pa
     import pyarrow.parquet as parquet
 
-    from cytotable.exceptions import SchemaException
+    from cytotable.utils import map_pyarrow_type
 
-    # read first file for basis of schema and column order for all others
+    # Read the first file to establish the base schema
     common_schema = parquet.read_schema(source_group[0]["table"][0])
 
-    # infer common basis of schema and column order for all others
+    # Infer the common schema by comparing all schemas in the group
     for schema in [
         parquet.read_schema(table)
         for source in source_group
         for table in source["table"]
     ]:
-        # account for completely equal schema
+        # Skip if the schema matches the common schema
         if schema.equals(common_schema):
             continue
 
-        # gather field names from schema
+        # Gather field names from the schema
         schema_field_names = [item.name for item in schema]
 
-        # reversed enumeration because removing indexes ascendingly changes schema field order
+        # Reverse enumeration to avoid index shifting when removing fields
         for index, field in reversed(list(enumerate(common_schema))):
-            # check whether field name is contained within writer basis, remove if not
-            # note: because this only checks for naming, we defer to initially detected type
+            # Remove fields not present in the current schema
             if field.name not in schema_field_names:
                 common_schema = common_schema.remove(index)
 
-            # check if we have a nulltype and non-nulltype conflict, deferring to non-nulltype
+            # Handle null vs non-null type conflicts
             elif pa.types.is_null(field.type) and not pa.types.is_null(
                 schema.field(field.name).type
             ):
@@ -1095,37 +1081,44 @@ def _infer_source_group_common_schema(
                     index, field.with_type(schema.field(field.name).type)
                 )
 
-            # check if we have an integer to float challenge and enable later casting
+            # Handle integer to float type conflicts
             elif pa.types.is_integer(field.type) and pa.types.is_floating(
                 schema.field(field.name).type
             ):
                 common_schema = common_schema.set(
                     index,
                     field.with_type(
-                        # use float64 as a default here if we aren't casting floats
                         pa.float64()
                         if data_type_cast_map is None
-                        or "float" not in data_type_cast_map.keys()
-                        # otherwise use the float data type cast type
-                        else pa.type_for_alias(data_type_cast_map["float"])
+                        else pa.type_for_alias(
+                            data_type_cast_map.get("float", "float64")
+                        )
                     ),
                 )
 
-    if len(list(common_schema.names)) == 0:
-        raise SchemaException(
-            (
-                "No common schema basis to perform concatenation for source group."
-                " All columns mismatch one another within the group."
-            )
-        )
+            # Handle nested or complex types dynamically
+            else:
+                common_schema = common_schema.set(
+                    index,
+                    field.with_type(
+                        map_pyarrow_type(
+                            field_type=field.type, data_type_cast_map=data_type_cast_map
+                        )
+                    ),
+                )
 
-    # return a python-native list of tuples with column names and str types
-    return list(
-        zip(
-            common_schema.names,
-            [str(schema_type) for schema_type in common_schema.types],
+    # Validate the schema to ensure all types are valid PyArrow types
+    validated_schema = [
+        (
+            field.name,
+            map_pyarrow_type(
+                field_type=field.type, data_type_cast_map=data_type_cast_map
+            ),
         )
-    )
+        for field in common_schema
+    ]
+
+    return validated_schema
 
 
 def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
