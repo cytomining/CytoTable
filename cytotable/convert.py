@@ -441,7 +441,7 @@ def _source_pageset_to_parquet(
         )
 
     if pageset is None:
-        # if we have a `None` pagest tand we're not using
+        # if we have a `None` pageset and we're not using
         # npz, then we have an exception (this shouldn't happen
         # because we will need a pageset range to work with for
         # table queries and npz files are handled above with
