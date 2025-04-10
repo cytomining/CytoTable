@@ -324,6 +324,10 @@ config = {
             "cellprofiler": "v4.2.x",
         },
         # names of source table compartments (for ex. cells.csv, etc.)
+        # in the case of NPZ files, these sometimes
+        # include the name of the well or site
+        # but not the compartment, and as a result,
+        # we specify an empty tuple.
         "CONFIG_NAMES_COMPARTMENTS": tuple(),
         # names of source table metadata (for ex. image.csv, etc.)
         "CONFIG_NAMES_METADATA": tuple(),
