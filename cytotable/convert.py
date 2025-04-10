@@ -446,7 +446,12 @@ def _source_pageset_to_parquet(
         # because we will need a pageset range to work with for
         # table queries and npz files are handled above with
         # the none case).
-        raise CytoTableException("No pageset range provided for source data.")
+        raise CytoTableException(
+            (
+                "No pageset range provided for source data"
+                " (applies to non-NPZ datasets)."
+            )
+        )
 
     # build tablenumber segment addition (if necessary)
     tablenumber_sql = (
