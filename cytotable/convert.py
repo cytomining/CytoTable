@@ -1049,6 +1049,19 @@ def _infer_source_group_common_schema(
     Infers a common schema for a group of parquet files which may have
     similar but slightly different schema or data. Intended to assist with
     data concatenation and other operations.
+
+    Args:
+        source_group: List[Dict[str, Any]]:
+            Group of one or more data sources which includes metadata about
+            path to parquet data.
+        data_type_cast_map: Optional[Dict[str, str]], default None
+            A dictionary mapping data type groups to specific types.
+            Roughly includes Arrow data types language from:
+            https://arrow.apache.org/docs/python/api/datatypes.html
+    Returns:
+        List[Tuple[str, pa.DataType]]
+            A list of tuples which includes column name and PyArrow datatype.
+            This data will later be used as the basis for forming a PyArrow schema.
     """
 
     import pyarrow as pa
