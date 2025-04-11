@@ -777,6 +777,11 @@ def _extract_npz_to_parquet(
         rows = loaded_npz["features"].shape[0]
         # note: we use [()] to load the numpy array as a python dict
         metadata = loaded_npz["metadata"][()]
+        # fetch the metadata model name, falling back to "DP" if not found
+        feature_prefix = metadata.get("Metadata_Model", "DP")
+        # we transpose the feature data for more efficient
+        # columnar-focused access
+        feature_data = loaded_npz["features"].T
 
         npz_as_pydict = {
             # add metadata to the table
@@ -787,9 +792,14 @@ def _extract_npz_to_parquet(
                 [pathlib.Path(source_path).name] * rows, type=pa.string()
             ),
             **{key: [metadata[key]] * rows for key in metadata.keys()},
-            # add features and locations data to the table
-            "locations": [loaded_npz["locations"][i] for i in range(rows)],
-            "features": [loaded_npz["features"][i] for i in range(rows)],
+            # add locations data to the table
+            "Location_Center_X": [loaded_npz["locations"][i][0] for i in range(rows)],
+            "Location_Center_Y": [loaded_npz["locations"][i][1] for i in range(rows)],
+            # add features data to the table
+            **{
+                f"{feature_prefix}_{feature_idx + 1}": feature_data[feature_idx]
+                for feature_idx in range(feature_data.shape[0])
+            },
         }
 
     # convert the numpy arrays to a PyArrow table and write to parquet

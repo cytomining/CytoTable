@@ -311,8 +311,14 @@ def test_npz_deepprofiler_convert(
         ]
     )
 
-    assert test_result.shape == (10132, 20)
-    assert {field.name: str(field.type) for field in test_result.schema} == {
+    # check the shape of the resulting data
+    assert test_result.shape == (10132, 6420)
+    # check non-feature data types
+    assert {
+        field.name: str(field.type)
+        for field in test_result.schema
+        if "efficientnet_" not in field.name
+    } == {
         "Metadata_TableNumber": "int64",
         "Metadata_NPZSource": "string",
         "Metadata_Plate": "string",
@@ -331,6 +337,10 @@ def test_npz_deepprofiler_convert(
         "Concentration": "string",
         "Split": "string",
         "Metadata_Model": "string",
-        "locations": "list<element: double>",
-        "features": "list<element: double>",
+        "Location_Center_X": "double",
+        "Location_Center_Y": "double",
     }
+    # check feature data types (we should only see double types)
+    assert {
+        str(field.type) for field in test_result.schema if "efficientnet_" in field.name
+    } == {"double"}
