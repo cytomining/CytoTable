@@ -128,6 +128,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# sphinx
+doctest
+
 # raw data
 *.parquet
 *.csv

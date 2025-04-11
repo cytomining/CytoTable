@@ -196,7 +196,7 @@ def _sqlite_mixed_type_query_to_parquet(
             The name of the table being queried.
         page_key: str:
             The column name to be used to identify pagination chunks.
-        pageset: Tuple[int, int]:
+        pageset: Tuple[Union[int, float], Union[int, float]]:
             The range for values used for paginating data from source.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
@@ -336,7 +336,7 @@ def _cache_cloudpath_to_local(path: AnyPath) -> pathlib.Path:
     if (
         isinstance(path, CloudPath)
         and path.is_file()
-        and path.suffix.lower() == ".sqlite"
+        and path.suffix.lower() in [".sqlite", ".npz"]
     ):
         try:
             # update the path to be the local filepath for reference in CytoTable ops
@@ -706,3 +706,179 @@ def _natural_sort(list_to_sort):
             for c in re.split("([0-9]+)", str(key))
         ],
     )
+
+
+def _extract_npz_to_parquet(
+    source_path: str,
+    dest_path: str,
+    tablenumber: Optional[int] = None,
+) -> str:
+    """
+    Extract data from an .npz file created by DeepProfiler
+    as a tabular dataset and write to parquet.
+
+    DeepProfiler creates datasets which look somewhat like this:
+    Keys in the .npz file: ['features', 'metadata', 'locations']
+
+    Variable: features
+    Shape: (229, 6400)
+    Data type: float32
+
+    Variable: locations
+    Shape: (229, 2)
+    Data type: float64
+
+    Variable: metadata
+    Shape: ()
+    Data type: object
+    Whole object: {
+    'Metadata_Plate': 'SQ00014812',
+    'Metadata_Well': 'A01',
+    'Metadata_Site': 1,
+    'Plate_Map_Name': 'C-7161-01-LM6-022',
+    'RNA': 'SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png',
+    'ER': 'SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png',
+    'AGP': 'SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png',
+    'Mito': 'SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png',
+    'DNA': 'SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png',
+    'Treatment_ID': 0,
+    'Treatment_Replicate': 1,
+    'Treatment': 'DMSO@NA',
+    'Compound': 'DMSO',
+    'Concentration': '',
+    'Split': 'Training',
+    'Metadata_Model': 'efficientnet'
+    }
+
+    Args:
+        source_path: str
+            Path to the .npz file.
+        dest_path: str
+            Destination path for the parquet file.
+        tablenumber: Optional[int]
+            Optional tablenumber to be added to the data.
+
+    Returns:
+        str
+            Path to the exported parquet file.
+    """
+
+    import pathlib
+
+    import numpy as np
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    # Load features from the .npz file
+    with open(source_path, "rb") as data:
+        loaded_npz = np.load(file=data, allow_pickle=True)
+        # find the shape of the features, which will help structure
+        # data which doesn't yet conform to the same shape (by row count).
+        rows = loaded_npz["features"].shape[0]
+        # note: we use [()] to load the numpy array as a python dict
+        metadata = loaded_npz["metadata"][()]
+        # fetch the metadata model name, falling back to "DP" if not found
+        feature_prefix = metadata.get("Metadata_Model", "DP")
+        # we transpose the feature data for more efficient
+        # columnar-focused access
+        feature_data = loaded_npz["features"].T
+
+        npz_as_pydict = {
+            # add metadata to the table
+            # note: metadata within npz files corresponds to a dictionary of
+            # various keys and values related to the feature and location data.
+            "Metadata_TableNumber": pa.array([tablenumber] * rows, type=pa.int64()),
+            "Metadata_NPZSource": pa.array(
+                [pathlib.Path(source_path).name] * rows, type=pa.string()
+            ),
+            **{key: [metadata[key]] * rows for key in metadata.keys()},
+            # add locations data to the table
+            "Location_Center_X": [loaded_npz["locations"][i][0] for i in range(rows)],
+            "Location_Center_Y": [loaded_npz["locations"][i][1] for i in range(rows)],
+            # add features data to the table
+            **{
+                f"{feature_prefix}_{feature_idx + 1}": feature_data[feature_idx]
+                for feature_idx in range(feature_data.shape[0])
+            },
+        }
+
+    # convert the numpy arrays to a PyArrow table and write to parquet
+    parquet.write_table(pa.Table.from_pydict(npz_as_pydict), dest_path)
+
+    return dest_path
+
+
+def map_pyarrow_type(
+    field_type: pa.DataType, data_type_cast_map: Optional[Dict[str, str]]
+) -> pa.DataType:
+    """
+    Map PyArrow types dynamically to handle nested types and casting.
+
+    This function takes a PyArrow `field_type` and dynamically maps
+    it to a valid PyArrow type, handling nested types (e.g., lists,
+    structs) and resolving type conflicts (e.g., integer to float).
+    It also supports custom type casting using the
+    `data_type_cast_map` parameter.
+
+    Args:
+        field_type: pa.DataType
+            The PyArrow data type to be mapped.
+            This can include simple types (e.g., int, float, string)
+            or nested types (e.g., list, struct).
+        data_type_cast_map: Optional[Dict[str, str]], default None
+            A dictionary mapping data type groups to specific types.
+            This allows for custom type casting.
+            For example:
+            - {"float": "float32"} maps
+            floating-point types to `float32`.
+            - {"int": "int64"} maps integer
+            types to `int64`.
+            If `data_type_cast_map` is
+            None, default PyArrow types are used.
+
+    Returns:
+        pa.DataType
+            The mapped PyArrow data type.
+            If no mapping is needed, the original
+            `field_type` is returned.
+    """
+
+    if pa.types.is_list(field_type):
+        # Handle list types (e.g., list<element: float>)
+        return pa.list_(
+            map_pyarrow_type(
+                field_type=field_type.value_type, data_type_cast_map=data_type_cast_map
+            )
+        )
+    elif pa.types.is_struct(field_type):
+        # Handle struct types recursively
+        return pa.struct(
+            [
+                (
+                    field.name,
+                    map_pyarrow_type(
+                        field_type=field.type, data_type_cast_map=data_type_cast_map
+                    ),
+                )
+                for field in field_type
+            ]
+        )
+    elif pa.types.is_floating(field_type):
+        # Handle floating-point types
+        if data_type_cast_map and "float" in data_type_cast_map:
+            return pa.type_for_alias(data_type_cast_map["float"])
+        return pa.float64()  # Default to float64 if no mapping is provided
+    elif pa.types.is_integer(field_type):
+        # Handle integer types
+        if data_type_cast_map and "integer" in data_type_cast_map:
+            return pa.type_for_alias(data_type_cast_map["integer"])
+        return pa.int64()  # Default to int64 if no mapping is provided
+    elif pa.types.is_string(field_type):
+        # Handle string types
+        return pa.string()
+    elif pa.types.is_null(field_type):
+        # Handle null types
+        return pa.null()
+    else:
+        # Default to the original type if no mapping is needed
+        return field_type

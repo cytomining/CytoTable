@@ -5,7 +5,7 @@ Testing for cytotable/sources.py
 import pathlib
 import tempfile
 
-from cytotable.sources import _file_is_more_than_one_line
+from cytotable.sources import _file_is_more_than_one_line, _get_source_filepaths
 
 
 def test_file_is_more_than_one_line():
@@ -44,3 +44,26 @@ def test_file_is_more_than_one_line():
         tmp_file_path = pathlib.Path(tmp_file.name)
     assert _file_is_more_than_one_line(tmp_file_path)
     tmp_file_path.unlink()
+
+
+def test_get_source_filepaths_with_npz():
+    """
+    Tests for _get_source_filepaths with combinations of .npz files.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir_path = pathlib.Path(tmp_dir)
+
+        # Create temporary .npz file
+        npz_file = tmp_dir_path / "test_file.npz"
+        with open(npz_file, mode="wb") as f:
+            f.write(b"dummy binary content")
+
+        # Call _get_source_filepaths
+        result = _get_source_filepaths(path=tmp_dir_path, source_datatype="npz")
+
+        # Verify that both .npz files are included in the result
+        assert len(result) == 1  # One group
+        assert any(
+            "test_file.npz" in str(file["source_path"])
+            for file in result[next(iter(result))]
+        )
