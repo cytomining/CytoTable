@@ -11,6 +11,7 @@ from typing import List
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+import pycytominer
 import pytest
 from pyarrow import parquet
 
@@ -294,21 +295,25 @@ def test_npz_deepprofiler_convert(
     """
 
     test_result = parquet.read_table(
-        source=convert(  # type: ignore[call-overload]
-            source_path="tests/data/deepprofiler/pycytominer_example",
-            dest_path=f"{fx_tempdir}/test_deepprofiler.parquet",
-            dest_datatype="parquet",
-            source_datatype="npz",
-            concat=True,
-            join=False,
-            preset="deepprofiler",
-        )[
-            "all_files.npz"  # type: ignore[index]
-        ][
-            0
-        ][
-            "table"  # type: ignore[index]
-        ]
+        source=(
+            parquet_result := convert(  # type: ignore[call-overload]
+                source_path="tests/data/deepprofiler/pycytominer_example",
+                dest_path=f"{fx_tempdir}/test_deepprofiler.parquet",
+                dest_datatype="parquet",
+                source_datatype="npz",
+                concat=True,
+                join=False,
+                preset="deepprofiler",
+            )[
+                "all_files.npz"  # type: ignore[index]
+            ][
+                0
+            ][
+                "table"  # type: ignore[index]
+            ][
+                0
+            ]
+        )
     )
 
     # check the shape of the resulting data
@@ -344,3 +349,24 @@ def test_npz_deepprofiler_convert(
     assert {
         str(field.type) for field in test_result.schema if "efficientnet_" in field.name
     } == {"double"}
+
+    # check that we can use the resulting data with Pycytominer
+    assert (
+        pycytominer.normalize(
+            profiles=parquet_result,
+            # we must specify the features manually as they
+            # are non-standard and cannot be inferenced.
+            features=[
+                column
+                for column in test_result.column_names
+                if "efficientnet_" in column
+            ],
+            image_features=False,
+            meta_features="infer",
+            method="standardize",
+            samples="all",
+            output_file="test_deepprofiler_normalized.parquet",
+            output_type="parquet",
+        )
+        is None
+    )
