@@ -20,6 +20,9 @@ authors:
   - given-names: Michael
     family-names: Lippincott
     orcid: 'https://orcid.org/0000-0002-8637-1448'
+  - family-names: Brewer
+    given-names: Kenneth
+    orcid: 'https://orcid.org/0000-0003-4030-0254'
   - given-names: Vincent
     family-names: Rubinetti
     orcid: 'https://orcid.org/0000-0002-4655-3773'
