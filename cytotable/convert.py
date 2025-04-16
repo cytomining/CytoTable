@@ -883,7 +883,7 @@ def _join_source_pageset(
     dest_path: str,
     joins: str,
     page_key: str,
-    pageset: Tuple[int, int],
+    pageset: Union[Tuple[int, int], None],
     sort_output: bool,
     drop_null: bool,
 ) -> str:
@@ -920,7 +920,7 @@ def _join_source_pageset(
             )
             SELECT *
             FROM joined
-            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
+            {f"WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}" if pageset is not None else ""}
             /* optional sorting per pagset */
             {"ORDER BY " + page_key if sort_output else ""};
             """
@@ -945,11 +945,13 @@ def _join_source_pageset(
 
     result_file_path = (
         # store the result in the parent of the dest_path
-        f"{str(pathlib.Path(dest_path).parent)}/"
+        f"{str(pathlib.Path(dest_path).parent)}/" +
         # use the dest_path stem in the name
-        f"{str(pathlib.Path(dest_path).stem)}-"
+        f"{str(pathlib.Path(dest_path).stem)}-" +
         # add the pageset indication to the filename
         f"{pageset[0]}-{pageset[1]}.parquet"
+        if pageset is not None
+        else ".parquet"
     )
 
     # write the result
