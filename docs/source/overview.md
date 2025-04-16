@@ -78,6 +78,12 @@ A quick example of how this argument is used: :code:`convert(..., local_cache_di
 
 Future work to enable direct SQLite data access from cloud locations for CytoTable will be documented within GitHub issue [CytoTable/#70](https://github.com/cytomining/CytoTable/issues/70).
 
+__NumPy Zipped Archive (.npz)__:
+
+CytoTable downloads cloud-based NPZ archives locally before other CytoTable processing.
+This is due to the complexity of random access within the context of a zipped file stored within the cloud.
+Please note the content above mentioned about SQLite, which also applies to NPZ files.
+
 ### Data Source Types
 
 Data source compatibility for CytoTable is focused (but not explicitly limited to) the following.
@@ -98,6 +104,15 @@ Data source compatibility for CytoTable is focused (but not explicitly limited t
 ```{eval-rst}
   * **Manual specification:** SQLite data source types may be manually specified by using :code:`convert(..., source_datatype="sqlite", ...)` (:mod:`convert() <cytotable.convert.convert>`).
   * **Preset specification:** SQLite data sources from CellProfiler may use the configuration preset :code:`convert(..., preset="cellprofiler_sqlite", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
+#### DeepProfiler Data Sources
+
+- __NumPy Zipped Archive (.npz)__: [DeepProfiler](https://github.com/cytomining/DeepProfiler) software provides output data in [NPZ format](https://numpy.org/doc/stable/reference/generated/numpy.lib.npyio.NpzFile.html#numpy.lib.npyio.NpzFile).
+
+```{eval-rst}
+  * **Manual specification:** NPZ data source types may be manually specified by using :code:`convert(..., source_datatype="npz", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+  * **Preset specification:** NPZ data from DeepProfiler may be converted through CytoTable by using the following preset :code:`convert(..., preset="deepprofiler", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 #### IN Carta Data Sources

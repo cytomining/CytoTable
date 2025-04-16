@@ -497,6 +497,37 @@ def test_join_source_pageset(load_parsl_default: None, fx_tempdir: str):
         )
     )
 
+    result = _join_source_pageset(
+        dest_path=f"{fx_tempdir}/destination_no_pageset.parquet",
+        joins=f"""
+            SELECT *
+            FROM read_parquet('{test_path_a}') as example_a
+            JOIN read_parquet('{test_path_b}') as example_b USING(id1, id2)
+        """,
+        page_key="id1",
+        pageset=None,  # Explicitly set pageset to None
+        drop_null=True,
+        sort_output=True,
+    ).result()
+
+    assert isinstance(result, str)
+
+    result_table = parquet.read_table(source=result)
+
+    # Verify the result matches the expected output
+    assert result_table.equals(
+        other=pa.Table.from_pydict(
+            {
+                "field1": ["foo", "foo", "bar", "bar", "baz", "baz"],
+                "field2": [True, True, False, False, True, True],
+                "id1": [1, 1, 2, 2, 3, 3],
+                "id2": ["a", "b", "a", "b", "a", "b"],
+            },
+            # use schema from result as a reference for col order
+            schema=result_table.schema,
+        )
+    )
+
 
 def test_concat_join_sources(load_parsl_default: None, fx_tempdir: str):
     """

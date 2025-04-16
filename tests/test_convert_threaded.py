@@ -11,6 +11,7 @@ from typing import List
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
+import pycytominer
 import pytest
 from pyarrow import parquet
 
@@ -283,3 +284,94 @@ def test_avoid_na_row_output(
             ).column("Metadata_ImageNumber")
         )
     ).as_py()
+
+
+def test_npz_deepprofiler_convert(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+):
+    """
+    Tests convert with NPZ source and Deepprofiler preset
+    """
+
+    test_result = parquet.read_table(
+        source=(
+            parquet_result := convert(  # type: ignore[call-overload]
+                source_path="tests/data/deepprofiler/pycytominer_example",
+                dest_path=f"{fx_tempdir}/test_deepprofiler.parquet",
+                dest_datatype="parquet",
+                source_datatype="npz",
+                concat=True,
+                join=False,
+                preset="deepprofiler",
+            )[
+                "all_files.npz"  # type: ignore[index]
+            ][
+                0
+            ][
+                "table"  # type: ignore[index]
+            ][
+                0
+            ]
+        )
+    )
+
+    # check the shape of the resulting data
+    assert test_result.shape == (10132, 6420)
+    # check non-feature data types
+    assert {
+        field.name: str(field.type)
+        for field in test_result.schema
+        if "efficientnet_" not in field.name
+    } == {
+        "Metadata_TableNumber": "int64",
+        "Metadata_NPZSource": "string",
+        "Metadata_Plate": "string",
+        "Metadata_Well": "string",
+        "Metadata_Site": "int64",
+        "Plate_Map_Name": "string",
+        "RNA": "string",
+        "ER": "string",
+        "AGP": "string",
+        "Mito": "string",
+        "DNA": "string",
+        "Treatment_ID": "int64",
+        "Treatment_Replicate": "int64",
+        "Treatment": "string",
+        "Compound": "string",
+        "Concentration": "string",
+        "Split": "string",
+        "Metadata_Model": "string",
+        "Location_Center_X": "double",
+        "Location_Center_Y": "double",
+    }
+    # check feature data types (we should only see double types)
+    assert {
+        str(field.type) for field in test_result.schema if "efficientnet_" in field.name
+    } == {"double"}
+
+    # check that we can use the resulting data with Pycytominer
+    pycytominer.normalize(
+        profiles=parquet_result,
+        # we must specify the features manually as they
+        # are non-standard and cannot be inferenced.
+        features=[
+            column for column in test_result.column_names if "efficientnet_" in column
+        ],
+        image_features=False,
+        meta_features="infer",
+        method="standardize",
+        samples="all",
+        output_file=(
+            pycytominer_normalized_file := "test_deepprofiler_normalized.parquet"
+        ),
+        output_type="parquet",
+    )
+
+    # read the resulting table into a pyarrow table and check the shape
+    assert parquet.read_table(source=pycytominer_normalized_file).shape == (10132, 6406)
+
+    # use load_profiles to again check the shape for no surprises
+    assert pycytominer.cyto_utils.load.load_profiles(
+        profiles=pycytominer_normalized_file
+    ).shape == (10132, 6406)
