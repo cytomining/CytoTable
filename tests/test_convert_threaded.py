@@ -351,22 +351,27 @@ def test_npz_deepprofiler_convert(
     } == {"double"}
 
     # check that we can use the resulting data with Pycytominer
-    assert (
-        pycytominer.normalize(
-            profiles=parquet_result,
-            # we must specify the features manually as they
-            # are non-standard and cannot be inferenced.
-            features=[
-                column
-                for column in test_result.column_names
-                if "efficientnet_" in column
-            ],
-            image_features=False,
-            meta_features="infer",
-            method="standardize",
-            samples="all",
-            output_file="test_deepprofiler_normalized.parquet",
-            output_type="parquet",
-        )
-        is None
+    pycytominer.normalize(
+        profiles=parquet_result,
+        # we must specify the features manually as they
+        # are non-standard and cannot be inferenced.
+        features=[
+            column for column in test_result.column_names if "efficientnet_" in column
+        ],
+        image_features=False,
+        meta_features="infer",
+        method="standardize",
+        samples="all",
+        output_file=(
+            pycytominer_normalized_file := "test_deepprofiler_normalized.parquet"
+        ),
+        output_type="parquet",
     )
+
+    # read the resulting table into a pyarrow table and check the shape
+    assert parquet.read_table(source=pycytominer_normalized_file).shape == (10132, 6406)
+
+    # use load_profiles to again check the shape for no surprises
+    assert pycytominer.cyto_utils.load.load_profiles(
+        profiles=pycytominer_normalized_file
+    ).shape == (10132, 6406)
