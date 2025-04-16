@@ -440,7 +440,7 @@ def _source_pageset_to_parquet(
             tablenumber=source["tablenumber"],
         )
 
-    if pageset is None:
+    elif pageset is None:
         # if we have a `None` pageset and we're not using
         # npz, then we have an exception (this shouldn't happen
         # because we will need a pageset range to work with for
