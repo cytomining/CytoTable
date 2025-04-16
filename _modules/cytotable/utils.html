@@ -254,7 +254,7 @@ window.addEventListener("load", () => mermaid.run());
 <span class="sd">            The name of the table being queried.</span>
 <span class="sd">        page_key: str:</span>
 <span class="sd">            The column name to be used to identify pagination chunks.</span>
-<span class="sd">        pageset: Tuple[int, int]:</span>
+<span class="sd">        pageset: Tuple[Union[int, float], Union[int, float]]:</span>
 <span class="sd">            The range for values used for paginating data from source.</span>
 <span class="sd">        sort_output: bool</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
@@ -397,7 +397,7 @@ window.addEventListener("load", () => mermaid.run());
     <span class="k">if</span> <span class="p">(</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">)</span>
         <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
+        <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.sqlite&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">]</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># update the path to be the local filepath for reference in CytoTable ops</span>
@@ -797,6 +797,188 @@ window.addEventListener("load", () => mermaid.run());
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;([0-9]+)&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
         <span class="p">],</span>
     <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_extract_npz_to_parquet">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._extract_npz_to_parquet">[docs]</a>
+<span class="k">def</span> <span class="nf">_extract_npz_to_parquet</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract data from an .npz file created by DeepProfiler</span>
+<span class="sd">    as a tabular dataset and write to parquet.</span>
+
+<span class="sd">    DeepProfiler creates datasets which look somewhat like this:</span>
+<span class="sd">    Keys in the .npz file: [&#39;features&#39;, &#39;metadata&#39;, &#39;locations&#39;]</span>
+
+<span class="sd">    Variable: features</span>
+<span class="sd">    Shape: (229, 6400)</span>
+<span class="sd">    Data type: float32</span>
+
+<span class="sd">    Variable: locations</span>
+<span class="sd">    Shape: (229, 2)</span>
+<span class="sd">    Data type: float64</span>
+
+<span class="sd">    Variable: metadata</span>
+<span class="sd">    Shape: ()</span>
+<span class="sd">    Data type: object</span>
+<span class="sd">    Whole object: {</span>
+<span class="sd">    &#39;Metadata_Plate&#39;: &#39;SQ00014812&#39;,</span>
+<span class="sd">    &#39;Metadata_Well&#39;: &#39;A01&#39;,</span>
+<span class="sd">    &#39;Metadata_Site&#39;: 1,</span>
+<span class="sd">    &#39;Plate_Map_Name&#39;: &#39;C-7161-01-LM6-022&#39;,</span>
+<span class="sd">    &#39;RNA&#39;: &#39;SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png&#39;,</span>
+<span class="sd">    &#39;ER&#39;: &#39;SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png&#39;,</span>
+<span class="sd">    &#39;AGP&#39;: &#39;SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png&#39;,</span>
+<span class="sd">    &#39;Mito&#39;: &#39;SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png&#39;,</span>
+<span class="sd">    &#39;DNA&#39;: &#39;SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png&#39;,</span>
+<span class="sd">    &#39;Treatment_ID&#39;: 0,</span>
+<span class="sd">    &#39;Treatment_Replicate&#39;: 1,</span>
+<span class="sd">    &#39;Treatment&#39;: &#39;DMSO@NA&#39;,</span>
+<span class="sd">    &#39;Compound&#39;: &#39;DMSO&#39;,</span>
+<span class="sd">    &#39;Concentration&#39;: &#39;&#39;,</span>
+<span class="sd">    &#39;Split&#39;: &#39;Training&#39;,</span>
+<span class="sd">    &#39;Metadata_Model&#39;: &#39;efficientnet&#39;</span>
+<span class="sd">    }</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source_path: str</span>
+<span class="sd">            Path to the .npz file.</span>
+<span class="sd">        dest_path: str</span>
+<span class="sd">            Destination path for the parquet file.</span>
+<span class="sd">        tablenumber: Optional[int]</span>
+<span class="sd">            Optional tablenumber to be added to the data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str</span>
+<span class="sd">            Path to the exported parquet file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">pathlib</span>
+
+    <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+    <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
+    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+
+    <span class="c1"># Load features from the .npz file</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">loaded_npz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># find the shape of the features, which will help structure</span>
+        <span class="c1"># data which doesn&#39;t yet conform to the same shape (by row count).</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># note: we use [()] to load the numpy array as a python dict</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][()]</span>
+        <span class="c1"># fetch the metadata model name, falling back to &quot;DP&quot; if not found</span>
+        <span class="n">feature_prefix</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Metadata_Model&quot;</span><span class="p">,</span> <span class="s2">&quot;DP&quot;</span><span class="p">)</span>
+        <span class="c1"># we transpose the feature data for more efficient</span>
+        <span class="c1"># columnar-focused access</span>
+        <span class="n">feature_data</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">npz_as_pydict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="c1"># add metadata to the table</span>
+            <span class="c1"># note: metadata within npz files corresponds to a dictionary of</span>
+            <span class="c1"># various keys and values related to the feature and location data.</span>
+            <span class="s2">&quot;Metadata_TableNumber&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tablenumber</span><span class="p">]</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
+            <span class="s2">&quot;Metadata_NPZSource&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+            <span class="p">),</span>
+            <span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span> <span class="o">*</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">()},</span>
+            <span class="c1"># add locations data to the table</span>
+            <span class="s2">&quot;Location_Center_X&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;locations&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)],</span>
+            <span class="s2">&quot;Location_Center_Y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;locations&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)],</span>
+            <span class="c1"># add features data to the table</span>
+            <span class="o">**</span><span class="p">{</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feature_prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">feature_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">feature_data</span><span class="p">[</span><span class="n">feature_idx</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">feature_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">feature_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="p">},</span>
+        <span class="p">}</span>
+
+    <span class="c1"># convert the numpy arrays to a PyArrow table and write to parquet</span>
+    <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pydict</span><span class="p">(</span><span class="n">npz_as_pydict</span><span class="p">),</span> <span class="n">dest_path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dest_path</span></div>
+
+
+
+<div class="viewcode-block" id="map_pyarrow_type">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils.map_pyarrow_type">[docs]</a>
+<span class="k">def</span> <span class="nf">map_pyarrow_type</span><span class="p">(</span>
+    <span class="n">field_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">,</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Map PyArrow types dynamically to handle nested types and casting.</span>
+
+<span class="sd">    This function takes a PyArrow `field_type` and dynamically maps</span>
+<span class="sd">    it to a valid PyArrow type, handling nested types (e.g., lists,</span>
+<span class="sd">    structs) and resolving type conflicts (e.g., integer to float).</span>
+<span class="sd">    It also supports custom type casting using the</span>
+<span class="sd">    `data_type_cast_map` parameter.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        field_type: pa.DataType</span>
+<span class="sd">            The PyArrow data type to be mapped.</span>
+<span class="sd">            This can include simple types (e.g., int, float, string)</span>
+<span class="sd">            or nested types (e.g., list, struct).</span>
+<span class="sd">        data_type_cast_map: Optional[Dict[str, str]], default None</span>
+<span class="sd">            A dictionary mapping data type groups to specific types.</span>
+<span class="sd">            This allows for custom type casting.</span>
+<span class="sd">            For example:</span>
+<span class="sd">            - {&quot;float&quot;: &quot;float32&quot;} maps</span>
+<span class="sd">            floating-point types to `float32`.</span>
+<span class="sd">            - {&quot;int&quot;: &quot;int64&quot;} maps integer</span>
+<span class="sd">            types to `int64`.</span>
+<span class="sd">            If `data_type_cast_map` is</span>
+<span class="sd">            None, default PyArrow types are used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pa.DataType</span>
+<span class="sd">            The mapped PyArrow data type.</span>
+<span class="sd">            If no mapping is needed, the original</span>
+<span class="sd">            `field_type` is returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_list</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
+        <span class="c1"># Handle list types (e.g., list&lt;element: float&gt;)</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">list_</span><span class="p">(</span>
+            <span class="n">map_pyarrow_type</span><span class="p">(</span>
+                <span class="n">field_type</span><span class="o">=</span><span class="n">field_type</span><span class="o">.</span><span class="n">value_type</span><span class="p">,</span> <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_struct</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
+        <span class="c1"># Handle struct types recursively</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="p">(</span>
+                    <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">map_pyarrow_type</span><span class="p">(</span>
+                        <span class="n">field_type</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">field_type</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
+        <span class="c1"># Handle floating-point types</span>
+        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">and</span> <span class="s2">&quot;float&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;float&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()</span>  <span class="c1"># Default to float64 if no mapping is provided</span>
+    <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
+        <span class="c1"># Handle integer types</span>
+        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">and</span> <span class="s2">&quot;integer&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;integer&quot;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()</span>  <span class="c1"># Default to int64 if no mapping is provided</span>
+    <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_string</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
+        <span class="c1"># Handle string types</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
+        <span class="c1"># Handle null types</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">null</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Default to the original type if no mapping is needed</span>
+        <span class="k">return</span> <span class="n">field_type</span></div>
 
 </pre></div>
 

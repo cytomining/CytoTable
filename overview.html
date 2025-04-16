@@ -98,6 +98,10 @@ This is necessary to account for differences in how <a class="reference external
 This argument helps ensure constraints surrounding temporary local file storage locations do not impede the ability to download or work with the data (for example, file size limitations and periodic deletions outside of CytoTable might be encountered within default OS temporary file storage locations).</p>
 <p>A quick example of how this argument is used: <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">local_cache_dir=&quot;non_temporary_directory&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 <p>Future work to enable direct SQLite data access from cloud locations for CytoTable will be documented within GitHub issue <a class="reference external" href="https://github.com/cytomining/CytoTable/issues/70">CytoTable/#70</a>.</p>
+<p><strong>NumPy Zipped Archive (.npz)</strong>:</p>
+<p>CytoTable downloads cloud-based NPZ archives locally before other CytoTable processing.
+This is due to the complexity of random access within the context of a zipped file stored within the cloud.
+Please note the content above mentioned about SQLite, which also applies to NPZ files.</p>
 </section>
 </section>
 </section>
@@ -124,6 +128,18 @@ CellProfiler SQLite database sources may follow a format provided as output by <
 <div><ul class="simple">
 <li><p><strong>Manual specification:</strong> SQLite data source types may be manually specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">source_datatype=&quot;sqlite&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
 <li><p><strong>Preset specification:</strong> SQLite data sources from CellProfiler may use the configuration preset <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">preset=&quot;cellprofiler_sqlite&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
+</ul>
+</div></blockquote>
+</section>
+<section id="deepprofiler-data-sources">
+<h4>DeepProfiler Data Sources<a class="headerlink" href="#deepprofiler-data-sources" title="Link to this heading">¶</a></h4>
+<ul class="simple">
+<li><p><strong>NumPy Zipped Archive (.npz)</strong>: <a class="reference external" href="https://github.com/cytomining/DeepProfiler">DeepProfiler</a> software provides output data in <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.lib.npyio.NpzFile.html#numpy.lib.npyio.NpzFile">NPZ format</a>.</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p><strong>Manual specification:</strong> NPZ data source types may be manually specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">source_datatype=&quot;npz&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
+<li><p><strong>Preset specification:</strong> NPZ data from DeepProfiler may be converted through CytoTable by using the following preset <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">preset=&quot;deepprofiler&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p></li>
 </ul>
 </div></blockquote>
 </section>

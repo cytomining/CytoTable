@@ -321,7 +321,7 @@ file or table of some kind.</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>List[Dict[str, str]]</dt><dd><p>list of dictionaries which each include column level information</p>
+<dt>List[Optional[Dict[str, str]]]</dt><dd><p>list of dictionaries which each include column level information</p>
 </dd>
 </dl>
 </p>
@@ -356,7 +356,7 @@ data source.</p></li>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>List[Any]</dt><dd><p>List of keys to use for reading the data later on.</p>
+<dt>Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], None]</dt><dd><p>List of keys to use for reading the data later on.</p>
 </dd>
 </dl>
 </p>
@@ -370,7 +370,7 @@ data source.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.convert._infer_source_group_common_schema">
 <span class="sig-prename descclassname"><span class="pre">cytotable.convert.</span></span><span class="sig-name descname"><span class="pre">_infer_source_group_common_schema</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cytotable.convert._infer_source_group_common_schema" title="Link to this definition">¶</a></dt>
-<dd><p>Infers a common schema for group of parquet files which may have
+<dd><p>Infers a common schema for a group of parquet files which may have
 similar but slightly different schema or data. Intended to assist with
 data concatenation and other operations.</p>
 <dl class="field-list simple">
@@ -387,7 +387,7 @@ Roughly includes Arrow data types language from:
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>List[Tuple[str, str]]</dt><dd><p>A list of tuples which includes column name and PyArrow datatype.
+<dt>List[Tuple[str, pa.DataType]]</dt><dd><p>A list of tuples which includes column name and PyArrow datatype.
 This data will later be used as the basis for forming a PyArrow schema.</p>
 </dd>
 </dl>
@@ -582,7 +582,7 @@ Name of the source group (for ex. compartment or metadata table name).</p></li>
 <li><p><strong>source</strong> – Dict[str, Any]
 Contains the source data to be chunked. Represents a single
 file or table of some kind along with collected information about table.</p></li>
-<li><p><strong>pageset</strong> – Tuple[int, int]
+<li><p><strong>pageset</strong> – Optional[Tuple[Union[int, float], Union[int, float]]]
 The pageset for chunking the data from source.</p></li>
 <li><p><strong>dest_path</strong> – str
 Path to store the output data.</p></li>
@@ -861,6 +861,61 @@ Path to expand.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._extract_npz_to_parquet">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_extract_npz_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tablenumber</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_extract_npz_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._extract_npz_to_parquet" title="Link to this definition">¶</a></dt>
+<dd><p>Extract data from an .npz file created by DeepProfiler
+as a tabular dataset and write to parquet.</p>
+<p>DeepProfiler creates datasets which look somewhat like this:
+Keys in the .npz file: [‘features’, ‘metadata’, ‘locations’]</p>
+<p>Variable: features
+Shape: (229, 6400)
+Data type: float32</p>
+<p>Variable: locations
+Shape: (229, 2)
+Data type: float64</p>
+<p>Variable: metadata
+Shape: ()
+Data type: object
+Whole object: {
+‘Metadata_Plate’: ‘SQ00014812’,
+‘Metadata_Well’: ‘A01’,
+‘Metadata_Site’: 1,
+‘Plate_Map_Name’: ‘C-7161-01-LM6-022’,
+‘RNA’: ‘SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png’,
+‘ER’: ‘SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png’,
+‘AGP’: ‘SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png’,
+‘Mito’: ‘SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png’,
+‘DNA’: ‘SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png’,
+‘Treatment_ID’: 0,
+‘Treatment_Replicate’: 1,
+‘Treatment’: <a class="reference external" href="mailto:'DMSO&#37;&#52;&#48;NA">‘DMSO<span>&#64;</span>NA</a>’,
+‘Compound’: ‘DMSO’,
+‘Concentration’: ‘’,
+‘Split’: ‘Training’,
+‘Metadata_Model’: ‘efficientnet’
+}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_path</strong> – str
+Path to the .npz file.</p></li>
+<li><p><strong>dest_path</strong> – str
+Destination path for the parquet file.</p></li>
+<li><p><strong>tablenumber</strong> – Optional[int]
+Optional tablenumber to be added to the data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>str</dt><dd><p>Path to the exported parquet file.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._gather_tablenumber_checksum">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_gather_tablenumber_checksum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pathname</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1048576</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_gather_tablenumber_checksum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._gather_tablenumber_checksum" title="Link to this definition">¶</a></dt>
 <dd><p>Build and return a checksum for use as a unique identifier across datasets
@@ -963,7 +1018,7 @@ A str which is a path to a SQLite database file.</p></li>
 The name of the table being queried.</p></li>
 <li><p><strong>page_key</strong> – str:
 The column name to be used to identify pagination chunks.</p></li>
-<li><p><strong>pageset</strong> – Tuple[int, int]:
+<li><p><strong>pageset</strong> – Tuple[Union[int, float], Union[int, float]]:
 The range for values used for paginating data from source.</p></li>
 <li><p><strong>sort_output</strong> – bool
 Specifies whether to sort cytotable output or not.</p></li>
@@ -1067,6 +1122,46 @@ process them through this function.</p>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><dl class="simple">
 <dt>Union[Dict[str, List[Dict[str, Any]]], str]</dt><dd><p>A data structure which includes evaluated futures where they were found.</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils.map_pyarrow_type">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">map_pyarrow_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">field_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataType</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type_cast_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataType</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#map_pyarrow_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils.map_pyarrow_type" title="Link to this definition">¶</a></dt>
+<dd><p>Map PyArrow types dynamically to handle nested types and casting.</p>
+<p>This function takes a PyArrow <cite>field_type</cite> and dynamically maps
+it to a valid PyArrow type, handling nested types (e.g., lists,
+structs) and resolving type conflicts (e.g., integer to float).
+It also supports custom type casting using the
+<cite>data_type_cast_map</cite> parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>field_type</strong> – pa.DataType
+The PyArrow data type to be mapped.
+This can include simple types (e.g., int, float, string)
+or nested types (e.g., list, struct).</p></li>
+<li><p><strong>data_type_cast_map</strong> – Optional[Dict[str, str]], default None
+A dictionary mapping data type groups to specific types.
+This allows for custom type casting.
+For example:
+- {“float”: “float32”} maps
+floating-point types to <cite>float32</cite>.
+- {“int”: “int64”} maps integer
+types to <cite>int64</cite>.
+If <cite>data_type_cast_map</cite> is
+None, default PyArrow types are used.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>pa.DataType</dt><dd><p>The mapped PyArrow data type.
+If no mapping is needed, the original
+<cite>field_type</cite> is returned.</p>
 </dd>
 </dl>
 </p>
@@ -1193,6 +1288,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._default_parsl_config"><code class="docutils literal notranslate"><span class="pre">_default_parsl_config()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._duckdb_reader"><code class="docutils literal notranslate"><span class="pre">_duckdb_reader()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._expand_path"><code class="docutils literal notranslate"><span class="pre">_expand_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._extract_npz_to_parquet"><code class="docutils literal notranslate"><span class="pre">_extract_npz_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._gather_tablenumber_checksum"><code class="docutils literal notranslate"><span class="pre">_gather_tablenumber_checksum()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._generate_pagesets"><code class="docutils literal notranslate"><span class="pre">_generate_pagesets()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._get_cytotable_version"><code class="docutils literal notranslate"><span class="pre">_get_cytotable_version()</span></code></a></li>
@@ -1203,6 +1299,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._write_parquet_table_with_metadata"><code class="docutils literal notranslate"><span class="pre">_write_parquet_table_with_metadata()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.evaluate_futures"><code class="docutils literal notranslate"><span class="pre">evaluate_futures()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.map_pyarrow_type"><code class="docutils literal notranslate"><span class="pre">map_pyarrow_type()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#presets">Presets</a><ul>

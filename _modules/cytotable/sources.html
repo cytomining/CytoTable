@@ -124,7 +124,9 @@ window.addEventListener("load", () => mermaid.run());
             <span class="s2">&quot;A source_datatype must be specified when using undefined compartments and metadata names.&quot;</span>
         <span class="p">)</span>
 
-    <span class="c1"># gathers files from provided path using compartments + metadata as a filter</span>
+    <span class="n">source_datatypes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">,</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">]</span>  <span class="c1"># Default supported extensions</span>
+
+    <span class="c1"># Gather files from the provided path using compartments + metadata as a filter</span>
     <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span>
         <span class="c1"># build source_paths for all files</span>
         <span class="c1"># note: builds local cache for sqlite files from cloud</span>
@@ -139,16 +141,22 @@ window.addEventListener("load", () => mermaid.run());
         <span class="p">)</span>
         <span class="c1"># ensure the subpaths meet certain specifications</span>
         <span class="k">if</span> <span class="p">(</span>
-            <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span>
-            <span class="ow">or</span> <span class="n">targets</span> <span class="o">==</span> <span class="p">[]</span>
-            <span class="c1"># checks for name of the file from targets (compartment + metadata names)</span>
-            <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">subpath</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
-            <span class="c1"># checks for sqlite extension (which may include compartment + metadata names)</span>
-            <span class="ow">or</span> <span class="n">subpath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
+            <span class="c1"># If targets are specified, only include files matching targets</span>
+            <span class="p">(</span>
+                <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">subpath</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
+                <span class="ow">or</span> <span class="n">subpath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
+            <span class="p">)</span>
+            <span class="c1"># Otherwise, include files matching the source_datatypes</span>
+            <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="ow">or</span> <span class="n">targets</span> <span class="o">==</span> <span class="p">[]</span>
+                <span class="ow">and</span> <span class="n">subpath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">source_datatypes</span>
+            <span class="p">)</span>
         <span class="p">)</span>
     <span class="p">]</span>
 
-    <span class="c1"># expand sources to include sqlite tables similarly to files (one entry per table)</span>
+    <span class="c1"># Expand sources to include sqlite tables similarly to files (one entry per table)</span>
     <span class="n">expanded_sources</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
@@ -167,8 +175,8 @@ window.addEventListener("load", () => mermaid.run());
 <span class="w">                        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">                        /* perform query on sqlite_master table for metadata on tables */</span>
 <span class="sd">                        SELECT name as table_name</span>
-<span class="sd">                        from sqlite_scan(?, &#39;sqlite_master&#39;)</span>
-<span class="sd">                        where type=&#39;table&#39;</span>
+<span class="sd">                        FROM sqlite_scan(?, &#39;sqlite_master&#39;)</span>
+<span class="sd">                        WHERE type=&#39;table&#39;</span>
 <span class="sd">                        &quot;&quot;&quot;</span><span class="p">,</span>
                         <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])],</span>
                     <span class="p">)</span>
@@ -202,10 +210,14 @@ window.addEventListener("load", () => mermaid.run());
                 <span class="c1"># use lowercase version of the path to infer a commonprefix</span>
                 <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span>
-                <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="n">source_datatypes</span>
             <span class="p">]</span>
         <span class="p">)</span>
-        <span class="n">grouped_sources</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">common_prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sources</span>
+        <span class="n">grouped_sources</span><span class="p">[</span>
+            <span class="c1"># construct a grouped source name, deferring to use &#39;all_files&#39;</span>
+            <span class="c1"># if no common prefix is found.</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">common_prefix</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">common_prefix</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;all_files&#39;</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">]</span> <span class="o">=</span> <span class="n">sources</span>
 
     <span class="c1"># otherwise, use the unique names in the paths to determine source grouping</span>
     <span class="k">else</span><span class="p">:</span>
@@ -341,7 +353,7 @@ window.addEventListener("load", () => mermaid.run());
 
     <span class="c1"># if we don&#39;t have a sqlite file</span>
     <span class="c1"># (we can&#39;t check sqlite files for lines)</span>
-    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.sqlite&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">]:</span>
         <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1"># read two lines, if the second is empty return false</span>
