@@ -449,7 +449,7 @@ def _source_pageset_to_parquet(
         raise CytoTableException(
             (
                 "No pageset range provided for source data"
-                " (applies to non-NPZ datasets)."
+                " (required for non-NPZ datasets)."
             )
         )
 
