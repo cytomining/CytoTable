@@ -11,17 +11,33 @@ authors:
   - given-names: David
     family-names: Bunten
     orcid: 'https://orcid.org/0000-0001-6041-3665'
-  - given-names: Faisal
-    family-names: Alquaddoomi
-    orcid: 'https://orcid.org/0000-0003-4297-8747'
+  - given-names: Jenna
+    family-names: Tomkinson
+    orcid: 'https://orcid.org/0000-0003-2676-5813'
   - given-names: Erik
     family-names: Serrano
     orcid: 'https://orcid.org/0000-0003-4188-9080'
+  - given-names: Michael
+    family-names: Lippincott
+    orcid: 'https://orcid.org/0000-0002-8637-1448'
+  - family-names: Brewer
+    given-names: Kenneth
+    orcid: 'https://orcid.org/0000-0003-4030-0254'
+  - given-names: Vincent
+    family-names: Rubinetti
+    orcid: 'https://orcid.org/0000-0002-4655-3773'
+  - given-names: Faisal
+    family-names: Alquaddoomi
+    orcid: 'https://orcid.org/0000-0003-4297-8747'
   - given-names: Gregory
     family-names: Way
     orcid: 'https://orcid.org/0000-0002-0503-9348'
 repository-code: 'https://github.com/cytomining/CytoTable'
 url: 'https://cytomining.github.io/CytoTable/'
+identifiers:
+  - description: Software DOI
+    type: doi
+    value: "10.5281/zenodo.14888111"
 abstract: >-
   Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools.
 keywords:

@@ -11,7 +11,7 @@ on:
     - cron: "0 7 * * 3"
 
 jobs:
-  run_tests:
+  tests:
     strategy:
       matrix:
         # matrixed execution for parallel gh-action performance increases
@@ -47,7 +47,7 @@ jobs:
   # smaller tests first.
   run_large_data_tests:
     runs-on: ubuntu-22.04
-    needs: run_tests
+    needs: tests
     steps:
       - name: Checkout
         uses: actions/checkout@v4
