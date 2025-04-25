@@ -36,7 +36,10 @@ def _build_path(path: str, **kwargs) -> Union[pathlib.Path, AnyPath]:
 
     # set the client for a CloudPath
     if isinstance(processed_path, CloudPath):
-        processed_path.client = processed_path.client.__class__(**kwargs)
+        # Create a new client instance with the provided kwargs
+        client = processed_path.client.__class__(**kwargs)
+        # Recreate the CloudPath object with the new client
+        processed_path = client.CloudPath(processed_path)
 
     return processed_path
 
@@ -75,7 +78,9 @@ def _get_source_filepaths(
             "A source_datatype must be specified when using undefined compartments and metadata names."
         )
 
-    # gathers files from provided path using compartments + metadata as a filter
+    source_datatypes = [".csv", ".npz", ".sqlite"]  # Default supported extensions
+
+    # Gather files from the provided path using compartments + metadata as a filter
     sources = [
         # build source_paths for all files
         # note: builds local cache for sqlite files from cloud
@@ -90,16 +95,22 @@ def _get_source_filepaths(
         )
         # ensure the subpaths meet certain specifications
         if (
-            targets is None
-            or targets == []
-            # checks for name of the file from targets (compartment + metadata names)
-            or str(subpath.stem).lower() in [target.lower() for target in targets]
-            # checks for sqlite extension (which may include compartment + metadata names)
-            or subpath.suffix.lower() == ".sqlite"
+            # If targets are specified, only include files matching targets
+            (
+                targets is not None
+                and str(subpath.stem).lower() in [target.lower() for target in targets]
+                or subpath.suffix.lower() == ".sqlite"
+            )
+            # Otherwise, include files matching the source_datatypes
+            or (
+                targets is None
+                or targets == []
+                and subpath.suffix.lower() in source_datatypes
+            )
         )
     ]
 
-    # expand sources to include sqlite tables similarly to files (one entry per table)
+    # Expand sources to include sqlite tables similarly to files (one entry per table)
     expanded_sources = []
     with _duckdb_reader() as ddb_reader:
         for element in sources:
@@ -118,8 +129,8 @@ def _get_source_filepaths(
                         """
                         /* perform query on sqlite_master table for metadata on tables */
                         SELECT name as table_name
-                        from sqlite_scan(?, 'sqlite_master')
-                        where type='table'
+                        FROM sqlite_scan(?, 'sqlite_master')
+                        WHERE type='table'
                         """,
                         parameters=[str(element["source_path"])],
                     )
@@ -153,10 +164,14 @@ def _get_source_filepaths(
                 # use lowercase version of the path to infer a commonprefix
                 source["source_path"].stem.lower()
                 for source in sources
-                if source["source_path"].suffix == f".{source_datatype}"
+                if source["source_path"].suffix in source_datatypes
             ]
         )
-        grouped_sources[f"{common_prefix}.{source_datatype}"] = sources
+        grouped_sources[
+            # construct a grouped source name, deferring to use 'all_files'
+            # if no common prefix is found.
+            f"{common_prefix if common_prefix != '' else 'all_files'}.{source_datatype}"
+        ] = sources
 
     # otherwise, use the unique names in the paths to determine source grouping
     else:
@@ -283,7 +298,7 @@ def _file_is_more_than_one_line(path: Union[pathlib.Path, AnyPath]) -> bool:
 
     # if we don't have a sqlite file
     # (we can't check sqlite files for lines)
-    if path.suffix.lower() != ".sqlite":
+    if path.suffix.lower() not in [".sqlite", ".npz"]:
         with path.open("r") as f:
             try:
                 # read two lines, if the second is empty return false
