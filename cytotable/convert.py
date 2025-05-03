@@ -1653,4 +1653,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             **kwargs,
         )
 
+    # cleanup Parsl executor and related
+    parsl.dfk().cleanup()
+
     return output
