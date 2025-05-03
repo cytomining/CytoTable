@@ -1699,6 +1699,9 @@ window.addEventListener("load", () => mermaid.run());
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 
+    <span class="c1"># cleanup Parsl executor and related</span>
+    <span class="n">parsl</span><span class="o">.</span><span class="n">dfk</span><span class="p">()</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+
     <span class="k">return</span> <span class="n">output</span></div>
 
 </pre></div>
