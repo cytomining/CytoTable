@@ -21,4 +21,4 @@ jobs:
         id: pre_commit
       # run pre-commit ci lite for automated fixes
       - uses: pre-commit-ci/lite-action@v1.1.0
-        if: ${{ !cancelled() if: ${{ !cancelled() }}if: ${{ !cancelled() }} steps.pre_commit.outcome == 'failure' }}
+        if: ${{ !cancelled() && steps.pre_commit.outcome == 'failure' }}
