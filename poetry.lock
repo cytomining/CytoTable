@@ -194,14 +194,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.38.9"
+version = "1.38.13"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "botocore-1.38.9-py3-none-any.whl", hash = "sha256:2d954d3d9a6c7f86fbfbeb164223996c24b7b7726682bace61f86a7e10b531e6"},
-    {file = "botocore-1.38.9.tar.gz", hash = "sha256:53113040882192388e05edebee48d45c008fb4ba2739dc889ce09b2adc9e56e4"},
+    {file = "botocore-1.38.13-py3-none-any.whl", hash = "sha256:de29fee43a1f02787fb5b3756ec09917d5661ed95b2b2d64797ab04196f69e14"},
+    {file = "botocore-1.38.13.tar.gz", hash = "sha256:22feee15753cd3f9f7179d041604078a1024701497d27b22be7c6707e8d13ccb"},
 ]
 
 [package.dependencies]
@@ -749,14 +749,14 @@ files = [
 
 [[package]]
 name = "dunamai"
-version = "1.23.1"
+version = "1.24.1"
 description = "Dynamic version generation"
 optional = false
 python-versions = ">=3.5"
 groups = ["dev"]
 files = [
-    {file = "dunamai-1.23.1-py3-none-any.whl", hash = "sha256:2611b0b9105a5797149ef82f4968a01dd912bdac857d49fc06856a4cfa58cf78"},
-    {file = "dunamai-1.23.1.tar.gz", hash = "sha256:0b5712fc63bfb235263d912bfc5eb84590ba2201bb737268d25a5dbad7085489"},
+    {file = "dunamai-1.24.1-py3-none-any.whl", hash = "sha256:4370e406d8ce195fc4b066b5c326bfa9adb269c4b8719b4e4fd90b63a2144bf7"},
+    {file = "dunamai-1.24.1.tar.gz", hash = "sha256:3aa3348f77242da8628b23f11e89569343440f0f912bcef32a1fa891cf8e7215"},
 ]
 
 [package.dependencies]
@@ -1598,14 +1598,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.4.28"
+version = "2025.5.5"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2025.4.28-py3-none-any.whl", hash = "sha256:6abe68a50a597c36e4c2e7260658241caa3597b702e203e78d936589fb3f3770"},
-    {file = "parsl-2025.4.28.tar.gz", hash = "sha256:dda4381695ce90df53538ca0cb0b9259064921279873e02ad778e26dbc97c44b"},
+    {file = "parsl-2025.5.5-py3-none-any.whl", hash = "sha256:277eb5afd02d7bcc39fdc702cf41a4e228f67a0544838c50f6b0dd62bc7fd664"},
+    {file = "parsl-2025.5.5.tar.gz", hash = "sha256:ce85e3f2f1e6fee4653b153d2b03f756ab0c52202fe18a09b81be545bd0c0821"},
 ]
 
 [package.dependencies]
@@ -1812,14 +1812,14 @@ files = [
 
 [[package]]
 name = "pycytominer"
-version = "1.1.0"
+version = "1.2.3"
 description = "Python package for processing image-based profiling data"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = "<3.14,>=3.9"
 groups = ["dev"]
 files = [
-    {file = "pycytominer-1.1.0-py3-none-any.whl", hash = "sha256:d15cf71bca14fc16deab297c4ed5cc8ee2d19c260fc8bbc5b3e9c3a57eace491"},
-    {file = "pycytominer-1.1.0.tar.gz", hash = "sha256:b2b97abd94e6f43f3b5a1d1ebced1281084dff26bba8ba54d9f8cf1b01c4037a"},
+    {file = "pycytominer-1.2.3-py3-none-any.whl", hash = "sha256:e972284fa4340eb9854eeaad00f723889de8d1767f8390f191d9172a2827f6a2"},
+    {file = "pycytominer-1.2.3.tar.gz", hash = "sha256:ea71a7897d69a83bd71db19b5de9c1a06792c56f9e9267b36776f34d4907f26f"},
 ]
 
 [package.dependencies]
@@ -1828,7 +1828,7 @@ pandas = ">=1.2.0"
 pyarrow = ">=8.0.0"
 scikit-learn = ">=0.21.2"
 scipy = ">=1.5"
-sqlalchemy = ">=1.3.6,<2"
+sqlalchemy = ">=1.3.6,<3"
 
 [package.extras]
 cell-locations = ["boto3 (>=1.26.79)", "fire (>=0.5.0)", "fsspec (>=2023.1.0)", "s3fs (>=2023.4.0)"]
