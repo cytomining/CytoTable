@@ -11,15 +11,19 @@ See the following documentation for more information on how apps may be used wit
 
 ### Workflow Execution
 
-Procedures within CytoTable are executed using [Parsl Executors](https://parsl.readthedocs.io/en/stable/userguide/execution.html).
-Parsl Executors may be configured through [Parsl Configuration's](https://parsl.readthedocs.io/en/stable/userguide/execution.html#configuration).
+Workflow tasks within CytoTable are executed using [Parsl Executors](https://parsl.readthedocs.io/en/stable/userguide/execution.html).
+Parsl Executors for CytoTable may be configured through [Parsl `Config`'s](https://parsl.readthedocs.io/en/stable/userguide/execution.html#configuration) .
 
 ```{eval-rst}
-Parsl configurations may be passed to :code:`convert(..., parsl_config=parsl.Config)` (:mod:`convert() <cytotable.convert.convert>`)
+For example, you may use the following: :code:`convert(..., parsl_config=parsl.Config())` (:mod:`convert() <cytotable.convert.convert>`)
 ```
 
-By default, CytoTable assumes local task execution with [LocalProvider](https://parsl.readthedocs.io/en/stable/stubs/parsl.providers.LocalProvider.html#parsl.providers.LocalProvider).
-For greater scalability, CytoTable may be used with a [HighThroughputExecutor](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor) (See [Parsl's scalability documentation](https://parsl.readthedocs.io/en/stable/userguide/performance.html) for more information).
+CytoTable is implemented by default with Parsl's [`HighThroughputExecutor`](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html#parsl.executors.HighThroughputExecutor), a multiprocess executor (please see [Parsl's scalability documentation](https://parsl.readthedocs.io/en/stable/userguide/performance.html) for more information).
+
+Please note: use of Parsl's [`ThreadPoolExecutor`](https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.ThreadPoolExecutor.html) may result in unfreed memory within certain systems because of Apache Arrow's memory allocators.
+Unfreed memory can eventually result in a lack of available memory through single-process use.
+When using ThreadPoolExecutor we suggest using a Linux system, leveraging the `malloc`/system memory allocator with Arrow (e.g. `export ARROW_DEFAULT_MEMORY_POOL="system"`), and/or forking subprocedures for best results when it comes to freeing memory for these usecases.
+This note does not apply to the `HighThroughputExecutor`.
 
 ## Data Technologies
 
