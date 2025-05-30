@@ -14,6 +14,7 @@ maxdepth: 3
 ---
 overview
 tutorial
+examples
 contributing
 Code of Conduct <code_of_conduct>
 architecture

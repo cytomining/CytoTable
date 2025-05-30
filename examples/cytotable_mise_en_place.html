@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>CytoTable mise en place &#8212; CytoTable v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=99150370" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=01d9ba92" />
+    <script src="../_static/documentation_options.js?v=2fea6348"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Contributing" href="../contributing.html" />
+    <link rel="prev" title="Examples" href="../examples.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="cytotable-mise-en-place">
+<h1>CytoTable mise en place<a class="headerlink" href="#cytotable-mise-en-place" title="Link to this heading">¶</a></h1>
+<p>This notebook includes a quick demonstration of CytoTable to help you understand the basics of using this project.</p>
+<p>The name of the notebook comes from the french <em>mise en place</em>:</p>
+<blockquote>
+<div><p>“Mise en place (French pronunciation: [mi zɑ̃ ˈplas]) is a French culinary phrase which means “putting in place”
+or “gather”. It refers to the setup required before cooking, and is often used in professional kitchens to
+refer to organizing and arranging the ingredients …”</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://en.wikipedia.org/wiki/Mise_en_place">Wikipedia</a></p></li>
+</ul>
+</div></blockquote>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span>
+
+<span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">pq</span>
+
+<span class="kn">import</span> <span class="nn">cytotable</span>
+
+<span class="c1"># setup variables for use throughout the notebook</span>
+<span class="n">source_path</span> <span class="o">=</span> <span class="s2">&quot;../../../tests/data/cellprofiler/examplehuman&quot;</span>
+<span class="n">dest_path</span> <span class="o">=</span> <span class="s2">&quot;./example.parquet&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># remove the dest_path if it&#39;s present</span>
+<span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+    <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show the files we will use as source data with CytoTable</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.csv&quot;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[PosixPath(&#39;../../../tests/data/cellprofiler/examplehuman/Experiment.csv&#39;),
+ PosixPath(&#39;../../../tests/data/cellprofiler/examplehuman/PH3.csv&#39;),
+ PosixPath(&#39;../../../tests/data/cellprofiler/examplehuman/Cytoplasm.csv&#39;),
+ PosixPath(&#39;../../../tests/data/cellprofiler/examplehuman/Image.csv&#39;),
+ PosixPath(&#39;../../../tests/data/cellprofiler/examplehuman/Nuclei.csv&#39;),
+ PosixPath(&#39;../../../tests/data/cellprofiler/examplehuman/Cells.csv&#39;)]
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%%time</span>
+
+<span class="c1"># run cytotable convert</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">cytotable</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
+    <span class="c1"># specify a destination data format type</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="c1"># specify a preset which enables quick use of common input file formats</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">result</span><span class="o">.</span><span class="n">name</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>CPU times: user 327 ms, sys: 201 ms, total: 528 ms
+Wall time: 22.4 s
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&#39;example.parquet&#39;
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show the table head using pandas</span>
+<span class="n">pq</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Metadata_ImageNumber</th>
+      <th>Metadata_Cells_Parent_Nuclei</th>
+      <th>Metadata_Cytoplasm_Parent_Cells</th>
+      <th>Metadata_Cytoplasm_Parent_Nuclei</th>
+      <th>Metadata_ObjectNumber</th>
+      <th>Image_FileName_DNA</th>
+      <th>Image_FileName_OrigOverlay</th>
+      <th>Image_FileName_PH3</th>
+      <th>Image_FileName_cellbody</th>
+      <th>Cytoplasm_AreaShape_Area</th>
+      <th>...</th>
+      <th>Nuclei_Location_Center_X</th>
+      <th>Nuclei_Location_Center_Y</th>
+      <th>Nuclei_Location_Center_Z</th>
+      <th>Nuclei_Location_MaxIntensity_X_DNA</th>
+      <th>Nuclei_Location_MaxIntensity_X_PH3</th>
+      <th>Nuclei_Location_MaxIntensity_Y_DNA</th>
+      <th>Nuclei_Location_MaxIntensity_Y_PH3</th>
+      <th>Nuclei_Location_MaxIntensity_Z_DNA</th>
+      <th>Nuclei_Location_MaxIntensity_Z_PH3</th>
+      <th>Nuclei_Number_Object_Number</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>AS_09125_050116030001_D03f00d0.tif</td>
+      <td>AS_09125_050116030001_D03f00d0_Overlay.png</td>
+      <td>AS_09125_050116030001_D03f00d1.tif</td>
+      <td>AS_09125_050116030001_D03f00d2.tif</td>
+      <td>288</td>
+      <td>...</td>
+      <td>477.099237</td>
+      <td>7.580153</td>
+      <td>0</td>
+      <td>477.0</td>
+      <td>478.0</td>
+      <td>8.0</td>
+      <td>13.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>2</td>
+      <td>AS_09125_050116030001_D03f00d0.tif</td>
+      <td>AS_09125_050116030001_D03f00d0_Overlay.png</td>
+      <td>AS_09125_050116030001_D03f00d1.tif</td>
+      <td>AS_09125_050116030001_D03f00d2.tif</td>
+      <td>256</td>
+      <td>...</td>
+      <td>495.750000</td>
+      <td>11.098684</td>
+      <td>0</td>
+      <td>495.0</td>
+      <td>502.0</td>
+      <td>9.0</td>
+      <td>14.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>3</td>
+      <td>AS_09125_050116030001_D03f00d0.tif</td>
+      <td>AS_09125_050116030001_D03f00d0_Overlay.png</td>
+      <td>AS_09125_050116030001_D03f00d1.tif</td>
+      <td>AS_09125_050116030001_D03f00d2.tif</td>
+      <td>52</td>
+      <td>...</td>
+      <td>438.959184</td>
+      <td>11.374150</td>
+      <td>0</td>
+      <td>440.0</td>
+      <td>439.0</td>
+      <td>11.0</td>
+      <td>16.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>4</td>
+      <td>AS_09125_050116030001_D03f00d0.tif</td>
+      <td>AS_09125_050116030001_D03f00d0_Overlay.png</td>
+      <td>AS_09125_050116030001_D03f00d1.tif</td>
+      <td>AS_09125_050116030001_D03f00d2.tif</td>
+      <td>466</td>
+      <td>...</td>
+      <td>80.459184</td>
+      <td>11.163265</td>
+      <td>0</td>
+      <td>80.0</td>
+      <td>81.0</td>
+      <td>13.0</td>
+      <td>10.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>5</td>
+      <td>AS_09125_050116030001_D03f00d0.tif</td>
+      <td>AS_09125_050116030001_D03f00d0_Overlay.png</td>
+      <td>AS_09125_050116030001_D03f00d1.tif</td>
+      <td>AS_09125_050116030001_D03f00d2.tif</td>
+      <td>296</td>
+      <td>...</td>
+      <td>58.423077</td>
+      <td>15.509615</td>
+      <td>0</td>
+      <td>62.0</td>
+      <td>52.0</td>
+      <td>14.0</td>
+      <td>15.0</td>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 312 columns</p>
+</div></div></div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show metadata for the result file</span>
+<span class="n">pq</span><span class="o">.</span><span class="n">read_metadata</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>&lt;pyarrow._parquet.FileMetaData object at 0x17e23fab0&gt;
+  created_by: parquet-cpp-arrow version 20.0.0
+  num_columns: 312
+  num_rows: 289
+  num_row_groups: 1
+  format_version: 2.6
+  serialized_size: 87762
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show schema metadata which includes CytoTable information</span>
+<span class="c1"># note: this information will travel with the file.</span>
+<span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">metadata</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{b&#39;data-producer&#39;: b&#39;https://github.com/cytomining/CytoTable&#39;,
+ b&#39;data-producer-version&#39;: b&#39;0.0.15.post15.dev0+c2a924c&#39;}
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show schema column name summaries</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Column name prefix counts:&quot;</span><span class="p">)</span>
+<span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Column name prefix counts:
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;Metadata&#39;: 5, &#39;Image&#39;: 4, &#39;Cytoplasm&#39;: 99, &#39;Cells&#39;: 101, &#39;Nuclei&#39;: 103}
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show full schema details</span>
+<span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Metadata_ImageNumber: int64
+Metadata_Cells_Parent_Nuclei: int64
+Metadata_Cytoplasm_Parent_Cells: int64
+Metadata_Cytoplasm_Parent_Nuclei: int64
+Metadata_ObjectNumber: int64
+Image_FileName_DNA: string
+Image_FileName_OrigOverlay: string
+Image_FileName_PH3: string
+Image_FileName_cellbody: string
+Cytoplasm_AreaShape_Area: int64
+Cytoplasm_AreaShape_BoundingBoxArea: int64
+Cytoplasm_AreaShape_BoundingBoxMaximum_X: int64
+Cytoplasm_AreaShape_BoundingBoxMaximum_Y: int64
+Cytoplasm_AreaShape_BoundingBoxMinimum_X: int64
+Cytoplasm_AreaShape_BoundingBoxMinimum_Y: int64
+Cytoplasm_AreaShape_Center_X: double
+Cytoplasm_AreaShape_Center_Y: double
+Cytoplasm_AreaShape_Compactness: double
+Cytoplasm_AreaShape_Eccentricity: double
+Cytoplasm_AreaShape_EquivalentDiameter: double
+Cytoplasm_AreaShape_EulerNumber: int64
+Cytoplasm_AreaShape_Extent: double
+Cytoplasm_AreaShape_FormFactor: double
+Cytoplasm_AreaShape_MajorAxisLength: double
+Cytoplasm_AreaShape_MaxFeretDiameter: double
+Cytoplasm_AreaShape_MaximumRadius: double
+Cytoplasm_AreaShape_MeanRadius: double
+Cytoplasm_AreaShape_MedianRadius: double
+Cytoplasm_AreaShape_MinFeretDiameter: double
+Cytoplasm_AreaShape_MinorAxisLength: double
+Cytoplasm_AreaShape_Orientation: double
+Cytoplasm_AreaShape_Perimeter: double
+Cytoplasm_AreaShape_Solidity: double
+Cytoplasm_AreaShape_Zernike_0_0: double
+Cytoplasm_AreaShape_Zernike_1_1: double
+Cytoplasm_AreaShape_Zernike_2_0: double
+Cytoplasm_AreaShape_Zernike_2_2: double
+Cytoplasm_AreaShape_Zernike_3_1: double
+Cytoplasm_AreaShape_Zernike_3_3: double
+Cytoplasm_AreaShape_Zernike_4_0: double
+Cytoplasm_AreaShape_Zernike_4_2: double
+Cytoplasm_AreaShape_Zernike_4_4: double
+Cytoplasm_AreaShape_Zernike_5_1: double
+Cytoplasm_AreaShape_Zernike_5_3: double
+Cytoplasm_AreaShape_Zernike_5_5: double
+Cytoplasm_AreaShape_Zernike_6_0: double
+Cytoplasm_AreaShape_Zernike_6_2: double
+Cytoplasm_AreaShape_Zernike_6_4: double
+Cytoplasm_AreaShape_Zernike_6_6: double
+Cytoplasm_AreaShape_Zernike_7_1: double
+Cytoplasm_AreaShape_Zernike_7_3: double
+Cytoplasm_AreaShape_Zernike_7_5: double
+Cytoplasm_AreaShape_Zernike_7_7: double
+Cytoplasm_AreaShape_Zernike_8_0: double
+Cytoplasm_AreaShape_Zernike_8_2: double
+Cytoplasm_AreaShape_Zernike_8_4: double
+Cytoplasm_AreaShape_Zernike_8_6: double
+Cytoplasm_AreaShape_Zernike_8_8: double
+Cytoplasm_AreaShape_Zernike_9_1: double
+Cytoplasm_AreaShape_Zernike_9_3: double
+Cytoplasm_AreaShape_Zernike_9_5: double
+Cytoplasm_AreaShape_Zernike_9_7: double
+Cytoplasm_AreaShape_Zernike_9_9: double
+Cytoplasm_Intensity_IntegratedIntensityEdge_DNA: double
+Cytoplasm_Intensity_IntegratedIntensityEdge_PH3: double
+Cytoplasm_Intensity_IntegratedIntensity_DNA: double
+Cytoplasm_Intensity_IntegratedIntensity_PH3: double
+Cytoplasm_Intensity_LowerQuartileIntensity_DNA: double
+Cytoplasm_Intensity_LowerQuartileIntensity_PH3: double
+Cytoplasm_Intensity_MADIntensity_DNA: double
+Cytoplasm_Intensity_MADIntensity_PH3: double
+Cytoplasm_Intensity_MassDisplacement_DNA: double
+Cytoplasm_Intensity_MassDisplacement_PH3: double
+Cytoplasm_Intensity_MaxIntensityEdge_DNA: double
+Cytoplasm_Intensity_MaxIntensityEdge_PH3: double
+Cytoplasm_Intensity_MaxIntensity_DNA: double
+Cytoplasm_Intensity_MaxIntensity_PH3: double
+Cytoplasm_Intensity_MeanIntensityEdge_DNA: double
+Cytoplasm_Intensity_MeanIntensityEdge_PH3: double
+Cytoplasm_Intensity_MeanIntensity_DNA: double
+Cytoplasm_Intensity_MeanIntensity_PH3: double
+Cytoplasm_Intensity_MedianIntensity_DNA: double
+Cytoplasm_Intensity_MedianIntensity_PH3: double
+Cytoplasm_Intensity_MinIntensityEdge_DNA: double
+Cytoplasm_Intensity_MinIntensityEdge_PH3: double
+Cytoplasm_Intensity_MinIntensity_DNA: double
+Cytoplasm_Intensity_MinIntensity_PH3: double
+Cytoplasm_Intensity_StdIntensityEdge_DNA: double
+Cytoplasm_Intensity_StdIntensityEdge_PH3: double
+Cytoplasm_Intensity_StdIntensity_DNA: double
+Cytoplasm_Intensity_StdIntensity_PH3: double
+Cytoplasm_Intensity_UpperQuartileIntensity_DNA: double
+Cytoplasm_Intensity_UpperQuartileIntensity_PH3: double
+Cytoplasm_Location_CenterMassIntensity_X_DNA: double
+Cytoplasm_Location_CenterMassIntensity_X_PH3: double
+Cytoplasm_Location_CenterMassIntensity_Y_DNA: double
+Cytoplasm_Location_CenterMassIntensity_Y_PH3: double
+Cytoplasm_Location_CenterMassIntensity_Z_DNA: double
+Cytoplasm_Location_CenterMassIntensity_Z_PH3: double
+Cytoplasm_Location_Center_X: double
+Cytoplasm_Location_Center_Y: double
+Cytoplasm_Location_MaxIntensity_X_DNA: double
+Cytoplasm_Location_MaxIntensity_X_PH3: double
+Cytoplasm_Location_MaxIntensity_Y_DNA: double
+Cytoplasm_Location_MaxIntensity_Y_PH3: double
+Cytoplasm_Location_MaxIntensity_Z_DNA: double
+Cytoplasm_Location_MaxIntensity_Z_PH3: double
+Cytoplasm_Number_Object_Number: int64
+Cells_AreaShape_Area: int64
+Cells_AreaShape_BoundingBoxArea: int64
+Cells_AreaShape_BoundingBoxMaximum_X: int64
+Cells_AreaShape_BoundingBoxMaximum_Y: int64
+Cells_AreaShape_BoundingBoxMinimum_X: int64
+Cells_AreaShape_BoundingBoxMinimum_Y: int64
+Cells_AreaShape_Center_X: double
+Cells_AreaShape_Center_Y: double
+Cells_AreaShape_Compactness: double
+Cells_AreaShape_Eccentricity: double
+Cells_AreaShape_EquivalentDiameter: double
+Cells_AreaShape_EulerNumber: int64
+Cells_AreaShape_Extent: double
+Cells_AreaShape_FormFactor: double
+Cells_AreaShape_MajorAxisLength: double
+Cells_AreaShape_MaxFeretDiameter: double
+Cells_AreaShape_MaximumRadius: double
+Cells_AreaShape_MeanRadius: double
+Cells_AreaShape_MedianRadius: double
+Cells_AreaShape_MinFeretDiameter: double
+Cells_AreaShape_MinorAxisLength: double
+Cells_AreaShape_Orientation: double
+Cells_AreaShape_Perimeter: double
+Cells_AreaShape_Solidity: double
+Cells_AreaShape_Zernike_0_0: double
+Cells_AreaShape_Zernike_1_1: double
+Cells_AreaShape_Zernike_2_0: double
+Cells_AreaShape_Zernike_2_2: double
+Cells_AreaShape_Zernike_3_1: double
+Cells_AreaShape_Zernike_3_3: double
+Cells_AreaShape_Zernike_4_0: double
+Cells_AreaShape_Zernike_4_2: double
+Cells_AreaShape_Zernike_4_4: double
+Cells_AreaShape_Zernike_5_1: double
+Cells_AreaShape_Zernike_5_3: double
+Cells_AreaShape_Zernike_5_5: double
+Cells_AreaShape_Zernike_6_0: double
+Cells_AreaShape_Zernike_6_2: double
+Cells_AreaShape_Zernike_6_4: double
+Cells_AreaShape_Zernike_6_6: double
+Cells_AreaShape_Zernike_7_1: double
+Cells_AreaShape_Zernike_7_3: double
+Cells_AreaShape_Zernike_7_5: double
+Cells_AreaShape_Zernike_7_7: double
+Cells_AreaShape_Zernike_8_0: double
+Cells_AreaShape_Zernike_8_2: double
+Cells_AreaShape_Zernike_8_4: double
+Cells_AreaShape_Zernike_8_6: double
+Cells_AreaShape_Zernike_8_8: double
+Cells_AreaShape_Zernike_9_1: double
+Cells_AreaShape_Zernike_9_3: double
+Cells_AreaShape_Zernike_9_5: double
+Cells_AreaShape_Zernike_9_7: double
+Cells_AreaShape_Zernike_9_9: double
+Cells_Children_Cytoplasm_Count: int64
+Cells_Intensity_IntegratedIntensityEdge_DNA: double
+Cells_Intensity_IntegratedIntensityEdge_PH3: double
+Cells_Intensity_IntegratedIntensity_DNA: double
+Cells_Intensity_IntegratedIntensity_PH3: double
+Cells_Intensity_LowerQuartileIntensity_DNA: double
+Cells_Intensity_LowerQuartileIntensity_PH3: double
+Cells_Intensity_MADIntensity_DNA: double
+Cells_Intensity_MADIntensity_PH3: double
+Cells_Intensity_MassDisplacement_DNA: double
+Cells_Intensity_MassDisplacement_PH3: double
+Cells_Intensity_MaxIntensityEdge_DNA: double
+Cells_Intensity_MaxIntensityEdge_PH3: double
+Cells_Intensity_MaxIntensity_DNA: double
+Cells_Intensity_MaxIntensity_PH3: double
+Cells_Intensity_MeanIntensityEdge_DNA: double
+Cells_Intensity_MeanIntensityEdge_PH3: double
+Cells_Intensity_MeanIntensity_DNA: double
+Cells_Intensity_MeanIntensity_PH3: double
+Cells_Intensity_MedianIntensity_DNA: double
+Cells_Intensity_MedianIntensity_PH3: double
+Cells_Intensity_MinIntensityEdge_DNA: double
+Cells_Intensity_MinIntensityEdge_PH3: double
+Cells_Intensity_MinIntensity_DNA: double
+Cells_Intensity_MinIntensity_PH3: double
+Cells_Intensity_StdIntensityEdge_DNA: double
+Cells_Intensity_StdIntensityEdge_PH3: double
+Cells_Intensity_StdIntensity_DNA: double
+Cells_Intensity_StdIntensity_PH3: double
+Cells_Intensity_UpperQuartileIntensity_DNA: double
+Cells_Intensity_UpperQuartileIntensity_PH3: double
+Cells_Location_CenterMassIntensity_X_DNA: double
+Cells_Location_CenterMassIntensity_X_PH3: double
+Cells_Location_CenterMassIntensity_Y_DNA: double
+Cells_Location_CenterMassIntensity_Y_PH3: double
+Cells_Location_CenterMassIntensity_Z_DNA: double
+Cells_Location_CenterMassIntensity_Z_PH3: double
+Cells_Location_Center_X: double
+Cells_Location_Center_Y: double
+Cells_Location_Center_Z: int64
+Cells_Location_MaxIntensity_X_DNA: double
+Cells_Location_MaxIntensity_X_PH3: double
+Cells_Location_MaxIntensity_Y_DNA: double
+Cells_Location_MaxIntensity_Y_PH3: double
+Cells_Location_MaxIntensity_Z_DNA: double
+Cells_Location_MaxIntensity_Z_PH3: double
+Cells_Number_Object_Number: int64
+Nuclei_AreaShape_Area: int64
+Nuclei_AreaShape_BoundingBoxArea: int64
+Nuclei_AreaShape_BoundingBoxMaximum_X: int64
+Nuclei_AreaShape_BoundingBoxMaximum_Y: int64
+Nuclei_AreaShape_BoundingBoxMinimum_X: int64
+Nuclei_AreaShape_BoundingBoxMinimum_Y: int64
+Nuclei_AreaShape_Center_X: double
+Nuclei_AreaShape_Center_Y: double
+Nuclei_AreaShape_Compactness: double
+Nuclei_AreaShape_Eccentricity: double
+Nuclei_AreaShape_EquivalentDiameter: double
+Nuclei_AreaShape_EulerNumber: int64
+Nuclei_AreaShape_Extent: double
+Nuclei_AreaShape_FormFactor: double
+Nuclei_AreaShape_MajorAxisLength: double
+Nuclei_AreaShape_MaxFeretDiameter: double
+Nuclei_AreaShape_MaximumRadius: double
+Nuclei_AreaShape_MeanRadius: double
+Nuclei_AreaShape_MedianRadius: double
+Nuclei_AreaShape_MinFeretDiameter: double
+Nuclei_AreaShape_MinorAxisLength: double
+Nuclei_AreaShape_Orientation: double
+Nuclei_AreaShape_Perimeter: double
+Nuclei_AreaShape_Solidity: double
+Nuclei_AreaShape_Zernike_0_0: double
+Nuclei_AreaShape_Zernike_1_1: double
+Nuclei_AreaShape_Zernike_2_0: double
+Nuclei_AreaShape_Zernike_2_2: double
+Nuclei_AreaShape_Zernike_3_1: double
+Nuclei_AreaShape_Zernike_3_3: double
+Nuclei_AreaShape_Zernike_4_0: double
+Nuclei_AreaShape_Zernike_4_2: double
+Nuclei_AreaShape_Zernike_4_4: double
+Nuclei_AreaShape_Zernike_5_1: double
+Nuclei_AreaShape_Zernike_5_3: double
+Nuclei_AreaShape_Zernike_5_5: double
+Nuclei_AreaShape_Zernike_6_0: double
+Nuclei_AreaShape_Zernike_6_2: double
+Nuclei_AreaShape_Zernike_6_4: double
+Nuclei_AreaShape_Zernike_6_6: double
+Nuclei_AreaShape_Zernike_7_1: double
+Nuclei_AreaShape_Zernike_7_3: double
+Nuclei_AreaShape_Zernike_7_5: double
+Nuclei_AreaShape_Zernike_7_7: double
+Nuclei_AreaShape_Zernike_8_0: double
+Nuclei_AreaShape_Zernike_8_2: double
+Nuclei_AreaShape_Zernike_8_4: double
+Nuclei_AreaShape_Zernike_8_6: double
+Nuclei_AreaShape_Zernike_8_8: double
+Nuclei_AreaShape_Zernike_9_1: double
+Nuclei_AreaShape_Zernike_9_3: double
+Nuclei_AreaShape_Zernike_9_5: double
+Nuclei_AreaShape_Zernike_9_7: double
+Nuclei_AreaShape_Zernike_9_9: double
+Nuclei_Children_Cells_Count: int64
+Nuclei_Children_Cytoplasm_Count: int64
+Nuclei_Children_PH3_Count: int64
+Nuclei_Intensity_IntegratedIntensityEdge_DNA: double
+Nuclei_Intensity_IntegratedIntensityEdge_PH3: double
+Nuclei_Intensity_IntegratedIntensity_DNA: double
+Nuclei_Intensity_IntegratedIntensity_PH3: double
+Nuclei_Intensity_LowerQuartileIntensity_DNA: double
+Nuclei_Intensity_LowerQuartileIntensity_PH3: double
+Nuclei_Intensity_MADIntensity_DNA: double
+Nuclei_Intensity_MADIntensity_PH3: double
+Nuclei_Intensity_MassDisplacement_DNA: double
+Nuclei_Intensity_MassDisplacement_PH3: double
+Nuclei_Intensity_MaxIntensityEdge_DNA: double
+Nuclei_Intensity_MaxIntensityEdge_PH3: double
+Nuclei_Intensity_MaxIntensity_DNA: double
+Nuclei_Intensity_MaxIntensity_PH3: double
+Nuclei_Intensity_MeanIntensityEdge_DNA: double
+Nuclei_Intensity_MeanIntensityEdge_PH3: double
+Nuclei_Intensity_MeanIntensity_DNA: double
+Nuclei_Intensity_MeanIntensity_PH3: double
+Nuclei_Intensity_MedianIntensity_DNA: double
+Nuclei_Intensity_MedianIntensity_PH3: double
+Nuclei_Intensity_MinIntensityEdge_DNA: double
+Nuclei_Intensity_MinIntensityEdge_PH3: double
+Nuclei_Intensity_MinIntensity_DNA: double
+Nuclei_Intensity_MinIntensity_PH3: double
+Nuclei_Intensity_StdIntensityEdge_DNA: double
+Nuclei_Intensity_StdIntensityEdge_PH3: double
+Nuclei_Intensity_StdIntensity_DNA: double
+Nuclei_Intensity_StdIntensity_PH3: double
+Nuclei_Intensity_UpperQuartileIntensity_DNA: double
+Nuclei_Intensity_UpperQuartileIntensity_PH3: double
+Nuclei_Location_CenterMassIntensity_X_DNA: double
+Nuclei_Location_CenterMassIntensity_X_PH3: double
+Nuclei_Location_CenterMassIntensity_Y_DNA: double
+Nuclei_Location_CenterMassIntensity_Y_PH3: double
+Nuclei_Location_CenterMassIntensity_Z_DNA: double
+Nuclei_Location_CenterMassIntensity_Z_PH3: double
+Nuclei_Location_Center_X: double
+Nuclei_Location_Center_Y: double
+Nuclei_Location_Center_Z: int64
+Nuclei_Location_MaxIntensity_X_DNA: double
+Nuclei_Location_MaxIntensity_X_PH3: double
+Nuclei_Location_MaxIntensity_Y_DNA: double
+Nuclei_Location_MaxIntensity_Y_PH3: double
+Nuclei_Location_MaxIntensity_Z_DNA: double
+Nuclei_Location_MaxIntensity_Z_PH3: double
+Nuclei_Number_Object_Number: int64
+-- schema metadata --
+data-producer: &#39;https://github.com/cytomining/CytoTable&#39;
+data-producer-version: &#39;0.0.15.post15.dev0+c2a924c&#39;
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">CytoTable</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=CytoTable&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CytoTable mise en place</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../examples.html">Examples</a><ul>
+      <li>Previous: <a href="../examples.html" title="previous chapter">Examples</a></li>
+      <li>Next: <a href="../contributing.html" title="next chapter">Contributing</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+      |
+      <a href="../_sources/examples/cytotable_mise_en_place.ipynb.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
