@@ -15,6 +15,12 @@
 # # CytoTable mise en place
 #
 # This notebook includes a quick demonstration of CytoTable to help you understand the basics of using this project.
+#
+# The name of the notebook comes from the french _mis en place_:
+# > "Mise en place (French pronunciation: [mi zɑ̃ ˈplas]) is a French culinary phrase which means "putting in place"
+# > or "gather". It refers to the setup required before cooking, and is often used in professional kitchens to
+# > refer to organizing and arranging the ingredients ..."
+# > - [Wikipedia](https://en.wikipedia.org/wiki/Mise_en_place)
 
 # +
 import pathlib

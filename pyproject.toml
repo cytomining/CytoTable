@@ -47,6 +47,7 @@ jupytext = "^1.17.1"
 Sphinx = ">=6,<8"
 myst-parser = ">=2,<4"
 sphinxcontrib-mermaid = ">=0.9,<1.1"
+myst-nb = "^1.2.0"
 
 [tool.jupytext]
 formats = "ipynb,py:light"
