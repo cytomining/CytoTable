@@ -61,7 +61,7 @@ pq.read_metadata(result)
 pq.read_schema(result).metadata
 
 # show schema column name summaries
-print("Columnn name prefix counts:")
+print("Column name prefix counts:")
 dict(Counter(w.split("_", 1)[0] for w in pq.read_schema(result).names))
 
 # show full schema details

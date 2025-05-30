@@ -12,9 +12,7 @@ import warnings
 
 warnings.filterwarnings(
     "ignore",
-    message=(
-        ".*pkg_resources is deprecated as an API.*"
-    ),
+    message=(".*pkg_resources is deprecated as an API.*"),
     category=UserWarning,
     module="google_crc32c.__config__",
 )
