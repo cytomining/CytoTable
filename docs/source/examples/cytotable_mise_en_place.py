@@ -16,7 +16,7 @@
 #
 # This notebook includes a quick demonstration of CytoTable to help you understand the basics of using this project.
 #
-# The name of the notebook comes from the french _mis en place_:
+# The name of the notebook comes from the french _mise en place_:
 # > "Mise en place (French pronunciation: [mi zɑ̃ ˈplas]) is a French culinary phrase which means "putting in place"
 # > or "gather". It refers to the setup required before cooking, and is often used in professional kitchens to
 # > refer to organizing and arranging the ingredients ..."
@@ -31,7 +31,7 @@ import pyarrow.parquet as pq
 import cytotable
 
 # setup variables for use throughout the notebook
-source_path = "../../tests/data/cellprofiler/examplehuman"
+source_path = "../../../tests/data/cellprofiler/examplehuman"
 dest_path = "./example.parquet"
 # -
 
@@ -42,16 +42,23 @@ if pathlib.Path(dest_path).is_file():
 # show the files we will use as source data with CytoTable
 list(pathlib.Path(source_path).glob("*.csv"))
 
+# +
+# %%time
+
 # run cytotable convert
 result = cytotable.convert(
     source_path=source_path,
     dest_path=dest_path,
     # specify a destination data format type
     dest_datatype="parquet",
-    # specify a preset which enables the use of
+    # specify a preset which enables quick use of common input file formats
     preset="cellprofiler_csv",
 )
 result.name
+# -
+
+# show the table head using pandas
+pq.read_table(source=result).to_pandas().head()
 
 # show metadata for the result file
 pq.read_metadata(result)
