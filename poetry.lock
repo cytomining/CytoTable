@@ -449,14 +449,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.38.28"
+version = "1.38.33"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "botocore-1.38.28-py3-none-any.whl", hash = "sha256:515e1a535a27f17e1381aec1fb48eaa2c2308258c4db0bfd09e4f1cd1f239c44"},
-    {file = "botocore-1.38.28.tar.gz", hash = "sha256:63d5977a10a375c3fc11c8e15e1ae5a4daaf450af135d55c170cc537648edf25"},
+    {file = "botocore-1.38.33-py3-none-any.whl", hash = "sha256:ad25233e93dcebe95809b1f9393c1f11a639696327793d166295fb78dd7bc597"},
+    {file = "botocore-1.38.33.tar.gz", hash = "sha256:dbe8fea9d0426c644c89ef2018ead886ccbcc22901a02b377b4e65ce1cb69a2b"},
 ]
 
 [package.dependencies]
@@ -2871,14 +2871,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.5.26"
+version = "2025.6.2"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2025.5.26-py3-none-any.whl", hash = "sha256:b5fd4585d7d95eae6249c7025499b03a9d63deca38e6faa30efce237e54fdcb2"},
-    {file = "parsl-2025.5.26.tar.gz", hash = "sha256:5774c0a06f2510bd397e3ecf1ff82c9390befa34fc611070cf77fbcf2ae238aa"},
+    {file = "parsl-2025.6.2-py3-none-any.whl", hash = "sha256:cb37e542fe559e75d04e342711004229d6b89d5e6402fa06ea315530013f4e74"},
+    {file = "parsl-2025.6.2.tar.gz", hash = "sha256:310163ff98a58e6137f3d91c89ef8636f684a4874b36a5f8089fbddded714433"},
 ]
 
 [package.dependencies]
@@ -2889,6 +2889,7 @@ psutil = ">=5.5.1"
 pyzmq = ">=17.1.2"
 requests = "*"
 setproctitle = "*"
+sortedcontainers = "*"
 tblib = "*"
 typeguard = ">=2.10,<3.dev0 || ==4.*"
 typing-extensions = ">=4.6,<5"
@@ -4081,6 +4082,18 @@ groups = ["docs"]
 files = [
     {file = "snowballstemmer-2.2.0-py2.py3-none-any.whl", hash = "sha256:c8e1716e83cc398ae16824e5572ae04e0d9fc2c6b985fb0f900f5f0c96ecba1a"},
     {file = "snowballstemmer-2.2.0.tar.gz", hash = "sha256:09b16deb8547d3412ad7b590689584cd0fe25ec8db3be37788be3810cbf19cb1"},
+]
+
+[[package]]
+name = "sortedcontainers"
+version = "2.4.0"
+description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "sortedcontainers-2.4.0-py2.py3-none-any.whl", hash = "sha256:a163dcaede0f1c021485e957a39245190e74249897e2ae4b2aa38595db237ee0"},
+    {file = "sortedcontainers-2.4.0.tar.gz", hash = "sha256:25caa5a06cc30b6b83d11423433f65d1f9d76c4c6a0c90e3379eaa43b9bfdb88"},
 ]
 
 [[package]]
