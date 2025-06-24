@@ -449,14 +449,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.38.37"
+version = "1.38.42"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "botocore-1.38.37-py3-none-any.whl", hash = "sha256:f8ad063b7dcdbf12f2c1b5a4405f390ce52beff3b2861af2e5169816ee0146f2"},
-    {file = "botocore-1.38.37.tar.gz", hash = "sha256:06ce46da5420ea7cf542ece4ff1ec9045922fef977adf4bbec618c96c7a478bf"},
+    {file = "botocore-1.38.42-py3-none-any.whl", hash = "sha256:fbbeac30c045b5c19f1c3bb063ea2b6315ce2d6fcb3d898e87d1c1846297961c"},
+    {file = "botocore-1.38.42.tar.gz", hash = "sha256:3a14188e48f6e26be561164373d34150fa9cb39f7ad32cc745dcd3ab05f43683"},
 ]
 
 [package.dependencies]
@@ -2871,14 +2871,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.6.9"
+version = "2025.6.16"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2025.6.9-py3-none-any.whl", hash = "sha256:c0e34f7e9dc7f13b85f041bfbd44f510efb961d4112004ef9c92995a26b82e2d"},
-    {file = "parsl-2025.6.9.tar.gz", hash = "sha256:cf9ce22e1a402594e53cf4a21c540d2594f67889a6ce6011f4394887836274b5"},
+    {file = "parsl-2025.6.16-py3-none-any.whl", hash = "sha256:d3f560ed09d13bd6b57c9797af35a8531fe13ac4fc1dd15247f4226b4208d859"},
+    {file = "parsl-2025.6.16.tar.gz", hash = "sha256:d2f3dd033f4b2003709db089e0c360a88804341089729b06d1dfa3b1b38ffcc0"},
 ]
 
 [package.dependencies]
@@ -3266,14 +3266,14 @@ tests = ["coverage[toml] (==5.0.4)", "pytest (>=6.0.0,<7.0.0)"]
 
 [[package]]
 name = "pytest"
-version = "8.4.0"
+version = "8.4.1"
 description = "pytest: simple powerful testing with Python"
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "pytest-8.4.0-py3-none-any.whl", hash = "sha256:f40f825768ad76c0977cbacdf1fd37c6f7a468e460ea6a0636078f8972d4517e"},
-    {file = "pytest-8.4.0.tar.gz", hash = "sha256:14d920b48472ea0dbf68e45b96cd1ffda4705f33307dcc86c676c1b5104838a6"},
+    {file = "pytest-8.4.1-py3-none-any.whl", hash = "sha256:539c70ba6fcead8e78eebbf1115e8b589e7565830d7d006a8723f19ac8a0afb7"},
+    {file = "pytest-8.4.1.tar.gz", hash = "sha256:7c67fd69174877359ed9371ec3af8a3d2b04741818c51e5e99cc1742251fa93c"},
 ]
 
 [package.dependencies]
