@@ -79,7 +79,7 @@ repos:
 -   repo: https://github.com/software-gardening/almanack
     rev: v0.1.4
     hooks:
-    - id: almanack-check
+    -   id: almanack-check
 -   repo: https://github.com/PyCQA/pylint
     rev: v3.3.7
     hooks:
