@@ -48,6 +48,7 @@ Sphinx = ">=6,<8"
 myst-parser = ">=2,<4"
 sphinxcontrib-mermaid = ">=0.9,<1.1"
 myst-nb = "^1.2.0"
+typing-extensions = "^4.14.0"
 
 [tool.poetry.requires-plugins]
 poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = [ "plugin" ] }
