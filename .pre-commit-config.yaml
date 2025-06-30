@@ -76,6 +76,10 @@ repos:
     rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
     hooks:
     -   id: validate-cff
+-   repo: https://github.com/software-gardening/almanack
+    rev: v0.1.4
+    hooks:
+    -   id: almanack-check
 -   repo: https://github.com/PyCQA/pylint
     rev: v3.3.7
     hooks:
