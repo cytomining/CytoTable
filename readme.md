@@ -5,7 +5,8 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/cytotable)
 [![Build Status](https://github.com/cytomining/cytotable/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/cytomining/cytotable/actions/workflows/test.yml?query=branch%3Amain)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
-[![Software DOI badge](https://zenodo.org/badge/DOI/10.5281/zenodo.14888111.svg)](https://doi.org/10.5281/zenodo.14888111)
+[![Preprint DOI badge](https://img.shields.io/badge/Preprint_DOI-10.1101/2025.06.19.660613-blue)](https://doi.org/10.1101/2025.06.19.660613)
+[![Software DOI badge](https://img.shields.io/badge/Software_DOI-10.5281/zenodo.14888111-blue)](https://doi.org/10.5281/zenodo.14888111)
 
 ![dataflow](https://raw.githubusercontent.com/cytomining/cytotable/main/docs/source/_static/dataflow.svg?raw=true)
 _Diagram showing data flow relative to this project._

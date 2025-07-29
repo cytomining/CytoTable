@@ -38,6 +38,9 @@ identifiers:
   - description: Software DOI
     type: doi
     value: "10.5281/zenodo.14888111"
+  - description: Preprint DOI
+    type: doi
+    value: "10.1101/2025.06.19.660613"
 abstract: >-
   Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools.
 keywords:
