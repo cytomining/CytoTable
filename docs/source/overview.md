@@ -143,7 +143,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 ```
 
 - __scverse anndata (`.h5ad`, `.zarr`)__: "anndata is a Python package for handling annotated data matrices in memory and on disk, positioned between pandas and xarray.
- anndata offers a broad range of computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface." ([reference](https://anndata.readthedocs.io/en/stable/index.html))
+  anndata offers a broad range of computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface." ([reference](https://anndata.readthedocs.io/en/stable/index.html))
 
 ```{eval-rst}
   Anndata data destination type may be specified by using :code:`convert(..., dest_datatype="anndata_h5ad", ...)` (:mod:`convert() <cytotable.convert.convert>`) or :code:`convert(..., dest_datatype="anndata_zarr", ...)` (:mod:`convert() <cytotable.convert.convert>`).

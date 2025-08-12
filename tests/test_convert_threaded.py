@@ -8,6 +8,7 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 import pathlib
 from typing import List
 
+import anndata as ad
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -375,3 +376,73 @@ def test_npz_deepprofiler_convert(
     assert pycytominer.cyto_utils.load.load_profiles(
         profiles=pycytominer_normalized_file
     ).shape == (10132, 6406)
+
+
+def test_convert_export_to_anndata(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_examplehuman: pa.Table,
+):
+    """
+    Tests non-S3 convert with Parsl ThreadPoolExecutor
+    """
+
+    control_result = cellprofiler_merged_examplehuman
+
+    # run convert and read the anndata h5ad result
+    test_result = ad.read_h5ad(
+        filename=convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman.h5ad",
+            dest_datatype="anndata_h5ad",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+        )
+    )
+
+    # run convert and read the anndata zarr result
+    test_zarr_result = ad.read_zarr(
+        store=convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman.zarr",
+            dest_datatype="anndata_zarr",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+        )
+    )
+
+    # compare that the h5ad and zarr results are the same
+    assert test_result.shape == test_zarr_result.shape
+    assert test_result.var_names.tolist() == test_zarr_result.var_names.tolist()
+    assert test_result.obs_names.tolist() == test_zarr_result.obs_names.tolist()
+    assert test_result.var.to_dict() == test_zarr_result.var.to_dict()
+
+    # join the obs data with the data table
+    test_result = pa.Table.from_pandas(
+        test_result.obs.join(test_result.to_df(), how="left")
+        # drop image FileName columns which won't be present in the comparison dataset
+    ).drop(
+        [
+            "__index_level_0__",
+            "Image_FileName_DNA",
+            "Image_FileName_OrigOverlay",
+            "Image_FileName_PH3",
+            "Image_FileName_cellbody",
+        ]
+    )
+
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+        # cast the result to the control schema for comparison purposes
+    ).cast(control_result.schema)
+
+    assert test_result.column_names == control_result.column_names
+    assert test_result.shape == control_result.shape
+    assert test_result.schema == control_result.schema
+    assert test_result.equals(control_result)

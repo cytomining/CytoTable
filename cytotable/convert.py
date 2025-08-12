@@ -1008,9 +1008,9 @@ def _concat_join_sources(
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
     from cytotable.utils import (
+        _duckdb_reader,
         _natural_sort,
         find_anndata_metadata_field_names,
-        _duckdb_reader,
     )
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
@@ -1048,9 +1048,7 @@ def _concat_join_sources(
                 pathlib.Path(table_path).unlink()
     elif dest_datatype in ["anndata_h5ad", "anndata_zarr"]:
         numeric_colnames, nonnumeric_colnames = find_anndata_metadata_field_names(
-            parquet.read_schema(join_sources[0]).with_metadata(
-                CYTOTABLE_DEFAULT_PARQUET_METADATA
-            )
+            join_sources[0]
         )
 
         # we use duckdb to parse the parquet file columns
@@ -1061,31 +1059,31 @@ def _concat_join_sources(
             all_files = (
                 "'"
                 + "','".join(
-                    [
-                        (
-                            join_sources
-                            if not sort_output
-                            else _natural_sort(list_to_sort=join_sources)
-                        )
-                    ]
+                    join_sources
+                    if not sort_output
+                    else _natural_sort(list_to_sort=join_sources)
                 )
                 + "'"
             )
             df_numeric = ddb_reader.execute(
                 f"""
-                SELECT {numeric_colnames}
-                FROM read_parquet([{all_files}])          
+                SELECT {",".join(numeric_colnames)}
+                FROM read_parquet([{all_files}])
                 """
             ).df()
             df_nonnumeric = ddb_reader.execute(
                 f"""
-                SELECT {nonnumeric_colnames}
-                FROM read_parquet([{all_files}])          
+                SELECT {",".join(nonnumeric_colnames)}
+                FROM read_parquet([{all_files}])
                 """
             ).df()
 
         # create the anndata object with numeric features
         adata = ad.AnnData(X=df_numeric)
+
+        # set the X column names for numeric features
+        adata.var_names = numeric_colnames
+
         # add the non-numeric features as obs
         adata.obs = df_nonnumeric
 
