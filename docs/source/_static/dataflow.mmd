@@ -1,16 +1,17 @@
 flowchart LR
 
-    images[(Cell Images)]
+    images[(Cell images)]
     CellProfiler
-    csv[(CSV Files)]
+    csv[(CSV files)]
     DeepProfiler
-    npz[(NPZ Files)]
+    npz[(NPZ files)]
     cytominer-database
-    sqlite[(SQLite Files)]
-    cp_sqlite[(SQLite File)]
+    sqlite[(SQLite files)]
+    cp_sqlite[(SQLite file)]
     in_carta[IN Carta]
     ic_csv[(CSV files)]
-    pycytominer
+    parquet[(Parquet)]
+    anndata[(anndata)]
     CytoTable
 
     images --> CellProfiler
@@ -27,6 +28,7 @@ flowchart LR
     sqlite --> CytoTable
     cp_sqlite --> CytoTable
     ic_csv --> CytoTable
-    CytoTable --> pycytominer
+    CytoTable --> parquet
+    CytoTable --> anndata
 
     style CytoTable fill:#FDCA88,stroke:#D96026;
