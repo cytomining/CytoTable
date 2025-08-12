@@ -28,7 +28,7 @@ from cytotable.convert import (
     _join_source_pageset,
     _prepare_join_sql,
     _prepend_column_name,
-    _to_parquet,
+    _run_export_workflow,
     convert,
 )
 from cytotable.exceptions import CytoTableException
@@ -636,13 +636,13 @@ def test_infer_source_datatype(
         _infer_source_datatype(sources=data)
 
 
-def test_to_parquet(
+def test_run_export_workflow(
     load_parsl_default: None,
     fx_tempdir: str,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
-    Tests _to_parquet
+    Tests _run_export_workflow
     """
 
     flattened_example_sources = list(
@@ -652,7 +652,7 @@ def test_to_parquet(
     # note: we cast here for mypy linting (dict and str treatment differ)
     result: Dict[str, List[Dict[str, Any]]] = cast(
         dict,
-        _to_parquet(
+        _run_export_workflow(
             source_path=str(
                 example_local_sources["image.csv"][0]["source_path"].parent
             ),
@@ -700,13 +700,13 @@ def test_to_parquet(
         assert parquet_result.shape == csv_source.shape
 
 
-def test_to_parquet_unsorted(
+def test_run_export_workflow_unsorted(
     load_parsl_default: None,
     fx_tempdir: str,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
 ):
     """
-    Tests _to_parquet with sort_output == False (unsorted)
+    Tests _run_export_workflow with sort_output == False (unsorted)
     """
 
     flattened_example_sources = list(
@@ -716,7 +716,7 @@ def test_to_parquet_unsorted(
     # note: we cast here for mypy linting (dict and str treatment differ)
     result: Dict[str, List[Dict[str, Any]]] = cast(
         dict,
-        _to_parquet(
+        _run_export_workflow(
             source_path=str(
                 example_local_sources["image.csv"][0]["source_path"].parent
             ),

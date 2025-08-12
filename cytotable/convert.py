@@ -1141,9 +1141,10 @@ def _infer_source_group_common_schema(
     return validated_schema
 
 
-def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
+def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"],
     source_datatype: Optional[str],
     metadata: Optional[Union[List[str], Tuple[str, ...]]],
     compartments: Optional[Union[List[str], Tuple[str, ...]]],
@@ -1161,7 +1162,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
-    Export data to parquet.
+    Export data to various formats based on configuration.
 
     Args:
         source_path: str:
@@ -1174,6 +1175,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
+            Destination datatype to write to.
         source_datatype: Optional[str]: (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1440,7 +1443,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
-    dest_datatype: Literal["parquet"],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"],
     source_datatype: Optional[str] = None,
     metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
     compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
@@ -1476,7 +1479,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
-        dest_datatype: Literal["parquet"]:
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
             Destination datatype to write to.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
@@ -1565,6 +1568,13 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
+    # check that our destination type is valid
+    if dest_datatype not in ["parquet", "anndata_h5ad", "anndata_zarr"]:
+        raise CytoTableException(
+            f"Invalid dest_datatype provided: {dest_datatype}. "
+            "Valid options are 'parquet', 'anndata_h5ad', or 'anndata_zarr'."
+        )
+
     # Raise an exception if an existing path is provided as the destination
     # to avoid removing existing data or unrelated data removal.
     if _expand_path(dest_path).exists():
@@ -1632,26 +1642,26 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         )
 
     # send sources to be written to parquet if selected
-    if dest_datatype == "parquet":
-        output = _to_parquet(
-            source_path=source_path,
-            dest_path=dest_path,
-            source_datatype=source_datatype,
-            metadata=metadata,
-            compartments=compartments,
-            identifying_columns=identifying_columns,
-            concat=concat,
-            join=join,
-            joins=joins,
-            chunk_size=chunk_size,
-            infer_common_schema=infer_common_schema,
-            drop_null=drop_null,
-            data_type_cast_map=data_type_cast_map,
-            add_tablenumber=add_tablenumber,
-            sort_output=sort_output,
-            page_keys=cast(dict, page_keys),
-            **kwargs,
-        )
+    output = _run_export_workflow(
+        source_path=source_path,
+        dest_path=dest_path,
+        dest_datatype=dest_datatype,
+        source_datatype=source_datatype,
+        metadata=metadata,
+        compartments=compartments,
+        identifying_columns=identifying_columns,
+        concat=concat,
+        join=join,
+        joins=joins,
+        chunk_size=chunk_size,
+        infer_common_schema=infer_common_schema,
+        drop_null=drop_null,
+        data_type_cast_map=data_type_cast_map,
+        add_tablenumber=add_tablenumber,
+        sort_output=sort_output,
+        page_keys=cast(dict, page_keys),
+        **kwargs,
+    )
 
     # cleanup Parsl executor and related
     parsl.dfk().cleanup()
