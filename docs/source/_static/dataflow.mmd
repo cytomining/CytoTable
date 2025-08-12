@@ -11,7 +11,8 @@ flowchart LR
     in_carta[IN Carta]
     ic_csv[(CSV files)]
     parquet[(Parquet)]
-    anndata[(anndata)]
+    anndata_h5[("anndata (h5ad)")]
+    anndata_zarr[("anndata (zarr)")]
     CytoTable
 
     images --> CellProfiler
@@ -29,6 +30,7 @@ flowchart LR
     cp_sqlite --> CytoTable
     ic_csv --> CytoTable
     CytoTable --> parquet
-    CytoTable --> anndata
+    CytoTable --> anndata_h5
+    CytoTable --> anndata_zarr
 
     style CytoTable fill:#FDCA88,stroke:#D96026;
