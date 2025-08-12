@@ -597,6 +597,7 @@ def test_concat_join_sources(load_parsl_default: None, fx_tempdir: str):
 
     result = _concat_join_sources(
         dest_path=f"{fx_tempdir}/test_concat_join_sources/example_concat_join.parquet",
+        dest_datatype="parquet",
         join_sources=[test_path_a_join_chunk, test_path_b_join_chunk],
         sources={
             "join_chunks_test_a.parquet": [{"table": [test_path_a]}],
@@ -657,6 +658,7 @@ def test_run_export_workflow(
                 example_local_sources["image.csv"][0]["source_path"].parent
             ),
             dest_path=fx_tempdir,
+            dest_datatype="parquet",
             source_datatype=None,
             compartments=["cytoplasm", "cells", "nuclei"],
             metadata=["image"],
@@ -721,6 +723,7 @@ def test_run_export_workflow_unsorted(
                 example_local_sources["image.csv"][0]["source_path"].parent
             ),
             dest_path=fx_tempdir,
+            dest_datatype="parquet",
             source_datatype=None,
             compartments=["cytoplasm", "cells", "nuclei"],
             metadata=["image"],

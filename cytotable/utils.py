@@ -876,3 +876,48 @@ def map_pyarrow_type(
     else:
         # Default to the original type if no mapping is needed
         return field_type
+
+
+def find_anndata_metadata_field_names(
+    source: Union[str, pathlib.Path],
+) -> tuple[list[str], list[str]]:
+    """
+    Classify Parquet columns into numeric and non-numeric.
+
+    Scans the Parquet file schema
+    and returns two lists of column names:
+    those with numeric types (float, integer, decimal)
+    and those with any other type. This is handy for
+    separating AnnData metadata fields by basic
+    numeric-ness for downstream processing.
+
+    Args:
+        source:
+            Path to a Parquet file to inspect.
+
+    Returns:
+        A 2-tuple ``(numeric_fields, non_numeric_fields)``,
+        where each element is
+        a list of column names.
+    """
+
+    import pyarrow.parquet as parquet
+
+    # read the schema from the parquet file
+    schema = parquet.read_schema(str(source))
+
+    # gather numeric fields based on PyArrow types
+    numeric_fields = [
+        field.name
+        for field in schema
+        if pa.types.is_floating(field.type)
+        or pa.types.is_integer(field.type)
+        or pa.types.is_decimal(field.type)
+    ]
+
+    # gather everything else as non-numeric
+    non_numeric_fields = [
+        field.name for field in schema if field.name not in numeric_fields
+    ]
+
+    return numeric_fields, non_numeric_fields
