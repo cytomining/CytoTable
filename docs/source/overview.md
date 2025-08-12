@@ -135,11 +135,18 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 
 ### Data Destination Types
 
-- __Apache Parquet (.parquet)__: "Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.
+- __Apache Parquet (`.parquet`)__: "Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.
   It provides efficient data compression and encoding schemes with enhanced performance to handle complex data in bulk." ([reference](https://parquet.apache.org/))
 
 ```{eval-rst}
   Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
+- __scverse anndata (`.h5ad`, `.zarr`)__: "anndata is a Python package for handling annotated data matrices in memory and on disk, positioned between pandas and xarray.
+ anndata offers a broad range of computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface." ([reference](https://anndata.readthedocs.io/en/stable/index.html))
+
+```{eval-rst}
+  Anndata data destination type may be specified by using :code:`convert(..., dest_datatype="anndata_h5ad", ...)` (:mod:`convert() <cytotable.convert.convert>`) or :code:`convert(..., dest_datatype="anndata_zarr", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
 ## Data Transformations
