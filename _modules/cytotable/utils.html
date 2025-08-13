@@ -975,6 +975,55 @@ window.addEventListener("load", () => mermaid.run());
         <span class="c1"># Default to the original type if no mapping is needed</span>
         <span class="k">return</span> <span class="n">field_type</span></div>
 
+
+
+<div class="viewcode-block" id="find_anndata_metadata_field_names">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils.find_anndata_metadata_field_names">[docs]</a>
+<span class="k">def</span> <span class="nf">find_anndata_metadata_field_names</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Classify the source table columns as</span>
+<span class="sd">    numeric and non-numeric.</span>
+
+<span class="sd">    Scans the Parquet file schema</span>
+<span class="sd">    and returns two lists of column names:</span>
+<span class="sd">    those with numeric types (float, integer, decimal)</span>
+<span class="sd">    and those with any other type. This is handy for</span>
+<span class="sd">    separating AnnData metadata fields by basic</span>
+<span class="sd">    numeric-ness for downstream processing.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source:</span>
+<span class="sd">            Path to a Parquet file to inspect.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        A 2-tuple ``(numeric_fields, non_numeric_fields)``,</span>
+<span class="sd">        where each element is</span>
+<span class="sd">        a list of column names.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+
+    <span class="c1"># read the schema from the parquet file</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">))</span>
+
+    <span class="c1"># gather numeric fields based on PyArrow types</span>
+    <span class="n">numeric_fields</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">field</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">schema</span>
+        <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+        <span class="ow">or</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_decimal</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c1"># gather everything else as non-numeric</span>
+    <span class="n">non_numeric_fields</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">schema</span> <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">numeric_fields</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">numeric_fields</span><span class="p">,</span> <span class="n">non_numeric_fields</span></div>
+
 </pre></div>
 
           </div>

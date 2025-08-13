@@ -168,11 +168,18 @@ Specify the converted data destination using the  <code class="code docutils lit
 <section id="data-destination-types">
 <h3>Data Destination Types<a class="headerlink" href="#data-destination-types" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><strong>Apache Parquet (.parquet)</strong>: “Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.
+<li><p><strong>Apache Parquet (<code class="docutils literal notranslate"><span class="pre">.parquet</span></code>)</strong>: “Apache Parquet is an open source, column-oriented data file format designed for efficient data storage and retrieval.
 It provides efficient data compression and encoding schemes with enhanced performance to handle complex data in bulk.” (<a class="reference external" href="https://parquet.apache.org/">reference</a>)</p></li>
 </ul>
 <blockquote>
 <div><p>Parquet data destination type may be specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;parquet&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+</div></blockquote>
+<ul class="simple">
+<li><p><strong>scverse anndata (<code class="docutils literal notranslate"><span class="pre">.h5ad</span></code>, <code class="docutils literal notranslate"><span class="pre">.zarr</span></code>)</strong>: anndata is a Python package and data format for handling annotated data matrices which uses pandas and xarray to enable data management.
+It offers many computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface. (<a class="reference external" href="https://anndata.readthedocs.io/en/stable/index.html">reference</a>)</p></li>
+</ul>
+<blockquote>
+<div><p>Anndata data destination type may be specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;anndata_h5ad&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>) or <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;anndata_zarr&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 </div></blockquote>
 </section>
 </section>
