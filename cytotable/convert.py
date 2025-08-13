@@ -968,8 +968,8 @@ def _join_source_pageset(
 def _concat_join_sources(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
-    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"],
     join_sources: List[str],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     sort_output: bool = True,
 ) -> str:
     """
@@ -984,11 +984,11 @@ def _concat_join_sources(
             Includes the metadata concerning location of actual data.
         dest_path: str:
             Destination path to write file-based content.
-        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]
-            The datatype of the destination file.
         join_sources: List[str]:
             List of local filepath destination for join source chunks
             which will be concatenated.
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]
+            The datatype of the destination file. Default is 'parquet'.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
 
@@ -1000,7 +1000,7 @@ def _concat_join_sources(
     import pathlib
     import shutil
 
-    import duckdb
+    import anndata as ad
     import pyarrow.parquet as parquet
 
     from cytotable.constants import (
@@ -1012,11 +1012,6 @@ def _concat_join_sources(
         _natural_sort,
         find_anndata_metadata_field_names,
     )
-
-    # import anndata only if we are using it
-    # this is to avoid import errors in Python < 3.12
-    if not sys.version_info >= (3, 12):
-        import anndata as ad
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
@@ -1206,7 +1201,6 @@ def _infer_source_group_common_schema(
 def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
-    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"],
     source_datatype: Optional[str],
     metadata: Optional[Union[List[str], Tuple[str, ...]]],
     compartments: Optional[Union[List[str], Tuple[str, ...]]],
@@ -1219,6 +1213,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     drop_null: bool,
     sort_output: bool,
     page_keys: Dict[str, str],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     data_type_cast_map: Optional[Dict[str, str]] = None,
     add_tablenumber: Optional[bool] = None,
     **kwargs,
@@ -1237,8 +1232,6 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
-        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Destination datatype to write to.
         source_datatype: Optional[str]: (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1265,6 +1258,8 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
         page_keys: Dict[str, str]
             A dictionary which defines which column names are used for keyset pagination
             in order to perform data extraction.
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
+            Destination datatype to write to. Defaults to 'parquet'.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
@@ -1506,7 +1501,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
-    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     source_datatype: Optional[str] = None,
     metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
     compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
@@ -1630,15 +1625,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 preset="cellprofiler_sqlite",
             )
     """
-
-    # we can't use anndata on Python 3.12 or newer
-    if sys.version_info >= (3, 12) and dest_datatype in [
-        "anndata_h5ad",
-        "anndata_zarr",
-    ]:
-        raise ImportError(
-            "anndata is not supported on Python 3.12 or newer. Please use Python 3.11 or below."
-        )
 
     # check that our destination type is valid
     if dest_datatype not in ["parquet", "anndata_h5ad", "anndata_zarr"]:

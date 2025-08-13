@@ -36,7 +36,7 @@ anndata = [
 # zarr is required by anndata <0.12.2
 zarr = [
   { version = "<3.1.1", python = "<3.11" },
-  { version = ">=3.1.1", python = ">=3.11,<3.12" },
+  { version = ">=3.1.1", python = ">=3.11" },
 ]
 
 [tool.poetry.group.dev.dependencies]
