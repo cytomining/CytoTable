@@ -988,7 +988,7 @@ def _concat_join_sources(
             List of local filepath destination for join source chunks
             which will be concatenated.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]
-            The datatype of the destination file. Default is 'parquet'.
+            The datatype of the output destination file. Default is 'parquet'.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
 
@@ -1259,7 +1259,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             A dictionary which defines which column names are used for keyset pagination
             in order to perform data extraction.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Destination datatype to write to. Defaults to 'parquet'.
+            Output destination datatype to write to. Defaults to 'parquet'.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
@@ -1538,7 +1538,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Destination datatype to write to.
+            Output destination datatype to write to.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
