@@ -9,7 +9,6 @@ import pathlib
 import sys
 from typing import List
 
-import anndata as ad
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
@@ -391,6 +390,8 @@ def test_convert_export_to_anndata(
 
     if sys.version_info >= (3, 12):
         pytest.skip("anndata is not supported on Python 3.12 or newer")
+
+    import anndata as ad  # pylint: disable=import-outside-toplevel
 
     control_result = cellprofiler_merged_examplehuman
 
