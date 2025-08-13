@@ -22,12 +22,21 @@ cloudpathlib = { extras = [ "all", "s3" ], version = ">=0.18,<0.22" }
 duckdb = ">=0.8.0,!=0.10.0,>=0.10.1"
 parsl = ">=2023.9.25"
 numpy = [
-  { version = "<=1.24.4", python = "<3.12" },
-  { version = ">=1.26.0", python = ">=3.12" },
+  { version = "<=1.24.4", python = "<3.11" },
+  { version = ">=1.26.0", python = ">=3.11" },
 ]
 scipy = [
   { version = "<1.12.0", python = "<3.9" },
   { version = "^1.12.0", python = ">=3.9" },
+]
+anndata = [
+  { version = "<0.12.2", python = "<3.11" },
+  { version = ">=0.12.2", python = ">=3.11" },
+]
+# zarr is required by anndata <0.12.2
+zarr = [
+  { version = "<3.1.1", python = "<3.11" },
+  { version = ">=3.1.1", python = ">=3.11" },
 ]
 
 [tool.poetry.group.dev.dependencies]

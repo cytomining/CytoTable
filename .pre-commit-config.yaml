@@ -77,7 +77,7 @@ repos:
     hooks:
     -   id: validate-cff
 -   repo: https://github.com/software-gardening/almanack
-    rev: v0.1.7
+    rev: v0.1.8
     hooks:
     -   id: almanack-check
 -   repo: https://github.com/PyCQA/pylint
@@ -98,7 +98,8 @@ repos:
         -   "moto[server,s3]>=4.0.0,<5.0.0"
         -   "duckdb>=0.8.0"
         -   "parsl>=2023.4.24"
-        -   "git+https://github.com/cytomining/pycytominer.git@09b2c79aa94908e3520f0931a844db4fba7fd3fb"
+        -   "pycytominer>=1.2.4"
+        -   "anndata"
 -   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
     rev: v0.6.0
     hooks:

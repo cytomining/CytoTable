@@ -2,10 +2,18 @@
 Testing CytoTable utility functions found within util.py
 """
 
+import pathlib
+
+import pandas as pd
 import pyarrow as pa
 import pytest
 
-from cytotable.utils import _generate_pagesets, _natural_sort, map_pyarrow_type
+from cytotable.utils import (
+    _generate_pagesets,
+    _natural_sort,
+    find_anndata_metadata_field_names,
+    map_pyarrow_type,
+)
 
 
 def test_generate_pageset():  # pylint: disable=too-many-statements
@@ -152,3 +160,27 @@ def test_map_pyarrow_type():
         map_pyarrow_type(custom_struct_type, data_type_cast_map)
         == expected_custom_struct_type
     )
+
+
+def test_find_anndata_metadata_field_names(tmp_path: pathlib.Path):
+    """
+    Testing find_anndata_metadata_field_names
+    """
+    # Test with a simple schema
+
+    # export a dataframe to parquet with numeric
+    # and non-numeric columns
+    pd.DataFrame(
+        {
+            "feature1": [1.0, 2.0, 3.0],
+            "feature2": [4.0, 5.0, 6.0],
+            "feature3": ["a", "b", "c"],
+            "obs1": ["x", "y", "z"],
+            "obs2": [True, False, True],
+        }
+    ).to_parquet((tmp_file := tmp_path / "test.parquet"))
+
+    numeric_colnames, nonnumeric_colnames = find_anndata_metadata_field_names(tmp_file)
+
+    assert numeric_colnames == ["feature1", "feature2"]
+    assert nonnumeric_colnames == ["feature3", "obs1", "obs2"]

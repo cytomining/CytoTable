@@ -4,13 +4,14 @@ CytoTable: convert - transforming data for use with pyctyominer.
 
 import itertools
 import logging
+import sys
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import parsl
 import pyarrow as pa
 from parsl.app.app import python_app
 
-from cytotable.exceptions import CytoTableException
+from cytotable.exceptions import CytoTableException, DatatypeException
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
 from cytotable.utils import (
@@ -968,6 +969,7 @@ def _concat_join_sources(
     sources: Dict[str, List[Dict[str, Any]]],
     dest_path: str,
     join_sources: List[str],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     sort_output: bool = True,
 ) -> str:
     """
@@ -985,6 +987,8 @@ def _concat_join_sources(
         join_sources: List[str]:
             List of local filepath destination for join source chunks
             which will be concatenated.
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]
+            The datatype of the output destination file. Default is 'parquet'.
         sort_output: bool
             Specifies whether to sort cytotable output or not.
 
@@ -996,13 +1000,18 @@ def _concat_join_sources(
     import pathlib
     import shutil
 
+    import anndata as ad
     import pyarrow.parquet as parquet
 
     from cytotable.constants import (
         CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
-    from cytotable.utils import _natural_sort
+    from cytotable.utils import (
+        _duckdb_reader,
+        _natural_sort,
+        find_anndata_metadata_field_names,
+    )
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
@@ -1015,27 +1024,78 @@ def _concat_join_sources(
     if pathlib.Path(dest_path).is_dir():
         shutil.rmtree(path=dest_path)
 
-    # build a parquet file writer which will be used to append files
-    # as a single concatted parquet file, referencing the first file's schema
-    # (all must be the same schema)
-    writer_schema = parquet.read_schema(join_sources[0]).with_metadata(
-        CYTOTABLE_DEFAULT_PARQUET_METADATA
-    )
-    with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
-        for table_path in (
-            join_sources
-            if not sort_output
-            else _natural_sort(list_to_sort=join_sources)
-        ):
-            writer.write_table(
-                parquet.read_table(
-                    table_path,
-                    schema=writer_schema,
-                    memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+    if dest_datatype == "parquet":
+        # build a parquet file writer which will be used to append files
+        # as a single concatted parquet file, referencing the first file's schema
+        # (all must be the same schema)
+        writer_schema = parquet.read_schema(join_sources[0]).with_metadata(
+            CYTOTABLE_DEFAULT_PARQUET_METADATA
+        )
+        with parquet.ParquetWriter(str(dest_path), writer_schema) as writer:
+            for table_path in (
+                join_sources
+                if not sort_output
+                else _natural_sort(list_to_sort=join_sources)
+            ):
+                writer.write_table(
+                    parquet.read_table(
+                        table_path,
+                        schema=writer_schema,
+                        memory_map=CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
+                    )
                 )
+                # remove the file which was written in the concatted parquet file (we no longer need it)
+                pathlib.Path(table_path).unlink()
+    elif dest_datatype in ["anndata_h5ad", "anndata_zarr"]:
+        numeric_colnames, nonnumeric_colnames = find_anndata_metadata_field_names(
+            join_sources[0]
+        )
+
+        # we use duckdb to parse the parquet file columns
+        # and manifest as pandas objects for use with anndata
+        # (anndata is not compatible with arrow directly,
+        # see: https://github.com/scverse/anndata/issues/2078)
+        with _duckdb_reader() as ddb_reader:
+            all_files = (
+                "'"
+                + "','".join(
+                    join_sources
+                    if not sort_output
+                    else _natural_sort(list_to_sort=join_sources)
+                )
+                + "'"
             )
-            # remove the file which was written in the concatted parquet file (we no longer need it)
-            pathlib.Path(table_path).unlink()
+            df_numeric = ddb_reader.execute(
+                f"""
+                SELECT {",".join(numeric_colnames)}
+                FROM read_parquet([{all_files}])
+                """
+            ).df()
+            df_nonnumeric = ddb_reader.execute(
+                f"""
+                SELECT {",".join(nonnumeric_colnames)}
+                FROM read_parquet([{all_files}])
+                """
+            ).df()
+
+        # create the anndata object with numeric features
+        adata = ad.AnnData(X=df_numeric)
+
+        # Set the X column names for numeric features.
+        # Within anndata, X is an abstraction
+        # which represents a numeric data matrix
+        # of observations (rows) and variables (columns).
+        adata.var_names = numeric_colnames
+
+        # add the non-numeric features as obs
+        adata.obs = df_nonnumeric
+
+        if dest_datatype == "anndata_h5ad":
+            # write the anndata object to h5ad with gzip compression
+            adata.write_h5ad(dest_path, compression="gzip")
+        elif dest_datatype == "anndata_zarr":
+            # write the anndata object to zarr
+            adata.write_zarr(dest_path)
 
     # return modified sources format to indicate the final result
     # and retain the other source data for reference as needed
@@ -1141,7 +1201,7 @@ def _infer_source_group_common_schema(
     return validated_schema
 
 
-def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
+def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     source_path: str,
     dest_path: str,
     source_datatype: Optional[str],
@@ -1156,12 +1216,13 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
     drop_null: bool,
     sort_output: bool,
     page_keys: Dict[str, str],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     data_type_cast_map: Optional[Dict[str, str]] = None,
     add_tablenumber: Optional[bool] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
-    Export data to parquet.
+    Export data to various formats (e.g., parquet) based on configuration.
 
     Args:
         source_path: str:
@@ -1200,6 +1261,8 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
         page_keys: Dict[str, str]
             A dictionary which defines which column names are used for keyset pagination
             in order to perform data extraction.
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
+            Output destination datatype to write to. Defaults to 'parquet'.
         data_type_cast_map: Dict[str, str]
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
@@ -1425,6 +1488,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
             # for lineage and debugging
             results = _concat_join_sources(
                 dest_path=expanded_dest_path,
+                dest_datatype=dest_datatype,
                 join_sources=[join.result() for join in join_sources_result],
                 sources=evaluated_results,
                 sort_output=sort_output,
@@ -1440,7 +1504,7 @@ def _to_parquet(  # pylint: disable=too-many-arguments, too-many-locals
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
-    dest_datatype: Literal["parquet"],
+    dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     source_datatype: Optional[str] = None,
     metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
     compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
@@ -1476,8 +1540,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
-        dest_datatype: Literal["parquet"]:
-            Destination datatype to write to.
+        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
+            Output destination datatype to write to.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1565,6 +1629,21 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
+    # check that our destination type is valid
+    if dest_datatype not in ["parquet", "anndata_h5ad", "anndata_zarr"]:
+        raise DatatypeException(
+            f"Invalid dest_datatype provided: {dest_datatype}. "
+            "Valid options are 'parquet', 'anndata_h5ad', or 'anndata_zarr'."
+        )
+
+    # ensure we check about join + concat requirement for
+    # anndata destination formats
+    if dest_datatype in ["anndata_h5ad", "anndata_zarr"] and not (join and concat):
+        raise CytoTableException(
+            "Anndata formats (h5ad and zarr) are not supported for join=False. "
+            "Please set join=True to use these formats."
+        )
+
     # Raise an exception if an existing path is provided as the destination
     # to avoid removing existing data or unrelated data removal.
     if _expand_path(dest_path).exists():
@@ -1632,26 +1711,26 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         )
 
     # send sources to be written to parquet if selected
-    if dest_datatype == "parquet":
-        output = _to_parquet(
-            source_path=source_path,
-            dest_path=dest_path,
-            source_datatype=source_datatype,
-            metadata=metadata,
-            compartments=compartments,
-            identifying_columns=identifying_columns,
-            concat=concat,
-            join=join,
-            joins=joins,
-            chunk_size=chunk_size,
-            infer_common_schema=infer_common_schema,
-            drop_null=drop_null,
-            data_type_cast_map=data_type_cast_map,
-            add_tablenumber=add_tablenumber,
-            sort_output=sort_output,
-            page_keys=cast(dict, page_keys),
-            **kwargs,
-        )
+    output = _run_export_workflow(
+        source_path=source_path,
+        dest_path=dest_path,
+        dest_datatype=dest_datatype,
+        source_datatype=source_datatype,
+        metadata=metadata,
+        compartments=compartments,
+        identifying_columns=identifying_columns,
+        concat=concat,
+        join=join,
+        joins=joins,
+        chunk_size=chunk_size,
+        infer_common_schema=infer_common_schema,
+        drop_null=drop_null,
+        data_type_cast_map=data_type_cast_map,
+        add_tablenumber=add_tablenumber,
+        sort_output=sort_output,
+        page_keys=cast(dict, page_keys),
+        **kwargs,
+    )
 
     # cleanup Parsl executor and related
     parsl.dfk().cleanup()
