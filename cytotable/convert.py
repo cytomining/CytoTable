@@ -1081,7 +1081,10 @@ def _concat_join_sources(
         # create the anndata object with numeric features
         adata = ad.AnnData(X=df_numeric)
 
-        # set the X column names for numeric features
+        # Set the X column names for numeric features.
+        # Within anndata, X is an abstraction
+        # which represents a numeric data matrix 
+        # of observations (rows) and variables (columns).
         adata.var_names = numeric_colnames
 
         # add the non-numeric features as obs
