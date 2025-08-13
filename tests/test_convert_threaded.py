@@ -6,6 +6,7 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 
 import pathlib
+import sys
 from typing import List
 
 import anndata as ad
@@ -385,8 +386,11 @@ def test_convert_export_to_anndata(
     cellprofiler_merged_examplehuman: pa.Table,
 ):
     """
-    Tests non-S3 convert with Parsl ThreadPoolExecutor
+    Tests convert with anndata_h5ad and anndata_zarr
     """
+
+    if sys.version_info >= (3, 12):
+        pytest.skip("anndata is not supported on Python 3.12 or newer")
 
     control_result = cellprofiler_merged_examplehuman
 

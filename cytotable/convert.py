@@ -4,6 +4,7 @@ CytoTable: convert - transforming data for use with pyctyominer.
 
 import itertools
 import logging
+import sys
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union, cast
 
 import parsl
@@ -1625,6 +1626,15 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 preset="cellprofiler_sqlite",
             )
     """
+
+    # we can't use anndata on Python 3.12 or newer
+    if sys.version_info >= (3, 12) and dest_datatype in [
+        "anndata_h5ad",
+        "anndata_zarr",
+    ]:
+        raise ImportError(
+            "anndata is not supported on Python 3.12 or newer. Please use Python 3.11 or below."
+        )
 
     # check that our destination type is valid
     if dest_datatype not in ["parquet", "anndata_h5ad", "anndata_zarr"]:
