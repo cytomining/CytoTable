@@ -1000,7 +1000,6 @@ def _concat_join_sources(
     import pathlib
     import shutil
 
-    import anndata as ad
     import duckdb
     import pyarrow.parquet as parquet
 
@@ -1013,6 +1012,11 @@ def _concat_join_sources(
         _natural_sort,
         find_anndata_metadata_field_names,
     )
+
+    # import anndata only if we are using it
+    # this is to avoid import errors in Python < 3.12
+    if not sys.version_info >= (3, 12):
+        import anndata as ad
 
     # remove the unjoined concatted compartments to prepare final dest_path usage
     # (we now have joined results)
