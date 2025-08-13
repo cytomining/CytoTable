@@ -882,7 +882,8 @@ def find_anndata_metadata_field_names(
     source: Union[str, pathlib.Path],
 ) -> tuple[list[str], list[str]]:
     """
-    Classify Parquet columns into numeric and non-numeric.
+    Classify the source table columns as
+    numeric and non-numeric.
 
     Scans the Parquet file schema
     and returns two lists of column names:

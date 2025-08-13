@@ -1222,7 +1222,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
-    Export data to various formats based on configuration.
+    Export data to various formats (e.g., parquet) based on configuration.
 
     Args:
         source_path: str:
