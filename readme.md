@@ -44,14 +44,14 @@ Please see [contributing.md](docs/source/contributing.md) for more details on co
 
 ## Relationship to other projects
 
-CytoTable focuses on image-based profiling data harmonization and serialization to file formats.
-It creates data which can be directly integrated with:
+CytoTable focuses on image-based profiling data harmonization and serialization.
+At scale, CytoTable transforms data into file formats which can be directly integrated with:
 
-- [Pycytominer](https://github.com/cytomining/pycytominer) for image-based profiling analysis.
-- [coSMicQC](https://github.com/cytomining/coSMicQC) for single-cell morphology quality control.
-- [CytoDataFrame](https://github.com/cytomining/CytoDataFrame) to visualize image-based profiling feature data alongside images within Jupyter environments.
+- [Pycytominer](https://github.com/cytomining/pycytominer) for the bioinformatics pipeline for image-based profiling.
+- [coSMicQC](https://github.com/cytomining/coSMicQC) for quality control.
+- [CytoDataFrame](https://github.com/cytomining/CytoDataFrame) for interactive visualization of profiles with single cell images.
 
-Please let us know how you use CytoTable (we'd love to add your project to this list)!
+**Please let us know how you use CytoTable (we'd love to add your project to this list)**!
 
 ## References
 
