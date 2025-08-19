@@ -48,7 +48,7 @@
 <h2>Summary<a class="headerlink" href="#summary" title="Link to this heading">¶</a></h2>
 <p>CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (<code class="docutils literal notranslate"><span class="pre">.csv</span></code> or <code class="docutils literal notranslate"><span class="pre">.sqlite</span></code>), cytominer-database (<code class="docutils literal notranslate"><span class="pre">.sqlite</span></code>), and DeepProfiler (<code class="docutils literal notranslate"><span class="pre">.npz</span></code>), and other sources such as IN Carta data output data at scale.
 CytoTable creates parquet files for both independent analysis and for input into <a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a>.
-The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).</p>
+The output files (such as <a class="reference external" href="https://parquet.apache.org/">Parquet</a> and <a class="reference external" href="https://github.com/scverse/anndata">anndata</a> file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).</p>
 <p>The name for the project is inspired from:</p>
 <ul class="simple">
 <li><p><strong>Cyto</strong>: “1. (biology) cell.” (<a class="reference external" href="https://en.wiktionary.org/wiki/cyto-">Wiktionary: Cyto-</a>)</p></li>
@@ -75,6 +75,17 @@ pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com
 <h2>Contributing, Development, and Testing<a class="headerlink" href="#contributing-development-and-testing" title="Link to this heading">¶</a></h2>
 <p>We test CytoTable using <code class="docutils literal notranslate"><span class="pre">ubuntu-latest</span></code> and <code class="docutils literal notranslate"><span class="pre">macos-latest</span></code> <a class="reference external" href="https://github.com/actions/runner-images#available-images">GitHub Actions runner images</a>.</p>
 <p>Please see <a class="reference internal" href="contributing.html"><span class="std std-doc">contributing.md</span></a> for more details on contributions, development, and testing.</p>
+</section>
+<section id="relationship-to-other-projects">
+<h2>Relationship to other projects<a class="headerlink" href="#relationship-to-other-projects" title="Link to this heading">¶</a></h2>
+<p>CytoTable focuses on image-based profiling data harmonization and serialization.
+At scale, CytoTable transforms data into file formats which can be directly integrated with:</p>
+<p><strong>Please let us know how you use CytoTable (we’d love to add your project to this list)</strong>!</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a> for the bioinformatics pipeline for image-based profiling.</p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/coSMicQC">coSMicQC</a> for quality control.</p></li>
+<li><p><a class="reference external" href="https://github.com/cytomining/CytoDataFrame">CytoDataFrame</a> for interactive visualization of profiles with single cell images.</p></li>
+</ul>
 </section>
 <section id="references">
 <h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
