@@ -15,7 +15,7 @@ _Diagram showing data flow relative to this project._
 
 CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), and DeepProfiler (`.npz`), and other sources such as IN Carta data output data at scale.
 CytoTable creates parquet files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
-The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).
+The output files (such as [Parquet](https://parquet.apache.org/) and [anndata](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
 
 The name for the project is inspired from:
 
@@ -41,6 +41,17 @@ pip install git+https://github.com/cytomining/CytoTable.git
 We test CytoTable using `ubuntu-latest` and `macos-latest` [GitHub Actions runner images](https://github.com/actions/runner-images#available-images).
 
 Please see [contributing.md](docs/source/contributing.md) for more details on contributions, development, and testing.
+
+## Relationship to other projects
+
+CytoTable focuses on image-based profiling data harmonization and serialization.
+At scale, CytoTable transforms data into file formats which can be directly integrated with:
+
+**Please let us know how you use CytoTable (we'd love to add your project to this list)**!
+
+- [Pycytominer](https://github.com/cytomining/pycytominer) for the bioinformatics pipeline for image-based profiling.
+- [coSMicQC](https://github.com/cytomining/coSMicQC) for quality control.
+- [CytoDataFrame](https://github.com/cytomining/CytoDataFrame) for interactive visualization of profiles with single cell images.
 
 ## References
 
