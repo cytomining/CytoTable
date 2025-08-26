@@ -607,14 +607,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.40.12"
+version = "1.40.17"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "botocore-1.40.12-py3-none-any.whl", hash = "sha256:84e96004a8b426c5508f6b5600312d6271364269466a3a957dc377ad8effc438"},
-    {file = "botocore-1.40.12.tar.gz", hash = "sha256:c6560578e799b47b762b7e555bd9c5dd5c29c5d23bd778a8a72e98c979b3c727"},
+    {file = "botocore-1.40.17-py3-none-any.whl", hash = "sha256:603951935c1a741ae70236bf15725c5293074f28503e7029ad0e24ece476a342"},
+    {file = "botocore-1.40.17.tar.gz", hash = "sha256:769cd04a6a612f2d48b5f456c676fd81733fab682870952f7e2887260ea6a2bc"},
 ]
 
 [package.dependencies]
@@ -3403,14 +3403,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.8.11"
+version = "2025.8.18"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2025.8.11-py3-none-any.whl", hash = "sha256:64f096ce9a6ce9886e75c9a2a6d9bca17563b1b5a5c154d08336eca8d44bdd05"},
-    {file = "parsl-2025.8.11.tar.gz", hash = "sha256:7ddbe0def5e16c258d47a23b2faeb917f04e53db2a338180fcb2f866039f0372"},
+    {file = "parsl-2025.8.18-py3-none-any.whl", hash = "sha256:055017770e828f0bc93ba10546fbd1edac13148813bd8af9c7bef259434f89fd"},
+    {file = "parsl-2025.8.18.tar.gz", hash = "sha256:968161eff2d93a47dab880191d6a6d3ee9d58f2a9b0438fa7ef78dbf91934b4f"},
 ]
 
 [package.dependencies]
@@ -5186,14 +5186,14 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.14.1"
+version = "4.15.0"
 description = "Backported and Experimental Type Hints for Python 3.9+"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev", "docs"]
 files = [
-    {file = "typing_extensions-4.14.1-py3-none-any.whl", hash = "sha256:d1e1e3b58374dc93031d6eda2420a48ea44a36c2b4766a4fdeb3710755731d76"},
-    {file = "typing_extensions-4.14.1.tar.gz", hash = "sha256:38b39f4aeeab64884ce9f74c94263ef78f3c22467c8724005483154c26648d36"},
+    {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
+    {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
 ]
 
 [[package]]
