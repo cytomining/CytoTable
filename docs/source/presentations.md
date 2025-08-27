@@ -1,6 +1,6 @@
 # Presentations
 
-We have shared CytoTable at events, posters, and through other media. 
+We have shared CytoTable at events, posters, and through other media.
 We document these presentations below.
 
 ## Presentation - ParslFest 2025
