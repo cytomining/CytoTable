@@ -5,7 +5,7 @@ We document these presentations below.
 
 ## Presentation - ParslFest 2025
 
-We presented these slides at a [ParslFest 2025](https://parsl-project.org/parslfest.html) lightning talk.
+We presented these slides for a lightning talk at [ParslFest 2025](https://parsl-project.org/parslfest.html) in Chicago, IL (and online).
 
 <iframe src="presentations/ParslFest 2025 - CytoTable (lightning talk).pdf" width="100%" height="600px"></iframe>
 
