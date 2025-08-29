@@ -5,7 +5,7 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.17.1
+#       jupytext_version: 1.17.2
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
@@ -14,7 +14,7 @@
 
 # # CytoTable mise en place
 #
-# This notebook includes a quick demonstration of CytoTable to help you understand the basics of using this project.
+# This notebook includes a quick demonstration of CytoTable to help you understand the basics of using the package and the biological basis of each step.
 #
 # The name of the notebook comes from the french _mise en place_:
 # > "Mise en place (French pronunciation: [mi zɑ̃ ˈplas]) is a French culinary phrase which means "putting in place"
@@ -26,7 +26,10 @@
 import pathlib
 from collections import Counter
 
+import pandas as pd
 import pyarrow.parquet as pq
+from IPython.display import Image, display
+from PIL import Image
 
 import cytotable
 
@@ -40,7 +43,30 @@ if pathlib.Path(dest_path).is_file():
     pathlib.Path(dest_path).unlink()
 
 # show the files we will use as source data with CytoTable
-list(pathlib.Path(source_path).glob("*.csv"))
+list(pathlib.Path(source_path).glob("*"))
+
+# +
+# display the images we will gather features from
+image_name_map = {"d0.tif": "DNA", "d1.tif": "PH3", "d2.tif": "Cells"}
+
+for image in pathlib.Path(source_path).glob("*.tif"):
+    stain = ""
+    for key, val in image_name_map.items():
+        if key in str(image):
+            stain = val
+    print(f"\nImage with stain: {stain}")
+    display(Image.open(image))
+# -
+
+# show the segmentations through an overlay with outlines
+for image in pathlib.Path(source_path).glob("*Overlay.png"):
+    print(f"Image outlines from segmentation (composite)")
+    print("Color key: {dark blue: nuclei, light blue: cells, yellow: PH3}")
+    display(Image.open(image))
+
+for profiles in pathlib.Path(source_path).glob("*.csv"):
+    print(f"\nProfiles from CellProfiler: {profiles}")
+    display(pd.read_csv(profiles).head())
 
 # +
 # %%time
