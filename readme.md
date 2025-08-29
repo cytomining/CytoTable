@@ -19,6 +19,9 @@ The output files (such as [Parquet](https://parquet.apache.org/) and [anndata](h
 
 > 📔 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
 > [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html)
+>
+> 📓 Consider also checking out our demonstration notebook covering how to use cloud-based data sources with CytoTable.
+> [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)
 
 The name for the project is inspired from:
 
