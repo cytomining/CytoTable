@@ -17,6 +17,9 @@ CytoTable enables single-cell morphology data analysis by cleaning and transform
 CytoTable creates parquet files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
 The output files (such as [Parquet](https://parquet.apache.org/) and [anndata](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
 
+> 📔 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
+> [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html)
+
 The name for the project is inspired from:
 
 - __Cyto__: "1. (biology) cell." ([Wiktionary: Cyto-](https://en.wiktionary.org/wiki/cyto-))
