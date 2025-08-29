@@ -24,10 +24,10 @@
 # +
 import pathlib
 from collections import Counter
-from cloudpathlib import S3Client, CloudPath
 
 import pandas as pd
 import pyarrow.parquet as pq
+from cloudpathlib import CloudPath, S3Client
 from IPython.display import Image, display
 from PIL import Image
 
