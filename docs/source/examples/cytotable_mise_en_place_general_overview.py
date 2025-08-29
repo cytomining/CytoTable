@@ -48,11 +48,11 @@ list(pathlib.Path(source_path).glob("*"))
 
 # ## Phase 1: Cells are stained and images are captured by microscopes
 #
-# ![image.png](attachment:98312bd4-331e-482b-a0bb-553736c8647c.png)
+#
 #
 # __Figure 1.__ _Cells are stained in order to highlight cellular compartments and organelles. Microscopes are used to observe and capture data for later use._
 #
-# CytoTable uses data created from multiple upstream steps involving images of
+# CytoTable uses data created from multiple upstream steps involving images of 
 # stained biological objects (typically cells).
 # Cells are cultured in multi-well plates, perturbed, and then fixed before being stained with a panel of six fluorescent dyes that highlight key cellular compartments and organelles, including the nucleus, nucleoli/RNA, endoplasmic reticulum, mitochondria, actin cytoskeleton, Golgi apparatus, and plasma membrane. These multiplexed stains are imaged across fluorescence channels using automated high-content microscopy, producing rich images that capture the morphology of individual cells for downstream analysis ([Bray et al., 2016](https://doi.org/10.1038/nprot.2016.105); [Gustafsdottir et al., 2013](https://doi.org/10.1371/journal.pone.0080999)).
 #
