@@ -5,42 +5,49 @@
 #       extension: .py
 #       format_name: light
 #       format_version: '1.5'
-#       jupytext_version: 1.17.1
+#       jupytext_version: 1.17.2
 #   kernelspec:
 #     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 # ---
 
-# # CytoTable mise en place
+# # CytoTable from the cloud (using cloud-based data sources)
 #
-# This notebook includes a quick demonstration of CytoTable to help you understand the basics of using this project.
+# ![image.png](attachment:57b05fac-35c8-4648-a6c9-a6bba89a22bf.png)
 #
-# The name of the notebook comes from the french _mise en place_:
-# > "Mise en place (French pronunciation: [mi zɑ̃ ˈplas]) is a French culinary phrase which means "putting in place"
-# > or "gather". It refers to the setup required before cooking, and is often used in professional kitchens to
-# > refer to organizing and arranging the ingredients ..."
-# > - [Wikipedia](https://en.wikipedia.org/wiki/Mise_en_place)
+# __Figure 1.__ _CytoTable is capable of reading feature data from cloud-based locations such as AWS S3._
+#
+# This notebook includes a quick demonstration of CytoTable with cloud-based data sources.
+# For a more general overview of using CytoTable and the concepts behind the work please see: [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html)
 
 # +
 import pathlib
 from collections import Counter
 
+import pandas as pd
 import pyarrow.parquet as pq
+from cloudpathlib import CloudPath, S3Client
+from IPython.display import Image, display
+from PIL import Image
 
 import cytotable
 
 # setup variables for use throughout the notebook
-source_path = "../../../tests/data/cellprofiler/examplehuman"
-dest_path = "./example.parquet"
+source_path = "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1"
+dest_path = "./cloud_example.parquet"
 # -
+
+# setup a source cloudpath using unsigned (anonymous) requests to AWS S3
+source_cloud_path = S3Client(no_sign_request=True).CloudPath(source_path)
+source_cloud_path
 
 # remove the dest_path if it's present
 if pathlib.Path(dest_path).is_file():
     pathlib.Path(dest_path).unlink()
 
 # show the files we will use as source data with CytoTable
-list(pathlib.Path(source_path).glob("*.csv"))
+list(source_cloud_path.glob("*"))
 
 # +
 # %%time
@@ -53,8 +60,10 @@ result = cytotable.convert(
     dest_datatype="parquet",
     # specify a preset which enables quick use of common input file formats
     preset="cellprofiler_csv",
+    # use unsigned (anonymous) requests to AWS S3
+    no_sign_request=True,
 )
-result.name
+print(pathlib.Path(result).name)
 # -
 
 # show the table head using pandas
