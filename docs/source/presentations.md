@@ -9,7 +9,7 @@ We document these presentations below.
 
 We presented these slides for a lightning talk at [ParslFest 2025](https://parsl-project.org/parslfest.html) in Chicago, IL (and online).
 
-<iframe src="presentations/ParslFest 2025 - CytoTable (lightning talk).pdf" width="100%" height="600px"></iframe>
+<iframe src="_static/presentations/ParslFest 2025 - CytoTable (lightning talk).pdf" width="100%" height="600px"></iframe>
 
 ## Poster - SBI<sup>2</sup> 2023
 
@@ -17,7 +17,7 @@ We presented these slides for a lightning talk at [ParslFest 2025](https://parsl
 
 We presented this poster  at [SBI<sup>2</sup>](https://sbi2.org/) 2023 in Boston, MA.
 
-<iframe src="presentations/cytotable_sbi2_2023.pdf" width="100%" height="600px"></iframe>
+<iframe src="_static/presentations/cytotable_sbi2_2023.pdf" width="100%" height="600px"></iframe>
 
 ## Poster - SciPy 2023
 
@@ -25,4 +25,4 @@ We presented this poster  at [SBI<sup>2</sup>](https://sbi2.org/) 2023 in Boston
 
 We presented this poster at [SciPy 2023](https://www.scipy2023.scipy.org/) in Austin, TX.
 
-<iframe src="presentations/cytotable_scipy_2023.pdf" width="100%" height="600px"></iframe>
+<iframe src="_static/presentations/cytotable_scipy_2023.pdf" width="100%" height="600px"></iframe>
