@@ -49,6 +49,12 @@
 <p>CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (<code class="docutils literal notranslate"><span class="pre">.csv</span></code> or <code class="docutils literal notranslate"><span class="pre">.sqlite</span></code>), cytominer-database (<code class="docutils literal notranslate"><span class="pre">.sqlite</span></code>), and DeepProfiler (<code class="docutils literal notranslate"><span class="pre">.npz</span></code>), and other sources such as IN Carta data output data at scale.
 CytoTable creates parquet files for both independent analysis and for input into <a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a>.
 The output files (such as <a class="reference external" href="https://parquet.apache.org/">Parquet</a> and <a class="reference external" href="https://github.com/scverse/anndata">anndata</a> file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).</p>
+<blockquote>
+<div><p>📔 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
+<a class="reference external" href="https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html">CytoTable mise en place (general overview)</a></p>
+<p>📓 Consider also checking out our demonstration notebook covering how to use cloud-based data sources with CytoTable.
+<a class="reference external" href="https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html">CytoTable mise en place (general overview)</a></p>
+</div></blockquote>
 <p>The name for the project is inspired from:</p>
 <ul class="simple">
 <li><p><strong>Cyto</strong>: “1. (biology) cell.” (<a class="reference external" href="https://en.wiktionary.org/wiki/cyto-">Wiktionary: Cyto-</a>)</p></li>
@@ -125,7 +131,13 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="examples/cytotable_mise_en_place.html">CytoTable mise en place</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/cytotable_mise_en_place_general_overview.html">CytoTable mise en place (general overview)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/cytotable_mise_en_place_general_overview.html#phase-1-cells-are-imaged-by-microscopes-with-optional-fluorescence-staining">Phase 1: Cells are imaged by microscopes, with optional fluorescence staining</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cytotable_mise_en_place_general_overview.html#phase-2-cellprofiler-segments-cells-and-measures-numeric-features">Phase 2: CellProfiler segments cells and measures numeric features</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cytotable_mise_en_place_general_overview.html#phase-3-cytotable-harmonizes-the-feature-datasets-that-cellprofiler-generates">Phase 3: CytoTable harmonizes the feature datasets that CellProfiler generates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/cytotable_from_the_cloud.html">CytoTable from the cloud (using cloud-based data sources)</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="presentations.html">Presentations</a><ul>
