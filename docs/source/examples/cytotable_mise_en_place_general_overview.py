@@ -15,8 +15,7 @@
 # %% [markdown]
 # # CytoTable mise en place (general overview)
 #
-# This notebook includes a quick demonstration of a common CytoTable workflow.
-# This notebook wil help you understand the basics of using CytoTable and the biological basis of each step.
+# This notebook will help you understand the basics of using CytoTable and the biological basis of each step.
 # We provide a high-level overview of the related concepts to give greater context about where and how the data are changed in order to gain new insights.
 #
 # The name of the notebook comes from the french _mise en place_:
