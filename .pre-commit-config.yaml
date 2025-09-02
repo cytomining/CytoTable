@@ -25,7 +25,7 @@ repos:
     -   id: codespell
         exclude: >
           (?x)^(
-              .*\.lock|.*\.csv|.*\.cff
+              .*\.lock|.*\.csv|.*\.cff|.*\.ipynb|.*\.cppipe
           )$
         additional_dependencies:
         -   tomli
@@ -70,7 +70,8 @@ repos:
         exclude: >
           (?x)(
               test_convert\.py$ |
-              cytotable_mise_en_place\.py$
+              cytotable_mise_en_place_general_overview\.py$ |
+              cytotable_from_the_cloud\.py$
           )
 -   repo: https://github.com/citation-file-format/cffconvert
     rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
