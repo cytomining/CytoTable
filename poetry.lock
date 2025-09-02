@@ -607,14 +607,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.40.17"
+version = "1.40.21"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "botocore-1.40.17-py3-none-any.whl", hash = "sha256:603951935c1a741ae70236bf15725c5293074f28503e7029ad0e24ece476a342"},
-    {file = "botocore-1.40.17.tar.gz", hash = "sha256:769cd04a6a612f2d48b5f456c676fd81733fab682870952f7e2887260ea6a2bc"},
+    {file = "botocore-1.40.21-py3-none-any.whl", hash = "sha256:574ecf9b68c1721650024a27e00e0080b6f141c281ebfce49e0d302969270ef4"},
+    {file = "botocore-1.40.21.tar.gz", hash = "sha256:f77e9c199df0252b14ea739a9ac99723940f6bde90f4c2e7802701553a62827b"},
 ]
 
 [package.dependencies]
@@ -850,14 +850,14 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudpathlib"
-version = "0.21.1"
+version = "0.22.0"
 description = "pathlib-style classes for cloud storage services."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "cloudpathlib-0.21.1-py3-none-any.whl", hash = "sha256:bfe580ad72ec030472ec233cd7380701b2d3227da7b2898387bd170aa70c803c"},
-    {file = "cloudpathlib-0.21.1.tar.gz", hash = "sha256:f26a855abf34d98f267aafd15efdb2db3c9665913dbabe5fad079df92837a431"},
+    {file = "cloudpathlib-0.22.0-py3-none-any.whl", hash = "sha256:2fdfaf5c4f85810ae8374d336d04dee371914d0e41a984695ae67308d7a5a009"},
+    {file = "cloudpathlib-0.22.0.tar.gz", hash = "sha256:6c0cb0ceab4f66a3a05a84055f9318fb8316cae5e096819f3f8e4be64feab6e9"},
 ]
 
 [package.dependencies]
@@ -2615,14 +2615,14 @@ test = ["hatch", "ipykernel", "openapi-core (>=0.18.0,<0.19.0)", "openapi-spec-v
 
 [[package]]
 name = "jupytext"
-version = "1.17.2"
+version = "1.17.3"
 description = "Jupyter notebooks as Markdown documents, Julia, Python or R scripts"
 optional = false
 python-versions = ">=3.9"
 groups = ["docs"]
 files = [
-    {file = "jupytext-1.17.2-py3-none-any.whl", hash = "sha256:4f85dc43bb6a24b75491c5c434001ad5ef563932f68f15dd3e1c8ce12a4a426b"},
-    {file = "jupytext-1.17.2.tar.gz", hash = "sha256:772d92898ac1f2ded69106f897b34af48ce4a85c985fa043a378ff5a65455f02"},
+    {file = "jupytext-1.17.3-py3-none-any.whl", hash = "sha256:09b0a94cd904416e823a5ba9f41bd181031215b6fc682d2b5c18e68354feb17c"},
+    {file = "jupytext-1.17.3.tar.gz", hash = "sha256:8b6dae76d63c95cad47b493c38f0d9c74491fb621dcd0980abfcac4c8f168679"},
 ]
 
 [package.dependencies]
@@ -2634,11 +2634,11 @@ pyyaml = "*"
 tomli = {version = "*", markers = "python_version < \"3.11\""}
 
 [package.extras]
-dev = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs (>=1.0)", "jupyter-server (!=2.11)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-cov (>=2.6.1)", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
+dev = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs[fs] (>=1.0)", "jupyter-server (!=2.11)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-cov (>=2.6.1)", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
 docs = ["myst-parser", "sphinx", "sphinx-copybutton", "sphinx-rtd-theme"]
 test = ["pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist"]
 test-cov = ["black", "ipykernel", "jupyter-server (!=2.11)", "nbconvert", "pytest", "pytest-asyncio", "pytest-cov (>=2.6.1)", "pytest-randomly", "pytest-xdist"]
-test-external = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs (>=1.0)", "jupyter-server (!=2.11)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
+test-external = ["autopep8", "black", "flake8", "gitpython", "ipykernel", "isort", "jupyter-fs[fs] (>=1.0)", "jupyter-server (!=2.11)", "nbconvert", "pre-commit", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist", "sphinx", "sphinx-gallery (>=0.8)"]
 test-functional = ["black", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist"]
 test-integration = ["black", "ipykernel", "jupyter-server (!=2.11)", "nbconvert", "pytest", "pytest-asyncio", "pytest-randomly", "pytest-xdist"]
 test-ui = ["bash-kernel"]
@@ -3403,14 +3403,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.8.18"
+version = "2025.9.1"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.9.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2025.8.18-py3-none-any.whl", hash = "sha256:055017770e828f0bc93ba10546fbd1edac13148813bd8af9c7bef259434f89fd"},
-    {file = "parsl-2025.8.18.tar.gz", hash = "sha256:968161eff2d93a47dab880191d6a6d3ee9d58f2a9b0438fa7ef78dbf91934b4f"},
+    {file = "parsl-2025.9.1-py3-none-any.whl", hash = "sha256:d654eaac1a60d710a2b5ba8e0a65023ef273b08e5a19516a7417e930a29be26c"},
+    {file = "parsl-2025.9.1.tar.gz", hash = "sha256:83617cd4a8f0d95c75f3b51e18fadec834f9ae38917684e9f978b14c47d993bf"},
 ]
 
 [package.dependencies]
@@ -5424,4 +5424,4 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-it
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "f16641ff11ff5554ef94d76398b7df8453572d8987162fd9756de5a5c8f0ef98"
+content-hash = "9865ad2852dc90c6cc5e1ca73d259ae5e9746e753639f8c0878b80b5d218153a"
