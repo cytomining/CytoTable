@@ -13,17 +13,17 @@ _Diagram showing data flow relative to this project._
 
 ## Summary
 
-CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), and DeepProfiler (`.npz`), and other sources such as IN Carta data output data at scale.
+CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), and DeepProfiler (`.npz`), and other sources such as IN Carta output data at scale.
 CytoTable creates parquet files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
 The output files (such as [Parquet](https://parquet.apache.org/) and [anndata](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
 
-> 📔 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
+> 📔🧑‍🏫 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
 > [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html)
 >
-> 📓 Consider also checking out our demonstration notebook covering how to use cloud-based data sources with CytoTable.
-> [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)
+> 📓☁️ Consider also checking out our demonstration notebook covering how to use cloud-based data sources with CytoTable.
+> [CytoTable from the cloud (cloud-based overview)](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)
 
-The name for the project is inspired from:
+The name for the project is inspired by:
 
 - __Cyto__: "1. (biology) cell." ([Wiktionary: Cyto-](https://en.wiktionary.org/wiki/cyto-))
 - __Table__:
@@ -61,7 +61,7 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 
 ## References
 
-- [pycytominer](https://github.com/cytomining/pycytominer)
+- [Pycytominer](https://github.com/cytomining/pycytominer)
 - [cytominer-database](https://github.com/cytomining/cytominer-database)
 - [DeepProfiler](https://github.com/cytomining/DeepProfiler)
 - [CellProfiler](https://github.com/CellProfiler/CellProfiler)
