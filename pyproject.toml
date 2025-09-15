@@ -42,7 +42,7 @@ zarr = [
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=7.4,<9.0"
-pytest-cov = ">=4.1,<7.0"
+pytest-cov = ">=4.1,<8.0"
 cytominer-database = "^0.3.4"
 pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
