@@ -101,7 +101,7 @@ def _get_table_columns_and_types(
                 ddb_reader.execute(
                     select_query.replace("&select_source", select_source)
                 )
-                .arrow()
+                .fetch_arrow_table()
                 .to_pylist()
             )
 
@@ -122,7 +122,7 @@ def _get_table_columns_and_types(
                     ddb_reader.execute(
                         select_query.replace("&select_source", "arrow_data_tbl")
                     )
-                    .arrow()
+                    .fetch_arrow_table()
                     .to_pylist()
                 )
         else:
@@ -509,7 +509,7 @@ def _source_pageset_to_parquet(
                     /* optional ordering per pageset */
                     {"ORDER BY " + source['page_key'] if sort_output else ""};
                     """
-                ).arrow(),
+                ).fetch_arrow_table(),
                 where=result_filepath,
             )
     # Include exception handling to read mixed-type data
@@ -925,7 +925,7 @@ def _join_source_pageset(
             /* optional sorting per pagset */
             {"ORDER BY " + page_key if sort_output else ""};
             """
-        ).arrow()
+        ).fetch_arrow_table()
 
     # drop nulls if specified
     if drop_null:

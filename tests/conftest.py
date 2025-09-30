@@ -500,7 +500,7 @@ def fixture_cellprofiler_merged_examplehuman(
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
         """
         )
-        .arrow()
+        .fetch_arrow_table()
     )
 
     # reversed order column check as col removals will change index order
@@ -566,7 +566,7 @@ def fixture_cellprofiler_merged_nf1data(
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
         """
         )
-        .arrow()
+        .fetch_arrow_table()
         .drop_null()
     )
 

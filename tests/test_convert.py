@@ -691,7 +691,7 @@ def test_run_export_workflow(
                 ignore_errors=TRUE)
                 """
             )
-            .arrow()
+            .fetch_arrow_table()
         )
         parquet_result = parquet.ParquetDataset(
             path_or_paths=flattened_result["table"],
@@ -756,7 +756,7 @@ def test_run_export_workflow_unsorted(
                 ignore_errors=TRUE)
                 """
             )
-            .arrow()
+            .fetch_arrow_table()
         )
         parquet_result = parquet.ParquetDataset(
             path_or_paths=flattened_result["table"],
@@ -1354,7 +1354,7 @@ def test_in_carta_to_parquet(
                 SELECT *
                 FROM read_csv_auto('{data_dir}/*.csv')
                 """
-            ).arrow()
+            ).fetch_arrow_table()
 
         # process the data with cytotable using in-carta preset
         cytotable_result = convert(
