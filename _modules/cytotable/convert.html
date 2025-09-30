@@ -143,7 +143,7 @@ window.addEventListener("load", () => mermaid.run());
                 <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                     <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="n">select_source</span><span class="p">)</span>
                 <span class="p">)</span>
-                <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+                <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
                 <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
             <span class="p">)</span>
 
@@ -164,7 +164,7 @@ window.addEventListener("load", () => mermaid.run());
                     <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
                         <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow_data_tbl&quot;</span><span class="p">)</span>
                     <span class="p">)</span>
-                    <span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
                     <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -551,7 +551,7 @@ window.addEventListener("load", () => mermaid.run());
 <span class="s2">                    /* optional ordering per pageset */</span>
 <span class="s2">                    </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;page_key&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
 <span class="s2">                    &quot;&quot;&quot;</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">(),</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">(),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
     <span class="c1"># Include exception handling to read mixed-type data</span>
@@ -967,7 +967,7 @@ window.addEventListener("load", () => mermaid.run());
 <span class="s2">            /* optional sorting per pagset */</span>
 <span class="s2">            </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
 <span class="s2">            &quot;&quot;&quot;</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">arrow</span><span class="p">()</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
 
     <span class="c1"># drop nulls if specified</span>
     <span class="k">if</span> <span class="n">drop_null</span><span class="p">:</span>

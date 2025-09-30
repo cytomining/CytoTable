@@ -181,7 +181,7 @@ window.addEventListener("load", () => mermaid.run());
 <span class="sd">                        &quot;&quot;&quot;</span><span class="p">,</span>
                         <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])],</span>
                     <span class="p">)</span>
-                    <span class="o">.</span><span class="n">arrow</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
+                    <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
                     <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
                     <span class="c1"># make sure the table names match with compartment + metadata names</span>
                     <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
