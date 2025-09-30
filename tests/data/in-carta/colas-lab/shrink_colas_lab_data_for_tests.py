@@ -29,7 +29,7 @@ for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
                     FROM read_csv_auto('{data_file}')
                     """
                 )
-                .arrow()
+                .fetch_arrow_table()
                 .schema,
             }
         )
@@ -65,7 +65,7 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
                 /* select rows C and D to limit the dataset */
                 AND data_file."ROW" in ('C', 'D')
                 """
-            ).arrow(),
+            ).fetch_arrow_table(),
             # output the filtered data as a CSV to a new location
             output_file=(
                 f"{TARGET_DATA_DIR}/{OUTPUT_FILENAME}"

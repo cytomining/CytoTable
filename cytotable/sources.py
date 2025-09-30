@@ -134,7 +134,7 @@ def _get_source_filepaths(
                         """,
                         parameters=[str(element["source_path"])],
                     )
-                    .arrow()["table_name"]
+                    .fetch_arrow_table()["table_name"]
                     .to_pylist()
                     # make sure the table names match with compartment + metadata names
                     if targets is not None
