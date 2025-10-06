@@ -47,7 +47,7 @@ cytominer-database = "^0.3.4"
 pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
 botocore = "^1.34.133"        # added to help avoid dependency reolution issues
-pillow = "^11.3.0"          # added to help visualize images within examples
+pillow = "^11.3.0"            # added to help visualize images within examples
 
 [tool.poetry.group.docs.dependencies]
 jupyterlab = "^4.4.3"
