@@ -246,6 +246,8 @@ references:
   - title: >-
       cpg0043-segmentation Cell Painting Gallery dataset
     type: data
+    authors:
+      - name: "Cell Painting Gallery Team"
     url: https://registry.opendata.aws/cellpainting-gallery
     notes: >-
       Segmentation output corresponding to the cpg0043 dataset in the Cell Painting Gallery.
