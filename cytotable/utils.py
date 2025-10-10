@@ -5,12 +5,16 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
-from typing import Any, Dict, List, Optional, Tuple, Union, cast
+from pathlib import Path, PurePosixPath
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 
+import boto3
 import duckdb
 import parsl
 import pyarrow as pa
-from cloudpathlib import AnyPath, CloudPath
+from botocore import UNSIGNED
+from botocore.config import Config as BotoConfig
+from cloudpathlib import AnyPath, CloudPath, S3Client, S3Path
 from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
 from parsl.config import Config
@@ -922,3 +926,132 @@ def find_anndata_metadata_field_names(
     ]
 
     return numeric_fields, non_numeric_fields
+
+
+def cloud_glob(
+    start: Union[str, CloudPath, Path],
+    pattern: str,
+    max_matches: Optional[int] = None,
+    cp_client: Optional[S3Client] = None,
+    boto_s3_client=None,
+) -> Iterator[Union[CloudPath, Path]]:
+    """
+    Globs under `start` and yields matching paths.
+    We provide cloud-platform specific optimizations
+    as needed based on platform SDK's.
+
+    Behavior by input type:
+      - S3 (cloudpathlib S3Path or 's3://...'):
+          Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.
+      - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):
+          Fallback to CloudPath.glob(pattern), yielding CloudPath.
+      - Local filesystem (pathlib.Path or non-s3 string):
+          Fallback to Path.glob(pattern), yielding pathlib.Path.
+
+    Args:
+        start:
+            CloudPath, pathlib.Path, or URI string.
+        pattern:
+            Glob pattern *relative to* `start` (supports ** for S3 branch).
+        max_matches:
+            Optional cap on yielded results.
+        cp_client:
+            cloudpathlib S3Client (unsigned recommended).
+        boto_s3_client:
+            boto3 S3 client (unsigned recommended).
+
+    Yields:
+        cloudpathlib.S3Path for S3;
+        CloudPath for other cloud providers;
+        pathlib.Path for local.
+    """
+
+    def _ensure_trailing_slash(s: str) -> str:
+        return s if s.endswith("/") else s + "/"
+
+    def _matches(rel: str, pat: str) -> bool:
+        """
+        Pathlib semantics: '**/*.csv' does NOT match 'file.csv'.
+        If pattern starts with '**/', also try the root-level variant(s).
+        """
+        if PurePosixPath(rel).match(pat):
+            return True
+        # if pattern starts with one or more '**/', progressively strip them
+        # so '**/*.csv' also tries '*.csv', etc.
+        while pat.startswith("**/"):
+            pat = pat[3:]
+            if PurePosixPath(rel).match(pat):
+                return True
+        return False
+
+    # ---- Branch 1: already a CloudPath ----
+    if isinstance(start, CloudPath):
+        cp = start
+        if isinstance(cp, S3Path):
+            s3cli = boto_s3_client or boto3.client(
+                "s3", config=BotoConfig(signature_version=UNSIGNED)
+            )
+            s3_cp_client = cp_client or S3Client(no_sign_request=True)
+
+            bucket = cp.bucket
+            base_prefix = _ensure_trailing_slash(cp.key)
+
+            paginator = s3cli.get_paginator("list_objects_v2")
+            yielded = 0
+            for page in paginator.paginate(Bucket=bucket, Prefix=base_prefix):
+                for obj in page.get("Contents") or []:
+                    key = obj["Key"]
+                    rel = (
+                        key[len(base_prefix) :] if key.startswith(base_prefix) else key
+                    )
+                    if _matches(rel, pattern):
+                        yield S3Path(f"s3://{bucket}/{key}", client=s3_cp_client)
+                        yielded += 1
+                        if max_matches is not None and yielded >= max_matches:
+                            return
+            return
+
+        # Non-S3 CloudPath fallback
+        yielded = 0
+        for child in cp.glob(pattern):
+            yield child
+            yielded += 1
+            if max_matches is not None and yielded >= max_matches:
+                return
+        return
+
+    # ---- Branch 2: local Path ----
+    if isinstance(start, Path):
+        yielded = 0
+        for child in start.glob(pattern):
+            yield child
+            yielded += 1
+            if max_matches is not None and yielded >= max_matches:
+                return
+        return
+
+    # ---- Branch 3: string path ----
+    if isinstance(start, str):
+        if start.startswith("s3://"):
+            s3_cp_client = cp_client or S3Client(no_sign_request=True)
+            cp_root = s3_cp_client.CloudPath(start)
+            # re-enter CloudPath branch
+            yield from cloud_glob(
+                cp_root,
+                pattern,
+                max_matches=max_matches,
+                cp_client=s3_cp_client,
+                boto_s3_client=boto_s3_client,
+            )
+            return
+        else:
+            base = Path(start)
+            yielded = 0
+            for child in base.glob(pattern):
+                yield child
+                yielded += 1
+                if max_matches is not None and yielded >= max_matches:
+                    return
+            return
+
+    raise TypeError(f"Unsupported path type: {type(start)!r}")

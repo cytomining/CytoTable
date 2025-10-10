@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 from cloudpathlib import AnyPath
 
 from cytotable.exceptions import NoInputDataException
+from cytotable.utils import cloud_glob
 
 
 def _build_path(path: str, **kwargs) -> Union[pathlib.Path, AnyPath]:
@@ -91,7 +92,7 @@ def _get_source_filepaths(
             # used if the source path is a single file
             if path.is_file()
             # iterates through a source directory
-            else (x for x in path.glob("**/*") if x.is_file())
+            else (x for x in cloud_glob(start=str(path), pattern="**/*") if x.is_file())
         )
         # ensure the subpaths meet certain specifications
         if (

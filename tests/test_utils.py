@@ -2,7 +2,10 @@
 Testing CytoTable utility functions found within util.py
 """
 
+# pylint: disable=C0301
+
 import pathlib
+from typing import List
 
 import pandas as pd
 import pyarrow as pa
@@ -11,6 +14,7 @@ import pytest
 from cytotable.utils import (
     _generate_pagesets,
     _natural_sort,
+    cloud_glob,
     find_anndata_metadata_field_names,
     map_pyarrow_type,
 )
@@ -184,3 +188,66 @@ def test_find_anndata_metadata_field_names(tmp_path: pathlib.Path):
 
     assert numeric_colnames == ["feature1", "feature2"]
     assert nonnumeric_colnames == ["feature3", "obs1", "obs2"]
+
+
+@pytest.mark.parametrize(
+    "root_path, max_matches, expected_result",
+    [
+        # local data
+        (
+            "tests/data/cellprofiler/ExampleHuman",
+            None,
+            [
+                "tests/data/cellprofiler/ExampleHuman/Cells.csv",
+                "tests/data/cellprofiler/ExampleHuman/Cytoplasm.csv",
+                "tests/data/cellprofiler/ExampleHuman/Experiment.csv",
+                "tests/data/cellprofiler/ExampleHuman/Image.csv",
+                "tests/data/cellprofiler/ExampleHuman/Nuclei.csv",
+                "tests/data/cellprofiler/ExampleHuman/PH3.csv",
+            ],
+        ),
+        # large directory of nested results on AWS S3
+        (
+            "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/",
+            10,
+            [
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/BR00116991_A01_1/load_data_Cells_BoundingBox_Overlap.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/BR00116991_A01_1/load_data_Nuclei_BoundingBox_Overlap.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_BoundingBox_First.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_BoundingBox_Overlap.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_Cellpose3.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_Donut_Large.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_Donut_Small.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_HighThresh.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_LowThresh.csv",
+            ],
+        ),
+        # small directory of flat results (only the root contains csv's) on AWS S3
+        (
+            "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/",
+            None,
+            [
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Cells.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Cytoplasm.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Experiment.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Image.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Nuclei.csv",
+            ],
+        ),
+    ],
+)
+def test_cloud_glob(root_path: str, max_matches: int, expected_result: List[str]):
+    """
+    Testing cloud_glob utility function.
+    """
+
+    # check that our results match expected
+    assert sorted(
+        [
+            str(p)
+            for p in cloud_glob(
+                start=root_path, pattern="**/*.csv", max_matches=max_matches
+            )
+        ]
+    ) == sorted(expected_result)

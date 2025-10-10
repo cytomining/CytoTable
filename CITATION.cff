@@ -243,3 +243,18 @@ references:
       - description: "Github Link with Contributors"
         type: url
         value: "https://github.com/cytomining/pycytominer/graphs/contributors"
+  - title: >-
+      cpg0043-segmentation Cell Painting Gallery dataset
+    type: data
+    authors:
+      - name: "Cell Painting Gallery Team"
+    url: https://registry.opendata.aws/cellpainting-gallery
+    notes: >-
+      Segmentation output corresponding to the cpg0043 dataset in the Cell Painting Gallery.
+      This dataset is part of the Cell Painting Gallery open resource.
+      Use this when referencing segmentation-level data derived from the cpg0043 dataset.
+      The full path to the specific data used in this project is:
+      s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/
+    identifiers:
+      - type: "url"
+        value: "https://registry.opendata.aws/cellpainting-gallery"

@@ -446,3 +446,20 @@ def test_convert_export_to_anndata(
     assert test_result.shape == control_result.shape
     assert test_result.schema == control_result.schema
     assert test_result.equals(control_result)
+
+
+def test_convert_nested_dirs(fx_tempdir: pathlib.Path):
+    """
+    Tests convert with cpg0043 data to ensure no errors
+    occur during processing for nested data.
+    """
+
+    result = convert(
+        source_path="tests/data/cellprofiler/cpg0043-segmentation",
+        dest_path=f"{fx_tempdir}/cpg0043_segmentation.parquet",
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+    )
+
+    table = parquet.read_table(source=result)
+    assert table.shape == (397, 6049)
