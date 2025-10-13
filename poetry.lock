@@ -608,14 +608,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.40.45"
+version = "1.40.50"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "dev"]
 files = [
-    {file = "botocore-1.40.45-py3-none-any.whl", hash = "sha256:9abf473d8372ade8442c0d4634a9decb89c854d7862ffd5500574eb63ab8f240"},
-    {file = "botocore-1.40.45.tar.gz", hash = "sha256:cf8b743527a2a7e108702d24d2f617e93c6dc7ae5eb09aadbe866f15481059df"},
+    {file = "botocore-1.40.50-py3-none-any.whl", hash = "sha256:53126c153fae0670dc54f03d01c89b1af144acedb1020199b133dedb309e434d"},
+    {file = "botocore-1.40.50.tar.gz", hash = "sha256:1d3d5b5759c9cb30202cd5ad231ec8afb1abe5be0c088a1707195c2cbae0e742"},
 ]
 
 [package.dependencies]
@@ -851,14 +851,14 @@ colorama = {version = "*", markers = "platform_system == \"Windows\""}
 
 [[package]]
 name = "cloudpathlib"
-version = "0.22.0"
+version = "0.23.0"
 description = "pathlib-style classes for cloud storage services."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "cloudpathlib-0.22.0-py3-none-any.whl", hash = "sha256:2fdfaf5c4f85810ae8374d336d04dee371914d0e41a984695ae67308d7a5a009"},
-    {file = "cloudpathlib-0.22.0.tar.gz", hash = "sha256:6c0cb0ceab4f66a3a05a84055f9318fb8316cae5e096819f3f8e4be64feab6e9"},
+    {file = "cloudpathlib-0.23.0-py3-none-any.whl", hash = "sha256:8520b3b01468fee77de37ab5d50b1b524ea6b4a8731c35d1b7407ac0cd716002"},
+    {file = "cloudpathlib-0.23.0.tar.gz", hash = "sha256:eb38a34c6b8a048ecfd2b2f60917f7cbad4a105b7c979196450c2f541f4d6b4b"},
 ]
 
 [package.dependencies]
@@ -5468,4 +5468,4 @@ test = ["big-O", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-it
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.14"
-content-hash = "df0306be2ea44627fabdae5894d1637d0ce01c24189b3e6322adfdb6766bd34d"
+content-hash = "7d2ea3aa6f5938c14f0fa517072ed980839cfe15fb239633b15bf39e0e3ba211"
