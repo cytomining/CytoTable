@@ -16,7 +16,7 @@ documentation = "https://cytomining.github.io/CytoTable/"
 keywords = [ "python", "cellprofiler", "single-cell-analysis", "way-lab" ]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.14"
+python = ">=3.10,<3.14"
 pyarrow = ">=13.0.0"
 cloudpathlib = { extras = [ "all", "s3" ], version = ">=0.18,<0.24" }
 duckdb = ">=0.8.0,!=0.10.0,>=0.10.1"
