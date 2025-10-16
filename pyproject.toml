@@ -18,7 +18,7 @@ keywords = [ "python", "cellprofiler", "single-cell-analysis", "way-lab" ]
 [tool.poetry.dependencies]
 python = ">=3.9,<3.14"
 pyarrow = ">=13.0.0"
-cloudpathlib = { extras = [ "all", "s3" ], version = ">=0.18,<0.23" }
+cloudpathlib = { extras = [ "all", "s3" ], version = ">=0.18,<0.24" }
 duckdb = ">=0.8.0,!=0.10.0,>=0.10.1"
 parsl = ">=2023.9.25"
 numpy = [
@@ -47,6 +47,7 @@ pytest-cov = ">=4.1,<8.0"
 cytominer-database = "^0.3.4"
 pycytominer = "^1.1.0"
 dunamai = "^1.19.0"
+pillow = "^11.3.0"            # added to help visualize images within examples
 
 [tool.poetry.group.docs.dependencies]
 jupyterlab = "^4.4.3"
