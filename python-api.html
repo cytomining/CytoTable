@@ -1111,6 +1111,50 @@ examples of what to expect here:
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils.cloud_glob">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">cloud_glob</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">CloudPath</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_matches</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp_client</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">S3Client</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boto_s3_client</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">CloudPath</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#cloud_glob"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils.cloud_glob" title="Link to this definition">¶</a></dt>
+<dd><p>Globs under <cite>start</cite> and yields matching paths.
+We provide cloud-platform specific optimizations
+as needed based on platform SDK’s.</p>
+<dl class="simple">
+<dt>Behavior by input type:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>S3 (cloudpathlib S3Path or ‘s3://…’):</dt><dd><p>Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):</dt><dd><p>Fallback to CloudPath.glob(pattern), yielding CloudPath.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>Local filesystem (pathlib.Path or non-s3 string):</dt><dd><p>Fallback to Path.glob(pattern), yielding pathlib.Path.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – CloudPath, pathlib.Path, or URI string.</p></li>
+<li><p><strong>pattern</strong> – Glob pattern <em>relative to</em> <cite>start</cite> (supports ** for S3 branch).</p></li>
+<li><p><strong>max_matches</strong> – Optional cap on yielded results.</p></li>
+<li><p><strong>cp_client</strong> – cloudpathlib S3Client (unsigned recommended).</p></li>
+<li><p><strong>boto_s3_client</strong> – boto3 S3 client (unsigned recommended).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p>cloudpathlib.S3Path for S3;
+CloudPath for other cloud providers;
+pathlib.Path for local.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils.evaluate_futures">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">evaluate_futures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#evaluate_futures"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils.evaluate_futures" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluates any Parsl futures for use within other tasks.
@@ -1328,6 +1372,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._write_parquet_table_with_metadata"><code class="docutils literal notranslate"><span class="pre">_write_parquet_table_with_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.cloud_glob"><code class="docutils literal notranslate"><span class="pre">cloud_glob()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.evaluate_futures"><code class="docutils literal notranslate"><span class="pre">evaluate_futures()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.find_anndata_metadata_field_names"><code class="docutils literal notranslate"><span class="pre">find_anndata_metadata_field_names()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.map_pyarrow_type"><code class="docutils literal notranslate"><span class="pre">map_pyarrow_type()</span></code></a></li>

@@ -47,12 +47,16 @@ window.addEventListener("load", () => mermaid.run());
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span><span class="p">,</span> <span class="n">PurePosixPath</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
+<span class="kn">import</span> <span class="nn">boto3</span>
 <span class="kn">import</span> <span class="nn">duckdb</span>
 <span class="kn">import</span> <span class="nn">parsl</span>
 <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
+<span class="kn">from</span> <span class="nn">botocore</span> <span class="kn">import</span> <span class="n">UNSIGNED</span>
+<span class="kn">from</span> <span class="nn">botocore.config</span> <span class="kn">import</span> <span class="n">Config</span> <span class="k">as</span> <span class="n">BotoConfig</span>
+<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">,</span> <span class="n">S3Client</span><span class="p">,</span> <span class="n">S3Path</span>
 <span class="kn">from</span> <span class="nn">cloudpathlib.exceptions</span> <span class="kn">import</span> <span class="n">InvalidPrefixError</span>
 <span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">AppBase</span>
 <span class="kn">from</span> <span class="nn">parsl.config</span> <span class="kn">import</span> <span class="n">Config</span>
@@ -1023,6 +1027,138 @@ window.addEventListener("load", () => mermaid.run());
     <span class="p">]</span>
 
     <span class="k">return</span> <span class="n">numeric_fields</span><span class="p">,</span> <span class="n">non_numeric_fields</span></div>
+
+
+
+<div class="viewcode-block" id="cloud_glob">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils.cloud_glob">[docs]</a>
+<span class="k">def</span> <span class="nf">cloud_glob</span><span class="p">(</span>
+    <span class="n">start</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">max_matches</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">cp_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">S3Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">boto_s3_client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CloudPath</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Globs under `start` and yields matching paths.</span>
+<span class="sd">    We provide cloud-platform specific optimizations</span>
+<span class="sd">    as needed based on platform SDK&#39;s.</span>
+
+<span class="sd">    Behavior by input type:</span>
+<span class="sd">      - S3 (cloudpathlib S3Path or &#39;s3://...&#39;):</span>
+<span class="sd">          Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.</span>
+<span class="sd">      - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):</span>
+<span class="sd">          Fallback to CloudPath.glob(pattern), yielding CloudPath.</span>
+<span class="sd">      - Local filesystem (pathlib.Path or non-s3 string):</span>
+<span class="sd">          Fallback to Path.glob(pattern), yielding pathlib.Path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        start:</span>
+<span class="sd">            CloudPath, pathlib.Path, or URI string.</span>
+<span class="sd">        pattern:</span>
+<span class="sd">            Glob pattern *relative to* `start` (supports ** for S3 branch).</span>
+<span class="sd">        max_matches:</span>
+<span class="sd">            Optional cap on yielded results.</span>
+<span class="sd">        cp_client:</span>
+<span class="sd">            cloudpathlib S3Client (unsigned recommended).</span>
+<span class="sd">        boto_s3_client:</span>
+<span class="sd">            boto3 S3 client (unsigned recommended).</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        cloudpathlib.S3Path for S3;</span>
+<span class="sd">        CloudPath for other cloud providers;</span>
+<span class="sd">        pathlib.Path for local.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_ensure_trailing_slash</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">s</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_matches</span><span class="p">(</span><span class="n">rel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pat</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pathlib semantics: &#39;**/*.csv&#39; does NOT match &#39;file.csv&#39;.</span>
+<span class="sd">        If pattern starts with &#39;**/&#39;, also try the root-level variant(s).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">rel</span><span class="p">)</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pat</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="c1"># if pattern starts with one or more &#39;**/&#39;, progressively strip them</span>
+        <span class="c1"># so &#39;**/*.csv&#39; also tries &#39;*.csv&#39;, etc.</span>
+        <span class="k">while</span> <span class="n">pat</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;**/&quot;</span><span class="p">):</span>
+            <span class="n">pat</span> <span class="o">=</span> <span class="n">pat</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+            <span class="k">if</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">rel</span><span class="p">)</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pat</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># ---- Branch 1: already a CloudPath ----</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
+        <span class="n">cp</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">S3Path</span><span class="p">):</span>
+            <span class="n">s3cli</span> <span class="o">=</span> <span class="n">boto_s3_client</span> <span class="ow">or</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
+                <span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">BotoConfig</span><span class="p">(</span><span class="n">signature_version</span><span class="o">=</span><span class="n">UNSIGNED</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">s3_cp_client</span> <span class="o">=</span> <span class="n">cp_client</span> <span class="ow">or</span> <span class="n">S3Client</span><span class="p">(</span><span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">bucket</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">bucket</span>
+            <span class="n">base_prefix</span> <span class="o">=</span> <span class="n">_ensure_trailing_slash</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
+
+            <span class="n">paginator</span> <span class="o">=</span> <span class="n">s3cli</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;list_objects_v2&quot;</span><span class="p">)</span>
+            <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Prefix</span><span class="o">=</span><span class="n">base_prefix</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Contents&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;Key&quot;</span><span class="p">]</span>
+                    <span class="n">rel</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">base_prefix</span><span class="p">)</span> <span class="p">:]</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_prefix</span><span class="p">)</span> <span class="k">else</span> <span class="n">key</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">_matches</span><span class="p">(</span><span class="n">rel</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+                        <span class="k">yield</span> <span class="n">S3Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">s3_cp_client</span><span class="p">)</span>
+                        <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>
+                            <span class="k">return</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Non-S3 CloudPath fallback</span>
+        <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">cp</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">child</span>
+            <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>
+                <span class="k">return</span>
+        <span class="k">return</span>
+
+    <span class="c1"># ---- Branch 2: local Path ----</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
+        <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">start</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">child</span>
+            <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>
+                <span class="k">return</span>
+        <span class="k">return</span>
+
+    <span class="c1"># ---- Branch 3: string path ----</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">start</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+            <span class="n">s3_cp_client</span> <span class="o">=</span> <span class="n">cp_client</span> <span class="ow">or</span> <span class="n">S3Client</span><span class="p">(</span><span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">cp_root</span> <span class="o">=</span> <span class="n">s3_cp_client</span><span class="o">.</span><span class="n">CloudPath</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="c1"># re-enter CloudPath branch</span>
+            <span class="k">yield from</span> <span class="n">cloud_glob</span><span class="p">(</span>
+                <span class="n">cp_root</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="p">,</span>
+                <span class="n">max_matches</span><span class="o">=</span><span class="n">max_matches</span><span class="p">,</span>
+                <span class="n">cp_client</span><span class="o">=</span><span class="n">s3_cp_client</span><span class="p">,</span>
+                <span class="n">boto_s3_client</span><span class="o">=</span><span class="n">boto_s3_client</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">child</span>
+                <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>
+                    <span class="k">return</span>
+            <span class="k">return</span>
+
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported path type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 </pre></div>
 
