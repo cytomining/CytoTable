@@ -13,9 +13,12 @@ _Diagram showing data flow relative to this project._
 
 ## Summary
 
-CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), and DeepProfiler (`.npz`), and other sources such as IN Carta output data at scale.
-CytoTable creates parquet files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
-The output files (such as [Parquet](https://parquet.apache.org/) and [anndata](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
+Image-based profiling often entails preparing data for analysis by transforming the outputs of image analysis tools into a consistent, analysis-ready format.
+CytoTable streamlines analyses by harmonizing CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), DeepProfiler (`.npz`), or other sources such as IN Carta output data at scale.
+This helps biologists by lowering the barrier between image acquisition and data interpretation, enabling them to focus on biological insights rather than file formats or data wrangling.
+
+CytoTable creates Parquet or AnnData files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
+The output files (such as [Parquet](https://parquet.apache.org/) and [AnnData](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
 
 > 📔🧑‍🏫 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
 > [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html)
