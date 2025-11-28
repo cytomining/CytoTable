@@ -50,7 +50,7 @@ repos:
     hooks:
     -   id: blacken-docs
 -   repo: https://github.com/PyCQA/bandit
-    rev: 1.8.6
+    rev: 1.9.2
     hooks:
     -   id: bandit
         args: ["-c", "pyproject.toml"]
@@ -82,7 +82,7 @@ repos:
     hooks:
     -   id: almanack-check
 -   repo: https://github.com/PyCQA/pylint
-    rev: v4.0.2
+    rev: v4.0.3
     hooks:
     -   id: pylint
         name: pylint
