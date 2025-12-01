@@ -98,7 +98,11 @@ def _get_source_filepaths(
                     start=path,
                     pattern="**/*",
                     # preserve cloud client (and its cache settings) when globbing
-                    **({"cp_client": path.client} if isinstance(path, CloudPath) else {}),
+                    **(
+                        {"cp_client": path.client}
+                        if isinstance(path, CloudPath)
+                        else {}
+                    ),
                 )
                 if x.is_file()
             )
