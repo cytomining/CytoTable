@@ -559,14 +559,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.41.2"
+version = "1.41.6"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "botocore-1.41.2-py3-none-any.whl", hash = "sha256:154052dfaa7292212f01c8fab822c76cd10a15a7e164e4c45e4634eb40214b90"},
-    {file = "botocore-1.41.2.tar.gz", hash = "sha256:49a3e8f4c1a1759a687941fef8b36efd7bafcf63c1ef74aa75d6497eb4887c9c"},
+    {file = "botocore-1.41.6-py3-none-any.whl", hash = "sha256:963cc946e885acb941c96e7d343cb6507b479812ca22566ceb3e9410d0588de0"},
+    {file = "botocore-1.41.6.tar.gz", hash = "sha256:08fe47e9b306f4436f5eaf6a02cb6d55c7745d13d2d093ce5d917d3ef3d3df75"},
 ]
 
 [package.dependencies]
@@ -575,7 +575,7 @@ python-dateutil = ">=2.1,<3.0.0"
 urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >= \"3.10\""}
 
 [package.extras]
-crt = ["awscrt (==0.28.4)"]
+crt = ["awscrt (==0.29.1)"]
 
 [[package]]
 name = "cachetools"
@@ -3224,14 +3224,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2025.11.17"
+version = "2025.11.24"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.10.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2025.11.17-py3-none-any.whl", hash = "sha256:beffcc23c5dae76a9253316fe58e85c03c965632688cf140571a37d1239c2e28"},
-    {file = "parsl-2025.11.17.tar.gz", hash = "sha256:6c80d150f5e497c615c35721894b1532911bcef0d347994fcccc3a7e04185e46"},
+    {file = "parsl-2025.11.24-py3-none-any.whl", hash = "sha256:10b4f8cfee68ea4e7251bd3926f5563d71b6a5d700d55d1d0110b996bab08329"},
+    {file = "parsl-2025.11.24.tar.gz", hash = "sha256:80cb2db11d50ab10ddb5f9ec51a46400ffc1342ffeaabcfcd4a5a04c263e683c"},
 ]
 
 [package.dependencies]
@@ -4782,14 +4782,14 @@ test = ["flake8", "mypy", "pytest"]
 
 [[package]]
 name = "sphinxcontrib-mermaid"
-version = "1.2.2"
+version = "1.2.3"
 description = "Mermaid diagrams in yours Sphinx powered docs"
 optional = false
 python-versions = ">=3.8"
 groups = ["docs"]
 files = [
-    {file = "sphinxcontrib_mermaid-1.2.2-py3-none-any.whl", hash = "sha256:51655f592300fc70e73b3ef2007cfc44fac11da5ff1f15c4725c83bf4a5b517c"},
-    {file = "sphinxcontrib_mermaid-1.2.2.tar.gz", hash = "sha256:35423c13e565abb839b13f955f9722f0769e77e5d607ca07877ce93e1636c196"},
+    {file = "sphinxcontrib_mermaid-1.2.3-py3-none-any.whl", hash = "sha256:5be782b27026bef97bfb15ccb2f7868b674a1afc0982b54cb149702cfc25aa02"},
+    {file = "sphinxcontrib_mermaid-1.2.3.tar.gz", hash = "sha256:358699d0ec924ef679b41873d9edd97d0773446daf9760c75e18dc0adfd91371"},
 ]
 
 [package.dependencies]
