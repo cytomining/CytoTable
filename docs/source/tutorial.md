@@ -1,24 +1,33 @@
-# Tutorial
+# Tutorials and How-to Guides
 
-This page covers brief tutorials and notes on how to use CytoTable.
+Start here if you are new to CytoTable. We’ve split material by audience:
 
-## CellProfiler CSV Output to Parquet
+- **Image analysts (no engineering background required):** follow the narrative tutorials below. They include downloadable data, exact commands, and what to expect.
+- **Engineers / power users:** see the Software Engineering Guide for tuning and integration details, or use the quick recipe below.
 
-[CellProfiler](https://cellprofiler.org/) pipelines or projects may produce various CSV-based compartment output (for example, "Cells.csv", "Cytoplasm.csv", etc.).
-CytoTable converts this data to Parquet from local or object-storage based locations.
+```{toctree}
+---
+maxdepth: 2
+caption: Narrative tutorials (start here)
+---
+tutorials/cellprofiler_sqlite_to_parquet
+software_engineering
+```
 
-Files with similar names nested within sub-folders will be concatenated by default (appended to the end of each data file) together and used to create a single Parquet file per compartment.
-For example: if we have `folder/subfolder_a/cells.csv` and `folder/subfolder_b/cells.csv`, using `convert(source_path="folder", ...)` will result in `folder.cells.parquet` (unless `concat=False`).
+## Quick how-to: CellProfiler CSV to Parquet (recipe)
 
-Note: The `dest_path` parameter (`convert(dest_path="")`) will be used for intermediary data work and must be a new file or directory path.
-This path will result directory output on `join=False` and a single file output on `join=True`.
+This short recipe is for people comfortable with Python/CLI and parallels our older tutorial. If you prefer a guided, narrative walkthrough with downloadable inputs and expected outputs, use the tutorial above.
 
-For example, see below:
+[CellProfiler](https://cellprofiler.org/) exports compartment CSVs (for example, "Cells.csv", "Cytoplasm.csv"). CytoTable converts this data to Parquet from local or object-storage locations.
+
+Files with similar names nested within sub-folders are concatenated by default (for example, `folder/sub_a/cells.csv` and `folder/sub_b/cells.csv` become a single `folder.cells.parquet` unless `concat=False`).
+
+The `dest_path` parameter is used for intermediary work and must be a new file or directory path. It will be a directory when `join=False` and a single file when `join=True`.
 
 ```python
 from cytotable import convert
 
-# using a local path with cellprofiler csv presets
+# Local CSVs with CellProfiler preset
 convert(
     source_path="./tests/data/cellprofiler/ExampleHuman",
     source_datatype="csv",
@@ -27,8 +36,7 @@ convert(
     preset="cellprofiler_csv",
 )
 
-# using an s3-compatible path with no signature for client
-# and cellprofiler csv presets
+# S3 CSVs (unsigned) with CellProfiler preset
 convert(
     source_path="s3://s3path",
     source_datatype="csv",
