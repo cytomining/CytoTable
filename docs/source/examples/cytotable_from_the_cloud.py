@@ -25,10 +25,12 @@
 import pathlib
 from collections import Counter
 
-import cytotable
 import pandas as pd
 import pyarrow.parquet as pq
 from cloudpathlib import CloudPath, S3Client
+
+import cytotable
+
 # -
 
 # ## Using CytoTable with cloud-based CSV's
