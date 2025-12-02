@@ -25,14 +25,14 @@ pip install cytotable
 
 ## Inputs and outputs
 
-- **Input:** A single-plate CellProfiler SQLite file from the open Cell Painting Gallery  
-  `s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.sqlite`  
+- **Input:** A single-plate CellProfiler SQLite file from the open Cell Painting Gallery
+  `s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.sqlite`
   No credentials are required (`no_sign_request=True`).
 - **Output:** Four Parquet files (Image, Cells, Cytoplasm, Nuclei) in `./outputs/br00126114`.
 
 ## Before you start
 
-- Install Cytotable (and DuckDB is bundled):  
+- Install Cytotable (and DuckDB is bundled):
   `pip install cytotable`
 - Make sure you have enough local disk space (~1–2 GB) for the cached SQLite and Parquet outputs.
 - If you prefer to download the file first, you can also `aws s3 cp` the same path locally, then set `source_path` to the local file and drop `no_sign_request`.

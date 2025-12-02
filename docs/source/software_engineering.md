@@ -71,7 +71,11 @@ cytotable.convert(
     dest_path="./out/plates",
     dest_datatype="parquet",
     targets=["cells", "cytoplasm", "nuclei"],  # which tables to include
-    page_keys={"cells": "ImageNumber", "cytoplasm": "ImageNumber", "nuclei": "ImageNumber"},
+    page_keys={
+        "cells": "ImageNumber",
+        "cytoplasm": "ImageNumber",
+        "nuclei": "ImageNumber",
+    },
     add_tablenumber=True,
     chunk_size=20000,
 )
@@ -107,6 +111,7 @@ Simple function you can call from any orchestrator (Airflow task, Nextflow Pytho
 ```python
 import cytotable
 
+
 def run_cytotable(source, dest, cache):
     return cytotable.convert(
         source_path=source,
@@ -117,6 +122,7 @@ def run_cytotable(source, dest, cache):
         local_cache_dir=cache,
         chunk_size=30000,
     )
+
 
 if __name__ == "__main__":
     run_cytotable(

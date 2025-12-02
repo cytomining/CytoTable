@@ -19,8 +19,8 @@ pip install cytotable
 
 ## Inputs and outputs
 
-- **Input:** A folder of CellProfiler SQLite files (example structure):  
-  `data/plates/PlateA.sqlite`  
+- **Input:** A folder of CellProfiler SQLite files (example structure):
+  `data/plates/PlateA.sqlite`
   `data/plates/PlateB.sqlite`
 - **Output:** Parquet files (Image/Cells/Cytoplasm/Nuclei) under `./outputs/multi_plate`, with a `Metadata_TableNumber` column indicating plate.
 
