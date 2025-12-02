@@ -113,6 +113,7 @@ Data source compatibility for CytoTable is focused (but not explicitly limited t
 ```{eval-rst}
   * **Manual specification:** NPZ data source types may be manually specified by using :code:`convert(..., source_datatype="npz", ...)` (:mod:`convert() <cytotable.convert.convert>`).
   * **Preset specification:** NPZ data from DeepProfiler may be converted through CytoTable by using the following preset :code:`convert(..., preset="deepprofiler", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+  * **Not covered:** `.npy` feature dumps or CSV-only outputs; use the CellProfiler CSV/SQLite presets for those formats.
 ```
 
 #### IN Carta Data Sources

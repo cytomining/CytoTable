@@ -8,6 +8,21 @@ A narrative, start-to-finish walkthrough for image analysts who want a working P
 - Keep a persistent local cache so the download is reused and avoids “file vanished” errors on temp disks.
 - Verify the outputs quickly (file names and row counts) without needing to understand the internals.
 
+```{admonition} If your data looks like this, change...
+- Local SQLite instead of S3: set `source_path` to the local `.sqlite` file; remove `no_sign_request`; keep `local_cache_dir`.
+- Only certain compartments: add `targets=["cells", "nuclei"]` (case-insensitive).
+- Memory constrained: lower `chunk_size` (e.g., 10000) and ensure `CACHE_DIR` has space.
+```
+
+## Setup (copy-paste)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install cytotable
+```
+
 ## Inputs and outputs
 
 - **Input:** A single-plate CellProfiler SQLite file from the open Cell Painting Gallery  
@@ -77,28 +92,6 @@ You should see four Parquet files in the destination directory:
 ls "$DEST_PATH"
 # Image.parquet  Cells.parquet  Cytoplasm.parquet  Nuclei.parquet
 ```
-
-Quick sanity-check on row counts (uses DuckDB for convenience):
-
-```python
-import duckdb, os
-
-dest = os.environ["DEST_PATH"]
-for table in ["Image", "Cells", "Cytoplasm", "Nuclei"]:
-    count = duckdb.query(
-        f"select count(*) from parquet_scan('{dest}/{table}.parquet')"
-    ).fetchone()[0]
-    print(f"{table}: {count} rows")
-```
-
-Counts will vary by plate, but non-zero values confirm the export worked. If you want to peek at schema, run `duckdb.query("describe select * from parquet_scan(...) limit 0")`.
-
-## Common adjustments for your own data
-
-- **Local SQLite file:** set `source_path` to the local file, remove `no_sign_request`, keep `local_cache_dir` if you want a stable working copy.
-- **Different table names/compartments:** provide `targets=["cells", "cytoplasm", ...]` or use another preset (`preset="cellprofiler_sqlite"`).
-- **Multiple plates in one folder:** point `source_path` to the folder; Cytotable will glob and merge matching tables. Keep a per-run `dest_path` to avoid mixing outputs.
-- **Tight disk space:** point `local_cache_dir` to a larger external volume or clean it after the run finishes.
 
 ## What success looks like
 

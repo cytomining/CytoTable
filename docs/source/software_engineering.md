@@ -54,6 +54,11 @@ cytotable.convert(
 
 - Prefer presets when available (for example, `cellprofiler_sqlite_cpg0016_jump`, `cellprofiler_csv`) because they set table names and page keys. For custom layouts, pass `targets=[...]` and `page_keys={...}` to `convert`.
 - Multi-plate runs: point `source_path` to a parent directory; CytoTable will glob and group per-table. Keep per-run `dest_path` directories to avoid mixing outputs.
+- Common variants:
+  - **Local SQLite:** set `source_path` to the local file, drop `no_sign_request`, keep `local_cache_dir` for stability.
+  - **Different table names/compartments:** set `targets=[...]` or choose the matching preset.
+  - **Multiple plates in one folder:** point `source_path` to the folder; use unique `dest_path` per run to avoid mixing outputs.
+  - **Tight disk space:** set `local_cache_dir` to a larger volume and clean it after the run.
 
 Custom layout example with explicit targets and page keys
 
