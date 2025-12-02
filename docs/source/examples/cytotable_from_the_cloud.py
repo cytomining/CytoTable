@@ -85,6 +85,8 @@ pq.read_metadata(result)
 pq.read_schema(result).metadata
 
 # show schema column name summaries
+# note: we have all compartments in one table
+# after processing with CytoTable.
 print("Column name prefix counts:")
 dict(Counter(w.split("_", 1)[0] for w in pq.read_schema(result).names))
 
@@ -145,6 +147,8 @@ pq.read_metadata(result)
 pq.read_schema(result).metadata
 
 # show schema column name summaries
+# note: we have all compartments in one table
+# after processing with CytoTable.
 print("Column name prefix counts:")
 dict(Counter(w.split("_", 1)[0] for w in pq.read_schema(result).names))
 
