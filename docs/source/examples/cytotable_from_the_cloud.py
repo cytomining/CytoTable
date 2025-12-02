@@ -126,7 +126,7 @@ result = cytotable.convert(
     # specify a destination data format type
     dest_datatype="parquet",
     # specify a preset which enables quick use of common input file formats
-    # note: presets can be customized to meet the needs of 
+    # note: presets can be customized to meet the needs of
     # specific datasets. Check out the presets.py module for more here.
     preset="cellprofiler_sqlite_cpg0016_jump",
     # use unsigned (anonymous) requests to AWS S3
