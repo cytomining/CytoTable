@@ -25,12 +25,10 @@
 import pathlib
 from collections import Counter
 
+import cytotable
 import pandas as pd
 import pyarrow.parquet as pq
 from cloudpathlib import CloudPath, S3Client
-
-import cytotable
-
 # -
 
 # ## Using CytoTable with cloud-based CSV's
@@ -60,8 +58,9 @@ list(source_cloud_path.glob("*"))
 result = cytotable.convert(
     source_path=source_path,
     source_datatype="csv",
-    # set a chunk size for paginated
-    # processing of results
+    # Set the chunk size for paginated processing.
+    # Smaller values use fewer resources but take longer;
+    # larger values use more resources and process faster.
     chunk_size=30000,
     # specify the destination path
     dest_path=dest_path,
@@ -116,8 +115,9 @@ list(source_cloud_path.glob("*"))
 result = cytotable.convert(
     source_path=source_path,
     source_datatype="sqlite",
-    # set a chunk size for paginated
-    # processing of results
+    # Set the chunk size for paginated processing.
+    # Smaller values use fewer resources but take longer;
+    # larger values use more resources and process faster.
     chunk_size=30000,
     # specify the destination path
     dest_path=dest_path,
