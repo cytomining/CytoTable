@@ -106,8 +106,7 @@ Why these flags matter (in plain language):
 ## Step 3: check that the outputs look right
 
 You should see Parquet files in the destination directory.
-If you set `join=True` (handy for the SQLite example), you get a single `.
-parquet` file containing all compartments.
+If you set `join=True` (handy for the SQLite example), you get a single `. parquet` file containing all compartments.
 If you set `join=False` (handy for CSV folders), you get separate Parquet files for each compartment.
 
 ```bash
