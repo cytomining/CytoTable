@@ -41,7 +41,7 @@ pip install cytotable
 
 ```bash
 export SOURCE_PATH="s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.sqlite"
-export DEST_PATH="./outputs/br00126114"
+export DEST_PATH="./outputs/br00126114.parquet"
 export CACHE_DIR="./sqlite_s3_cache"
 mkdir -p "$DEST_PATH" "$CACHE_DIR"
 ```
@@ -86,11 +86,12 @@ Why these flags matter (in plain language):
 
 ## Step 3: check that the outputs look right
 
-You should see four Parquet files in the destination directory:
+You should see a Parquet file in the destination directory.
+This Parquet file should include all compartment (nuclei, cytoplasm, cell, etc.) data in addition to metadata about the features.
 
 ```bash
 ls "$DEST_PATH"
-# Image.parquet  Cells.parquet  Cytoplasm.parquet  Nuclei.parquet
+# br00126114.parquet
 ```
 
 ## What success looks like

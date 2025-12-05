@@ -6,7 +6,7 @@ Start here if you are new to CytoTable. We’ve split material by audience:
 - **Engineers / power users:** see the Software Engineering Guide for tuning and integration details, or use the quick recipe below.
 
 ```{admonition} Who this helps (and doesn’t)
-- Helps: image analysts who want to get CellProfiler/NPZ outputs into Parquet with minimal coding; people comfortable running a few commands.
+- Helps: image analysts who want to get CellProfiler/DeepProfiler/InCarta outputs into Parquet with minimal coding; people comfortable running a few commands.
 - Not ideal: raw image ingestion or pipeline authoring (use CellProfiler/DeepProfiler upstream); workflows needing a GUI-only experience.
 - Effort: install, copy/paste a few commands, validate outputs in minutes.
 ```
@@ -26,9 +26,11 @@ Looking for variations or troubleshooting? See the Software Engineering Guide.
 
 ## Quick recipe: CellProfiler CSV to Parquet
 
-This short recipe is for people comfortable with Python/CLI and parallels our older tutorial. If you prefer a guided, narrative walkthrough with downloadable inputs and expected outputs, use the tutorial above.
+This short recipe is for people comfortable with Python/CLI and parallels our older tutorial.
+If you prefer a guided, narrative walkthrough with downloadable inputs and expected outputs, use the tutorial above.
 
-[CellProfiler](https://cellprofiler.org/) exports compartment CSVs (for example, "Cells.csv", "Cytoplasm.csv"). CytoTable converts this data to Parquet from local or object-storage locations.
+[CellProfiler](https://cellprofiler.org/) exports compartment CSVs (for example, "Cells.csv", "Cytoplasm.csv").
+CytoTable converts this data to Parquet from local or object-storage locations.
 
 Files with similar names nested within sub-folders are concatenated by default (for example, `folder/sub_a/cells.csv` and `folder/sub_b/cells.csv` become a single `folder.cells.parquet` unless `concat=False`).
 
