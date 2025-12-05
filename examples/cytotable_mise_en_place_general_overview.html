@@ -101,8 +101,8 @@ refer to organizing and arranging the ingredients …”</p>
 <section id="phase-1-cells-are-imaged-by-microscopes-with-optional-fluorescence-staining">
 <h2>Phase 1: Cells are imaged by microscopes, with optional fluorescence staining<a class="headerlink" href="#phase-1-cells-are-imaged-by-microscopes-with-optional-fluorescence-staining" title="Link to this heading">¶</a></h2>
 <p><img alt="Image showing cells being stained and captured as images using a microscope." src="../_images/cell_to_image.png" /></p>
-<p><strong>Figure 1.</strong> <em>A microscope images cells to highlight cell processes. Often, fluorescence dyes paint the cells to mark specific proteins, compartments, and/or organelles.</em></p>
-<p>CytoTable processes microscopy-based data that are created from multiple upstream steps.
+<p><strong>Figure 1.</strong> <em>A microscope images cells to highlight cell processes. Often, fluorescence dyes stain the cells to mark specific proteins, compartments, and/or organelles.</em></p>
+<p>CytoTable processes microscopy-based data that are created from multiple upstream steps (image analysis).
 CytoTable does not require any specific sample preparation, and can work with any microscopy experimental design.
 However, most often, CytoTable processes fluorescence microscopy images from the Cell Painting assay.
 In the Cell Painting assay, scientists stain cells with a panel of six fluorescent dyes that mark key cellular compartments and organelles, including the nucleus, nucleoli/RNA, endoplasmic reticulum, mitochondria, actin cytoskeleton, Golgi apparatus, and plasma membrane (<a class="reference external" href="https://doi.org/10.1038/nprot.2016.105">Bray et al., 2016</a>; <a class="reference external" href="https://doi.org/10.1371/journal.pone.0080999">Gustafsdottir et al., 2013</a>). Scientists then use microscopes to image these cells across fluorescence channels, and use image analysis software to produce high-content morphology profiles of individual cells for downstream analysis .</p>
@@ -141,7 +141,7 @@ In the Cell Painting assay, scientists stain cells with a panel of six fluoresce
 <section id="phase-2-cellprofiler-segments-cells-and-measures-numeric-features">
 <h2>Phase 2: CellProfiler segments cells and measures numeric features<a class="headerlink" href="#phase-2-cellprofiler-segments-cells-and-measures-numeric-features" title="Link to this heading">¶</a></h2>
 <p><img alt="Image showing CellProfiler being used to create image segmentations, measurements, and exporting numeric feature data to a file." src="../_images/image_to_features.png" /></p>
-<p><strong>Figure 2.</strong> <em>CellProfiler takes in microscopy images and performs single-cell segmentation to distinguish cells from background. CellProfiler then measures “hand-engineered” computer vision features from every single cell. These data are captured for later use in a CSV table or SQLite database.</em></p>
+<p><strong>Figure 2.</strong> <em>CellProfiler takes in microscopy images and performs single-cell segmentation to distinguish cells from background. CellProfiler then measures “hand-engineered” computer vision features from every single cell. These data are captured for later use in multiple CSV tables or SQLite database.</em></p>
 <p>After acquisition, scientists process the images using image-analysis software such as CellProfiler. CellProfiler segments single cells and their biological compartments into distinct regions of interest. From these segmented cells, CellProfiler extracts hundreds to thousands of quantitative features per cell, capturing properties such as size, shape, intensity, texture, and spatial organization.
 These high-dimensional feature datasets provide a numerical representation of cell morphology that serves as the foundation for downstream profiling and analysis (<a class="reference external" href="https://doi.org/10.1186/gb-2006-7-10-r100">Carpenter et al., 2006</a>).</p>
 <p>We use CellProfiler (with a prespecified configuration <code class="docutils literal notranslate"><span class="pre">.cppipe</span></code> file) to produce the following images and data tables from the ExampleHuman dataset.</p>
@@ -1501,7 +1501,7 @@ data-producer-version: &#39;1.1.0.post13.dev0+2f51ec3&#39;
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials.html">Tutorials</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../examples.html">Examples</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">CytoTable mise en place (general overview)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#phase-1-cells-are-imaged-by-microscopes-with-optional-fluorescence-staining">Phase 1: Cells are imaged by microscopes, with optional fluorescence staining</a></li>
