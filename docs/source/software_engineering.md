@@ -1,6 +1,7 @@
 # Software Engineering Guide
 
-This page is for engineers and power users who want to tune CytoTable beyond the narrative tutorials. It focuses on performance, reliability, and integration patterns.
+This page is for engineers and power users who want to tune CytoTable beyond the narrative tutorials.
+It focuses on performance, reliability, and integration patterns.
 
 ## Performance and scaling
 
