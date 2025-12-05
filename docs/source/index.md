@@ -13,7 +13,7 @@ caption: 'Contents:'
 maxdepth: 3
 ---
 overview
-tutorial
+tutorials
 examples
 presentations
 contributing
