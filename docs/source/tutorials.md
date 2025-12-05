@@ -17,7 +17,7 @@ We’ve split material by audience:
 maxdepth: 2
 caption: Tutorials (start here)
 ---
-tutorials/cellprofiler_sqlite_to_parquet
+tutorials/cellprofiler_to_parquet
 tutorials/npz_embeddings_to_parquet
 tutorials/multi_plate_merge_tablenumber
 software_engineering
