@@ -1,7 +1,7 @@
 # Overview
 
 This page provides a brief overview of CytoTable topics.
-For a brief introduction on how to use CytoTable, please see the [tutorial](tutorial.md) page.
+For a brief introduction on how to use CytoTable, please see the [tutorials](tutorials.md) page.
 
 ## Presets and Manual Overrides
 
