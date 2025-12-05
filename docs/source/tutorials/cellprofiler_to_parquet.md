@@ -34,7 +34,7 @@ pip install cytotable
 
 ## Before you start
 
-- Install Cytotable (and DuckDB is bundled):
+- Install Cytotable:
   `pip install cytotable`
 - Make sure you have enough local disk space (~1–2 GB) for the cached SQLite and Parquet outputs.
 - If you prefer to download the file first, you can also `aws s3 cp` the same path locally, then set `source_path` to the local file and drop `no_sign_request`.
@@ -98,7 +98,7 @@ print(result)
 
 Why these flags matter (in plain language):
 
-- `local_cache_dir`: keeps downloaded data somewhere predictable so DuckDB can open it reliably.
+- `local_cache_dir`: keeps downloaded data somewhere predictable.
 - `preset`: selects the right table names and page keys for this dataset (SQLite or CSV).
 - `chunk_size`: processes data in pieces so you don’t need excessive RAM.
 - `no_sign_request`: needed because the sample bucket is public and unsigned.
@@ -112,11 +112,10 @@ If you set `join=False` (handy for CSV folders), you get separate Parquet files 
 ```bash
 ls "$DEST_PATH"
 # SQLite example: br00126114.parquet
-# CSV example: examplehuman.parquet/Cells.parquet (and Cytoplasm, Nuclei, Image)
+# CSV example: examplehuman.parquet
 ```
 
 ## What success looks like
 
 - A stable local cache of the SQLite file or CSV downloads remains in `CACHE_DIR` (useful for repeated runs).
 - Parquet outputs exist in `DEST_PATH` and can be read by DuckDB/Pandas/PyArrow.
-- No temporary-file or “unable to open database file” errors occur during the run.

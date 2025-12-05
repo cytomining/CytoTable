@@ -3,8 +3,8 @@
 Start here if you are new to CytoTable.
 We’ve split material by audience:
 
-- **Image analysts (no engineering background required):** follow the narrative tutorials below. They include downloadable data, exact commands, and what to expect.
-- **Engineers / power users:** see the [Software Engineering Guide](software_engineering.md) for tuning and integration details, or use the quick recipe below.
+- **Image analysts (no engineering background required):** follow the narrative tutorials below. They include downloadable data, exact commands, and what to expect. Please also feel free to reference the [example notebooks](examples.md).
+- **Engineers / power users:** see any documentation, including the [example notebooks](examples.md), for tuning and integration details, or use the quick recipe below.
 
 ```{admonition} Who this helps (and doesn’t)
 - Helps: image analysts who want to get CellProfiler/DeepProfiler/InCarta outputs into Parquet with minimal coding; people comfortable running a few commands.
@@ -20,11 +20,7 @@ caption: Tutorials (start here)
 tutorials/cellprofiler_to_parquet
 tutorials/npz_embeddings_to_parquet
 tutorials/multi_plate_merge_tablenumber
-software_engineering
 ```
-
-Looking for variations or troubleshooting?
-See the [Software Engineering Guide](software_engineering.md).
 
 ## Quick recipe: CellProfiler CSV to Parquet
 

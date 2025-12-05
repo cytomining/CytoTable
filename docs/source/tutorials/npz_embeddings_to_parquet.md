@@ -27,13 +27,13 @@ pip install cytotable
 ## Inputs and outputs
 
 - **Input:** Example NPZ + metadata in this repo: `tests/data/deepprofiler/pycytominer_example`
-- **Output:** A Parquet file under `./outputs/deepprofiler_example`
+- **Output:** A Parquet file under `./outputs/deepprofiler_example.parquet`
 
 ## Step 1: define your paths
 
 ```bash
 export SOURCE_PATH="tests/data/deepprofiler/pycytominer_example"
-export DEST_PATH="./outputs/deepprofiler_example"
+export DEST_PATH="./outputs/deepprofiler_example.parquet"
 mkdir -p "$DEST_PATH"
 ```
 
@@ -67,11 +67,11 @@ Notes (why these flags matter):
 
 ## Step 3: validate the output
 
-You should see `all_files.npz.parquet` in `DEST_PATH`.
+You should see `deepprofiler_example.parquet` in `DEST_PATH`.
 Opening it with Pandas or PyArrow should show non-zero rows and both feature (`efficientnet_*`) and metadata columns.
 
 ## What success looks like
 
-- A Parquet file `all_files.npz.parquet` exists in `DEST_PATH`.
+- A Parquet file `deepprofiler_example.parquet` exists in `DEST_PATH`.
 - DuckDB/Pandas can read the file; row count is non-zero.
 - Feature columns (for example, `efficientnet_*`) and metadata columns (plate/well/site) both appear.

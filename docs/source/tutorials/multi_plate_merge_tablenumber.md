@@ -22,13 +22,13 @@ pip install cytotable
 - **Input:** A folder of CellProfiler SQLite files (example structure):
   `data/plates/PlateA.sqlite`
   `data/plates/PlateB.sqlite`
-- **Output:** Parquet files (Image/Cells/Cytoplasm/Nuclei) under `./outputs/multi_plate`, with a `Metadata_TableNumber` column indicating plate.
+- **Output:** Parquet file under `./outputs/multi_plate.parquet`, with a `Metadata_TableNumber` column indicating plate.
 
 ## Step 1: define your paths
 
 ```bash
 export SOURCE_PATH="./data/plates"
-export DEST_PATH="./outputs/multi_plate"
+export DEST_PATH="./outputs/multi_plate.parquet"
 export CACHE_DIR="./sqlite_cache"
 mkdir -p "$DEST_PATH" "$CACHE_DIR"
 ```
@@ -65,7 +65,7 @@ Why this matters:
 
 ## Step 3: validate plate separation
 
-You should see one Parquet per compartment (`Cells`, `Cytoplasm`, `Nuclei`, etc.) in `DEST_PATH`.
+You should see one Parquet file (`multi_plate.parquet`) in `DEST_PATH`.
 Opening a file with Pandas or PyArrow should show `Metadata_TableNumber` present and non-zero rows.
 If you processed multiple plates, expect multiple distinct values in that column.
 
