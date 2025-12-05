@@ -1,6 +1,7 @@
 # Tutorials
 
-Start here if you are new to CytoTable. We’ve split material by audience:
+Start here if you are new to CytoTable.
+We’ve split material by audience:
 
 - **Image analysts (no engineering background required):** follow the narrative tutorials below. They include downloadable data, exact commands, and what to expect.
 - **Engineers / power users:** see the Software Engineering Guide for tuning and integration details, or use the quick recipe below.
@@ -22,7 +23,8 @@ tutorials/multi_plate_merge_tablenumber
 software_engineering
 ```
 
-Looking for variations or troubleshooting? See the Software Engineering Guide.
+Looking for variations or troubleshooting?
+See the Software Engineering Guide.
 
 ## Quick recipe: CellProfiler CSV to Parquet
 
@@ -34,7 +36,8 @@ CytoTable converts this data to Parquet from local or object-storage locations.
 
 Files with similar names nested within sub-folders are concatenated by default (for example, `folder/sub_a/cells.csv` and `folder/sub_b/cells.csv` become a single `folder.cells.parquet` unless `concat=False`).
 
-The `dest_path` parameter is used for intermediary work and must be a new file or directory path. It will be a directory when `join=False` and a single file when `join=True`.
+The `dest_path` parameter is used for intermediary work and must be a new file or directory path.
+It will be a directory when `join=False` and a single file when `join=True`.
 
 ```python
 from cytotable import convert
