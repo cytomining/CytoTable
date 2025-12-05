@@ -65,7 +65,9 @@ Why this matters:
 
 ## Step 3: validate plate separation
 
-You should see one Parquet per compartment (`Cells`, `Cytoplasm`, `Nuclei`, etc.) in `DEST_PATH`. Opening a file with Pandas or PyArrow should show `Metadata_TableNumber` present and non-zero rows. If you processed multiple plates, expect multiple distinct values in that column.
+You should see one Parquet per compartment (`Cells`, `Cytoplasm`, `Nuclei`, etc.) in `DEST_PATH`.
+Opening a file with Pandas or PyArrow should show `Metadata_TableNumber` present and non-zero rows.
+If you processed multiple plates, expect multiple distinct values in that column.
 
 ## Scenario callouts (“if your data looks like this...”)
 

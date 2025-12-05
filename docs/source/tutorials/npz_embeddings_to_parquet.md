@@ -1,6 +1,7 @@
 # Tutorial: NPZ embeddings + metadata to Parquet
 
-A start-to-finish walkthrough for turning NPZ files (for example, DeepProfiler outputs) plus metadata into Parquet. This uses a small example bundled in the repo.
+A start-to-finish walkthrough for turning NPZ files (for example, DeepProfiler outputs) plus metadata into Parquet.
+This uses a small example bundled in the repo.
 
 ## What you will accomplish
 
@@ -66,7 +67,8 @@ Notes (why these flags matter):
 
 ## Step 3: validate the output
 
-You should see `all_files.npz.parquet` in `DEST_PATH`. Opening it with Pandas or PyArrow should show non-zero rows and both feature (`efficientnet_*`) and metadata columns.
+You should see `all_files.npz.parquet` in `DEST_PATH`.
+Opening it with Pandas or PyArrow should show non-zero rows and both feature (`efficientnet_*`) and metadata columns.
 
 ## What success looks like
 
