@@ -45,13 +45,13 @@ Check out the following resources to get started!
 We created tutorials which follow a narrative-driven approach.
 There are also Jupyter notebooks for pragmatic, hand-on explanations of working with CytoTable.
 
-| Resource | What it covers | Link |
-| --- | --- | --- |
-| Tutorial | CellProfiler SQLite or CSV to Parquet | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/cellprofiler_to_parquet.html) |
-| Tutorial | NPZ embeddings to Parquet | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/npz_embeddings_to_parquet.html) |
-| Tutorial | Multi-plate merge with tablenumber | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/multi_plate_merge_tablenumber.html) |
-| Example notebook | CytoTable mise en place (general overview) | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html) |
-| Example notebook | CytoTable from the cloud (cloud-based overview) | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html) |
+| Resource         | What it covers                                  | Link                                                                                                           |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Tutorial         | CellProfiler SQLite or CSV to Parquet           | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/cellprofiler_to_parquet.html)                 |
+| Tutorial         | NPZ embeddings to Parquet                       | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/npz_embeddings_to_parquet.html)               |
+| Tutorial         | Multi-plate merge with tablenumber              | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/multi_plate_merge_tablenumber.html)           |
+| Example notebook | CytoTable mise en place (general overview)      | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html) |
+| Example notebook | CytoTable from the cloud (cloud-based overview) | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)                 |
 
 ## Contributing, Development, and Testing
 
