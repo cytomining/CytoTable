@@ -45,6 +45,8 @@ Check out the following resources to get started!
 We created tutorials which follow a narrative-driven approach.
 There are also Jupyter notebooks for pragmatic, hand-on explanations of working with CytoTable.
 
+We suggest image analysts begin with the tutorials and explore the example notebooks afterwards.
+
 | Resource         | What it covers                                  | Link                                                                                                           |
 | ---------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Tutorial         | CellProfiler SQLite or CSV to Parquet           | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/cellprofiler_to_parquet.html)                 |
