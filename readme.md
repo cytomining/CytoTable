@@ -41,9 +41,9 @@ pip install git+https://github.com/cytomining/CytoTable.git
 
 ## Getting started
 
-Check out the following resources to get started!
+Check out the following resources to get started with CytoTable!
 We created tutorials which follow a narrative-driven approach.
-There are also Jupyter notebooks for pragmatic, hand-on explanations of working with CytoTable.
+We also provide Jupyter notebooks for pragmatic, hands-on explanations.
 
 We suggest image analysts begin with the tutorials and explore the example notebooks afterwards.
 
