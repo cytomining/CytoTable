@@ -51,12 +51,6 @@ CytoTable streamlines analyses by harmonizing CellProfiler (<code class="docutil
 This helps biologists by lowering the barrier between image acquisition and data interpretation, enabling them to focus on biological insights rather than file formats or data wrangling.</p>
 <p>CytoTable creates Parquet or AnnData files for both independent analysis and for input into <a class="reference external" href="https://github.com/cytomining/pycytominer">Pycytominer</a>.
 The output files (such as <a class="reference external" href="https://parquet.apache.org/">Parquet</a> and <a class="reference external" href="https://github.com/scverse/anndata">AnnData</a> file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).</p>
-<blockquote>
-<div><p>📔🧑‍🏫 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
-<a class="reference external" href="https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html">CytoTable mise en place (general overview)</a></p>
-<p>📓☁️ Consider also checking out our demonstration notebook covering how to use cloud-based data sources with CytoTable.
-<a class="reference external" href="https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html">CytoTable from the cloud (cloud-based overview)</a></p>
-</div></blockquote>
 <p>The name for the project is inspired by:</p>
 <ul class="simple">
 <li><p><strong>Cyto</strong>: “1. (biology) cell.” (<a class="reference external" href="https://en.wiktionary.org/wiki/cyto-">Wiktionary: Cyto-</a>)</p></li>
@@ -78,6 +72,43 @@ pip<span class="w"> </span>install<span class="w"> </span>cytotable
 pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/cytomining/CytoTable.git
 </pre></div>
 </div>
+</section>
+<section id="getting-started">
+<h2>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h2>
+<p>Check out the following resources to get started with CytoTable!
+We created tutorials which follow a narrative-driven approach.
+We also provide Jupyter notebooks for pragmatic, hands-on explanations.</p>
+<p>We suggest image analysts begin with the tutorials and explore the example notebooks afterwards.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Resource</p></th>
+<th class="head"><p>What it covers</p></th>
+<th class="head"><p>Link</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Tutorial</p></td>
+<td><p>CellProfiler SQLite or CSV to Parquet</p></td>
+<td><p><a class="reference external" href="https://cytomining.github.io/CytoTable/tutorials/cellprofiler_to_parquet.html">Open tutorial</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Tutorial</p></td>
+<td><p>NPZ embeddings to Parquet</p></td>
+<td><p><a class="reference external" href="https://cytomining.github.io/CytoTable/tutorials/npz_embeddings_to_parquet.html">Open tutorial</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Tutorial</p></td>
+<td><p>Multi-plate merge with tablenumber</p></td>
+<td><p><a class="reference external" href="https://cytomining.github.io/CytoTable/tutorials/multi_plate_merge_tablenumber.html">Open tutorial</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Example notebook</p></td>
+<td><p>CytoTable mise en place (general overview)</p></td>
+<td><p><a class="reference external" href="https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html">Open notebook</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Example notebook</p></td>
+<td><p>CytoTable from the cloud (cloud-based overview)</p></td>
+<td><p><a class="reference external" href="https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html">Open notebook</a></p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="contributing-development-and-testing">
 <h2>Contributing, Development, and Testing<a class="headerlink" href="#contributing-development-and-testing" title="Link to this heading">¶</a></h2>
