@@ -20,12 +20,6 @@ This helps biologists by lowering the barrier between image acquisition and data
 CytoTable creates Parquet or AnnData files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
 The output files (such as [Parquet](https://parquet.apache.org/) and [AnnData](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
 
-> 📔🧑‍🏫 Check out our demonstration notebook for a one-stop reference of how to use CytoTable.
-> [CytoTable mise en place (general overview)](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html)
->
-> 📓☁️ Consider also checking out our demonstration notebook covering how to use cloud-based data sources with CytoTable.
-> [CytoTable from the cloud (cloud-based overview)](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)
-
 The name for the project is inspired by:
 
 - __Cyto__: "1. (biology) cell." ([Wiktionary: Cyto-](https://en.wiktionary.org/wiki/cyto-))
@@ -44,6 +38,22 @@ pip install cytotable
 # install directly from source
 pip install git+https://github.com/cytomining/CytoTable.git
 ```
+
+## Getting started
+
+Check out the following resources to get started with CytoTable!
+We created tutorials which follow a narrative-driven approach.
+We also provide Jupyter notebooks for pragmatic, hands-on explanations.
+
+We suggest image analysts begin with the tutorials and explore the example notebooks afterwards.
+
+| Resource         | What it covers                                  | Link                                                                                                           |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Tutorial         | CellProfiler SQLite or CSV to Parquet           | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/cellprofiler_to_parquet.html)                 |
+| Tutorial         | NPZ embeddings to Parquet                       | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/npz_embeddings_to_parquet.html)               |
+| Tutorial         | Multi-plate merge with tablenumber              | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/multi_plate_merge_tablenumber.html)           |
+| Example notebook | CytoTable mise en place (general overview)      | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html) |
+| Example notebook | CytoTable from the cloud (cloud-based overview) | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)                 |
 
 ## Contributing, Development, and Testing
 
