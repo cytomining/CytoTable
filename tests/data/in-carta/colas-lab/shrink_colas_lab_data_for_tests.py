@@ -23,14 +23,10 @@ for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
         schema_collection.append(
             {
                 "file": data_file,
-                "schema": ddb.execute(
-                    f"""
+                "schema": ddb.execute(f"""
                     SELECT *
                     FROM read_csv_auto('{data_file}')
-                    """
-                )
-                .fetch_arrow_table()
-                .schema,
+                    """).fetch_arrow_table().schema,
             }
         )
 
@@ -56,16 +52,14 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
 
         csv.write_csv(
             # we use duckdb to filter the original dataset in SQL
-            data=ddb.execute(
-                f"""
+            data=ddb.execute(f"""
                 SELECT *
                 FROM read_csv_auto('{data_file}') as data_file
                 /* select only the first three objects to limit the dataset */
                 WHERE data_file."OBJECT ID" in (1,2,3)
                 /* select rows C and D to limit the dataset */
                 AND data_file."ROW" in ('C', 'D')
-                """
-            ).fetch_arrow_table(),
+                """).fetch_arrow_table(),
             # output the filtered data as a CSV to a new location
             output_file=(
                 f"{TARGET_DATA_DIR}/{output_filename}"

@@ -268,9 +268,7 @@ def _sqlite_mixed_type_query_to_parquet(
         )
 
         # create cases for mixed-type handling in each column discovered above
-        query_parts = tablenumber_sql + ", ".join(
-            [
-                f"""
+        query_parts = tablenumber_sql + ", ".join([f"""
             CASE
                 /* when the storage class type doesn't match the column, return nulltype */
                 WHEN typeof({col['column_name']}) !=
@@ -278,10 +276,7 @@ def _sqlite_mixed_type_query_to_parquet(
                 /* else, return the normal value */
                 ELSE {col['column_name']}
             END AS {col['column_name']}
-            """
-                for col in column_info
-            ]
-        )
+            """ for col in column_info])
 
         # perform the select using the cases built above and using chunksize + offset
         sql_stmt = f"""
