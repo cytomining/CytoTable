@@ -482,10 +482,7 @@ def fixture_cellprofiler_merged_examplehuman(
     cells_table = col_renames(name="Cells", table=cells_table)
     nuclei_table = col_renames(name="Nuclei", table=nuclei_table)
 
-    control_result = (
-        duckdb.connect()
-        .execute(
-            """
+    control_result = duckdb.connect().execute("""
             SELECT
                 *
             FROM
@@ -498,10 +495,7 @@ def fixture_cellprofiler_merged_examplehuman(
             LEFT JOIN nuclei_table AS nuclei ON
                 nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-        """
-        )
-        .fetch_arrow_table()
-    )
+        """).fetch_arrow_table()
 
     # reversed order column check as col removals will change index order
     cols = []
@@ -546,8 +540,7 @@ def fixture_cellprofiler_merged_nf1data(
                 f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
             ],
         )
-        .execute(
-            """
+        .execute("""
             /* perform query on sqlite tables through duckdb */
             SELECT
                 image.ImageNumber,
@@ -564,8 +557,7 @@ def fixture_cellprofiler_merged_nf1data(
             WHERE
                 cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
-        """
-        )
+        """)
         .fetch_arrow_table()
         .drop_null()
     )

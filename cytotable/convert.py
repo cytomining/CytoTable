@@ -502,14 +502,12 @@ def _source_pageset_to_parquet(
         # and export to parquet
         with _duckdb_reader() as ddb_reader:
             _write_parquet_table_with_metadata(
-                table=ddb_reader.execute(
-                    f"""
+                table=ddb_reader.execute(f"""
                     {base_query}
                     WHERE {source['page_key']} BETWEEN {pageset[0]} AND {pageset[1]}
                     /* optional ordering per pageset */
                     {"ORDER BY " + source['page_key'] if sort_output else ""};
-                    """
-                ).fetch_arrow_table(),
+                    """).fetch_arrow_table(),
                 where=result_filepath,
             )
     # Include exception handling to read mixed-type data
@@ -914,8 +912,7 @@ def _join_source_pageset(
     from cytotable.utils import _duckdb_reader, _write_parquet_table_with_metadata
 
     with _duckdb_reader() as ddb_reader:
-        result = ddb_reader.execute(
-            f"""
+        result = ddb_reader.execute(f"""
             WITH joined AS (
                 {joins}
             )
@@ -924,8 +921,7 @@ def _join_source_pageset(
             {f"WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}" if pageset is not None else ""}
             /* optional sorting per pagset */
             {"ORDER BY " + page_key if sort_output else ""};
-            """
-        ).fetch_arrow_table()
+            """).fetch_arrow_table()
 
     # drop nulls if specified
     if drop_null:
@@ -1065,18 +1061,14 @@ def _concat_join_sources(
                 )
                 + "'"
             )
-            df_numeric = ddb_reader.execute(
-                f"""
+            df_numeric = ddb_reader.execute(f"""
                 SELECT {",".join(numeric_colnames)}
                 FROM read_parquet([{all_files}])
-                """
-            ).df()
-            df_nonnumeric = ddb_reader.execute(
-                f"""
+                """).df()
+            df_nonnumeric = ddb_reader.execute(f"""
                 SELECT {",".join(nonnumeric_colnames)}
                 FROM read_parquet([{all_files}])
-                """
-            ).df()
+                """).df()
 
         # create the anndata object with numeric features
         adata = ad.AnnData(X=df_numeric)

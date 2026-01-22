@@ -7,6 +7,7 @@ to help avoid the use of os.path.
 Extended from example:
 https://github.com/PyCQA/pylint/blob/main/examples/custom_raw.py
 """
+
 from typing import TYPE_CHECKING
 
 from astroid import nodes
