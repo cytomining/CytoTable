@@ -682,17 +682,11 @@ def test_run_export_workflow(
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
-        csv_source = (
-            _duckdb_reader()
-            .execute(
-                f"""
+        csv_source = _duckdb_reader().execute(f"""
                 select * from
                 read_csv_auto('{str(flattened_example_sources[i]["source_path"])}',
                 ignore_errors=TRUE)
-                """
-            )
-            .fetch_arrow_table()
-        )
+                """).fetch_arrow_table()
         parquet_result = parquet.ParquetDataset(
             path_or_paths=flattened_result["table"],
             # set the order of the columns uniformly for schema comparison
@@ -747,17 +741,11 @@ def test_run_export_workflow_unsorted(
 
     flattened_results = list(itertools.chain(*list(result.values())))
     for i, flattened_result in enumerate(flattened_results):
-        csv_source = (
-            _duckdb_reader()
-            .execute(
-                f"""
+        csv_source = _duckdb_reader().execute(f"""
                 select * from
                 read_csv_auto('{str(flattened_example_sources[i]["source_path"])}',
                 ignore_errors=TRUE)
-                """
-            )
-            .fetch_arrow_table()
-        )
+                """).fetch_arrow_table()
         parquet_result = parquet.ParquetDataset(
             path_or_paths=flattened_result["table"],
             # set the order of the columns uniformly for schema comparison
@@ -1185,14 +1173,12 @@ def test_sqlite_mixed_type_query_to_parquet(
 
     try:
         # attempt to read the data using DuckDB
-        result = _duckdb_reader().execute(
-            f"""COPY (
+        result = _duckdb_reader().execute(f"""COPY (
                 select * from sqlite_scan('{example_sqlite_mixed_types_database}','{table_name}')
                 LIMIT 2 OFFSET 0
                 ) TO '{result_filepath}'
                 (FORMAT PARQUET)
-            """
-        )
+            """)
     except duckdb.Error as duckdb_exc:
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
@@ -1349,12 +1335,10 @@ def test_in_carta_to_parquet(
     for data_dir in data_dirs_in_carta:
         # read the directory of data with wildcard
         with duckdb.connect() as ddb:
-            ddb_result = ddb.execute(
-                f"""
+            ddb_result = ddb.execute(f"""
                 SELECT *
                 FROM read_csv_auto('{data_dir}/*.csv')
-                """
-            ).fetch_arrow_table()
+                """).fetch_arrow_table()
 
         # process the data with cytotable using in-carta preset
         cytotable_result = convert(

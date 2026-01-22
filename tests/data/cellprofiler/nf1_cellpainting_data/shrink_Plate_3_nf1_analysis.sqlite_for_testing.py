@@ -20,20 +20,17 @@ shutil.copy(SQLITE_SOURCE, SQLITE_TARGET)
 
 with sqlite3.connect(SQLITE_TARGET) as conn:
     # delete data except that related to two tablenumbers
-    conn.execute(
-        """
+    conn.execute("""
         DELETE FROM Per_Image
         /* use site and well which are known to
         contain imagenumbers that don't persist
         to compartment tables */
         WHERE Image_Metadata_Site != '1'
         AND Image_Metadata_Well != 'B1';
-        """
-    )
+        """)
     # do the same for compartment tables, also removing objectnumbers > 3
     for table in ["Cells", "Nuclei", "Cytoplasm"]:
-        conn.execute(
-            f"""
+        conn.execute(f"""
             DELETE FROM Per_{table}
             WHERE
             /* filter using only imagenumbers which exist in modified
@@ -43,8 +40,7 @@ with sqlite3.connect(SQLITE_TARGET) as conn:
             for each compartment table so as to keep the test dataset
             very small. */
             OR {table}_Number_Object_Number > 2
-            """
-        )
+            """)
 
     conn.commit()
     conn.execute("VACUUM;")
