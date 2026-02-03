@@ -560,14 +560,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.42.35"
+version = "1.42.40"
 description = "Low-level, data-driven core of boto 3."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "botocore-1.42.35-py3-none-any.whl", hash = "sha256:b89f527987691abbd1374c4116cc2711471ce48e6da502db17e92b17b2af8d47"},
-    {file = "botocore-1.42.35.tar.gz", hash = "sha256:40a6e0f16afe9e5d42e956f0b6d909869793fadb21780e409063601fc3d094b8"},
+    {file = "botocore-1.42.40-py3-none-any.whl", hash = "sha256:b115cdfece8162cb30f387fdff2ee4693713744c97ebb4b89742e53675dc521c"},
+    {file = "botocore-1.42.40.tar.gz", hash = "sha256:6cfa07cf35ad477daef4920324f6d81b8d3a10a35baeafaa5fca22fb3ad225e2"},
 ]
 
 [package.dependencies]
@@ -3224,14 +3224,14 @@ files = [
 
 [[package]]
 name = "parsl"
-version = "2026.1.19"
+version = "2026.1.26"
 description = "Simple data dependent workflows in Python"
 optional = false
 python-versions = ">=3.10.0"
 groups = ["main"]
 files = [
-    {file = "parsl-2026.1.19-py3-none-any.whl", hash = "sha256:44aa4ffa2d209afd2e7a223b69fdaed12ee97adbe77746d4132d62adb70c81a1"},
-    {file = "parsl-2026.1.19.tar.gz", hash = "sha256:e3da042b4f1b6fc7bf5e69c087d898caf8e21cf79ac22b2900e0a1f43f11e4d8"},
+    {file = "parsl-2026.1.26-py3-none-any.whl", hash = "sha256:0e2203cdd56350533d5a9df46b727c063ba7ca083966d818b00f3160ee8607a5"},
+    {file = "parsl-2026.1.26.tar.gz", hash = "sha256:8b125ee96fe7b530b0a7d15f18cb5d86e9363b22dc46167ef1cf6f297f617bd9"},
 ]
 
 [package.dependencies]
