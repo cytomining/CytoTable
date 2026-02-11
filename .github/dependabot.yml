@@ -21,8 +21,8 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      # Check for updates to poetry lockfile every week
-      interval: "weekly"
+      # Check for updates to poetry lockfile every month
+      interval: "monthly"
     groups:
       python-packages:
         patterns:
