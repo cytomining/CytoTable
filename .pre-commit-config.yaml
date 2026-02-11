@@ -77,7 +77,7 @@ repos:
     hooks:
     -   id: validate-cff
 -   repo: https://github.com/software-gardening/almanack
-    rev: v0.1.13
+    rev: v0.1.14
     hooks:
     -   id: almanack-check
 -   repo: https://github.com/PyCQA/pylint
@@ -104,4 +104,5 @@ repos:
     rev: v0.6.0
     hooks:
     -   id: pre-commit-update
-        args: ["--keep", "mdformat", "--keep", "pre-commit-update", "--keep", "cffconvert"]
+        args: ["--keep", "mdformat", "--keep", "pre-commit-update", "--keep", "cffconvert",
+          "--keep", "pyproject-fmt"]
