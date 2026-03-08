@@ -19,7 +19,7 @@ repos:
     hooks:
     -   id: pyproject-fmt
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
     -   id: codespell
         exclude: >
@@ -41,7 +41,7 @@ repos:
     -   id: yamllint
         exclude: ".pre-commit-config.yaml"
 -   repo: https://github.com/psf/black
-    rev: 26.1.0
+    rev: 26.3.0
     hooks:
     -   id: black
 -   repo: https://github.com/asottile/blacken-docs
@@ -49,17 +49,17 @@ repos:
     hooks:
     -   id: blacken-docs
 -   repo: https://github.com/PyCQA/bandit
-    rev: 1.9.3
+    rev: 1.9.4
     hooks:
     -   id: bandit
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
 -   repo: https://github.com/PyCQA/isort
-    rev: 7.0.0
+    rev: 8.0.1
     hooks:
     -   id: isort
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: v2.14
+    rev: v2.15
     hooks:
     -   id: vulture
 -   repo: https://github.com/pre-commit/mirrors-mypy
@@ -77,11 +77,11 @@ repos:
     hooks:
     -   id: validate-cff
 -   repo: https://github.com/software-gardening/almanack
-    rev: v0.1.14
+    rev: v0.1.15
     hooks:
     -   id: almanack-check
 -   repo: https://github.com/PyCQA/pylint
-    rev: v4.0.4
+    rev: v4.0.5
     hooks:
     -   id: pylint
         name: pylint
