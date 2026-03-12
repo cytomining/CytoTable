@@ -41,7 +41,7 @@ repos:
     -   id: yamllint
         exclude: ".pre-commit-config.yaml"
 -   repo: https://github.com/psf/black
-    rev: 26.3.0
+    rev: 26.3.1
     hooks:
     -   id: black
 -   repo: https://github.com/asottile/blacken-docs
