@@ -1496,6 +1496,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
+    dest_backend: Literal["parquet", "iceberg"] = "parquet",
     dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     source_datatype: Optional[str] = None,
     metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
@@ -1527,13 +1528,17 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Note: may be local or remote object-storage location
             using convention "s3://..." or similar.
         dest_path: str:
-            Path to write files to. This path will be used for
-            intermediary data work and must be a new file or directory path.
+            Path to write files to. For `dest_backend="parquet"` this path will be
+            used for intermediary data work and must be a new file or directory path.
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
+            For `dest_backend="iceberg"` this path is the warehouse root directory.
             Note: this may only be a local path.
+        dest_backend: Literal["parquet", "iceberg"]:
+            Output backend to write to. Defaults to 'parquet'. Use 'iceberg'
+            to store normalized CytoTable tables in a local Iceberg warehouse.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Output destination datatype to write to.
+            Output destination datatype to write to for the parquet backend.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1620,6 +1625,40 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 preset="cellprofiler_sqlite",
             )
     """
+
+    if dest_backend not in ["parquet", "iceberg"]:
+        raise DatatypeException(
+            f"Invalid dest_backend provided: {dest_backend}. "
+            "Valid options are 'parquet' or 'iceberg'."
+        )
+
+    if dest_backend == "iceberg":
+        if dest_datatype != "parquet":
+            raise DatatypeException(
+                "Iceberg backend currently supports only dest_datatype='parquet' "
+                "for normalized table staging."
+            )
+
+        from cytotable.iceberg import write_iceberg_warehouse
+
+        return write_iceberg_warehouse(
+            source_path=source_path,
+            warehouse_path=dest_path,
+            source_datatype=source_datatype,
+            metadata=metadata,
+            compartments=compartments,
+            identifying_columns=identifying_columns,
+            joins=joins,
+            chunk_size=chunk_size,
+            infer_common_schema=infer_common_schema,
+            data_type_cast_map=data_type_cast_map,
+            add_tablenumber=add_tablenumber,
+            page_keys=cast(Optional[Dict[str, str]], page_keys),
+            sort_output=sort_output,
+            preset=preset,
+            parsl_config=parsl_config,
+            **kwargs,
+        )
 
     # check that our destination type is valid
     if dest_datatype not in ["parquet", "anndata_h5ad", "anndata_zarr"]:

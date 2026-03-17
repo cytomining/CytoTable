@@ -24,4 +24,10 @@ from .exceptions import (
     NoInputDataException,
     SchemaException,
 )
+from .iceberg import (
+    describe_iceberg_warehouse,
+    list_iceberg_tables,
+    read_iceberg_table,
+    write_iceberg_warehouse,
+)
 from .presets import config

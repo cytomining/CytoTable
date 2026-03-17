@@ -11,6 +11,7 @@ import os
 import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
+from unittest.mock import Mock
 
 import duckdb
 import pyarrow as pa
@@ -163,6 +164,59 @@ def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: s
             dest_datatype="parquet",
             preset="cellprofiler_sqlite_pycytominer",
         )
+
+
+def test_invalid_dest_backend():
+    """
+    Tests running cytotable.convert with an invalid dest_backend.
+    """
+
+    with pytest.raises(CytoTableException):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            dest_backend="invalid",  # type: ignore[arg-type]
+        )
+
+
+def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
+    """
+    Tests convert dispatch for the iceberg backend.
+    """
+
+    write_iceberg_warehouse = Mock(return_value="example_warehouse")
+    monkeypatch.setattr(
+        "cytotable.iceberg.write_iceberg_warehouse",
+        write_iceberg_warehouse,
+    )
+
+    result = convert(
+        source_path="example.sqlite",
+        dest_path="example_warehouse",
+        dest_backend="iceberg",
+        dest_datatype="parquet",
+        preset=None,
+        join=False,
+    )
+
+    assert result == "example_warehouse"
+    write_iceberg_warehouse.assert_called_once_with(
+        source_path="example.sqlite",
+        warehouse_path="example_warehouse",
+        source_datatype=None,
+        metadata=None,
+        compartments=None,
+        identifying_columns=None,
+        joins=None,
+        chunk_size=None,
+        infer_common_schema=True,
+        data_type_cast_map=None,
+        add_tablenumber=None,
+        page_keys=None,
+        sort_output=True,
+        preset=None,
+        parsl_config=None,
+    )
 
 
 def test_extend_path(fx_tempdir: str):
