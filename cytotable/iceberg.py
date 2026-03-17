@@ -13,10 +13,16 @@ from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import pandas as pd
 import parsl
+import pyarrow as pa
 import pyarrow.parquet as parquet
 
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
+from cytotable.images import (
+    IMAGE_TABLE_NAME,
+    image_crop_table_from_joined_chunk,
+    profile_with_images_frame,
+)
 from cytotable.presets import config
 from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
 
@@ -26,9 +32,9 @@ DEFAULT_NAMESPACE = "analytics"
 DEFAULT_REGISTRY_FILE = "catalog.json"
 DEFAULT_WAREHOUSE_DIR = "warehouse"
 DEFAULT_JOINED_VIEW = "cytotable_joined"
+DEFAULT_PROFILE_WITH_IMAGES_VIEW = "profile_with_images"
 
 try:
-    import pyarrow as pa
     from pyiceberg.catalog import Catalog, MetastoreCatalog, PropertiesUpdateSummary
     from pyiceberg.exceptions import NoSuchNamespaceError, NoSuchTableError
     from pyiceberg.partitioning import UNPARTITIONED_PARTITION_SPEC, PartitionSpec
@@ -356,9 +362,15 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     page_keys: Optional[Dict[str, str]] = None,
     sort_output: bool = True,
     preset: Optional[str] = "cellprofiler_csv",
+    image_dir: Optional[str] = None,
+    mask_dir: Optional[str] = None,
+    outline_dir: Optional[str] = None,
+    bbox_column_map: Optional[Dict[str, str]] = None,
+    segmentation_file_regex: Optional[Dict[str, str]] = None,
     default_namespace: str = DEFAULT_NAMESPACE,
     registry_file: str = DEFAULT_REGISTRY_FILE,
     joined_view_name: Optional[str] = DEFAULT_JOINED_VIEW,
+    profile_with_images_view_name: Optional[str] = DEFAULT_PROFILE_WITH_IMAGES_VIEW,
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
 ) -> str:
@@ -455,6 +467,65 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             }
             bundle._write_registry(registry)
 
+        if image_dir is not None:
+            joined_chunk_paths = cast(
+                list[str],
+                _run_export_workflow(
+                    source_path=source_path,
+                    dest_path=str(stage_dir / "joined"),
+                    source_datatype=source_datatype,
+                    metadata=list(cast(Tuple[str, ...], resolved["metadata"])),
+                    compartments=list(cast(Tuple[str, ...], resolved["compartments"])),
+                    identifying_columns=list(
+                        cast(Tuple[str, ...], resolved["identifying_columns"])
+                    ),
+                    concat=False,
+                    join=True,
+                    joins=cast(str, resolved["joins"]),
+                    chunk_size=cast(Optional[int], resolved["chunk_size"]),
+                    infer_common_schema=infer_common_schema,
+                    drop_null=False,
+                    sort_output=sort_output,
+                    page_keys=cast(Dict[str, str], resolved["page_keys"]),
+                    data_type_cast_map=data_type_cast_map,
+                    add_tablenumber=add_tablenumber,
+                    **kwargs,
+                ),
+            )
+            image_table: Optional[Table] = None
+            for chunk_path in joined_chunk_paths:
+                crop_table = image_crop_table_from_joined_chunk(
+                    chunk_path=chunk_path,
+                    image_dir=image_dir,
+                    mask_dir=mask_dir,
+                    outline_dir=outline_dir,
+                    bbox_column_map=bbox_column_map,
+                    segmentation_file_regex=segmentation_file_regex,
+                )
+                if crop_table.num_rows == 0:
+                    continue
+                if image_table is None:
+                    image_table = (
+                        bundle.load_table((default_namespace, IMAGE_TABLE_NAME))
+                        if bundle.table_exists((default_namespace, IMAGE_TABLE_NAME))
+                        else bundle.create_table(
+                            (default_namespace, IMAGE_TABLE_NAME), crop_table.schema
+                        )
+                    )
+                image_table.append(crop_table)
+
+            if joined_view_name and profile_with_images_view_name:
+                registry = bundle._read_registry()
+                cast(dict[str, dict[str, object]], registry["views"])[
+                    _qualify(profile_with_images_view_name, default_namespace)
+                ] = {
+                    "kind": "profile_with_images",
+                    "base_view": _qualify(joined_view_name, default_namespace),
+                    "image_table": _qualify(IMAGE_TABLE_NAME, default_namespace),
+                    "bbox_column_map": bbox_column_map or {},
+                }
+                bundle._write_registry(registry)
+
     finally:
         if _parsl_loaded():
             parsl.dfk().cleanup()
@@ -484,6 +555,42 @@ def _read_sql_view(bundle: TinyCatalog, view_name: str) -> pd.DataFrame:
         return reader.execute(sql).fetch_arrow_table().to_pandas()
 
 
+def _read_profile_with_images_view(bundle: TinyCatalog, view_name: str) -> pd.DataFrame:
+    """
+    Read a saved profile/image manifest view from warehouse tables.
+    """
+
+    registry = bundle._read_registry()
+    spec = cast(dict[str, Any], cast(dict[str, Any], registry["views"])[view_name])
+    joined_frame = _read_registered_view(bundle, cast(str, spec["base_view"]))
+    image_frame = (
+        bundle.load_table(tuple(cast(str, spec["image_table"]).split(".")))
+        .scan()
+        .to_arrow()
+        .to_pandas()
+    )
+    return profile_with_images_frame(
+        joined_frame=joined_frame,
+        image_frame=image_frame,
+        bbox_column_map=cast(Dict[str, str], spec.get("bbox_column_map") or {}),
+    )
+
+
+def _read_registered_view(bundle: TinyCatalog, view_name: str) -> pd.DataFrame:
+    """
+    Read a saved registry-backed warehouse view.
+    """
+
+    registry = bundle._read_registry()
+    spec = cast(dict[str, Any], cast(dict[str, Any], registry["views"])[view_name])
+    kind = cast(str, spec["kind"])
+    if kind == "sql":
+        return _read_sql_view(bundle, view_name)
+    if kind == "profile_with_images":
+        return _read_profile_with_images_view(bundle, view_name)
+    raise CytoTableException(f"Unsupported warehouse view kind: {kind}")
+
+
 def read_iceberg_table(
     warehouse_path: Union[str, Path],
     table_name: str,
@@ -502,7 +609,7 @@ def read_iceberg_table(
     )
     qualified_name = _qualify(table_name, bundle.default_namespace)
     if bundle.view_exists(tuple(qualified_name.split("."))):
-        return _read_sql_view(bundle, qualified_name)
+        return _read_registered_view(bundle, qualified_name)
     return (
         bundle.load_table(tuple(qualified_name.split(".")))
         .scan()
@@ -577,7 +684,7 @@ def describe_iceberg_warehouse(
                 rows.append(
                     {
                         "table": view_name,
-                        "rows": len(_read_sql_view(bundle, view_name)),
+                        "rows": len(_read_registered_view(bundle, view_name)),
                         "data_files": 0,
                         "snapshot_id": None,
                         "kind": "view",
@@ -589,6 +696,7 @@ def describe_iceberg_warehouse(
 __all__ = [
     "DEFAULT_JOINED_VIEW",
     "DEFAULT_NAMESPACE",
+    "DEFAULT_PROFILE_WITH_IMAGES_VIEW",
     "DEFAULT_REGISTRY_FILE",
     "TinyCatalog",
     "catalog",

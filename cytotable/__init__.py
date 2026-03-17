@@ -30,4 +30,5 @@ from .iceberg import (
     read_iceberg_table,
     write_iceberg_warehouse,
 )
+from .images import IMAGE_TABLE_NAME, object_id
 from .presets import config

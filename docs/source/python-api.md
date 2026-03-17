@@ -57,6 +57,28 @@ Convert
 
 |
 
+Iceberg
+-------
+
+.. automodule:: cytotable.iceberg
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
+Images
+------
+
+.. automodule:: cytotable.images
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
 Sources
 -------
 

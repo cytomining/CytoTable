@@ -3,10 +3,32 @@ Tests for CytoTable Iceberg helpers.
 """
 
 from importlib.util import find_spec
+from json import dumps
+from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import pyarrow as pa
 import pytest
+from duckdb import IOException as DuckDBIOException
+from parsl.config import Config
+from parsl.executors import ThreadPoolExecutor
+from pyarrow import parquet
 
-from cytotable.iceberg import _rewrite_join_sql_for_warehouse, write_iceberg_warehouse
+from cytotable.iceberg import (
+    _rewrite_join_sql_for_warehouse,
+    list_iceberg_tables,
+    read_iceberg_table,
+    write_iceberg_warehouse,
+)
+from cytotable.images import (
+    IMAGE_TABLE_NAME,
+    _find_matching_segmentation_path,
+    image_crop_table_from_joined_chunk,
+    object_id,
+    profile_with_images_frame,
+    resolve_bbox_columns,
+)
 from cytotable.presets import config
 
 
@@ -50,3 +72,207 @@ def test_write_iceberg_warehouse_requires_pyiceberg(
             warehouse_path=f"{fx_tempdir}/example_warehouse",
             preset="cellprofiler_csv",
         )
+
+
+def test_resolve_bbox_columns_prefers_cellprofiler_names():
+    """
+    Tests bbox resolution for CellProfiler-style names.
+    """
+
+    bbox = resolve_bbox_columns(
+        [
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_X",
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_X",
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_Y",
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_Y",
+        ]
+    )
+
+    assert bbox is not None
+    assert bbox.x_min == "Cytoplasm_AreaShape_BoundingBoxMinimum_X"
+    assert bbox.y_max == "Cytoplasm_AreaShape_BoundingBoxMaximum_Y"
+
+
+def test_object_id_is_stable():
+    """
+    Tests deterministic object id generation.
+    """
+
+    first = object_id("example-object")
+    second = object_id("example-object")
+    third = object_id("different-object")
+
+    assert first == second
+    assert first != third
+    assert first.startswith("obj-")
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
+    """
+    Tests OME-Arrow crop export from a joined parquet chunk.
+    """
+
+    from tifffile import imwrite  # pylint: disable=import-error,import-outside-toplevel
+
+    image_dir = Path(fx_tempdir) / "images"
+    outline_dir = Path(fx_tempdir) / "outlines"
+    image_dir.mkdir()
+    outline_dir.mkdir()
+
+    image = np.arange(100, dtype=np.uint16).reshape(10, 10)
+    outline = np.zeros((10, 10), dtype=np.uint16)
+    outline[2:8, 3:7] = 1
+    imwrite(image_dir / "cell.tiff", image)
+    imwrite(outline_dir / "cell.tiff", outline)
+
+    joined_chunk = pa.table(
+        {
+            "Metadata_ImageNumber": [1],
+            "Image_FileName_DNA": ["cell.tiff"],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_X": [3],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_X": [7],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": [2],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_Y": [8],
+        }
+    )
+    chunk_path = Path(fx_tempdir) / "joined.parquet"
+    parquet.write_table(joined_chunk, chunk_path)
+
+    crop_table = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path),
+        image_dir=str(image_dir),
+        outline_dir=str(outline_dir),
+    )
+
+    assert crop_table.num_rows == 1
+    assert IMAGE_TABLE_NAME == "image_crops"
+    assert "object_id" in crop_table.column_names
+    assert "ome_image" in crop_table.column_names
+    assert "ome_label" in crop_table.column_names
+
+
+def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
+    """
+    Tests regex-based segmentation file resolution.
+    """
+
+    root = Path(fx_tempdir) / "outlines"
+    root.mkdir()
+    segmentation = root / "plateA_well_B03_site_1_outline.tiff"
+    segmentation.touch()
+    candidate = Path(fx_tempdir) / "images" / "plateA_well_B03_site_1.tiff"
+    candidate.parent.mkdir()
+    candidate.touch()
+
+    result = _find_matching_segmentation_path(
+        data_value="plateA_well_B03_site_1.tiff",
+        pattern_map={
+            r".*_outline\.tiff$": r"(plateA_well_B03_site_1)\.tiff$",
+        },
+        file_dir=str(root),
+        candidate_path=candidate,
+    )
+
+    assert result == segmentation
+
+
+def test_profile_with_images_frame_merges_by_object_id():
+    """
+    Tests manifest view expansion from joined rows to image crop rows.
+    """
+
+    joined = pa.table(
+        {
+            "Metadata_ImageNumber": [1],
+            "Image_FileName_DNA": ["cell.tiff"],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_X": [3],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_X": [7],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": [2],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_Y": [8],
+        }
+    ).to_pandas()
+
+    image_rows = pd.DataFrame(
+        {
+            "object_id": [
+                object_id(
+                    dumps(
+                        {
+                            "bbox": {
+                                "x_min": 3,
+                                "x_max": 7,
+                                "y_min": 2,
+                                "y_max": 8,
+                            },
+                            "keys": {"Metadata_ImageNumber": 1},
+                            "source_image_column": "Image_FileName_DNA",
+                            "source_image_file": "cell.tiff",
+                        },
+                        sort_keys=True,
+                    )
+                )
+            ],
+            "source_image_column": ["Image_FileName_DNA"],
+            "source_image_file": ["cell.tiff"],
+            "label_source_kind": ["outline"],
+        }
+    )
+
+    manifested = profile_with_images_frame(joined_frame=joined, image_frame=image_rows)
+
+    assert len(manifested) == 1
+    assert manifested.loc[0, "object_id"].startswith("obj-")
+    assert manifested.loc[0, "label_source_kind"] == "outline"
+
+
+@pytest.mark.skipif(
+    find_spec("pyiceberg") is None or find_spec("ome_arrow") is None,
+    reason="pyiceberg and ome-arrow are required",
+)
+def test_examplehuman_iceberg_warehouse_with_images(
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+):
+    """
+    Tests end-to-end Iceberg warehouse export with ExampleHuman images.
+    """
+
+    try:
+        warehouse_path = write_iceberg_warehouse(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            warehouse_path=f"{fx_tempdir}/examplehuman_warehouse",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+            image_dir=f"{data_dir_cellprofiler}/ExampleHuman",
+            parsl_config=Config(
+                executors=[ThreadPoolExecutor(label="tpe_for_iceberg_image_test")]
+            ),
+        )
+    except DuckDBIOException as exc:
+        if "extension" in str(exc).lower() or "http" in str(exc).lower():
+            pytest.skip(
+                f"DuckDB extension bootstrap unavailable in this environment: {exc}"
+            )
+        raise
+
+    tables = list_iceberg_tables(warehouse_path)
+
+    assert "analytics.cells" in tables
+    assert "analytics.cytoplasm" in tables
+    assert "analytics.image" in tables
+    assert "analytics.nuclei" in tables
+    assert "analytics.image_crops" in tables
+    assert "analytics.cytotable_joined" in tables
+    assert "analytics.profile_with_images" in tables
+
+    image_crops = read_iceberg_table(warehouse_path, "image_crops")
+    profile_with_images = read_iceberg_table(warehouse_path, "profile_with_images")
+
+    assert len(image_crops) > 0
+    assert len(profile_with_images) > 0
+    assert "object_id" in image_crops.columns
+    assert "ome_image" in image_crops.columns
+    assert image_crops["object_id"].notna().all()
+    assert profile_with_images["object_id"].notna().all()
+    assert profile_with_images["ome_image"].notna().any()

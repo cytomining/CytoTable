@@ -142,11 +142,25 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
   Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
+- __Apache Iceberg warehouse__: Iceberg is a table format for multi-table analytical storage with snapshot-aware metadata.
+  In CytoTable, Iceberg is exposed as an optional local warehouse backend which can store normalized measurement tables, a saved joined view, and an optional `image_crops` table with OME-Arrow payloads.
+
+```{eval-rst}
+  Iceberg warehouse export may be specified by using :code:`convert(..., dest_backend="iceberg", dest_path="warehouse_dir", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
 - __scverse anndata (`.h5ad`, `.zarr`)__: anndata is a Python package and data format for handling annotated data matrices which uses pandas and xarray to enable data management.
   It offers many computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface. ([reference](https://anndata.readthedocs.io/en/stable/index.html))
 
 ```{eval-rst}
   Anndata data destination type may be specified by using :code:`convert(..., dest_datatype="anndata_h5ad", ...)` (:mod:`convert() <cytotable.convert.convert>`) or :code:`convert(..., dest_datatype="anndata_zarr", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
+### Optional image export
+
+```{eval-rst}
+When using the Iceberg backend, CytoTable may also export a separate image-crop table by providing :code:`image_dir` to :mod:`convert() <cytotable.convert.convert>`.
+This image table stores cropped image payloads as OME-Arrow structs and may also include mask/outline crops through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
 ```
 
 ## Data Transformations

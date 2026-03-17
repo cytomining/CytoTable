@@ -213,10 +213,44 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         data_type_cast_map=None,
         add_tablenumber=None,
         page_keys=None,
+        image_dir=None,
+        mask_dir=None,
+        outline_dir=None,
+        segmentation_file_regex=None,
+        bbox_column_map=None,
         sort_output=True,
         preset=None,
         parsl_config=None,
     )
+
+
+def test_image_export_requires_iceberg_backend():
+    """
+    Tests image export validation for non-Iceberg destinations.
+    """
+
+    with pytest.raises(CytoTableException, match="dest_backend='iceberg'"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            image_dir="images",
+            join=True,
+        )
+
+
+def test_image_export_requires_join():
+    """
+    Tests image export validation for join=False.
+    """
+
+    with pytest.raises(CytoTableException, match="join=True"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example_warehouse",
+            dest_backend="iceberg",
+            image_dir="images",
+            join=False,
+        )
 
 
 def test_extend_path(fx_tempdir: str):

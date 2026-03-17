@@ -1498,6 +1498,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_path: str,
     dest_backend: Literal["parquet", "iceberg"] = "parquet",
     dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
+    image_dir: Optional[str] = None,
+    mask_dir: Optional[str] = None,
+    outline_dir: Optional[str] = None,
+    segmentation_file_regex: Optional[Dict[str, str]] = None,
     source_datatype: Optional[str] = None,
     metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
     compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
@@ -1511,6 +1515,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     data_type_cast_map: Optional[Dict[str, str]] = None,
     add_tablenumber: Optional[bool] = None,
     page_keys: Optional[Dict[str, str]] = None,
+    bbox_column_map: Optional[Dict[str, str]] = None,
     sort_output: bool = True,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
@@ -1539,6 +1544,16 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             to store normalized CytoTable tables in a local Iceberg warehouse.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
             Output destination datatype to write to for the parquet backend.
+        image_dir: Optional[str]
+            Optional directory of source images used to build OME-Arrow crops.
+            Requires `dest_backend="iceberg"`.
+        mask_dir: Optional[str]
+            Optional directory of mask images aligned with `image_dir`.
+        outline_dir: Optional[str]
+            Optional directory of outline images aligned with `image_dir`.
+        segmentation_file_regex: Optional[Dict[str, str]]
+            Optional regex mapping of segmentation filename patterns to source
+            image filename patterns for mask/outline resolution.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1574,6 +1589,9 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Expects columns to include numeric data (ints or floats).
             Interacts with the `chunk_size` parameter to form
             pages of `chunk_size`.
+        bbox_column_map: Optional[Dict[str, str]]
+            Optional explicit mapping for image crop bounding box columns using
+            keys `x_min`, `x_max`, `y_min`, and `y_max`.
         sort_output: bool (Default value = True)
             Specifies whether to sort cytotable output or not.
         drop_null: bool (Default value = False)
@@ -1632,6 +1650,16 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             "Valid options are 'parquet' or 'iceberg'."
         )
 
+    image_export_requested = any(
+        path is not None for path in (image_dir, mask_dir, outline_dir)
+    )
+    if image_export_requested and dest_backend != "iceberg":
+        raise CytoTableException("Image export requires dest_backend='iceberg'.")
+    if image_export_requested and not join:
+        raise CytoTableException(
+            "Image export requires join=True so bounding boxes can be resolved from joined rows."
+        )
+
     if dest_backend == "iceberg":
         if dest_datatype != "parquet":
             raise DatatypeException(
@@ -1654,6 +1682,11 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             data_type_cast_map=data_type_cast_map,
             add_tablenumber=add_tablenumber,
             page_keys=cast(Optional[Dict[str, str]], page_keys),
+            image_dir=image_dir,
+            mask_dir=mask_dir,
+            outline_dir=outline_dir,
+            segmentation_file_regex=segmentation_file_regex,
+            bbox_column_map=bbox_column_map,
             sort_output=sort_output,
             preset=preset,
             parsl_config=parsl_config,
