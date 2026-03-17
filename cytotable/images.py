@@ -7,8 +7,8 @@ from __future__ import annotations
 import logging
 import pathlib
 import re
-from json import dumps
 from dataclasses import dataclass
+from json import dumps
 from typing import Any, Dict, Optional, Sequence
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
@@ -148,7 +148,9 @@ def _find_matching_segmentation_path(
                 pathlib.Path(candidate_path).stem,
             ]
         )
-        identifiers = list(dict.fromkeys(identifier for identifier in identifiers if identifier))
+        identifiers = list(
+            dict.fromkeys(identifier for identifier in identifiers if identifier)
+        )
         normalized_identifiers = [
             re.escape(identifier.lower()) for identifier in identifiers if identifier
         ]
@@ -157,8 +159,7 @@ def _find_matching_segmentation_path(
             if not file.is_file() or not re.search(file_pattern, file.name):
                 continue
             if not normalized_identifiers or any(
-                identifier in file.stem.lower()
-                for identifier in normalized_identifiers
+                identifier in file.stem.lower() for identifier in normalized_identifiers
             ):
                 return file
 
@@ -172,9 +173,9 @@ def _resolve_image_columns(data: pd.DataFrame) -> list[str]:
 
     image_columns: list[str] = []
     for column in data.columns:
-        if not pd.api.types.is_object_dtype(data[column]) and not pd.api.types.is_string_dtype(
+        if not pd.api.types.is_object_dtype(
             data[column]
-        ):
+        ) and not pd.api.types.is_string_dtype(data[column]):
             continue
         non_null = data[column].dropna().astype(str).head(5)
         if non_null.empty:
@@ -199,7 +200,9 @@ def resolve_bbox_columns(
             for key, value in bbox_column_map.items()
             if key in {"x_min", "x_max", "y_min", "y_max"}
         }
-        if all(custom.get(key) is not None for key in ("x_min", "x_max", "y_min", "y_max")):
+        if all(
+            custom.get(key) is not None for key in ("x_min", "x_max", "y_min", "y_max")
+        ):
             return BBoxColumns(
                 x_min=custom["x_min"],  # type: ignore[arg-type]
                 x_max=custom["x_max"],  # type: ignore[arg-type]
@@ -274,10 +277,14 @@ def _extract_key_fields(row: pd.Series) -> dict[str, Any]:
     for column in row.index:
         column_str = str(column)
         if (
-            column_str.endswith("_Object_Number")
-            or column_str.endswith("_Parent_Cells")
-            or column_str.endswith("_Parent_Nuclei")
-        ) and column_str not in keys and not pd.isna(row[column]):
+            (
+                column_str.endswith("_Object_Number")
+                or column_str.endswith("_Parent_Cells")
+                or column_str.endswith("_Parent_Nuclei")
+            )
+            and column_str not in keys
+            and not pd.isna(row[column])
+        ):
             keys[column_str] = row[column]
     return keys
 
@@ -349,7 +356,9 @@ def image_crop_table_from_joined_chunk(
     )
 
     if bbox_columns is None:
-        raise ValueError("Unable to identify bounding box coordinate columns for image export.")
+        raise ValueError(
+            "Unable to identify bounding box coordinate columns for image export."
+        )
 
     image_index = _build_file_index(image_dir)
     mask_index = _build_file_index(mask_dir)
@@ -422,10 +431,10 @@ def image_crop_table_from_joined_chunk(
                     if (
                         label_path is not None
                         and outline_dir is not None
-                        and pathlib.Path(outline_dir) in pathlib.Path(label_path).parents
+                        and pathlib.Path(outline_dir)
+                        in pathlib.Path(label_path).parents
                     )
-                    else "mask" if label_path is not None
-                    else None
+                    else "mask" if label_path is not None else None
                 ),
             }
             rows.append(record)
@@ -464,7 +473,10 @@ def image_crop_table_from_joined_chunk(
         )
 
     key_columns = {
-        key: pa.array([None if row.get(key) is None else str(row.get(key)) for row in rows], type=pa.string())
+        key: pa.array(
+            [None if row.get(key) is None else str(row.get(key)) for row in rows],
+            type=pa.string(),
+        )
         for key in key_field_names
     }
     fixed_columns = {
@@ -482,8 +494,12 @@ def image_crop_table_from_joined_chunk(
         "bbox_x_max": pa.array([row["bbox_x_max"] for row in rows], type=pa.int64()),
         "bbox_y_min": pa.array([row["bbox_y_min"] for row in rows], type=pa.int64()),
         "bbox_y_max": pa.array([row["bbox_y_max"] for row in rows], type=pa.int64()),
-        "ome_image": pa.array([row["ome_image"] for row in rows], type=ome_arrow_struct),
-        "ome_label": pa.array([row["ome_label"] for row in rows], type=ome_arrow_struct),
+        "ome_image": pa.array(
+            [row["ome_image"] for row in rows], type=ome_arrow_struct
+        ),
+        "ome_label": pa.array(
+            [row["ome_label"] for row in rows], type=ome_arrow_struct
+        ),
     }
     return pa.table({**key_columns, **fixed_columns})
 

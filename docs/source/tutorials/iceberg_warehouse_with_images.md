@@ -88,8 +88,8 @@ CytoTable uses bounding box columns from the joined measurement rows to crop eac
 Resolution order:
 
 1. explicit `bbox_column_map`
-2. CellProfiler-style `AreaShape_BoundingBox...` column names
-3. substring fallback using `Minimum_X`, `Maximum_X`, `Minimum_Y`, `Maximum_Y`
+1. CellProfiler-style `AreaShape_BoundingBox...` column names
+1. substring fallback using `Minimum_X`, `Maximum_X`, `Minimum_Y`, `Maximum_Y`
 
 If you need to override the automatic choice:
 
@@ -141,7 +141,11 @@ The mapping uses:
 CytoTable exposes small helpers for local Iceberg warehouses:
 
 ```python
-from cytotable import describe_iceberg_warehouse, list_iceberg_tables, read_iceberg_table
+from cytotable import (
+    describe_iceberg_warehouse,
+    list_iceberg_tables,
+    read_iceberg_table,
+)
 
 print(list_iceberg_tables("./example_warehouse_with_images"))
 print(describe_iceberg_warehouse("./example_warehouse_with_images"))
