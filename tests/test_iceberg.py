@@ -104,7 +104,7 @@ def test_validate_image_export_prerequisites_requires_join_page_key():
     Tests that image export requires page_keys['join'].
     """
 
-    with pytest.raises(CytoTableException, match="page_keys.*join"):
+    with pytest.raises(CytoTableException, match=r"page_keys.*join"):
         _validate_image_export_prerequisites(
             image_dir="images",
             mask_dir=None,
@@ -164,6 +164,33 @@ def test_write_iceberg_warehouse_cleans_up_failed_build_root(fx_tempdir: str):
     assert not warehouse_path.exists()
     assert not list(warehouse_path.parent.glob(f"{warehouse_path.name}.tmp-*"))
     dfk.return_value.cleanup.assert_called_once()
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_cleans_up_failed_parsl_load(fx_tempdir: str):
+    """
+    Tests that a failing Parsl load does not leak the temporary build root.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "failed_warehouse"
+
+    with (
+        patch(
+            "cytotable.iceberg.parsl.load",
+            side_effect=RuntimeError("parsl load failed"),
+        ),
+        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        pytest.raises(RuntimeError, match="parsl load failed"),
+    ):
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset="cellprofiler_csv",
+        )
+
+    assert not warehouse_path.exists()
+    assert not list(warehouse_path.parent.glob(f"{warehouse_path.name}.tmp-*"))
 
 
 @pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
@@ -270,6 +297,45 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
     assert "analytics.image_crops" not in list_iceberg_tables(warehouse_path)
 
 
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_skips_joined_view_with_unresolved_sql(
+    fx_tempdir: str,
+):
+    """
+    Tests that unresolved parquet references do not get registered as views.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "unresolved_join_warehouse"
+    stage_parquet = Path(fx_tempdir) / "cells.parquet"
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
+
+    with (
+        patch("cytotable.iceberg.parsl.load"),
+        patch("cytotable.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch(
+            "cytotable.iceberg._run_export_workflow",
+            return_value={"cells.parquet": [{"table": [str(stage_parquet)]}]},
+        ),
+    ):
+        dfk.return_value.cleanup = MagicMock()
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset=None,
+            joins=(
+                "SELECT * FROM read_parquet('cells.parquet') AS cells "
+                "LEFT JOIN read_parquet('image.parquet') AS image "
+                "ON cells.Metadata_ImageNumber = image.Metadata_ImageNumber"
+            ),
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+    assert "analytics.cells" in list_iceberg_tables(warehouse_path)
+    assert "analytics.cytotable_joined" not in list_iceberg_tables(warehouse_path)
+
+
 def test_resolve_bbox_columns_prefers_cellprofiler_names():
     """
     Tests bbox resolution for CellProfiler-style names.
@@ -360,6 +426,47 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
     assert "object_id" in crop_table.column_names
     assert "ome_image" in crop_table.column_names
     assert "ome_label" in crop_table.column_names
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_table_skips_invalid_bbox_rows(fx_tempdir: str):
+    """
+    Tests that malformed or inverted bounding boxes are skipped.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+
+    image = np.arange(100, dtype=np.uint16).reshape(10, 10)
+    tifffile.imwrite(image_dir / "cell.tiff", image)
+
+    joined_chunk = pa.Table.from_pandas(
+        pd.DataFrame(
+            {
+                "Metadata_ImageNumber": [1, 2, 3],
+                "Image_FileName_DNA": ["cell.tiff", "cell.tiff", "cell.tiff"],
+                "Cytoplasm_AreaShape_BoundingBoxMinimum_X": ["3", "bad", "7"],
+                "Cytoplasm_AreaShape_BoundingBoxMaximum_X": ["7", "8", "3"],
+                "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": ["2", "2", "8"],
+                "Cytoplasm_AreaShape_BoundingBoxMaximum_Y": ["8", "8", "2"],
+            }
+        )
+    )
+    chunk_path = Path(fx_tempdir) / "joined_invalid_bbox.parquet"
+    parquet.write_table(joined_chunk, chunk_path)
+
+    crop_table = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path),
+        image_dir=str(image_dir),
+    )
+
+    assert crop_table.num_rows == 1
+    assert crop_table["bbox_x_min"].to_pylist() == [3]
+    assert crop_table["bbox_x_max"].to_pylist() == [7]
+    assert crop_table["bbox_y_min"].to_pylist() == [2]
+    assert crop_table["bbox_y_max"].to_pylist() == [8]
 
 
 def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):

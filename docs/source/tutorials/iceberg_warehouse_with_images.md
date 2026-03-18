@@ -164,7 +164,7 @@ profile_with_images = read_iceberg_table(
 
 - the warehouse directory exists and contains Iceberg metadata/data files
 - `cytotable_joined` appears as a saved view
-- `profile_with_images` appears as a saved view when image export is enabled
-- `image_crops` appears as a table when `image_dir` was provided
-- `image_crops` rows include a stable `object_id` value derived from measurement keys, source image column, and crop bounds
+- `image_crops` appears as a table only when `image_dir` was provided and crop rows were actually written
+- `profile_with_images` appears as a saved view only when `image_crops` exists and contains rows
+- `image_crops` rows include a stable `object_id` derived from measurement keys, source image column, and crop bounds
 - `image_crops` rows include `ome_image` and optional `ome_label` payloads

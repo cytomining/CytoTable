@@ -460,13 +460,14 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
     parsl_was_loaded = _parsl_loaded()
     parsl_loaded_here = False
-    if not parsl_was_loaded:
-        parsl.load(parsl_config or _default_parsl_config())
-        parsl_loaded_here = True
-    else:
-        logger.warning("Reusing previously loaded Parsl configuration.")
 
     try:
+        if not parsl_was_loaded:
+            parsl.load(parsl_config or _default_parsl_config())
+            parsl_loaded_here = True
+        else:
+            logger.warning("Reusing previously loaded Parsl configuration.")
+
         staged = cast(
             Dict[str, list[dict[str, Any]]],
             _run_export_workflow(
@@ -515,19 +516,21 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             source_names[table_name] = table_name
 
         if joined_view_name and resolved["joins"] and source_names:
-            registry = bundle._read_registry()
-            cast(dict[str, dict[str, object]], registry["views"])[
-                _qualify(joined_view_name, default_namespace)
-            ] = {
-                "kind": "sql",
-                "tables": sorted(source_names.values()),
-                "sql": _rewrite_join_sql_for_warehouse(
-                    cast(str, resolved["joins"]), source_names
-                ),
-                "page_keys": cast(Dict[str, str], resolved["page_keys"]),
-                "preset": resolved["preset"],
-            }
-            bundle._write_registry(registry)
+            rewritten_join_sql = _rewrite_join_sql_for_warehouse(
+                cast(str, resolved["joins"]), source_names
+            )
+            if "read_parquet(" not in rewritten_join_sql:
+                registry = bundle._read_registry()
+                cast(dict[str, dict[str, object]], registry["views"])[
+                    _qualify(joined_view_name, default_namespace)
+                ] = {
+                    "kind": "sql",
+                    "tables": sorted(source_names.values()),
+                    "sql": rewritten_join_sql,
+                    "page_keys": cast(Dict[str, str], resolved["page_keys"]),
+                    "preset": resolved["preset"],
+                }
+                bundle._write_registry(registry)
 
         if image_export_enabled:
             _validate_image_export_prerequisites(

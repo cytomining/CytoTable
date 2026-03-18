@@ -349,8 +349,7 @@ def _build_stable_object_id(
 
 def _crop_ome_arrow(
     image_path: pathlib.Path,
-    bbox: BBoxColumns,
-    row: pd.Series,
+    bbox: dict[str, int],
 ) -> dict[str, Any]:
     """
     Lazily crop a TIFF-backed image into an OME-Arrow struct.
@@ -360,15 +359,49 @@ def _crop_ome_arrow(
     crop = (
         OMEArrow.scan(str(image_path))
         .slice_lazy(
-            x_min=max(0, int(row[bbox.x_min])),
-            x_max=max(0, int(row[bbox.x_max])),
-            y_min=max(0, int(row[bbox.y_min])),
-            y_max=max(0, int(row[bbox.y_max])),
+            x_min=max(0, bbox["x_min"]),
+            x_max=max(0, bbox["x_max"]),
+            y_min=max(0, bbox["y_min"]),
+            y_max=max(0, bbox["y_max"]),
         )
         .collect()
     )
     data = crop.data
     return data.as_py() if hasattr(data, "as_py") else data
+
+
+def _validated_bbox_values(
+    row: pd.Series,
+    bbox_columns: BBoxColumns,
+) -> Optional[dict[str, int]]:
+    """
+    Validate and normalize row bbox values for image cropping.
+    """
+
+    numeric_bbox: dict[str, Any] = {}
+    for name, column in (
+        ("x_min", bbox_columns.x_min),
+        ("x_max", bbox_columns.x_max),
+        ("y_min", bbox_columns.y_min),
+        ("y_max", bbox_columns.y_max),
+    ):
+        value = pd.to_numeric(row[column], errors="coerce")
+        if pd.isna(value):
+            return None
+        numeric_bbox[name] = int(value)
+
+    if (
+        numeric_bbox["x_min"] >= numeric_bbox["x_max"]
+        or numeric_bbox["y_min"] >= numeric_bbox["y_max"]
+    ):
+        return None
+
+    return {
+        "x_min": numeric_bbox["x_min"],
+        "x_max": numeric_bbox["x_max"],
+        "y_min": numeric_bbox["y_min"],
+        "y_max": numeric_bbox["y_max"],
+    }
 
 
 def image_crop_table_from_joined_chunk(
@@ -402,15 +435,9 @@ def image_crop_table_from_joined_chunk(
 
     rows: list[dict[str, Any]] = []
     for _, row in data.iterrows():
-        if any(
-            pd.isna(row[column])
-            for column in (
-                bbox_columns.x_min,
-                bbox_columns.x_max,
-                bbox_columns.y_min,
-                bbox_columns.y_max,
-            )
-        ):
+        bbox_values = _validated_bbox_values(row, bbox_columns)
+        if bbox_values is None:
+            logger.debug("Skipping image crop for invalid bounding box values.")
             continue
 
         key_fields = _extract_key_fields(row)
@@ -445,24 +472,17 @@ def image_crop_table_from_joined_chunk(
                     key_fields=key_fields,
                     image_column=image_column,
                     image_name=image_name,
-                    bbox={
-                        "x_min": int(row[bbox_columns.x_min]),
-                        "x_max": int(row[bbox_columns.x_max]),
-                        "y_min": int(row[bbox_columns.y_min]),
-                        "y_max": int(row[bbox_columns.y_max]),
-                    },
+                    bbox=bbox_values,
                 ),
                 "source_image_column": image_column,
                 "source_image_file": image_name,
-                "bbox_x_min": int(row[bbox_columns.x_min]),
-                "bbox_x_max": int(row[bbox_columns.x_max]),
-                "bbox_y_min": int(row[bbox_columns.y_min]),
-                "bbox_y_max": int(row[bbox_columns.y_max]),
-                "ome_image": _crop_ome_arrow(
-                    image_path=image_path, bbox=bbox_columns, row=row
-                ),
+                "bbox_x_min": bbox_values["x_min"],
+                "bbox_x_max": bbox_values["x_max"],
+                "bbox_y_min": bbox_values["y_min"],
+                "bbox_y_max": bbox_values["y_max"],
+                "ome_image": _crop_ome_arrow(image_path=image_path, bbox=bbox_values),
                 "ome_label": (
-                    _crop_ome_arrow(image_path=label_path, bbox=bbox_columns, row=row)
+                    _crop_ome_arrow(image_path=label_path, bbox=bbox_values)
                     if label_path is not None
                     else None
                 ),
