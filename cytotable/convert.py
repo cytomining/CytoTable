@@ -1537,8 +1537,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             used for intermediary data work and must be a new file or directory path.
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
-            For `dest_backend="iceberg"` this path is the warehouse root directory.
-            Note: this may only be a local path.
+            For `dest_backend="iceberg"` this path is the local warehouse root
+            directory. Parquet staging is still used internally during the write,
+            but those intermediary files are temporary and are not retained as part
+            of the final output at `dest_path`.
         dest_backend: Literal["parquet", "iceberg"]:
             Output backend to write to. Defaults to 'parquet'. Use 'iceberg'
             to store normalized CytoTable tables in a local Iceberg warehouse.
