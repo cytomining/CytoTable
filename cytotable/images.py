@@ -95,9 +95,12 @@ def _build_file_index(file_dir: Optional[str]) -> dict[str, pathlib.Path]:
     basename_index: dict[str, pathlib.Path] = {}
     stem_candidates: dict[str, list[pathlib.Path]] = {}
     for path in root.rglob("*"):
-        if not path.is_file():
-            continue
         lowered = path.name.lower()
+        is_image_path = path.is_file() or (
+            path.is_dir() and lowered.endswith((".zarr", ".ome.zarr"))
+        )
+        if not is_image_path:
+            continue
         if not lowered.endswith(_IMAGE_SUFFIXES):
             continue
         basename_index[path.name] = path
@@ -115,10 +118,25 @@ def _find_matching_segmentation_path(
     pattern_map: Optional[dict[str, str]],
     file_dir: Optional[str],
     candidate_path: pathlib.Path,
+    file_index: Optional[dict[str, pathlib.Path]] = None,
+    lookup_cache: Optional[dict[str, Optional[pathlib.Path]]] = None,
 ) -> Optional[pathlib.Path]:
     """
     Resolve a matching mask/outline file path for an image value.
     """
+
+    cache_key = None
+    if lookup_cache is not None:
+        cache_key = "|".join(
+            [
+                str(file_dir),
+                str(candidate_path),
+                str(data_value),
+                dumps(pattern_map, sort_keys=True) if pattern_map is not None else "",
+            ]
+        )
+        if cache_key in lookup_cache:
+            return lookup_cache[cache_key]
 
     if file_dir is None:
         return None
@@ -127,9 +145,22 @@ def _find_matching_segmentation_path(
     if not root.exists():
         return None
 
+    indexed_files = (
+        file_index if file_index is not None else _build_file_index(file_dir)
+    )
+
     if pattern_map is None:
-        matching_files = sorted(root.rglob(f"{pathlib.Path(candidate_path).stem}*"))
-        return matching_files[0] if matching_files else None
+        result = indexed_files.get(
+            pathlib.Path(candidate_path).name
+        ) or indexed_files.get(pathlib.Path(candidate_path).stem)
+        if lookup_cache is not None and cache_key is not None:
+            lookup_cache[cache_key] = result
+        return result
+
+    indexed_paths = sorted(
+        {path.resolve(): path for path in indexed_files.values()}.values(),
+        key=lambda path: path.name,
+    )
 
     for file_pattern, original_pattern in pattern_map.items():
         matched = re.search(original_pattern, data_value)
@@ -152,17 +183,21 @@ def _find_matching_segmentation_path(
             dict.fromkeys(identifier for identifier in identifiers if identifier)
         )
         normalized_identifiers = [
-            re.escape(identifier.lower()) for identifier in identifiers if identifier
+            identifier.lower() for identifier in identifiers if identifier
         ]
 
-        for file in sorted(root.rglob("*")):
-            if not file.is_file() or not re.search(file_pattern, file.name):
+        for file in indexed_paths:
+            if not re.search(file_pattern, file.name):
                 continue
             if not normalized_identifiers or any(
                 identifier in file.stem.lower() for identifier in normalized_identifiers
             ):
+                if lookup_cache is not None and cache_key is not None:
+                    lookup_cache[cache_key] = file
                 return file
 
+    if lookup_cache is not None and cache_key is not None:
+        lookup_cache[cache_key] = None
     return None
 
 
@@ -363,6 +398,7 @@ def image_crop_table_from_joined_chunk(
     image_index = _build_file_index(image_dir)
     mask_index = _build_file_index(mask_dir)
     outline_index = _build_file_index(outline_dir)
+    segmentation_cache: dict[str, Optional[pathlib.Path]] = {}
 
     rows: list[dict[str, Any]] = []
     for _, row in data.iterrows():
@@ -392,11 +428,15 @@ def image_crop_table_from_joined_chunk(
                 pattern_map=segmentation_file_regex,
                 file_dir=outline_dir,
                 candidate_path=image_path,
+                file_index=outline_index,
+                lookup_cache=segmentation_cache,
             ) or _find_matching_segmentation_path(
                 data_value=image_name,
                 pattern_map=segmentation_file_regex,
                 file_dir=mask_dir,
                 candidate_path=image_path,
+                file_index=mask_index,
+                lookup_cache=segmentation_cache,
             )
 
             record = {

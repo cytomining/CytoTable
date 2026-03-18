@@ -171,7 +171,10 @@ def test_invalid_dest_backend():
     Tests running cytotable.convert with an invalid dest_backend.
     """
 
-    with pytest.raises(CytoTableException):
+    with pytest.raises(
+        CytoTableException,
+        match=r"Invalid dest_backend provided: invalid",
+    ):
         convert(
             source_path="example.sqlite",
             dest_path="example.parquet",
@@ -196,7 +199,6 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         dest_backend="iceberg",
         dest_datatype="parquet",
         preset=None,
-        join=False,
     )
 
     assert result == "example_warehouse"
@@ -222,6 +224,32 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         preset=None,
         parsl_config=None,
     )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"concat": False}, "concat=False"),
+        ({"join": False}, "join=False"),
+        ({"drop_null": True}, "drop_null=True"),
+    ],
+)
+def test_iceberg_rejects_parquet_only_flow_controls(
+    kwargs: dict[str, bool], match: str
+):
+    """
+    Tests Iceberg validation for parquet-only flow control parameters.
+    """
+
+    with pytest.raises(CytoTableException, match=match):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example_warehouse",
+            dest_backend="iceberg",
+            dest_datatype="parquet",
+            preset=None,
+            **kwargs,
+        )
 
 
 def test_image_export_requires_iceberg_backend():

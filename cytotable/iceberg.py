@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -143,6 +144,52 @@ def _resolve_convert_config(
         "page_keys": dict(page_keys or {}),
         "preset": preset,
     }
+
+
+def _validate_image_export_prerequisites(
+    *,
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    bbox_column_map: Optional[Dict[str, str]],
+    segmentation_file_regex: Optional[Dict[str, str]],
+    joins: str,
+    page_keys: Dict[str, str],
+) -> bool:
+    """
+    Validate that image export configuration includes required join settings.
+    """
+
+    ancillary_image_config = any(
+        (
+            mask_dir is not None,
+            outline_dir is not None,
+            bool(bbox_column_map),
+            bool(segmentation_file_regex),
+        )
+    )
+    image_export_requested = image_dir is not None or ancillary_image_config
+
+    if not image_export_requested:
+        return False
+
+    if image_dir is None:
+        raise CytoTableException(
+            "Image export options require 'image_dir' to be provided."
+        )
+
+    if not joins.strip():
+        raise CytoTableException(
+            "Image export requires join SQL. Provide 'joins' directly or use a "
+            "preset that defines them."
+        )
+
+    if not page_keys.get("join"):
+        raise CytoTableException(
+            "Image export requires page_keys to include a non-empty 'join' entry."
+        )
+
+    return True
 
 
 if _PYICEBERG_IMPORT_ERROR is None:
@@ -385,6 +432,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         raise CytoTableException(
             f"An existing file or directory was provided as warehouse_path: '{root}'."
         )
+    root.parent.mkdir(parents=True, exist_ok=True)
 
     resolved = _resolve_convert_config(
         preset=preset,
@@ -395,12 +443,26 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         chunk_size=chunk_size,
         page_keys=page_keys,
     )
+    image_export_enabled = _validate_image_export_prerequisites(
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        bbox_column_map=bbox_column_map,
+        segmentation_file_regex=segmentation_file_regex,
+        joins=cast(str, resolved["joins"]),
+        page_keys=cast(Dict[str, str], resolved["page_keys"]),
+    )
 
-    root.mkdir(parents=True, exist_ok=False)
-    stage_dir = Path(tempfile.mkdtemp(prefix="cytotable-iceberg-", dir=str(root)))
+    tmp_root = Path(tempfile.mkdtemp(prefix=f"{root.name}.tmp-", dir=str(root.parent)))
+    build_root: Optional[Path] = tmp_root
+    stage_dir = tmp_root / "stage"
+    stage_dir.mkdir(parents=True, exist_ok=False)
 
-    if not _parsl_loaded():
+    parsl_was_loaded = _parsl_loaded()
+    parsl_loaded_here = False
+    if not parsl_was_loaded:
         parsl.load(parsl_config or _default_parsl_config())
+        parsl_loaded_here = True
     else:
         logger.warning("Reusing previously loaded Parsl configuration.")
 
@@ -431,7 +493,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         )
 
         bundle = catalog(
-            root,
+            tmp_root,
             default_namespace=default_namespace,
             registry_file=registry_file,
         )
@@ -452,7 +514,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             table.append(arrow_table)
             source_names[table_name] = table_name
 
-        if joined_view_name and resolved["joins"]:
+        if joined_view_name and resolved["joins"] and source_names:
             registry = bundle._read_registry()
             cast(dict[str, dict[str, object]], registry["views"])[
                 _qualify(joined_view_name, default_namespace)
@@ -467,7 +529,16 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             }
             bundle._write_registry(registry)
 
-        if image_dir is not None:
+        if image_export_enabled:
+            _validate_image_export_prerequisites(
+                image_dir=image_dir,
+                mask_dir=mask_dir,
+                outline_dir=outline_dir,
+                bbox_column_map=bbox_column_map,
+                segmentation_file_regex=segmentation_file_regex,
+                joins=cast(str, resolved["joins"]),
+                page_keys=cast(Dict[str, str], resolved["page_keys"]),
+            )
             joined_chunk_paths = cast(
                 list[str],
                 _run_export_workflow(
@@ -496,7 +567,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             for chunk_path in joined_chunk_paths:
                 crop_table = image_crop_table_from_joined_chunk(
                     chunk_path=chunk_path,
-                    image_dir=image_dir,
+                    image_dir=cast(str, image_dir),
                     mask_dir=mask_dir,
                     outline_dir=outline_dir,
                     bbox_column_map=bbox_column_map,
@@ -514,7 +585,12 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     )
                 image_table.append(crop_table)
 
-            if joined_view_name and profile_with_images_view_name:
+            if (
+                joined_view_name
+                and profile_with_images_view_name
+                and source_names
+                and image_table is not None
+            ):
                 registry = bundle._read_registry()
                 cast(dict[str, dict[str, object]], registry["views"])[
                     _qualify(profile_with_images_view_name, default_namespace)
@@ -526,10 +602,15 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 }
                 bundle._write_registry(registry)
 
-    finally:
-        if _parsl_loaded():
-            parsl.dfk().cleanup()
         shutil.rmtree(stage_dir, ignore_errors=True)
+        os.replace(tmp_root, root)
+        build_root = None
+
+    finally:
+        if parsl_loaded_here:
+            parsl.dfk().cleanup()
+        if build_root is not None:
+            shutil.rmtree(build_root, ignore_errors=True)
 
     return str(root)
 

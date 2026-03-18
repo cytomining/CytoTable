@@ -1666,6 +1666,21 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
                 "Iceberg backend currently supports only dest_datatype='parquet' "
                 "for normalized table staging."
             )
+        if not concat:
+            raise CytoTableException(
+                "Iceberg backend does not support concat=False. "
+                "It always stages normalized tables using concatenated logical outputs."
+            )
+        if not join:
+            raise CytoTableException(
+                "Iceberg backend does not support join=False. "
+                "Use the default join=True behavior when writing an Iceberg warehouse."
+            )
+        if drop_null:
+            raise CytoTableException(
+                "Iceberg backend does not support drop_null=True. "
+                "This parquet join-time filter is unavailable for warehouse writes."
+            )
 
         from cytotable.iceberg import write_iceberg_warehouse
 
