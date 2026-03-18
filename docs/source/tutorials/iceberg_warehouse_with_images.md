@@ -18,6 +18,9 @@ A start-to-finish walkthrough for users who want to keep CytoTable measurements 
 
 ## Setup
 
+Image crop export requires Python 3.11 or newer because the optional `ome-arrow`
+dependency is only available on Python 3.11+.
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate

@@ -1651,8 +1651,18 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         )
 
     image_export_requested = any(
-        path is not None for path in (image_dir, mask_dir, outline_dir)
+        (
+            image_dir is not None,
+            mask_dir is not None,
+            outline_dir is not None,
+            bool(bbox_column_map),
+            bool(segmentation_file_regex),
+        )
     )
+    if image_export_requested and image_dir is None:
+        raise CytoTableException(
+            "Image export options require image_dir to be provided."
+        )
     if image_export_requested and dest_backend != "iceberg":
         raise CytoTableException("Image export requires dest_backend='iceberg'.")
     if image_export_requested and not join:

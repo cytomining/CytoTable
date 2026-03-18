@@ -37,8 +37,6 @@ from cytotable.images import (
 )
 from cytotable.presets import config
 
-tifffile = pytest.importorskip("tifffile")
-
 
 def test_rewrite_join_sql_for_warehouse():
     """
@@ -324,6 +322,8 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
     """
     Tests OME-Arrow crop export from a joined parquet chunk.
     """
+
+    tifffile = pytest.importorskip("tifffile")
 
     image_dir = Path(fx_tempdir) / "images"
     outline_dir = Path(fx_tempdir) / "outlines"

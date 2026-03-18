@@ -266,6 +266,54 @@ def test_image_export_requires_iceberg_backend():
         )
 
 
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"bbox_column_map": {"x_min": "Cells_AreaShape_BoundingBoxMinimum_X"}},
+        {"segmentation_file_regex": {r".*_mask\.tiff$": r"(cell)\.tiff$"}},
+    ],
+)
+def test_image_export_ancillary_options_require_iceberg_backend(
+    kwargs: dict[str, dict[str, str]],
+):
+    """
+    Tests ancillary image export options for non-Iceberg destinations.
+    """
+
+    with pytest.raises(CytoTableException, match="dest_backend='iceberg'"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            image_dir="images",
+            join=True,
+            **kwargs,
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"mask_dir": "masks"},
+        {"outline_dir": "outlines"},
+        {"bbox_column_map": {"x_min": "Cells_AreaShape_BoundingBoxMinimum_X"}},
+        {"segmentation_file_regex": {r".*_mask\.tiff$": r"(cell)\.tiff$"}},
+    ],
+)
+def test_image_export_options_require_image_dir(kwargs: dict[str, object]):
+    """
+    Tests that image export options are rejected without image_dir.
+    """
+
+    with pytest.raises(CytoTableException, match="require image_dir"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example_warehouse",
+            dest_backend="iceberg",
+            join=True,
+            **kwargs,
+        )
+
+
 def test_image_export_requires_join():
     """
     Tests image export validation for join=False.
