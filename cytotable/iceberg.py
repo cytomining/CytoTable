@@ -20,9 +20,11 @@ from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
 from cytotable.images import (
     IMAGE_TABLE_NAME,
+    SOURCE_IMAGE_TABLE_NAME,
     add_object_id_to_profiles_frame,
     image_crop_table_from_joined_chunk,
     profile_with_images_frame,
+    source_image_table_from_joined_chunk,
 )
 from cytotable.presets import config
 from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
@@ -30,6 +32,7 @@ from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
 logger = logging.getLogger(__name__)
 
 DEFAULT_NAMESPACE = "profiles"
+DEFAULT_IMAGES_NAMESPACE = "images"
 DEFAULT_REGISTRY_FILE = "catalog.json"
 DEFAULT_WAREHOUSE_DIR = "warehouse"
 DEFAULT_PROFILES_TABLE = "joined_profiles"
@@ -68,6 +71,38 @@ def _qualify(name: str, namespace: str) -> str:
     """
 
     return name if "." in name else f"{namespace}.{name}"
+
+
+def _resolve_unqualified_name(
+    bundle: TinyCatalog,
+    name: str,
+) -> str:
+    """
+    Resolve an unqualified table/view name across namespaces when unique.
+    """
+
+    if "." in name:
+        return name
+
+    default_qualified = _qualify(name, bundle.default_namespace)
+    identifier = tuple(default_qualified.split("."))
+    if bundle.table_exists(identifier) or bundle.view_exists(identifier):
+        return default_qualified
+
+    matches: list[str] = []
+    for namespace in bundle.list_namespaces():
+        qualified = _qualify(name, ".".join(namespace))
+        candidate = tuple(qualified.split("."))
+        if bundle.table_exists(candidate) or bundle.view_exists(candidate):
+            matches.append(qualified)
+
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise CytoTableException(
+            f"Ambiguous unqualified Iceberg name '{name}'. Use a fully qualified name."
+        )
+    return default_qualified
 
 
 def _warehouse_dir(path: Union[str, Path], registry_file: str) -> Path:
@@ -414,7 +449,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     outline_dir: Optional[str] = None,
     bbox_column_map: Optional[Dict[str, str]] = None,
     segmentation_file_regex: Optional[Dict[str, str]] = None,
+    include_source_images: bool = False,
     default_namespace: str = DEFAULT_NAMESPACE,
+    images_namespace: str = DEFAULT_IMAGES_NAMESPACE,
     registry_file: str = DEFAULT_REGISTRY_FILE,
     profiles_table_name: str = DEFAULT_PROFILES_TABLE,
     profile_with_images_view_name: Optional[str] = DEFAULT_PROFILE_WITH_IMAGES_VIEW,
@@ -499,6 +536,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             registry_file=registry_file,
         )
         bundle.create_namespace(default_namespace)
+        if image_export_enabled:
+            bundle.create_namespace(images_namespace)
 
         profiles_table_exists = False
         if profiles_path and Path(profiles_path).exists():
@@ -554,6 +593,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 ),
             )
             image_table: Optional[Table] = None
+            source_images_table: Optional[Table] = None
             for chunk_path in joined_chunk_paths:
                 crop_table = image_crop_table_from_joined_chunk(
                     chunk_path=chunk_path,
@@ -567,13 +607,37 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     continue
                 if image_table is None:
                     image_table = (
-                        bundle.load_table((default_namespace, IMAGE_TABLE_NAME))
-                        if bundle.table_exists((default_namespace, IMAGE_TABLE_NAME))
+                        bundle.load_table((images_namespace, IMAGE_TABLE_NAME))
+                        if bundle.table_exists((images_namespace, IMAGE_TABLE_NAME))
                         else bundle.create_table(
-                            (default_namespace, IMAGE_TABLE_NAME), crop_table.schema
+                            (images_namespace, IMAGE_TABLE_NAME), crop_table.schema
                         )
                     )
                 image_table.append(crop_table)
+
+                if include_source_images:
+                    source_image_table = source_image_table_from_joined_chunk(
+                        chunk_path=chunk_path,
+                        image_dir=cast(str, image_dir),
+                        mask_dir=mask_dir,
+                        outline_dir=outline_dir,
+                        segmentation_file_regex=segmentation_file_regex,
+                    )
+                    if source_image_table.num_rows != 0:
+                        if source_images_table is None:
+                            source_images_table = (
+                                bundle.load_table(
+                                    (images_namespace, SOURCE_IMAGE_TABLE_NAME)
+                                )
+                                if bundle.table_exists(
+                                    (images_namespace, SOURCE_IMAGE_TABLE_NAME)
+                                )
+                                else bundle.create_table(
+                                    (images_namespace, SOURCE_IMAGE_TABLE_NAME),
+                                    source_image_table.schema,
+                                )
+                            )
+                        source_images_table.append(source_image_table)
 
             if (
                 profiles_table_exists
@@ -586,7 +650,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 ] = {
                     "kind": "profile_with_images",
                     "base_table": _qualify(profiles_table_name, default_namespace),
-                    "image_table": _qualify(IMAGE_TABLE_NAME, default_namespace),
+                    "image_table": _qualify(IMAGE_TABLE_NAME, images_namespace),
                     "bbox_column_map": bbox_column_map or {},
                 }
                 bundle._write_registry(registry)
@@ -681,7 +745,7 @@ def read_iceberg_table(
         default_namespace=default_namespace,
         registry_file=registry_file,
     )
-    qualified_name = _qualify(table_name, bundle.default_namespace)
+    qualified_name = _resolve_unqualified_name(bundle, table_name)
     if bundle.view_exists(tuple(qualified_name.split("."))):
         return _read_registered_view(bundle, qualified_name)
     return (
@@ -743,12 +807,17 @@ def describe_iceberg_warehouse(
         for identifier in bundle.list_tables(namespace):
             table = bundle.load_table(identifier)
             files = table.inspect.files().to_pandas()
+            current_snapshot = table.current_snapshot()
             rows.append(
                 {
                     "table": ".".join(identifier),
                     "rows": int(files["record_count"].sum()),
                     "data_files": len(files),
-                    "snapshot_id": table.current_snapshot().snapshot_id,
+                    "snapshot_id": (
+                        current_snapshot.snapshot_id
+                        if current_snapshot is not None
+                        else None
+                    ),
                     "kind": "table",
                 }
             )
@@ -768,6 +837,7 @@ def describe_iceberg_warehouse(
 
 
 __all__ = [
+    "DEFAULT_IMAGES_NAMESPACE",
     "DEFAULT_NAMESPACE",
     "DEFAULT_PROFILE_WITH_IMAGES_VIEW",
     "DEFAULT_PROFILES_TABLE",

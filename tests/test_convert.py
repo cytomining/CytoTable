@@ -216,6 +216,7 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         add_tablenumber=None,
         page_keys=None,
         image_dir=None,
+        include_source_images=False,
         mask_dir=None,
         outline_dir=None,
         segmentation_file_regex=None,
@@ -293,6 +294,7 @@ def test_image_export_ancillary_options_require_iceberg_backend(
 @pytest.mark.parametrize(
     "kwargs",
     [
+        {"include_source_images": True},
         {"mask_dir": "masks"},
         {"outline_dir": "outlines"},
         {"bbox_column_map": {"x_min": "Cells_AreaShape_BoundingBoxMinimum_X"}},

@@ -19,6 +19,13 @@ import pyarrow.parquet as parquet
 logger = logging.getLogger(__name__)
 
 IMAGE_TABLE_NAME = "image_crops"
+SOURCE_IMAGE_TABLE_NAME = "source_images"
+PROFILE_BBOX_METADATA_COLUMNS = {
+    "x_min": "Metadata_SourceBBoxXMin",
+    "x_max": "Metadata_SourceBBoxXMax",
+    "y_min": "Metadata_SourceBBoxYMin",
+    "y_max": "Metadata_SourceBBoxYMax",
+}
 _IMAGE_SUFFIXES = (
     ".tif",
     ".tiff",
@@ -48,6 +55,17 @@ class BBoxColumns:
     x_max: str
     y_min: str
     y_max: str
+
+
+@dataclass(frozen=True)
+class FileIndex:
+    """
+    Relative-path-first index for image-like files in a directory tree.
+    """
+
+    by_relative: dict[str, pathlib.Path]
+    by_basename: dict[str, list[pathlib.Path]]
+    by_stem: dict[str, list[pathlib.Path]]
 
 
 def _require_ome_arrow() -> tuple[Any, Any]:
@@ -113,7 +131,7 @@ def _strip_null_fields_from_value(value: Any, data_type: pa.DataType) -> Any:
 
 def _normalize_file_value(value: Any) -> Optional[str]:
     """
-    Normalize a file-like value to a comparable basename.
+    Normalize a file-like value to a comparable path string.
     """
 
     if value is None or pd.isna(value):
@@ -122,23 +140,24 @@ def _normalize_file_value(value: Any) -> Optional[str]:
     normalized = str(value)
     if normalized.startswith("file:"):
         normalized = normalized[len("file:") :]
-    return pathlib.Path(normalized).name
+    return pathlib.PurePath(normalized).as_posix()
 
 
-def _build_file_index(file_dir: Optional[str]) -> dict[str, pathlib.Path]:
+def _build_file_index(file_dir: Optional[str]) -> FileIndex:
     """
-    Build a basename and stem index for image-like files in a directory tree.
+    Build a relative-path-first index for image-like files in a directory tree.
     """
 
     if file_dir is None:
-        return {}
+        return FileIndex(by_relative={}, by_basename={}, by_stem={})
 
     root = pathlib.Path(file_dir)
     if not root.exists():
-        return {}
+        return FileIndex(by_relative={}, by_basename={}, by_stem={})
 
-    basename_index: dict[str, pathlib.Path] = {}
-    stem_candidates: dict[str, list[pathlib.Path]] = {}
+    relative_index: dict[str, pathlib.Path] = {}
+    basename_index: dict[str, list[pathlib.Path]] = {}
+    stem_index: dict[str, list[pathlib.Path]] = {}
     for path in root.rglob("*"):
         lowered = path.name.lower()
         is_image_path = path.is_file() or (
@@ -148,14 +167,53 @@ def _build_file_index(file_dir: Optional[str]) -> dict[str, pathlib.Path]:
             continue
         if not lowered.endswith(_IMAGE_SUFFIXES):
             continue
-        basename_index[path.name] = path
-        stem_candidates.setdefault(path.stem, []).append(path)
+        relative_key = path.relative_to(root).as_posix()
+        relative_index[relative_key] = path
+        basename_index.setdefault(path.name, []).append(path)
+        stem_index.setdefault(path.stem, []).append(path)
 
-    for stem, paths in stem_candidates.items():
-        if len(paths) == 1 and stem not in basename_index:
-            basename_index[stem] = paths[0]
+    return FileIndex(
+        by_relative=relative_index,
+        by_basename=basename_index,
+        by_stem=stem_index,
+    )
 
-    return basename_index
+
+def _resolve_indexed_path(
+    normalized_value: str,
+    file_index: FileIndex,
+) -> Optional[pathlib.Path]:
+    """
+    Resolve a normalized path string against a relative-path-first file index.
+    """
+
+    normalized_path = pathlib.PurePosixPath(normalized_value)
+    parts = normalized_path.parts
+
+    for offset in range(len(parts)):
+        candidate = pathlib.PurePosixPath(*parts[offset:]).as_posix()
+        if candidate in file_index.by_relative:
+            return file_index.by_relative[candidate]
+
+    basename_matches = file_index.by_basename.get(normalized_path.name, [])
+    if len(basename_matches) == 1:
+        return basename_matches[0]
+    if len(basename_matches) > 1:
+        raise ValueError(
+            f"Ambiguous image basename '{normalized_path.name}'. "
+            "Provide a relative path to disambiguate."
+        )
+
+    stem_matches = file_index.by_stem.get(normalized_path.stem, [])
+    if len(stem_matches) == 1:
+        return stem_matches[0]
+    if len(stem_matches) > 1:
+        raise ValueError(
+            f"Ambiguous image stem '{normalized_path.stem}'. "
+            "Provide a relative path to disambiguate."
+        )
+
+    return None
 
 
 def _find_matching_segmentation_path(
@@ -163,7 +221,7 @@ def _find_matching_segmentation_path(
     pattern_map: Optional[dict[str, str]],
     file_dir: Optional[str],
     candidate_path: pathlib.Path,
-    file_index: Optional[dict[str, pathlib.Path]] = None,
+    file_index: Optional[FileIndex] = None,
     lookup_cache: Optional[dict[str, Optional[pathlib.Path]]] = None,
 ) -> Optional[pathlib.Path]:
     """
@@ -195,15 +253,16 @@ def _find_matching_segmentation_path(
     )
 
     if pattern_map is None:
-        result = indexed_files.get(
-            pathlib.Path(candidate_path).name
-        ) or indexed_files.get(pathlib.Path(candidate_path).stem)
+        result = _resolve_indexed_path(
+            pathlib.PurePath(candidate_path).as_posix(),
+            indexed_files,
+        )
         if lookup_cache is not None and cache_key is not None:
             lookup_cache[cache_key] = result
         return result
 
     indexed_paths = sorted(
-        {path.resolve(): path for path in indexed_files.values()}.values(),
+        {path.resolve(): path for path in indexed_files.by_relative.values()}.values(),
         key=lambda path: path.name,
     )
 
@@ -290,6 +349,18 @@ def resolve_bbox_columns(
                 y_max=custom["y_max"],  # type: ignore[arg-type]
             )
 
+    metadata_bbox = {
+        key: col_by_name.get(value)
+        for key, value in PROFILE_BBOX_METADATA_COLUMNS.items()
+    }
+    if all(metadata_bbox.values()):
+        return BBoxColumns(
+            x_min=metadata_bbox["x_min"],  # type: ignore[arg-type]
+            x_max=metadata_bbox["x_max"],  # type: ignore[arg-type]
+            y_min=metadata_bbox["y_min"],  # type: ignore[arg-type]
+            y_max=metadata_bbox["y_max"],  # type: ignore[arg-type]
+        )
+
     cp_prefixes = ("Cytoplasm_", "Nuclei_", "Cells_", "")
     for prefix in cp_prefixes:
         matched = {
@@ -369,6 +440,26 @@ def _extract_key_fields(row: pd.Series) -> dict[str, Any]:
     return keys
 
 
+def _extract_image_key_fields(row: pd.Series) -> dict[str, Any]:
+    """
+    Extract image-level key fields to carry into source image rows.
+    """
+
+    preferred_columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Image_Metadata_Well",
+        "Image_Metadata_Plate",
+        "Metadata_Well",
+        "Metadata_Plate",
+    ]
+    return {
+        column: row[column]
+        for column in preferred_columns
+        if column in row.index and not pd.isna(row[column])
+    }
+
+
 def _build_stable_object_id(
     key_fields: dict[str, Any],
     bbox: Optional[dict[str, int]] = None,
@@ -411,6 +502,27 @@ def _build_stable_image_crop_id(
     return object_id(payload)
 
 
+def _build_stable_source_image_id(
+    key_fields: dict[str, Any],
+    image_column: str,
+    image_name: str,
+) -> str:
+    """
+    Build a deterministic identifier for one source image row.
+    """
+
+    payload = dumps(
+        {
+            "keys": key_fields,
+            "source_image_column": image_column,
+            "source_image_file": image_name,
+        },
+        sort_keys=True,
+        default=str,
+    )
+    return object_id(payload)
+
+
 def _crop_ome_arrow(
     image_path: pathlib.Path,
     bbox: dict[str, int],
@@ -431,6 +543,19 @@ def _crop_ome_arrow(
         .collect()
     )
     data = crop.data
+    return data.as_py() if hasattr(data, "as_py") else data
+
+
+def _read_ome_arrow(
+    image_path: pathlib.Path,
+) -> dict[str, Any]:
+    """
+    Lazily load a full TIFF-backed image into an OME-Arrow struct.
+    """
+
+    OMEArrow, _ = _require_ome_arrow()
+    image = OMEArrow.scan(str(image_path)).collect()
+    data = image.data
     return data.as_py() if hasattr(data, "as_py") else data
 
 
@@ -510,7 +635,7 @@ def image_crop_table_from_joined_chunk(
             image_name = _normalize_file_value(row.get(image_column))
             if image_name is None:
                 continue
-            image_path = image_index.get(image_name)
+            image_path = _resolve_indexed_path(image_name, image_index)
             if image_path is None:
                 logger.debug("Skipping image crop for unresolved image %s", image_name)
                 continue
@@ -658,6 +783,150 @@ def image_crop_table_from_joined_chunk(
     return pa.table({**key_columns, **fixed_columns})
 
 
+def source_image_table_from_joined_chunk(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: Optional[str] = None,
+    outline_dir: Optional[str] = None,
+    segmentation_file_regex: Optional[Dict[str, str]] = None,
+) -> pa.Table:
+    """
+    Build an Arrow table of full OME-Arrow source images from one joined chunk.
+    """
+
+    _, ome_arrow_struct = _require_ome_arrow()
+    ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
+    data = parquet.read_table(chunk_path).to_pandas()
+    image_columns = _resolve_image_columns(data)
+
+    image_index = _build_file_index(image_dir)
+    mask_index = _build_file_index(mask_dir)
+    outline_index = _build_file_index(outline_dir)
+    segmentation_cache: dict[str, Optional[pathlib.Path]] = {}
+    rows_by_id: dict[str, dict[str, Any]] = {}
+
+    for _, row in data.iterrows():
+        key_fields = _extract_image_key_fields(row)
+        for image_column in image_columns:
+            image_name = _normalize_file_value(row.get(image_column))
+            if image_name is None:
+                continue
+            image_path = _resolve_indexed_path(image_name, image_index)
+            if image_path is None:
+                logger.debug(
+                    "Skipping source image export for unresolved image %s", image_name
+                )
+                continue
+
+            source_image_id = _build_stable_source_image_id(
+                key_fields=key_fields,
+                image_column=image_column,
+                image_name=image_name,
+            )
+            if source_image_id in rows_by_id:
+                continue
+
+            label_path = _find_matching_segmentation_path(
+                data_value=image_name,
+                pattern_map=segmentation_file_regex,
+                file_dir=outline_dir,
+                candidate_path=image_path,
+                file_index=outline_index,
+                lookup_cache=segmentation_cache,
+            ) or _find_matching_segmentation_path(
+                data_value=image_name,
+                pattern_map=segmentation_file_regex,
+                file_dir=mask_dir,
+                candidate_path=image_path,
+                file_index=mask_index,
+                lookup_cache=segmentation_cache,
+            )
+
+            rows_by_id[source_image_id] = {
+                **key_fields,
+                "Metadata_ImageID": source_image_id,
+                "source_image_column": image_column,
+                "source_image_file": image_name,
+                "ome_arrow_image": _read_ome_arrow(image_path),
+                "ome_arrow_label": (
+                    _read_ome_arrow(label_path) if label_path is not None else None
+                ),
+                "label_source_kind": (
+                    "outline"
+                    if (
+                        label_path is not None
+                        and outline_dir is not None
+                        and pathlib.Path(outline_dir)
+                        in pathlib.Path(label_path).parents
+                    )
+                    else "mask" if label_path is not None else None
+                ),
+            }
+
+    rows = list(rows_by_id.values())
+    key_field_names = sorted(
+        {key for row in rows for key in row.keys()}
+        - {
+            "Metadata_ImageID",
+            "source_image_column",
+            "source_image_file",
+            "label_source_kind",
+            "ome_arrow_image",
+            "ome_arrow_label",
+        }
+    )
+
+    if not rows:
+        return pa.table(
+            {
+                **{key: pa.array([], type=pa.string()) for key in key_field_names},
+                "Metadata_ImageID": pa.array([], type=pa.string()),
+                "source_image_column": pa.array([], type=pa.string()),
+                "source_image_file": pa.array([], type=pa.string()),
+                "label_source_kind": pa.array([], type=pa.string()),
+                "ome_arrow_image": pa.array([], type=ome_arrow_struct),
+                "ome_arrow_label": pa.array([], type=ome_arrow_struct),
+            }
+        )
+
+    key_columns = {
+        key: pa.array(
+            [None if row.get(key) is None else str(row.get(key)) for row in rows],
+            type=pa.string(),
+        )
+        for key in key_field_names
+    }
+    fixed_columns = {
+        "Metadata_ImageID": pa.array(
+            [row["Metadata_ImageID"] for row in rows], type=pa.string()
+        ),
+        "source_image_column": pa.array(
+            [row["source_image_column"] for row in rows], type=pa.string()
+        ),
+        "source_image_file": pa.array(
+            [row["source_image_file"] for row in rows], type=pa.string()
+        ),
+        "label_source_kind": pa.array(
+            [row["label_source_kind"] for row in rows], type=pa.string()
+        ),
+        "ome_arrow_image": pa.array(
+            [
+                _strip_null_fields_from_value(row["ome_arrow_image"], ome_arrow_struct)
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+        "ome_arrow_label": pa.array(
+            [
+                _strip_null_fields_from_value(row["ome_arrow_label"], ome_arrow_struct)
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+    }
+    return pa.table({**key_columns, **fixed_columns})
+
+
 def add_object_id_to_profiles_frame(
     joined_frame: pd.DataFrame,
     bbox_column_map: Optional[Dict[str, str]] = None,
@@ -666,32 +935,40 @@ def add_object_id_to_profiles_frame(
     Add a stable object identifier column to a joined profiles frame.
     """
 
-    if "Metadata_ObjectID" in joined_frame.columns:
-        return joined_frame.copy()
-
     bbox_columns = resolve_bbox_columns(
         joined_frame.columns.tolist(), bbox_column_map=bbox_column_map
     )
-    object_ids: list[Optional[str]] = []
-    for _, row in joined_frame.iterrows():
-        key_fields = _extract_key_fields(row)
-        bbox_values = (
-            _validated_bbox_values(row, bbox_columns)
-            if bbox_columns is not None
-            else None
-        )
-        object_ids.append(
-            _build_stable_object_id(key_fields=key_fields, bbox=bbox_values)
-        )
-
     frame = joined_frame.copy()
-    metadata_columns = [
-        column
-        for column in frame.columns
-        if str(column).lower().startswith("metadata_")
-    ]
-    insert_at = len(metadata_columns)
-    frame.insert(insert_at, "Metadata_ObjectID", object_ids)
+    if "Metadata_ObjectID" not in frame.columns:
+        object_ids: list[Optional[str]] = []
+        for _, row in joined_frame.iterrows():
+            key_fields = _extract_key_fields(row)
+            bbox_values = (
+                _validated_bbox_values(row, bbox_columns)
+                if bbox_columns is not None
+                else None
+            )
+            object_ids.append(
+                _build_stable_object_id(key_fields=key_fields, bbox=bbox_values)
+            )
+
+        metadata_columns = [
+            column
+            for column in frame.columns
+            if str(column).lower().startswith("metadata_")
+        ]
+        insert_at = len(metadata_columns)
+        frame.insert(insert_at, "Metadata_ObjectID", object_ids)
+
+    if bbox_columns is not None:
+        rename_map = {
+            getattr(bbox_columns, axis): alias
+            for axis, alias in PROFILE_BBOX_METADATA_COLUMNS.items()
+            if getattr(bbox_columns, axis) != alias and alias not in frame.columns
+        }
+        if rename_map:
+            frame = frame.rename(columns=rename_map)
+
     return frame
 
 
@@ -713,23 +990,10 @@ def profile_with_images_frame(
 
     expanded_rows: list[dict[str, Any]] = []
     for _, row in joined_frame.iterrows():
-        if any(
-            pd.isna(row[column])
-            for column in (
-                bbox_columns.x_min,
-                bbox_columns.x_max,
-                bbox_columns.y_min,
-                bbox_columns.y_max,
-            )
-        ):
+        bbox = _validated_bbox_values(row, bbox_columns)
+        if bbox is None:
             continue
         key_fields = _extract_key_fields(row)
-        bbox = {
-            "x_min": int(row[bbox_columns.x_min]),
-            "x_max": int(row[bbox_columns.x_max]),
-            "y_min": int(row[bbox_columns.y_min]),
-            "y_max": int(row[bbox_columns.y_max]),
-        }
         row_dict = row.to_dict()
         stable_object_id = (
             str(row["Metadata_ObjectID"])

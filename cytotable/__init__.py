@@ -17,6 +17,7 @@ warnings.filterwarnings(
     module="google_crc32c.__config__",
 )
 
+from .access import list_tables, read_table
 from .convert import convert
 from .exceptions import (
     CytoTableException,

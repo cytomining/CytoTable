@@ -143,7 +143,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 ```
 
 - __Apache Iceberg warehouse__: Iceberg is a table format for multi-table analytical storage with snapshot-aware metadata.
-  In CytoTable, Iceberg is exposed as an optional local warehouse backend which can store normalized measurement tables, a saved joined view, and an optional `image_crops` table with OME-Arrow payloads.
+  In CytoTable, Iceberg is exposed as an optional local warehouse backend which can store a materialized `profiles.joined_profiles` table, an optional `images.image_crops` table, an optional `images.source_images` table, and a `profiles.profile_with_images` view.
 
 ```{eval-rst}
   Iceberg warehouse export may be specified by using :code:`convert(..., dest_backend="iceberg", dest_path="warehouse_dir", ...)` (:mod:`convert() <cytotable.convert.convert>`).
@@ -161,6 +161,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 ```{eval-rst}
 When using the Iceberg backend, CytoTable may also export a separate image-crop table by providing :code:`image_dir` to :mod:`convert() <cytotable.convert.convert>`.
 This image table stores cropped image payloads as OME-Arrow structs and may also include mask/outline crops through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
+Set :code:`include_source_images=True` to also store full source images in :code:`images.source_images`.
 ```
 
 ## Data Transformations

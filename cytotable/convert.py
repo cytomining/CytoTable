@@ -1499,6 +1499,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     dest_backend: Literal["parquet", "iceberg"] = "parquet",
     dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
     image_dir: Optional[str] = None,
+    include_source_images: bool = False,
     mask_dir: Optional[str] = None,
     outline_dir: Optional[str] = None,
     segmentation_file_regex: Optional[Dict[str, str]] = None,
@@ -1549,6 +1550,10 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         image_dir: Optional[str]
             Optional directory of source images used to build OME-Arrow crops.
             Requires `dest_backend="iceberg"`.
+        include_source_images: bool
+            Whether to also store full source images in an Iceberg
+            `images.source_images` table. Requires `image_dir` and
+            `dest_backend="iceberg"`.
         mask_dir: Optional[str]
             Optional directory of mask images aligned with `image_dir`.
         outline_dir: Optional[str]
@@ -1593,7 +1598,11 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             pages of `chunk_size`.
         bbox_column_map: Optional[Dict[str, str]]
             Optional explicit mapping for image crop bounding box columns using
-            keys `x_min`, `x_max`, `y_min`, and `y_max`.
+            keys `x_min`, `x_max`, `y_min`, and `y_max`. For Iceberg profile
+            exports, the resolved bounding box columns are normalized in the
+            materialized `joined_profiles` table as `Metadata_SourceBBoxXMin`,
+            `Metadata_SourceBBoxXMax`, `Metadata_SourceBBoxYMin`, and
+            `Metadata_SourceBBoxYMax`.
         sort_output: bool (Default value = True)
             Specifies whether to sort cytotable output or not.
         drop_null: bool (Default value = False)
@@ -1655,6 +1664,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     image_export_requested = any(
         (
             image_dir is not None,
+            include_source_images,
             mask_dir is not None,
             outline_dir is not None,
             bool(bbox_column_map),
@@ -1710,6 +1720,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             add_tablenumber=add_tablenumber,
             page_keys=cast(Optional[Dict[str, str]], page_keys),
             image_dir=image_dir,
+            include_source_images=include_source_images,
             mask_dir=mask_dir,
             outline_dir=outline_dir,
             segmentation_file_regex=segmentation_file_regex,

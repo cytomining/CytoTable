@@ -57,6 +57,17 @@ Convert
 
 |
 
+Access
+------
+
+.. automodule:: cytotable.access
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
 Iceberg
 -------
 

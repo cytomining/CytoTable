@@ -2,6 +2,8 @@
 Tests for CytoTable Iceberg helpers.
 """
 
+# pylint: disable=too-many-lines
+
 import re
 from importlib.util import find_spec
 from json import dumps
@@ -22,12 +24,14 @@ from cytotable.exceptions import CytoTableException
 from cytotable.iceberg import (
     _rewrite_join_sql_for_warehouse,
     _validate_image_export_prerequisites,
+    describe_iceberg_warehouse,
     list_iceberg_tables,
     read_iceberg_table,
     write_iceberg_warehouse,
 )
 from cytotable.images import (
     IMAGE_TABLE_NAME,
+    SOURCE_IMAGE_TABLE_NAME,
     _build_file_index,
     _find_matching_segmentation_path,
     _require_ome_arrow,
@@ -37,6 +41,7 @@ from cytotable.images import (
     object_id,
     profile_with_images_frame,
     resolve_bbox_columns,
+    source_image_table_from_joined_chunk,
 )
 from cytotable.presets import config
 
@@ -298,7 +303,7 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
 
     assert "profiles.joined_profiles" in list_iceberg_tables(warehouse_path)
     assert "profiles.profile_with_images" not in list_iceberg_tables(warehouse_path)
-    assert "profiles.image_crops" not in list_iceberg_tables(warehouse_path)
+    assert "images.image_crops" not in list_iceberg_tables(warehouse_path)
 
 
 @pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
@@ -402,6 +407,33 @@ def test_write_iceberg_warehouse_supports_immediate_table_readback(
     assert table["Metadata_ObjectID"].notna().all()
 
 
+def test_describe_iceberg_warehouse_handles_missing_snapshot(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Tests warehouse description when a table has no current snapshot.
+    """
+
+    files = pd.DataFrame({"record_count": [2, 3]})
+    table = MagicMock()
+    table.inspect.files.return_value.to_pandas.return_value = files
+    table.current_snapshot.return_value = None
+
+    bundle = MagicMock()
+    bundle.list_namespaces.return_value = [("profiles",)]
+    bundle.list_tables.return_value = [("profiles", "joined_profiles")]
+    bundle.list_views.return_value = []
+    bundle.load_table.return_value = table
+
+    monkeypatch.setattr("cytotable.iceberg.catalog", lambda *args, **kwargs: bundle)
+
+    described = describe_iceberg_warehouse("example_warehouse")
+
+    assert described.loc[0, "table"] == "profiles.joined_profiles"
+    assert described.loc[0, "rows"] == 5
+    assert pd.isna(described.loc[0, "snapshot_id"])
+
+
 def test_resolve_bbox_columns_prefers_cellprofiler_names():
     """
     Tests bbox resolution for CellProfiler-style names.
@@ -432,7 +464,32 @@ def test_build_file_index_includes_zarr_directories(fx_tempdir: str):
 
     file_index = _build_file_index(str(image_root))
 
-    assert file_index["example.ome.zarr"] == zarr_store
+    assert file_index.by_relative["example.ome.zarr"] == zarr_store
+
+
+def test_build_file_index_raises_for_ambiguous_basenames(fx_tempdir: str):
+    """
+    Tests that basename-only lookup fails when multiple relative paths match.
+    """
+
+    image_root = Path(fx_tempdir) / "images"
+    first = image_root / "plate_a" / "cell.ome.tiff"
+    second = image_root / "plate_b" / "cell.ome.tiff"
+    first.parent.mkdir(parents=True)
+    second.parent.mkdir(parents=True)
+    first.touch()
+    second.touch()
+
+    file_index = _build_file_index(str(image_root))
+
+    with pytest.raises(ValueError, match="Ambiguous image basename"):
+        _find_matching_segmentation_path(
+            data_value="cell.ome.tiff",
+            pattern_map=None,
+            file_dir=str(image_root),
+            candidate_path=Path("cell.ome.tiff"),
+            file_index=file_index,
+        )
 
 
 def test_object_id_is_stable():
@@ -474,6 +531,29 @@ def test_add_object_id_to_profiles_frame():
         "Metadata_ObjectID",
     ]
     assert with_object_id.loc[0, "Metadata_ObjectID"].startswith("obj-")
+    assert "Metadata_SourceBBoxXMin" in with_object_id.columns
+    assert "Metadata_SourceBBoxXMax" in with_object_id.columns
+    assert "Metadata_SourceBBoxYMin" in with_object_id.columns
+    assert "Metadata_SourceBBoxYMax" in with_object_id.columns
+
+
+def test_resolve_bbox_columns_supports_metadata_bbox_names():
+    """
+    Tests bbox resolution for normalized metadata bbox column names.
+    """
+
+    bbox = resolve_bbox_columns(
+        [
+            "Metadata_SourceBBoxXMin",
+            "Metadata_SourceBBoxXMax",
+            "Metadata_SourceBBoxYMin",
+            "Metadata_SourceBBoxYMax",
+        ]
+    )
+
+    assert bbox is not None
+    assert bbox.x_min == "Metadata_SourceBBoxXMin"
+    assert bbox.y_max == "Metadata_SourceBBoxYMax"
 
 
 @pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
@@ -539,6 +619,87 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
 
 
 @pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_source_image_table_from_joined_chunk(fx_tempdir: str):
+    """
+    Tests full OME-Arrow source image export from a joined parquet chunk.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    outline_dir = Path(fx_tempdir) / "outlines"
+    image_dir.mkdir()
+    outline_dir.mkdir()
+
+    image = np.arange(100, dtype=np.uint16).reshape(10, 10)
+    outline = np.zeros((10, 10), dtype=np.uint16)
+    outline[2:8, 3:7] = 1
+    tifffile.imwrite(image_dir / "cell.tiff", image)
+    tifffile.imwrite(outline_dir / "cell.tiff", outline)
+
+    joined_chunk = pa.table(
+        {
+            "Metadata_ImageNumber": [1, 1],
+            "Image_FileName_DNA": ["cell.tiff", "cell.tiff"],
+            "Image_FileName_AGP": ["cell.tiff", "cell.tiff"],
+        }
+    )
+    chunk_path = Path(fx_tempdir) / "joined_source_images.parquet"
+    parquet.write_table(joined_chunk, chunk_path)
+
+    source_table = source_image_table_from_joined_chunk(
+        chunk_path=str(chunk_path),
+        image_dir=str(image_dir),
+        outline_dir=str(outline_dir),
+    )
+
+    assert source_table.num_rows == 2
+    assert SOURCE_IMAGE_TABLE_NAME == "source_images"
+    assert "Metadata_ImageID" in source_table.column_names
+    assert "ome_arrow_image" in source_table.column_names
+    assert "ome_arrow_label" in source_table.column_names
+    assert len(set(source_table["Metadata_ImageID"].to_pylist())) == 2
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_source_image_table_prefers_relative_path_matches(fx_tempdir: str):
+    """
+    Tests that relative image paths disambiguate duplicate basenames.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    first = image_dir / "plate_a" / "cell.tiff"
+    second = image_dir / "plate_b" / "cell.tiff"
+    first.parent.mkdir(parents=True)
+    second.parent.mkdir(parents=True)
+
+    tifffile.imwrite(first, np.ones((4, 4), dtype=np.uint16))
+    tifffile.imwrite(second, np.full((4, 4), 2, dtype=np.uint16))
+
+    joined_chunk = pa.table(
+        {
+            "Metadata_ImageNumber": [1, 2],
+            "Image_FileName_DNA": ["plate_a/cell.tiff", "plate_b/cell.tiff"],
+        }
+    )
+    chunk_path = Path(fx_tempdir) / "joined_source_images_relative.parquet"
+    parquet.write_table(joined_chunk, chunk_path)
+
+    source_table = source_image_table_from_joined_chunk(
+        chunk_path=str(chunk_path),
+        image_dir=str(image_dir),
+    )
+
+    assert source_table.num_rows == 2
+    assert sorted(source_table["source_image_file"].to_pylist()) == [
+        "plate_a/cell.tiff",
+        "plate_b/cell.tiff",
+    ]
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
 def test_image_crop_table_skips_invalid_bbox_rows(fx_tempdir: str):
     """
     Tests that malformed or inverted bounding boxes are skipped.
@@ -577,6 +738,57 @@ def test_image_crop_table_skips_invalid_bbox_rows(fx_tempdir: str):
     assert crop_table["source_bbox_x_max"].to_pylist() == [7]
     assert crop_table["source_bbox_y_min"].to_pylist() == [2]
     assert crop_table["source_bbox_y_max"].to_pylist() == [8]
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_writes_source_images_when_requested(
+    fx_tempdir: str,
+):
+    """
+    Tests optional full source image export into the images namespace.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "source_images_warehouse"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
+    joined_chunk = Path(fx_tempdir) / "joined_chunk.parquet"
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
+
+    with (
+        patch("cytotable.iceberg.parsl.load"),
+        patch("cytotable.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch(
+            "cytotable.iceberg._run_export_workflow",
+            side_effect=[str(stage_parquet), [str(joined_chunk)]],
+        ),
+        patch(
+            "cytotable.iceberg.image_crop_table_from_joined_chunk",
+            return_value=pa.table(
+                {"Metadata_ObjectID": pa.array(["obj-1"], type=pa.string())}
+            ),
+        ),
+        patch(
+            "cytotable.iceberg.source_image_table_from_joined_chunk",
+            return_value=pa.table(
+                {"Metadata_ImageID": pa.array(["img-1"], type=pa.string())}
+            ),
+        ),
+    ):
+        dfk.return_value.cleanup = MagicMock()
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset="cellprofiler_csv",
+            image_dir=f"{fx_tempdir}/images",
+            include_source_images=True,
+            joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+    tables = list_iceberg_tables(warehouse_path)
+    assert "images.source_images" in tables
 
 
 def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
@@ -720,6 +932,50 @@ def test_profile_with_images_frame_merges_by_object_id():
     assert manifested.loc[0, "label_source_kind"] == "outline"
 
 
+def test_profile_with_images_frame_skips_invalid_bbox_rows():
+    """
+    Tests manifest expansion skips malformed or inverted bbox rows.
+    """
+
+    joined = pd.DataFrame(
+        {
+            "Metadata_ImageNumber": [1, 2, 3],
+            "Image_FileName_DNA": ["cell.tiff", "cell.tiff", "cell.tiff"],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_X": ["3", "bad", "7"],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_X": ["7", "8", "3"],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": ["2", "2", "8"],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_Y": ["8", "8", "2"],
+        }
+    )
+    image_rows = pd.DataFrame(
+        {
+            "Metadata_ObjectID": [
+                object_id(
+                    dumps(
+                        {
+                            "bbox": {
+                                "x_min": 3,
+                                "x_max": 7,
+                                "y_min": 2,
+                                "y_max": 8,
+                            },
+                            "keys": {"Metadata_ImageNumber": 1},
+                        },
+                        sort_keys=True,
+                    )
+                )
+            ],
+            "source_image_column": ["Image_FileName_DNA"],
+            "source_image_file": ["cell.tiff"],
+        }
+    )
+
+    manifested = profile_with_images_frame(joined_frame=joined, image_frame=image_rows)
+
+    assert len(manifested) == 1
+    assert manifested["Metadata_ImageNumber"].to_list() == [1]
+
+
 @pytest.mark.skipif(
     find_spec("pyiceberg") is None or find_spec("ome_arrow") is None,
     reason="pyiceberg and ome-arrow are required",
@@ -753,7 +1009,7 @@ def test_examplehuman_iceberg_warehouse_with_images(
     tables = list_iceberg_tables(warehouse_path)
 
     assert "profiles.joined_profiles" in tables
-    assert "profiles.image_crops" in tables
+    assert "images.image_crops" in tables
     assert "profiles.profile_with_images" in tables
 
     image_crops = read_iceberg_table(warehouse_path, "image_crops")
