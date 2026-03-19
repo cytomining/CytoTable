@@ -60,7 +60,10 @@ def test_read_table_requires_table_name_for_multi_table_iceberg(
     monkeypatch.setattr("cytotable.access._is_iceberg_warehouse", lambda path: True)
     monkeypatch.setattr(
         "cytotable.access.list_iceberg_tables",
-        lambda path, include_views=True: ["profiles.joined_profiles", "images.image_crops"],
+        lambda path, include_views=True: [
+            "profiles.joined_profiles",
+            "images.image_crops",
+        ],
     )
 
     with pytest.raises(CytoTableException, match="table_name is required"):
