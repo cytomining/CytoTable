@@ -30,6 +30,9 @@ from cytotable.images import (
     IMAGE_TABLE_NAME,
     _build_file_index,
     _find_matching_segmentation_path,
+    _require_ome_arrow,
+    _strip_null_fields_from_type,
+    add_object_id_to_profiles_frame,
     image_crop_table_from_joined_chunk,
     object_id,
     profile_with_images_frame,
@@ -259,7 +262,7 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
     """
 
     warehouse_path = Path(fx_tempdir) / "no_image_view_warehouse"
-    stage_parquet = Path(fx_tempdir) / "cells.parquet"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
     joined_chunk = Path(fx_tempdir) / "joined_chunk.parquet"
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
@@ -271,13 +274,15 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
         patch(
             "cytotable.iceberg._run_export_workflow",
             side_effect=[
-                {"cells.parquet": [{"table": [str(stage_parquet)]}]},
+                str(stage_parquet),
                 [str(joined_chunk)],
             ],
         ),
         patch(
             "cytotable.iceberg.image_crop_table_from_joined_chunk",
-            return_value=pa.table({"object_id": pa.array([], type=pa.string())}),
+            return_value=pa.table(
+                {"Metadata_ObjectID": pa.array([], type=pa.string())}
+            ),
         ),
     ):
         dfk.return_value.cleanup = MagicMock()
@@ -291,23 +296,25 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
             page_keys={"join": "Metadata_ImageNumber"},
         )
 
-    assert "analytics.cells" in list_iceberg_tables(warehouse_path)
-    assert "analytics.cytotable_joined" in list_iceberg_tables(warehouse_path)
-    assert "analytics.profile_with_images" not in list_iceberg_tables(warehouse_path)
-    assert "analytics.image_crops" not in list_iceberg_tables(warehouse_path)
+    assert "profiles.joined_profiles" in list_iceberg_tables(warehouse_path)
+    assert "profiles.profile_with_images" not in list_iceberg_tables(warehouse_path)
+    assert "profiles.image_crops" not in list_iceberg_tables(warehouse_path)
 
 
 @pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
-def test_write_iceberg_warehouse_skips_joined_view_with_unresolved_sql(
+def test_write_iceberg_warehouse_does_not_store_compartment_tables(
     fx_tempdir: str,
 ):
     """
-    Tests that unresolved parquet references do not get registered as views.
+    Tests that the warehouse stores only the materialized profiles table.
     """
 
-    warehouse_path = Path(fx_tempdir) / "unresolved_join_warehouse"
-    stage_parquet = Path(fx_tempdir) / "cells.parquet"
-    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
+    warehouse_path = Path(fx_tempdir) / "profiles_only_warehouse"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
+    parquet.write_table(
+        pa.table({"Metadata_ImageNumber": [1], "Metadata_ObjectNumber": [1]}),
+        stage_parquet,
+    )
 
     with (
         patch("cytotable.iceberg.parsl.load"),
@@ -315,7 +322,7 @@ def test_write_iceberg_warehouse_skips_joined_view_with_unresolved_sql(
         patch("cytotable.iceberg._parsl_loaded", return_value=False),
         patch(
             "cytotable.iceberg._run_export_workflow",
-            return_value={"cells.parquet": [{"table": [str(stage_parquet)]}]},
+            return_value=str(stage_parquet),
         ),
     ):
         dfk.return_value.cleanup = MagicMock()
@@ -332,8 +339,67 @@ def test_write_iceberg_warehouse_skips_joined_view_with_unresolved_sql(
             page_keys={"join": "Metadata_ImageNumber"},
         )
 
-    assert "analytics.cells" in list_iceberg_tables(warehouse_path)
-    assert "analytics.cytotable_joined" not in list_iceberg_tables(warehouse_path)
+    tables = list_iceberg_tables(warehouse_path)
+    assert "profiles.joined_profiles" in tables
+    assert all(
+        table not in tables
+        for table in (
+            "profiles.cells",
+            "profiles.cytoplasm",
+            "profiles.image",
+            "profiles.nuclei",
+        )
+    )
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_supports_immediate_table_readback(
+    fx_tempdir: str,
+):
+    """
+    Tests that warehouse tables can be read back after writing.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "readback_warehouse"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
+    parquet.write_table(
+        pa.table(
+            {
+                "Metadata_ImageNumber": [1],
+                "Metadata_ObjectNumber": [1],
+            }
+        ),
+        stage_parquet,
+    )
+
+    with (
+        patch("cytotable.iceberg.parsl.load"),
+        patch("cytotable.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch(
+            "cytotable.iceberg._run_export_workflow",
+            return_value=str(stage_parquet),
+        ),
+    ):
+        dfk.return_value.cleanup = MagicMock()
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset=None,
+            joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+    table = read_iceberg_table(warehouse_path, "joined_profiles")
+
+    assert list(table.columns) == [
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Metadata_ObjectID",
+    ]
+    assert len(table) == 1
+    assert table["Metadata_ObjectID"].notna().all()
 
 
 def test_resolve_bbox_columns_prefers_cellprofiler_names():
@@ -383,6 +449,46 @@ def test_object_id_is_stable():
     assert first.startswith("obj-")
 
 
+def test_add_object_id_to_profiles_frame():
+    """
+    Tests adding stable object ids to joined profiles rows.
+    """
+
+    joined = pd.DataFrame(
+        {
+            "Metadata_ImageNumber": [1],
+            "Metadata_ObjectNumber": [2],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_X": [3],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_X": [7],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": [2],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_Y": [8],
+        }
+    )
+
+    with_object_id = add_object_id_to_profiles_frame(joined)
+
+    assert "Metadata_ObjectID" in with_object_id.columns
+    assert with_object_id.columns.tolist()[:3] == [
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Metadata_ObjectID",
+    ]
+    assert with_object_id.loc[0, "Metadata_ObjectID"].startswith("obj-")
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_strip_null_fields_from_ome_arrow_schema():
+    """
+    Tests that null-typed OME-Arrow fields are removed for Iceberg compatibility.
+    """
+
+    _, ome_arrow_struct = _require_ome_arrow()
+    sanitized = _strip_null_fields_from_type(ome_arrow_struct)
+
+    assert "masks" not in [field.name for field in sanitized]
+    assert all(not pa.types.is_null(field.type) for field in sanitized)
+
+
 @pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
 def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
     """
@@ -406,6 +512,7 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
         {
             "Metadata_ImageNumber": [1],
             "Image_FileName_DNA": ["cell.tiff"],
+            "Image_FileName_AGP": ["cell.tiff"],
             "Cytoplasm_AreaShape_BoundingBoxMinimum_X": [3],
             "Cytoplasm_AreaShape_BoundingBoxMaximum_X": [7],
             "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": [2],
@@ -421,11 +528,14 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
         outline_dir=str(outline_dir),
     )
 
-    assert crop_table.num_rows == 1
+    assert crop_table.num_rows == 2
     assert IMAGE_TABLE_NAME == "image_crops"
-    assert "object_id" in crop_table.column_names
-    assert "ome_image" in crop_table.column_names
-    assert "ome_label" in crop_table.column_names
+    assert "Metadata_ObjectID" in crop_table.column_names
+    assert "Metadata_ImageCropID" in crop_table.column_names
+    assert "ome_arrow_image" in crop_table.column_names
+    assert "ome_arrow_label" in crop_table.column_names
+    assert len(set(crop_table["Metadata_ObjectID"].to_pylist())) == 1
+    assert len(set(crop_table["Metadata_ImageCropID"].to_pylist())) == 2
 
 
 @pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
@@ -463,10 +573,10 @@ def test_image_crop_table_skips_invalid_bbox_rows(fx_tempdir: str):
     )
 
     assert crop_table.num_rows == 1
-    assert crop_table["bbox_x_min"].to_pylist() == [3]
-    assert crop_table["bbox_x_max"].to_pylist() == [7]
-    assert crop_table["bbox_y_min"].to_pylist() == [2]
-    assert crop_table["bbox_y_max"].to_pylist() == [8]
+    assert crop_table["source_bbox_x_min"].to_pylist() == [3]
+    assert crop_table["source_bbox_x_max"].to_pylist() == [7]
+    assert crop_table["source_bbox_y_min"].to_pylist() == [2]
+    assert crop_table["source_bbox_y_max"].to_pylist() == [8]
 
 
 def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
@@ -581,7 +691,7 @@ def test_profile_with_images_frame_merges_by_object_id():
 
     image_rows = pd.DataFrame(
         {
-            "object_id": [
+            "Metadata_ObjectID": [
                 object_id(
                     dumps(
                         {
@@ -592,8 +702,6 @@ def test_profile_with_images_frame_merges_by_object_id():
                                 "y_max": 8,
                             },
                             "keys": {"Metadata_ImageNumber": 1},
-                            "source_image_column": "Image_FileName_DNA",
-                            "source_image_file": "cell.tiff",
                         },
                         sort_keys=True,
                     )
@@ -608,7 +716,7 @@ def test_profile_with_images_frame_merges_by_object_id():
     manifested = profile_with_images_frame(joined_frame=joined, image_frame=image_rows)
 
     assert len(manifested) == 1
-    assert manifested.loc[0, "object_id"].startswith("obj-")
+    assert manifested.loc[0, "Metadata_ObjectID"].startswith("obj-")
     assert manifested.loc[0, "label_source_kind"] == "outline"
 
 
@@ -644,21 +752,23 @@ def test_examplehuman_iceberg_warehouse_with_images(
 
     tables = list_iceberg_tables(warehouse_path)
 
-    assert "analytics.cells" in tables
-    assert "analytics.cytoplasm" in tables
-    assert "analytics.image" in tables
-    assert "analytics.nuclei" in tables
-    assert "analytics.image_crops" in tables
-    assert "analytics.cytotable_joined" in tables
-    assert "analytics.profile_with_images" in tables
+    assert "profiles.joined_profiles" in tables
+    assert "profiles.image_crops" in tables
+    assert "profiles.profile_with_images" in tables
 
     image_crops = read_iceberg_table(warehouse_path, "image_crops")
+    profiles = read_iceberg_table(warehouse_path, "joined_profiles")
     profile_with_images = read_iceberg_table(warehouse_path, "profile_with_images")
 
+    assert len(profiles) > 0
     assert len(image_crops) > 0
     assert len(profile_with_images) > 0
-    assert "object_id" in image_crops.columns
-    assert "ome_image" in image_crops.columns
-    assert image_crops["object_id"].notna().all()
-    assert profile_with_images["object_id"].notna().all()
-    assert profile_with_images["ome_image"].notna().any()
+    assert "Metadata_ObjectID" in profiles.columns
+    assert "Metadata_ObjectID" in image_crops.columns
+    assert "Metadata_ImageCropID" in image_crops.columns
+    assert "ome_arrow_image" in image_crops.columns
+    assert profiles["Metadata_ObjectID"].notna().all()
+    assert image_crops["Metadata_ObjectID"].notna().all()
+    assert image_crops["Metadata_ImageCropID"].is_unique
+    assert profile_with_images["Metadata_ObjectID"].notna().all()
+    assert profile_with_images["ome_arrow_image"].notna().any()

@@ -66,6 +66,51 @@ def _require_ome_arrow() -> tuple[Any, Any]:
     return OMEArrow, OME_ARROW_STRUCT
 
 
+def _strip_null_fields_from_type(data_type: pa.DataType) -> pa.DataType:
+    """
+    Remove null-typed fields from nested Arrow types for Iceberg compatibility.
+    """
+
+    if pa.types.is_struct(data_type):
+        return pa.struct(
+            [
+                pa.field(
+                    field.name,
+                    _strip_null_fields_from_type(field.type),
+                    nullable=field.nullable,
+                    metadata=field.metadata,
+                )
+                for field in data_type
+                if not pa.types.is_null(field.type)
+            ]
+        )
+    if pa.types.is_list(data_type):
+        return pa.list_(_strip_null_fields_from_type(data_type.value_type))
+    return data_type
+
+
+def _strip_null_fields_from_value(value: Any, data_type: pa.DataType) -> Any:
+    """
+    Remove values corresponding to null-typed nested Arrow fields.
+    """
+
+    if value is None:
+        return None
+    if pa.types.is_struct(data_type):
+        if hasattr(value, "as_py"):
+            value = value.as_py()
+        return {
+            field.name: _strip_null_fields_from_value(value.get(field.name), field.type)
+            for field in data_type
+            if not pa.types.is_null(field.type)
+        }
+    if pa.types.is_list(data_type):
+        return [
+            _strip_null_fields_from_value(item, data_type.value_type) for item in value
+        ]
+    return value
+
+
 def _normalize_file_value(value: Any) -> Optional[str]:
     """
     Normalize a file-like value to a comparable basename.
@@ -326,9 +371,7 @@ def _extract_key_fields(row: pd.Series) -> dict[str, Any]:
 
 def _build_stable_object_id(
     key_fields: dict[str, Any],
-    image_column: str,
-    image_name: str,
-    bbox: dict[str, int],
+    bbox: Optional[dict[str, int]] = None,
 ) -> str:
     """
     Build a deterministic object identifier for warehouse image rows.
@@ -337,9 +380,30 @@ def _build_stable_object_id(
     payload = dumps(
         {
             "keys": key_fields,
+            "bbox": bbox or {},
+        },
+        sort_keys=True,
+        default=str,
+    )
+    return object_id(payload)
+
+
+def _build_stable_image_crop_id(
+    key_fields: dict[str, Any],
+    image_column: str,
+    image_name: str,
+    bbox: Optional[dict[str, int]] = None,
+) -> str:
+    """
+    Build a deterministic identifier for one object/image crop row.
+    """
+
+    payload = dumps(
+        {
+            "keys": key_fields,
+            "bbox": bbox or {},
             "source_image_column": image_column,
             "source_image_file": image_name,
-            "bbox": bbox,
         },
         sort_keys=True,
         default=str,
@@ -417,6 +481,7 @@ def image_crop_table_from_joined_chunk(
     """
 
     _, ome_arrow_struct = _require_ome_arrow()
+    ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
     data = parquet.read_table(chunk_path).to_pandas()
     image_columns = _resolve_image_columns(data)
     bbox_columns = resolve_bbox_columns(
@@ -468,7 +533,11 @@ def image_crop_table_from_joined_chunk(
 
             record = {
                 **key_fields,
-                "object_id": _build_stable_object_id(
+                "Metadata_ObjectID": _build_stable_object_id(
+                    key_fields=key_fields,
+                    bbox=bbox_values,
+                ),
+                "Metadata_ImageCropID": _build_stable_image_crop_id(
                     key_fields=key_fields,
                     image_column=image_column,
                     image_name=image_name,
@@ -476,12 +545,14 @@ def image_crop_table_from_joined_chunk(
                 ),
                 "source_image_column": image_column,
                 "source_image_file": image_name,
-                "bbox_x_min": bbox_values["x_min"],
-                "bbox_x_max": bbox_values["x_max"],
-                "bbox_y_min": bbox_values["y_min"],
-                "bbox_y_max": bbox_values["y_max"],
-                "ome_image": _crop_ome_arrow(image_path=image_path, bbox=bbox_values),
-                "ome_label": (
+                "source_bbox_x_min": bbox_values["x_min"],
+                "source_bbox_x_max": bbox_values["x_max"],
+                "source_bbox_y_min": bbox_values["y_min"],
+                "source_bbox_y_max": bbox_values["y_max"],
+                "ome_arrow_image": _crop_ome_arrow(
+                    image_path=image_path, bbox=bbox_values
+                ),
+                "ome_arrow_label": (
                     _crop_ome_arrow(image_path=label_path, bbox=bbox_values)
                     if label_path is not None
                     else None
@@ -505,13 +576,14 @@ def image_crop_table_from_joined_chunk(
             "source_image_column",
             "source_image_file",
             "label_source_kind",
-            "object_id",
-            "bbox_x_min",
-            "bbox_x_max",
-            "bbox_y_min",
-            "bbox_y_max",
-            "ome_image",
-            "ome_label",
+            "Metadata_ObjectID",
+            "Metadata_ImageCropID",
+            "source_bbox_x_min",
+            "source_bbox_x_max",
+            "source_bbox_y_min",
+            "source_bbox_y_max",
+            "ome_arrow_image",
+            "ome_arrow_label",
         }
     )
 
@@ -519,16 +591,17 @@ def image_crop_table_from_joined_chunk(
         return pa.table(
             {
                 **{key: pa.array([], type=pa.string()) for key in key_field_names},
-                "object_id": pa.array([], type=pa.string()),
+                "Metadata_ObjectID": pa.array([], type=pa.string()),
+                "Metadata_ImageCropID": pa.array([], type=pa.string()),
                 "source_image_column": pa.array([], type=pa.string()),
                 "source_image_file": pa.array([], type=pa.string()),
                 "label_source_kind": pa.array([], type=pa.string()),
-                "bbox_x_min": pa.array([], type=pa.int64()),
-                "bbox_x_max": pa.array([], type=pa.int64()),
-                "bbox_y_min": pa.array([], type=pa.int64()),
-                "bbox_y_max": pa.array([], type=pa.int64()),
-                "ome_image": pa.array([], type=ome_arrow_struct),
-                "ome_label": pa.array([], type=ome_arrow_struct),
+                "source_bbox_x_min": pa.array([], type=pa.int64()),
+                "source_bbox_x_max": pa.array([], type=pa.int64()),
+                "source_bbox_y_min": pa.array([], type=pa.int64()),
+                "source_bbox_y_max": pa.array([], type=pa.int64()),
+                "ome_arrow_image": pa.array([], type=ome_arrow_struct),
+                "ome_arrow_label": pa.array([], type=ome_arrow_struct),
             }
         )
 
@@ -540,7 +613,12 @@ def image_crop_table_from_joined_chunk(
         for key in key_field_names
     }
     fixed_columns = {
-        "object_id": pa.array([row["object_id"] for row in rows], type=pa.string()),
+        "Metadata_ObjectID": pa.array(
+            [row["Metadata_ObjectID"] for row in rows], type=pa.string()
+        ),
+        "Metadata_ImageCropID": pa.array(
+            [row["Metadata_ImageCropID"] for row in rows], type=pa.string()
+        ),
         "source_image_column": pa.array(
             [row["source_image_column"] for row in rows], type=pa.string()
         ),
@@ -550,18 +628,71 @@ def image_crop_table_from_joined_chunk(
         "label_source_kind": pa.array(
             [row["label_source_kind"] for row in rows], type=pa.string()
         ),
-        "bbox_x_min": pa.array([row["bbox_x_min"] for row in rows], type=pa.int64()),
-        "bbox_x_max": pa.array([row["bbox_x_max"] for row in rows], type=pa.int64()),
-        "bbox_y_min": pa.array([row["bbox_y_min"] for row in rows], type=pa.int64()),
-        "bbox_y_max": pa.array([row["bbox_y_max"] for row in rows], type=pa.int64()),
-        "ome_image": pa.array(
-            [row["ome_image"] for row in rows], type=ome_arrow_struct
+        "source_bbox_x_min": pa.array(
+            [row["source_bbox_x_min"] for row in rows], type=pa.int64()
         ),
-        "ome_label": pa.array(
-            [row["ome_label"] for row in rows], type=ome_arrow_struct
+        "source_bbox_x_max": pa.array(
+            [row["source_bbox_x_max"] for row in rows], type=pa.int64()
+        ),
+        "source_bbox_y_min": pa.array(
+            [row["source_bbox_y_min"] for row in rows], type=pa.int64()
+        ),
+        "source_bbox_y_max": pa.array(
+            [row["source_bbox_y_max"] for row in rows], type=pa.int64()
+        ),
+        "ome_arrow_image": pa.array(
+            [
+                _strip_null_fields_from_value(row["ome_arrow_image"], ome_arrow_struct)
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+        "ome_arrow_label": pa.array(
+            [
+                _strip_null_fields_from_value(row["ome_arrow_label"], ome_arrow_struct)
+                for row in rows
+            ],
+            type=ome_arrow_struct,
         ),
     }
     return pa.table({**key_columns, **fixed_columns})
+
+
+def add_object_id_to_profiles_frame(
+    joined_frame: pd.DataFrame,
+    bbox_column_map: Optional[Dict[str, str]] = None,
+) -> pd.DataFrame:
+    """
+    Add a stable object identifier column to a joined profiles frame.
+    """
+
+    if "Metadata_ObjectID" in joined_frame.columns:
+        return joined_frame.copy()
+
+    bbox_columns = resolve_bbox_columns(
+        joined_frame.columns.tolist(), bbox_column_map=bbox_column_map
+    )
+    object_ids: list[Optional[str]] = []
+    for _, row in joined_frame.iterrows():
+        key_fields = _extract_key_fields(row)
+        bbox_values = (
+            _validated_bbox_values(row, bbox_columns)
+            if bbox_columns is not None
+            else None
+        )
+        object_ids.append(
+            _build_stable_object_id(key_fields=key_fields, bbox=bbox_values)
+        )
+
+    frame = joined_frame.copy()
+    metadata_columns = [
+        column
+        for column in frame.columns
+        if str(column).lower().startswith("metadata_")
+    ]
+    insert_at = len(metadata_columns)
+    frame.insert(insert_at, "Metadata_ObjectID", object_ids)
+    return frame
 
 
 def profile_with_images_frame(
@@ -600,6 +731,12 @@ def profile_with_images_frame(
             "y_max": int(row[bbox_columns.y_max]),
         }
         row_dict = row.to_dict()
+        stable_object_id = (
+            str(row["Metadata_ObjectID"])
+            if "Metadata_ObjectID" in row.index
+            and not pd.isna(row["Metadata_ObjectID"])
+            else _build_stable_object_id(key_fields=key_fields, bbox=bbox)
+        )
         for image_column in image_columns:
             image_name = _normalize_file_value(row.get(image_column))
             if image_name is None:
@@ -607,12 +744,7 @@ def profile_with_images_frame(
             expanded_rows.append(
                 {
                     **row_dict,
-                    "object_id": _build_stable_object_id(
-                        key_fields=key_fields,
-                        image_column=image_column,
-                        image_name=image_name,
-                        bbox=bbox,
-                    ),
+                    "Metadata_ObjectID": stable_object_id,
                     "source_image_column": image_column,
                     "source_image_file": image_name,
                 }
@@ -624,7 +756,11 @@ def profile_with_images_frame(
     expanded = pd.DataFrame(expanded_rows)
     merge_columns = [
         column
-        for column in ("object_id", "source_image_column", "source_image_file")
+        for column in (
+            "Metadata_ObjectID",
+            "source_image_column",
+            "source_image_file",
+        )
         if column in image_frame.columns
     ]
     image_columns_to_add = [

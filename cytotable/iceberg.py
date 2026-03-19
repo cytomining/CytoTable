@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -21,6 +20,7 @@ from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
 from cytotable.images import (
     IMAGE_TABLE_NAME,
+    add_object_id_to_profiles_frame,
     image_crop_table_from_joined_chunk,
     profile_with_images_frame,
 )
@@ -29,10 +29,10 @@ from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_NAMESPACE = "analytics"
+DEFAULT_NAMESPACE = "profiles"
 DEFAULT_REGISTRY_FILE = "catalog.json"
 DEFAULT_WAREHOUSE_DIR = "warehouse"
-DEFAULT_JOINED_VIEW = "cytotable_joined"
+DEFAULT_PROFILES_TABLE = "joined_profiles"
 DEFAULT_PROFILE_WITH_IMAGES_VIEW = "profile_with_images"
 
 try:
@@ -416,7 +416,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     segmentation_file_regex: Optional[Dict[str, str]] = None,
     default_namespace: str = DEFAULT_NAMESPACE,
     registry_file: str = DEFAULT_REGISTRY_FILE,
-    joined_view_name: Optional[str] = DEFAULT_JOINED_VIEW,
+    profiles_table_name: str = DEFAULT_PROFILES_TABLE,
     profile_with_images_view_name: Optional[str] = DEFAULT_PROFILE_WITH_IMAGES_VIEW,
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
@@ -453,10 +453,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         page_keys=cast(Dict[str, str], resolved["page_keys"]),
     )
 
-    tmp_root = Path(tempfile.mkdtemp(prefix=f"{root.name}.tmp-", dir=str(root.parent)))
-    build_root: Optional[Path] = tmp_root
-    stage_dir = tmp_root / "stage"
-    stage_dir.mkdir(parents=True, exist_ok=False)
+    root.mkdir(parents=True, exist_ok=False)
+    build_root: Optional[Path] = root
+    stage_dir = Path(tempfile.mkdtemp(prefix="cytotable-iceberg-", dir=str(root)))
 
     parsl_was_loaded = _parsl_loaded()
     parsl_loaded_here = False
@@ -468,11 +467,11 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         else:
             logger.warning("Reusing previously loaded Parsl configuration.")
 
-        staged = cast(
-            Dict[str, list[dict[str, Any]]],
+        profiles_path = cast(
+            str,
             _run_export_workflow(
                 source_path=source_path,
-                dest_path=str(stage_dir),
+                dest_path=str(stage_dir / f"{profiles_table_name}.parquet"),
                 source_datatype=source_datatype,
                 metadata=list(cast(Tuple[str, ...], resolved["metadata"])),
                 compartments=list(cast(Tuple[str, ...], resolved["compartments"])),
@@ -480,13 +479,14 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     cast(Tuple[str, ...], resolved["identifying_columns"])
                 ),
                 concat=True,
-                join=False,
+                join=True,
                 joins=cast(str, resolved["joins"]),
                 chunk_size=cast(Optional[int], resolved["chunk_size"]),
                 infer_common_schema=infer_common_schema,
                 drop_null=False,
                 sort_output=sort_output,
                 page_keys=cast(Dict[str, str], resolved["page_keys"]),
+                dest_datatype="parquet",
                 data_type_cast_map=data_type_cast_map,
                 add_tablenumber=add_tablenumber,
                 **kwargs,
@@ -494,43 +494,30 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         )
 
         bundle = catalog(
-            tmp_root,
+            root,
             default_namespace=default_namespace,
             registry_file=registry_file,
         )
         bundle.create_namespace(default_namespace)
 
-        source_names: Dict[str, str] = {}
-        for source_group_name, group in staged.items():
-            table_name = Path(source_group_name).stem.lower()
-            parquet_path = Path(group[0]["table"][0])
-            arrow_table = parquet.read_table(parquet_path)
-            if bundle.table_exists((default_namespace, table_name)):
-                table = bundle.load_table((default_namespace, table_name))
+        profiles_table_exists = False
+        if profiles_path and Path(profiles_path).exists():
+            profiles_arrow_table = pa.Table.from_pandas(
+                add_object_id_to_profiles_frame(
+                    parquet.read_table(Path(profiles_path)).to_pandas(),
+                    bbox_column_map=bbox_column_map,
+                ),
+                preserve_index=False,
+            )
+            if bundle.table_exists((default_namespace, profiles_table_name)):
+                table = bundle.load_table((default_namespace, profiles_table_name))
             else:
                 table = bundle.create_table(
-                    (default_namespace, table_name),
-                    arrow_table.schema,
+                    (default_namespace, profiles_table_name),
+                    profiles_arrow_table.schema,
                 )
-            table.append(arrow_table)
-            source_names[table_name] = table_name
-
-        if joined_view_name and resolved["joins"] and source_names:
-            rewritten_join_sql = _rewrite_join_sql_for_warehouse(
-                cast(str, resolved["joins"]), source_names
-            )
-            if "read_parquet(" not in rewritten_join_sql:
-                registry = bundle._read_registry()
-                cast(dict[str, dict[str, object]], registry["views"])[
-                    _qualify(joined_view_name, default_namespace)
-                ] = {
-                    "kind": "sql",
-                    "tables": sorted(source_names.values()),
-                    "sql": rewritten_join_sql,
-                    "page_keys": cast(Dict[str, str], resolved["page_keys"]),
-                    "preset": resolved["preset"],
-                }
-                bundle._write_registry(registry)
+            table.append(profiles_arrow_table)
+            profiles_table_exists = True
 
         if image_export_enabled:
             _validate_image_export_prerequisites(
@@ -589,9 +576,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 image_table.append(crop_table)
 
             if (
-                joined_view_name
+                profiles_table_exists
                 and profile_with_images_view_name
-                and source_names
                 and image_table is not None
             ):
                 registry = bundle._read_registry()
@@ -599,14 +585,13 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     _qualify(profile_with_images_view_name, default_namespace)
                 ] = {
                     "kind": "profile_with_images",
-                    "base_view": _qualify(joined_view_name, default_namespace),
+                    "base_table": _qualify(profiles_table_name, default_namespace),
                     "image_table": _qualify(IMAGE_TABLE_NAME, default_namespace),
                     "bbox_column_map": bbox_column_map or {},
                 }
                 bundle._write_registry(registry)
 
         shutil.rmtree(stage_dir, ignore_errors=True)
-        os.replace(tmp_root, root)
         build_root = None
 
     finally:
@@ -646,7 +631,12 @@ def _read_profile_with_images_view(bundle: TinyCatalog, view_name: str) -> pd.Da
 
     registry = bundle._read_registry()
     spec = cast(dict[str, Any], cast(dict[str, Any], registry["views"])[view_name])
-    joined_frame = _read_registered_view(bundle, cast(str, spec["base_view"]))
+    joined_frame = (
+        bundle.load_table(tuple(cast(str, spec["base_table"]).split(".")))
+        .scan()
+        .to_arrow()
+        .to_pandas()
+    )
     image_frame = (
         bundle.load_table(tuple(cast(str, spec["image_table"]).split(".")))
         .scan()
@@ -778,9 +768,9 @@ def describe_iceberg_warehouse(
 
 
 __all__ = [
-    "DEFAULT_JOINED_VIEW",
     "DEFAULT_NAMESPACE",
     "DEFAULT_PROFILE_WITH_IMAGES_VIEW",
+    "DEFAULT_PROFILES_TABLE",
     "DEFAULT_REGISTRY_FILE",
     "TinyCatalog",
     "catalog",

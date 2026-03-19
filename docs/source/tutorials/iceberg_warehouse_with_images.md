@@ -5,7 +5,7 @@ A start-to-finish walkthrough for users who want to keep CytoTable measurements 
 ## What you will accomplish
 
 - Convert CellProfiler outputs to an Iceberg warehouse instead of a single Parquet file.
-- Store the normalized measurement tables and joined view in Iceberg.
+- Store a materialized joined `joined_profiles` table in Iceberg.
 - Optionally build a separate `image_crops` Iceberg table containing OME-Arrow image crops.
 - Add a saved `profile_with_images` warehouse view that manifests joined profiles with image crop references.
 - Use mask or outline images when available, with optional regex-based segmentation matching.
@@ -37,7 +37,7 @@ pip install "cytotable[iceberg-images]"
 
 ## Basic warehouse export
 
-This creates the normal CytoTable measurement tables in Iceberg.
+This creates a materialized joined `joined_profiles` table in Iceberg.
 
 ```python
 from cytotable import convert
@@ -81,7 +81,8 @@ Important behavior:
 - image export requires `dest_backend="iceberg"`
 - image export requires `join=True` (the default)
 - cropped images are written to a separate `image_crops` table
-- each `image_crops` row includes a stable `object_id` for cross-table references
+- each `image_crops` row includes a stable `Metadata_ObjectID` for object-level references
+- each `image_crops` row also includes a stable `Metadata_ImageCropID` unique to that crop row
 - outline files are preferred over mask files when both resolve
 
 ## Bounding boxes
@@ -153,7 +154,7 @@ from cytotable import (
 print(list_iceberg_tables("./example_warehouse_with_images"))
 print(describe_iceberg_warehouse("./example_warehouse_with_images"))
 
-joined = read_iceberg_table("./example_warehouse_with_images", "cytotable_joined")
+profiles = read_iceberg_table("./example_warehouse_with_images", "joined_profiles")
 image_crops = read_iceberg_table("./example_warehouse_with_images", "image_crops")
 profile_with_images = read_iceberg_table(
     "./example_warehouse_with_images", "profile_with_images"
@@ -163,8 +164,9 @@ profile_with_images = read_iceberg_table(
 ## What success looks like
 
 - the warehouse directory exists and contains Iceberg metadata/data files
-- `cytotable_joined` appears as a saved view
+- `joined_profiles` appears as a materialized table
 - `image_crops` appears as a table only when `image_dir` was provided and crop rows were actually written
 - `profile_with_images` appears as a saved view only when `image_crops` exists and contains rows
-- `image_crops` rows include a stable `object_id` derived from measurement keys, source image column, and crop bounds
-- `image_crops` rows include `ome_image` and optional `ome_label` payloads
+- `image_crops` rows include a stable `Metadata_ObjectID` derived from measurement keys and crop bounds
+- `image_crops` rows include a stable `Metadata_ImageCropID` derived from measurement keys, crop bounds, and the source image reference
+- `image_crops` rows include `ome_arrow_image` and optional `ome_arrow_label` payloads
