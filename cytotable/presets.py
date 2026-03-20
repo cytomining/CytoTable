@@ -105,7 +105,7 @@ config = {
                 cells.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Cells
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
             """,
-    }
+    },
     "cellprofiler_sqlite": {
         # version specifications using related references
         "CONFIG_SOURCE_VERSION": {
