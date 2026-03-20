@@ -90,6 +90,10 @@ config = {
         "CONFIG_CHUNK_SIZE": 1000,
         # compartment and metadata joins performed using DuckDB SQL
         # and modified at runtime as needed
+        # note: unlike the cellprofiler_csv CONFIG_JOINS variant, this preset
+        # selects image.* in the SELECT list. Use this preset when you need all
+        # image-level fields rather than only Metadata_ImageNumber plus
+        # COLUMNS('Image_FileName_.*').
         "CONFIG_JOINS": """
             SELECT
                 image.*,
