@@ -41,7 +41,11 @@ pip install "cytotable[iceberg-images]"
 - **Measurement input:** a CellProfiler SQLite file or CSV folder
 - **Image input:** a directory containing source TIFF files
 - **Optional segmentation input:** a directory or directories containing mask and/or outline TIFF files
-- **Output:** a new local Iceberg warehouse directory
+- **Output:** a new local Iceberg warehouse directory containing
+  `profiles.joined_profiles` and, when requested, image tables and views
+  such as `images.image_crops`, `images.source_images`, and
+  `profiles.profile_with_images` (see below for more details on Iceberg
+  warehouse outputs)
 
 ## Basic warehouse export
 
