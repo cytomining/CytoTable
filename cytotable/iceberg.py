@@ -16,6 +16,7 @@ import parsl
 import pyarrow as pa
 import pyarrow.parquet as parquet
 
+from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
 from cytotable.images import (
@@ -37,6 +38,14 @@ DEFAULT_REGISTRY_FILE = "catalog.json"
 DEFAULT_WAREHOUSE_DIR = "warehouse"
 DEFAULT_PROFILES_TABLE = "joined_profiles"
 DEFAULT_PROFILE_WITH_IMAGES_VIEW = "profile_with_images"
+
+
+def _cytotable_iceberg_properties() -> dict[str, str]:
+    """
+    Return CytoTable provenance properties for Iceberg tables and warehouses.
+    """
+
+    return dict(CYTOTABLE_DEFAULT_PARQUET_METADATA)
 
 try:
     from pyiceberg.catalog import Catalog, MetastoreCatalog, PropertiesUpdateSummary
@@ -295,10 +304,12 @@ if _PYICEBERG_IMPORT_ERROR is None:
             if not self.registry_path.exists():
                 return {
                     "namespaces": [self.default_namespace],
+                    "properties": _cytotable_iceberg_properties(),
                     "tables": {},
                     "views": {},
                 }
             registry = json.loads(self.registry_path.read_text())
+            registry.setdefault("properties", _cytotable_iceberg_properties())
             registry.setdefault("views", {})
             return registry
 
@@ -625,6 +636,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 table = bundle.create_table(
                     (default_namespace, profiles_table_name),
                     profiles_arrow_table.schema,
+                    properties=_cytotable_iceberg_properties(),
                 )
             table.append(profiles_arrow_table)
             profiles_table_exists = True
@@ -691,7 +703,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         bundle.load_table((images_namespace, IMAGE_TABLE_NAME))
                         if bundle.table_exists((images_namespace, IMAGE_TABLE_NAME))
                         else bundle.create_table(
-                            (images_namespace, IMAGE_TABLE_NAME), crop_table.schema
+                            (images_namespace, IMAGE_TABLE_NAME),
+                            crop_table.schema,
+                            properties=_cytotable_iceberg_properties(),
                         )
                     )
                 image_table.append(crop_table)
@@ -727,6 +741,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                                 else bundle.create_table(
                                     (images_namespace, SOURCE_IMAGE_TABLE_NAME),
                                     filtered_source_image_table.schema,
+                                    properties=_cytotable_iceberg_properties(),
                                 )
                             )
                         source_images_table.append(filtered_source_image_table)

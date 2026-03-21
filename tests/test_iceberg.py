@@ -25,6 +25,7 @@ from cytotable.iceberg import (
     _rewrite_join_sql_for_warehouse,
     _validate_iceberg_join_prerequisites,
     _validate_image_export_prerequisites,
+    catalog,
     describe_iceberg_warehouse,
     list_iceberg_tables,
     read_iceberg_table,
@@ -453,6 +454,57 @@ def test_write_iceberg_warehouse_supports_immediate_table_readback(
     ]
     assert len(table) == 1
     assert table["Metadata_ObjectID"].notna().all()
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_records_cytotable_provenance(
+    fx_tempdir: str,
+):
+    """
+    Tests that Iceberg outputs record CytoTable producer/version metadata.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "provenance_warehouse"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
+    parquet.write_table(
+        pa.table(
+            {
+                "Metadata_ImageNumber": [1],
+                "Metadata_ObjectNumber": [1],
+            }
+        ),
+        stage_parquet,
+    )
+
+    with (
+        patch("cytotable.iceberg.parsl.load"),
+        patch("cytotable.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch(
+            "cytotable.iceberg._run_export_workflow",
+            return_value=str(stage_parquet),
+        ),
+    ):
+        dfk.return_value.cleanup = MagicMock()
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset=None,
+            joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+    bundle = catalog(warehouse_path)
+    registry = bundle._read_registry()
+    table = bundle.load_table(("profiles", "joined_profiles"))
+
+    assert cast(dict[str, str], registry["properties"])["data-producer"].endswith(
+        "CytoTable"
+    )
+    assert "data-producer-version" in cast(dict[str, str], registry["properties"])
+    assert table.metadata.properties["data-producer"].endswith("CytoTable")
+    assert "data-producer-version" in table.metadata.properties
 
 
 def test_describe_iceberg_warehouse_handles_missing_snapshot(
