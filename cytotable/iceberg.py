@@ -47,6 +47,7 @@ def _cytotable_iceberg_properties() -> dict[str, str]:
 
     return dict(CYTOTABLE_DEFAULT_PARQUET_METADATA)
 
+
 try:
     from pyiceberg.catalog import Catalog, MetastoreCatalog, PropertiesUpdateSummary
     from pyiceberg.exceptions import NoSuchNamespaceError, NoSuchTableError
