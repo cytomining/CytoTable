@@ -1549,7 +1549,11 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Iceberg warehouse.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
             Output destination datatype to write to. CytoTable uses this
-            value when the selected backend is `"parquet"`.
+            value when the selected backend is `"parquet"`. For
+            `dest_backend="iceberg"`, CytoTable currently requires
+            `dest_datatype="parquet"` because parquet is used as the
+            temporary staging format before data are written into the Iceberg
+            warehouse.
         image_dir: Optional[str]
             Optional directory of source images aligned with the experiment of
             interest. CytoTable uses this directory to build OME-Arrow image

@@ -66,6 +66,10 @@ warehouse_path = convert(
 print(warehouse_path)
 ```
 
+*Note:* `dest_backend="iceberg"` means the final output is an Iceberg
+warehouse. `dest_datatype="parquet"` is still required because CytoTable stages
+joined data as parquet internally before writing the warehouse tables.
+
 ## Add image crops with OME-Arrow
 
 When `image_dir` is provided, CytoTable will process joined rows in chunks and append cropped image payloads into a separate `images.image_crops` table inside the warehouse.
