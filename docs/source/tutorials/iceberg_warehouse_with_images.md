@@ -241,7 +241,9 @@ own rows directly.
 - the warehouse directory exists and contains Iceberg metadata/data files
 - `profiles.joined_profiles` appears as a materialized table, meaning a stored
   table with data rather than just a saved view definition
-- `images.image_crops` appears as a table only when `image_dir` was provided and crop rows were actually written
+- `images.image_crops` appears as a table only when the user specifies the
+  `image_dir` argument and crop rows are actually written; this is where
+  CytoTable stores single-cell image crops as separate rows in the warehouse
 - `images.source_images` appears as a table only when `include_source_images=True`
 - `profiles.profile_with_images` appears as a saved view only when `images.image_crops` exists and contains rows
 - `images.image_crops` rows include a stable `Metadata_ObjectID` derived from measurement keys and crop bounds
