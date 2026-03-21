@@ -170,7 +170,8 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 
 ```{eval-rst}
 When using the Iceberg backend, CytoTable may also export a separate image-crop table by providing :code:`image_dir` to :mod:`convert() <cytotable.convert.convert>`.
-This image table stores cropped images as OME-Arrow objects, which are a structured way to package image data and metadata together. The table may also include mask and outline images through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
+Here, an "image-crop table" means a table where each row stores one cropped single-cell image linked back to the corresponding profile row.
+This table stores cropped images as OME-Arrow objects, meaning structured image records that keep image data together with related metadata. The table may also include mask and outline images through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
 Set :code:`include_source_images=True` to also store full source images in :code:`images.source_images`.
 ```
 
