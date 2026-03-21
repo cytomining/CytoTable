@@ -113,6 +113,14 @@ def _resolve_unqualified_name(
 def _warehouse_dir(path: Union[str, Path], registry_file: str) -> Path:
     """
     Return the directory that stores Iceberg metadata and data files.
+
+    Args:
+        path:
+            Warehouse root path or an internal warehouse data directory.
+        registry_file:
+            Name of the CytoTable registry file that records warehouse tables
+            and views, used to determine whether `path` already points at the
+            warehouse root.
     """
 
     root = Path(path)
