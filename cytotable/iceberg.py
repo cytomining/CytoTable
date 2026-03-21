@@ -141,7 +141,7 @@ def _rewrite_join_sql_for_warehouse(joins: str, source_names: Dict[str, str]) ->
     return rewritten
 
 
-def _resolve_convert_config(
+def _apply_preset_defaults_to_convert_config(
     *,
     preset: Optional[str],
     metadata: Optional[Tuple[str, ...] | list[str]],
@@ -152,7 +152,7 @@ def _resolve_convert_config(
     page_keys: Optional[Dict[str, str]],
 ) -> Dict[str, Any]:
     """
-    Resolve CytoTable conversion settings with preset defaults applied.
+    Return convert() configuration with preset defaults applied.
     """
 
     if preset is not None:
@@ -512,7 +512,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         )
     root.parent.mkdir(parents=True, exist_ok=True)
 
-    resolved = _resolve_convert_config(
+    resolved = _apply_preset_defaults_to_convert_config(
         preset=preset,
         metadata=metadata,
         compartments=compartments,
