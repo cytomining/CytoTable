@@ -194,7 +194,9 @@ The mapping uses:
 
 ## Reading the warehouse
 
-CytoTable exposes small helpers for local Iceberg warehouses:
+CytoTable exposes helper functions for local Iceberg warehouses so you can list
+available tables and views, inspect the warehouse contents, and read tables
+back into Python:
 
 ```python
 from cytotable import describe_iceberg_warehouse, list_tables, read_table
