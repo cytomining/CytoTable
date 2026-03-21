@@ -148,10 +148,12 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
   In CytoTable, Iceberg is exposed as an optional local warehouse backend which
   can store a materialized `profiles.joined_profiles` table, optional
   `images.image_crops` and `images.source_images` tables, and a
-  `profiles.profile_with_images` view. These saved views help express
-  relationships between tables without storing every combined result as another
-  table. Under the hood, an Iceberg warehouse may be backed by multiple files
-  such as metadata files and table data files rather than a single output file.
+  `profiles.profile_with_images` view. In plain terms, this means one warehouse
+  can hold profile features, image data, and saved relationships between them.
+  These saved views help express relationships between tables without storing
+  every combined result as another table. Under the hood, an Iceberg warehouse
+  may be backed by multiple files such as metadata files and table data files
+  rather than a single output file.
 
 ```{eval-rst}
   Iceberg warehouse export may be specified by using :code:`convert(..., dest_backend="iceberg", dest_path="warehouse_dir", ...)` (:mod:`convert() <cytotable.convert.convert>`).
@@ -168,7 +170,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 
 ```{eval-rst}
 When using the Iceberg backend, CytoTable may also export a separate image-crop table by providing :code:`image_dir` to :mod:`convert() <cytotable.convert.convert>`.
-This image table stores cropped image payloads as OME-Arrow structs and may also include mask/outline crops through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
+This image table stores cropped images as OME-Arrow objects, which are a structured way to package image data and metadata together. The table may also include mask and outline images through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
 Set :code:`include_source_images=True` to also store full source images in :code:`images.source_images`.
 ```
 
