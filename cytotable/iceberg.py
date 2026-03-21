@@ -510,6 +510,14 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     semantics; this function adds Iceberg-specific options such as
     `default_namespace`, `images_namespace`, `registry_file`,
     `profiles_table_name`, and `profile_with_images_view_name`.
+
+    Returns:
+        Path to the created Iceberg warehouse root.
+
+    Raises:
+        CytoTableException: If the warehouse path already exists or image
+            export prerequisites are invalid.
+        ValueError: If required join SQL or join pagination keys are missing.
     """
 
     _require_pyiceberg()
@@ -561,6 +569,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 "write_iceberg_warehouse will not replace it with a new one."
             )
 
+        # First materialize the analysis-ready joined profiles output as a
+        # single parquet artifact, then import that artifact into Iceberg.
         profiles_path = cast(
             str,
             _run_export_workflow(
@@ -598,6 +608,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
         profiles_table_exists = False
         if profiles_path and Path(profiles_path).exists():
+            # Stamp stable object identifiers onto the materialized profile
+            # rows before persisting them as the warehouse's primary table.
             profiles_arrow_table = pa.Table.from_pandas(
                 add_object_id_to_profiles_frame(
                     parquet.read_table(Path(profiles_path)).to_pandas(),
@@ -616,15 +628,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             profiles_table_exists = True
 
         if image_export_enabled:
-            _validate_image_export_prerequisites(
-                image_dir=image_dir,
-                mask_dir=mask_dir,
-                outline_dir=outline_dir,
-                bbox_column_map=bbox_column_map,
-                segmentation_file_regex=segmentation_file_regex,
-                joins=cast(str, resolved["joins"]),
-                page_keys=cast(Dict[str, str], resolved["page_keys"]),
-            )
+            # Run the same join in chunked mode for image work so crops and
+            # full source-image rows can be produced lazily per chunk.
             joined_chunk_paths = cast(
                 list[str],
                 _run_export_workflow(
@@ -653,6 +658,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             source_images_table: Optional[Table] = None
             seen_source_image_ids: set[str] = set()
             if bundle.table_exists((images_namespace, SOURCE_IMAGE_TABLE_NAME)):
+                # Source images are image-level assets, so deduplicate them
+                # across joined chunks by the stable image identifier.
                 existing_source_images = bundle.load_table(
                     (images_namespace, SOURCE_IMAGE_TABLE_NAME)
                 ).scan().to_arrow()
@@ -728,6 +735,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 and profile_with_images_view_name
                 and image_table is not None
             ):
+                # Persist the cross-namespace analytical view only when both
+                # the base profile table and image crop table exist.
                 registry = bundle._read_registry()
                 cast(dict[str, dict[str, object]], registry["views"])[
                     _qualify(profile_with_images_view_name, default_namespace)
@@ -739,6 +748,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 }
                 bundle._write_registry(registry)
 
+        # Drop transient parquet staging after the warehouse contents have
+        # been committed successfully.
         shutil.rmtree(stage_dir, ignore_errors=True)
         build_root = None
 
@@ -746,6 +757,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         if parsl_loaded_here:
             parsl.dfk().cleanup()
         if build_root is not None:
+            # Clean up partially built warehouse state on any failure path.
             shutil.rmtree(build_root, ignore_errors=True)
 
     return str(root)
