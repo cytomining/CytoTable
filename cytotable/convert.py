@@ -21,6 +21,7 @@ from cytotable.utils import (
     _parsl_loaded,
     evaluate_futures,
 )
+from cytotable.validation import validate_convert_backend_options
 
 logger = logging.getLogger(__name__)
 
@@ -1666,54 +1667,21 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
-    if dest_backend not in ["parquet", "iceberg"]:
-        raise DatatypeException(
-            f"Invalid dest_backend provided: {dest_backend}. "
-            "Valid options are 'parquet' or 'iceberg'."
-        )
-
-    image_export_requested = any(
-        (
-            image_dir is not None,
-            include_source_images,
-            mask_dir is not None,
-            outline_dir is not None,
-            bool(bbox_column_map),
-            bool(segmentation_file_regex),
-        )
+    validate_convert_backend_options(
+        dest_backend=dest_backend,
+        dest_datatype=dest_datatype,
+        image_dir=image_dir,
+        include_source_images=include_source_images,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        bbox_column_map=bbox_column_map,
+        segmentation_file_regex=segmentation_file_regex,
+        concat=concat,
+        join=join,
+        drop_null=drop_null,
     )
-    if image_export_requested and image_dir is None:
-        raise CytoTableException(
-            "Image export options require image_dir to be provided."
-        )
-    if image_export_requested and dest_backend != "iceberg":
-        raise CytoTableException("Image export requires dest_backend='iceberg'.")
-    if image_export_requested and not join:
-        raise CytoTableException(
-            "Image export requires join=True so bounding boxes can be resolved from joined rows."
-        )
 
     if dest_backend == "iceberg":
-        if dest_datatype != "parquet":
-            raise DatatypeException(
-                "Iceberg backend currently supports only dest_datatype='parquet' "
-                "for normalized table staging."
-            )
-        if not concat:
-            raise CytoTableException(
-                "Iceberg backend does not support concat=False. "
-                "It always stages normalized tables using concatenated logical outputs."
-            )
-        if not join:
-            raise CytoTableException(
-                "Iceberg backend does not support join=False. "
-                "Use the default join=True behavior when writing an Iceberg warehouse."
-            )
-        if drop_null:
-            raise CytoTableException(
-                "Iceberg backend does not support drop_null=True. "
-                "This parquet join-time filter is unavailable for warehouse writes."
-            )
 
         from cytotable.iceberg import write_iceberg_warehouse
 
