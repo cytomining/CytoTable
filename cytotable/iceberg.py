@@ -251,7 +251,9 @@ def _validate_image_export_prerequisites(
     return True
 
 
-def _validate_iceberg_join_prerequisites(*, joins: str, page_keys: Dict[str, str]) -> None:
+def _validate_iceberg_join_prerequisites(
+    *, joins: str, page_keys: Dict[str, str]
+) -> None:
     """
     Validate that Iceberg export has the join configuration it requires.
     """
@@ -660,13 +662,17 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             if bundle.table_exists((images_namespace, SOURCE_IMAGE_TABLE_NAME)):
                 # Source images are image-level assets, so deduplicate them
                 # across joined chunks by the stable image identifier.
-                existing_source_images = bundle.load_table(
-                    (images_namespace, SOURCE_IMAGE_TABLE_NAME)
-                ).scan().to_arrow()
+                existing_source_images = (
+                    bundle.load_table((images_namespace, SOURCE_IMAGE_TABLE_NAME))
+                    .scan()
+                    .to_arrow()
+                )
                 if "Metadata_ImageID" in existing_source_images.column_names:
                     seen_source_image_ids.update(
                         image_id
-                        for image_id in existing_source_images["Metadata_ImageID"].to_pylist()
+                        for image_id in existing_source_images[
+                            "Metadata_ImageID"
+                        ].to_pylist()
                         if image_id is not None
                     )
             for chunk_path in joined_chunk_paths:
@@ -726,7 +732,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         source_images_table.append(filtered_source_image_table)
                         seen_source_image_ids.update(
                             image_id
-                            for image_id in source_image_frame["Metadata_ImageID"].tolist()
+                            for image_id in source_image_frame[
+                                "Metadata_ImageID"
+                            ].tolist()
                             if image_id is not None
                         )
 

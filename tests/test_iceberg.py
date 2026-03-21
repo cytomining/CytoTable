@@ -863,7 +863,10 @@ def test_write_iceberg_warehouse_deduplicates_source_images_across_chunks(
         patch("cytotable.iceberg._parsl_loaded", return_value=False),
         patch(
             "cytotable.iceberg._run_export_workflow",
-            side_effect=[str(stage_parquet), [str(joined_chunk_a), str(joined_chunk_b)]],
+            side_effect=[
+                str(stage_parquet),
+                [str(joined_chunk_a), str(joined_chunk_b)],
+            ],
         ),
         patch(
             "cytotable.iceberg.image_crop_table_from_joined_chunk",
