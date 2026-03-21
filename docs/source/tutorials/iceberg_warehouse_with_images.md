@@ -110,7 +110,9 @@ Important behavior:
   randomly
 - CytoTable also deterministically generates `Metadata_ImageCropID` values
   unique to each crop row
-- outline files are preferred over mask files when both resolve
+- when both `outline_dir` and `mask_dir` produce a matching overlay for the
+  same source image, CytoTable stores both and uses the outline for the
+  generated `ome_arrow_label` overlay field
 
 If you also want the original images stored in the warehouse:
 

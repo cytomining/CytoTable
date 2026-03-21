@@ -640,14 +640,15 @@ def image_crop_table_from_joined_chunk(
                 logger.debug("Skipping image crop for unresolved image %s", image_name)
                 continue
 
-            label_path = _find_matching_segmentation_path(
+            outline_path = _find_matching_segmentation_path(
                 data_value=image_name,
                 pattern_map=segmentation_file_regex,
                 file_dir=outline_dir,
                 candidate_path=image_path,
                 file_index=outline_index,
                 lookup_cache=segmentation_cache,
-            ) or _find_matching_segmentation_path(
+            )
+            mask_path = _find_matching_segmentation_path(
                 data_value=image_name,
                 pattern_map=segmentation_file_regex,
                 file_dir=mask_dir,
@@ -655,6 +656,7 @@ def image_crop_table_from_joined_chunk(
                 file_index=mask_index,
                 lookup_cache=segmentation_cache,
             )
+            label_path = outline_path or mask_path
 
             record = {
                 **key_fields,
@@ -677,6 +679,16 @@ def image_crop_table_from_joined_chunk(
                 "ome_arrow_image": _crop_ome_arrow(
                     image_path=image_path, bbox=bbox_values
                 ),
+                "ome_arrow_outline": (
+                    _crop_ome_arrow(image_path=outline_path, bbox=bbox_values)
+                    if outline_path is not None
+                    else None
+                ),
+                "ome_arrow_mask": (
+                    _crop_ome_arrow(image_path=mask_path, bbox=bbox_values)
+                    if mask_path is not None
+                    else None
+                ),
                 "ome_arrow_label": (
                     _crop_ome_arrow(image_path=label_path, bbox=bbox_values)
                     if label_path is not None
@@ -684,13 +696,8 @@ def image_crop_table_from_joined_chunk(
                 ),
                 "label_source_kind": (
                     "outline"
-                    if (
-                        label_path is not None
-                        and outline_dir is not None
-                        and pathlib.Path(outline_dir)
-                        in pathlib.Path(label_path).parents
-                    )
-                    else "mask" if label_path is not None else None
+                    if outline_path is not None
+                    else "mask" if mask_path is not None else None
                 ),
             }
             rows.append(record)
@@ -708,6 +715,8 @@ def image_crop_table_from_joined_chunk(
             "source_bbox_y_min",
             "source_bbox_y_max",
             "ome_arrow_image",
+            "ome_arrow_outline",
+            "ome_arrow_mask",
             "ome_arrow_label",
         }
     )
@@ -726,6 +735,8 @@ def image_crop_table_from_joined_chunk(
                 "source_bbox_y_min": pa.array([], type=pa.int64()),
                 "source_bbox_y_max": pa.array([], type=pa.int64()),
                 "ome_arrow_image": pa.array([], type=ome_arrow_struct),
+                "ome_arrow_outline": pa.array([], type=ome_arrow_struct),
+                "ome_arrow_mask": pa.array([], type=ome_arrow_struct),
                 "ome_arrow_label": pa.array([], type=ome_arrow_struct),
             }
         )
@@ -768,6 +779,22 @@ def image_crop_table_from_joined_chunk(
         "ome_arrow_image": pa.array(
             [
                 _strip_null_fields_from_value(row["ome_arrow_image"], ome_arrow_struct)
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+        "ome_arrow_outline": pa.array(
+            [
+                _strip_null_fields_from_value(
+                    row["ome_arrow_outline"], ome_arrow_struct
+                )
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+        "ome_arrow_mask": pa.array(
+            [
+                _strip_null_fields_from_value(row["ome_arrow_mask"], ome_arrow_struct)
                 for row in rows
             ],
             type=ome_arrow_struct,
@@ -826,14 +853,15 @@ def source_image_table_from_joined_chunk(
             if source_image_id in rows_by_id:
                 continue
 
-            label_path = _find_matching_segmentation_path(
+            outline_path = _find_matching_segmentation_path(
                 data_value=image_name,
                 pattern_map=segmentation_file_regex,
                 file_dir=outline_dir,
                 candidate_path=image_path,
                 file_index=outline_index,
                 lookup_cache=segmentation_cache,
-            ) or _find_matching_segmentation_path(
+            )
+            mask_path = _find_matching_segmentation_path(
                 data_value=image_name,
                 pattern_map=segmentation_file_regex,
                 file_dir=mask_dir,
@@ -841,6 +869,7 @@ def source_image_table_from_joined_chunk(
                 file_index=mask_index,
                 lookup_cache=segmentation_cache,
             )
+            label_path = outline_path or mask_path
 
             rows_by_id[source_image_id] = {
                 **key_fields,
@@ -848,18 +877,19 @@ def source_image_table_from_joined_chunk(
                 "source_image_column": image_column,
                 "source_image_file": image_name,
                 "ome_arrow_image": _read_ome_arrow(image_path),
+                "ome_arrow_outline": (
+                    _read_ome_arrow(outline_path) if outline_path is not None else None
+                ),
+                "ome_arrow_mask": (
+                    _read_ome_arrow(mask_path) if mask_path is not None else None
+                ),
                 "ome_arrow_label": (
                     _read_ome_arrow(label_path) if label_path is not None else None
                 ),
                 "label_source_kind": (
                     "outline"
-                    if (
-                        label_path is not None
-                        and outline_dir is not None
-                        and pathlib.Path(outline_dir)
-                        in pathlib.Path(label_path).parents
-                    )
-                    else "mask" if label_path is not None else None
+                    if outline_path is not None
+                    else "mask" if mask_path is not None else None
                 ),
             }
 
@@ -872,6 +902,8 @@ def source_image_table_from_joined_chunk(
             "source_image_file",
             "label_source_kind",
             "ome_arrow_image",
+            "ome_arrow_outline",
+            "ome_arrow_mask",
             "ome_arrow_label",
         }
     )
@@ -885,6 +917,8 @@ def source_image_table_from_joined_chunk(
                 "source_image_file": pa.array([], type=pa.string()),
                 "label_source_kind": pa.array([], type=pa.string()),
                 "ome_arrow_image": pa.array([], type=ome_arrow_struct),
+                "ome_arrow_outline": pa.array([], type=ome_arrow_struct),
+                "ome_arrow_mask": pa.array([], type=ome_arrow_struct),
                 "ome_arrow_label": pa.array([], type=ome_arrow_struct),
             }
         )
@@ -912,6 +946,22 @@ def source_image_table_from_joined_chunk(
         "ome_arrow_image": pa.array(
             [
                 _strip_null_fields_from_value(row["ome_arrow_image"], ome_arrow_struct)
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+        "ome_arrow_outline": pa.array(
+            [
+                _strip_null_fields_from_value(
+                    row["ome_arrow_outline"], ome_arrow_struct
+                )
+                for row in rows
+            ],
+            type=ome_arrow_struct,
+        ),
+        "ome_arrow_mask": pa.array(
+            [
+                _strip_null_fields_from_value(row["ome_arrow_mask"], ome_arrow_struct)
                 for row in rows
             ],
             type=ome_arrow_struct,

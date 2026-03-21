@@ -626,14 +626,19 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
     tifffile = pytest.importorskip("tifffile")
 
     image_dir = Path(fx_tempdir) / "images"
+    mask_dir = Path(fx_tempdir) / "masks"
     outline_dir = Path(fx_tempdir) / "outlines"
     image_dir.mkdir()
+    mask_dir.mkdir()
     outline_dir.mkdir()
 
     image = np.arange(100, dtype=np.uint16).reshape(10, 10)
+    mask = np.zeros((10, 10), dtype=np.uint16)
+    mask[1:9, 2:8] = 2
     outline = np.zeros((10, 10), dtype=np.uint16)
     outline[2:8, 3:7] = 1
     tifffile.imwrite(image_dir / "cell.tiff", image)
+    tifffile.imwrite(mask_dir / "cell.tiff", mask)
     tifffile.imwrite(outline_dir / "cell.tiff", outline)
 
     joined_chunk = pa.table(
@@ -653,6 +658,7 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
     crop_table = image_crop_table_from_joined_chunk(
         chunk_path=str(chunk_path),
         image_dir=str(image_dir),
+        mask_dir=str(mask_dir),
         outline_dir=str(outline_dir),
     )
 
@@ -661,7 +667,10 @@ def test_image_crop_table_from_joined_chunk(fx_tempdir: str):
     assert "Metadata_ObjectID" in crop_table.column_names
     assert "Metadata_ImageCropID" in crop_table.column_names
     assert "ome_arrow_image" in crop_table.column_names
+    assert "ome_arrow_outline" in crop_table.column_names
+    assert "ome_arrow_mask" in crop_table.column_names
     assert "ome_arrow_label" in crop_table.column_names
+    assert crop_table["label_source_kind"].to_pylist() == ["outline", "outline"]
     assert len(set(crop_table["Metadata_ObjectID"].to_pylist())) == 1
     assert len(set(crop_table["Metadata_ImageCropID"].to_pylist())) == 2
 
@@ -675,14 +684,19 @@ def test_source_image_table_from_joined_chunk(fx_tempdir: str):
     tifffile = pytest.importorskip("tifffile")
 
     image_dir = Path(fx_tempdir) / "images"
+    mask_dir = Path(fx_tempdir) / "masks"
     outline_dir = Path(fx_tempdir) / "outlines"
     image_dir.mkdir()
+    mask_dir.mkdir()
     outline_dir.mkdir()
 
     image = np.arange(100, dtype=np.uint16).reshape(10, 10)
+    mask = np.zeros((10, 10), dtype=np.uint16)
+    mask[1:9, 2:8] = 2
     outline = np.zeros((10, 10), dtype=np.uint16)
     outline[2:8, 3:7] = 1
     tifffile.imwrite(image_dir / "cell.tiff", image)
+    tifffile.imwrite(mask_dir / "cell.tiff", mask)
     tifffile.imwrite(outline_dir / "cell.tiff", outline)
 
     joined_chunk = pa.table(
@@ -698,6 +712,7 @@ def test_source_image_table_from_joined_chunk(fx_tempdir: str):
     source_table = source_image_table_from_joined_chunk(
         chunk_path=str(chunk_path),
         image_dir=str(image_dir),
+        mask_dir=str(mask_dir),
         outline_dir=str(outline_dir),
     )
 
@@ -705,7 +720,10 @@ def test_source_image_table_from_joined_chunk(fx_tempdir: str):
     assert SOURCE_IMAGE_TABLE_NAME == "source_images"
     assert "Metadata_ImageID" in source_table.column_names
     assert "ome_arrow_image" in source_table.column_names
+    assert "ome_arrow_outline" in source_table.column_names
+    assert "ome_arrow_mask" in source_table.column_names
     assert "ome_arrow_label" in source_table.column_names
+    assert source_table["label_source_kind"].to_pylist() == ["outline", "outline"]
     assert len(set(source_table["Metadata_ImageID"].to_pylist())) == 2
 
 
