@@ -213,6 +213,17 @@ def _validate_image_export_prerequisites(
             "Image export options require 'image_dir' to be provided."
         )
 
+    for label, path_value in (
+        ("image_dir", image_dir),
+        ("mask_dir", mask_dir),
+        ("outline_dir", outline_dir),
+    ):
+        if path_value is not None and not Path(path_value).is_dir():
+            raise CytoTableException(
+                f"Image export requires '{label}' to reference an existing directory: "
+                f"'{path_value}'."
+            )
+
     if not joins.strip():
         raise CytoTableException(
             "Image export requires join SQL. Provide 'joins' directly or use a "
@@ -225,6 +236,23 @@ def _validate_image_export_prerequisites(
         )
 
     return True
+
+
+def _validate_iceberg_join_prerequisites(*, joins: str, page_keys: Dict[str, str]) -> None:
+    """
+    Validate that Iceberg export has the join configuration it requires.
+    """
+
+    if not joins.strip():
+        raise ValueError(
+            "Iceberg export requires non-empty join SQL. Provide 'joins' directly "
+            "or use a preset that defines them."
+        )
+
+    if not page_keys.get("join"):
+        raise ValueError(
+            "Iceberg export requires page_keys to include a non-empty 'join' entry."
+        )
 
 
 if _PYICEBERG_IMPORT_ERROR is None:
@@ -480,6 +508,10 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         chunk_size=chunk_size,
         page_keys=page_keys,
     )
+    _validate_iceberg_join_prerequisites(
+        joins=cast(str, resolved["joins"]),
+        page_keys=cast(Dict[str, str], resolved["page_keys"]),
+    )
     image_export_enabled = _validate_image_export_prerequisites(
         image_dir=image_dir,
         mask_dir=mask_dir,
@@ -594,6 +626,17 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             )
             image_table: Optional[Table] = None
             source_images_table: Optional[Table] = None
+            seen_source_image_ids: set[str] = set()
+            if bundle.table_exists((images_namespace, SOURCE_IMAGE_TABLE_NAME)):
+                existing_source_images = bundle.load_table(
+                    (images_namespace, SOURCE_IMAGE_TABLE_NAME)
+                ).scan().to_arrow()
+                if "Metadata_ImageID" in existing_source_images.column_names:
+                    seen_source_image_ids.update(
+                        image_id
+                        for image_id in existing_source_images["Metadata_ImageID"].to_pylist()
+                        if image_id is not None
+                    )
             for chunk_path in joined_chunk_paths:
                 crop_table = image_crop_table_from_joined_chunk(
                     chunk_path=chunk_path,
@@ -624,6 +667,17 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         segmentation_file_regex=segmentation_file_regex,
                     )
                     if source_image_table.num_rows != 0:
+                        source_image_frame = source_image_table.to_pandas()
+                        source_image_frame = source_image_frame[
+                            ~source_image_frame["Metadata_ImageID"].isin(
+                                seen_source_image_ids
+                            )
+                        ]
+                        if source_image_frame.empty:
+                            continue
+                        filtered_source_image_table = pa.Table.from_pandas(
+                            source_image_frame, preserve_index=False
+                        )
                         if source_images_table is None:
                             source_images_table = (
                                 bundle.load_table(
@@ -634,10 +688,15 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                                 )
                                 else bundle.create_table(
                                     (images_namespace, SOURCE_IMAGE_TABLE_NAME),
-                                    source_image_table.schema,
+                                    filtered_source_image_table.schema,
                                 )
                             )
-                        source_images_table.append(source_image_table)
+                        source_images_table.append(filtered_source_image_table)
+                        seen_source_image_ids.update(
+                            image_id
+                            for image_id in source_image_frame["Metadata_ImageID"].tolist()
+                            if image_id is not None
+                        )
 
             if (
                 profiles_table_exists

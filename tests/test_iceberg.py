@@ -23,6 +23,7 @@ from pyarrow import parquet
 from cytotable.exceptions import CytoTableException
 from cytotable.iceberg import (
     _rewrite_join_sql_for_warehouse,
+    _validate_iceberg_join_prerequisites,
     _validate_image_export_prerequisites,
     describe_iceberg_warehouse,
     list_iceberg_tables,
@@ -124,6 +125,36 @@ def test_validate_image_export_prerequisites_requires_join_page_key():
         )
 
 
+def test_validate_image_export_prerequisites_requires_existing_directory(
+    fx_tempdir: str,
+):
+    """
+    Tests that image export directory arguments must exist on disk.
+    """
+
+    missing_dir = str(Path(fx_tempdir) / "missing-images")
+
+    with pytest.raises(CytoTableException, match="existing directory"):
+        _validate_image_export_prerequisites(
+            image_dir=missing_dir,
+            mask_dir=None,
+            outline_dir=None,
+            bbox_column_map=None,
+            segmentation_file_regex=None,
+            joins="SELECT 1",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+
+def test_validate_iceberg_join_prerequisites_requires_join_page_key():
+    """
+    Tests that Iceberg export always requires page_keys['join'].
+    """
+
+    with pytest.raises(ValueError, match=r"page_keys.*join"):
+        _validate_iceberg_join_prerequisites(joins="SELECT 1", page_keys={})
+
+
 @pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
 def test_write_iceberg_warehouse_fails_fast_for_image_export_without_joins(
     fx_tempdir: str,
@@ -139,6 +170,23 @@ def test_write_iceberg_warehouse_fails_fast_for_image_export_without_joins(
             warehouse_path=f"{fx_tempdir}/example_warehouse",
             preset=None,
             image_dir=f"{fx_tempdir}/images",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_requires_joins_without_image_export(fx_tempdir: str):
+    """
+    Tests that Iceberg export fails before staging when joins are missing.
+    """
+
+    with pytest.raises(ValueError, match="requires non-empty join SQL"):
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=f"{fx_tempdir}/example_warehouse",
+            preset=None,
+            joins="",
             page_keys={"join": "Metadata_ImageNumber"},
         )
 
@@ -751,6 +799,8 @@ def test_write_iceberg_warehouse_writes_source_images_when_requested(
     warehouse_path = Path(fx_tempdir) / "source_images_warehouse"
     stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
     joined_chunk = Path(fx_tempdir) / "joined_chunk.parquet"
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
 
@@ -781,7 +831,7 @@ def test_write_iceberg_warehouse_writes_source_images_when_requested(
             source_datatype="csv",
             warehouse_path=warehouse_path,
             preset="cellprofiler_csv",
-            image_dir=f"{fx_tempdir}/images",
+            image_dir=str(image_dir),
             include_source_images=True,
             joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
             page_keys={"join": "Metadata_ImageNumber"},
@@ -789,6 +839,60 @@ def test_write_iceberg_warehouse_writes_source_images_when_requested(
 
     tables = list_iceberg_tables(warehouse_path)
     assert "images.source_images" in tables
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_deduplicates_source_images_across_chunks(
+    fx_tempdir: str,
+):
+    """
+    Tests that source image rows are deduplicated across joined chunks.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "source_images_dedup_warehouse"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
+    joined_chunk_a = Path(fx_tempdir) / "joined_chunk_a.parquet"
+    joined_chunk_b = Path(fx_tempdir) / "joined_chunk_b.parquet"
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk_a)
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk_b)
+
+    with (
+        patch("cytotable.iceberg.parsl.load"),
+        patch("cytotable.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch(
+            "cytotable.iceberg._run_export_workflow",
+            side_effect=[str(stage_parquet), [str(joined_chunk_a), str(joined_chunk_b)]],
+        ),
+        patch(
+            "cytotable.iceberg.image_crop_table_from_joined_chunk",
+            return_value=pa.table(
+                {"Metadata_ObjectID": pa.array(["obj-1"], type=pa.string())}
+            ),
+        ),
+        patch(
+            "cytotable.iceberg.source_image_table_from_joined_chunk",
+            side_effect=[
+                pa.table({"Metadata_ImageID": pa.array(["img-1"], type=pa.string())}),
+                pa.table({"Metadata_ImageID": pa.array(["img-1"], type=pa.string())}),
+            ],
+        ),
+    ):
+        dfk.return_value.cleanup = MagicMock()
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset="cellprofiler_csv",
+            image_dir=fx_tempdir,
+            include_source_images=True,
+            joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+    source_images = read_iceberg_table(warehouse_path, "source_images")
+    assert source_images["Metadata_ImageID"].tolist() == ["img-1"]
 
 
 def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
