@@ -268,6 +268,8 @@ def _validate_iceberg_join_prerequisites(*, joins: str, page_keys: Dict[str, str
         )
 
 
+# Define Iceberg catalog helpers only when the optional pyiceberg dependency
+# is available, so importing cytotable does not fail for parquet-only users.
 if _PYICEBERG_IMPORT_ERROR is None:
 
     class TinyCatalog(MetastoreCatalog):
