@@ -251,6 +251,7 @@ own rows directly.
 - `images.image_crops` rows include a deterministic
   `Metadata_ImageCropID` derived from measurement keys, crop bounds, and the
   source image reference
-- `images.image_crops` rows include `ome_arrow_image` and optional `ome_arrow_label` payloads
+- `images.image_crops` rows include `ome_arrow_image` data and optional
+  `ome_arrow_label` data stored as OME-Arrow objects
 - `images.source_images` rows include a deterministic `Metadata_ImageID`
   derived from image-level keys and the source image reference
