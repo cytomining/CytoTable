@@ -211,6 +211,10 @@ profile_with_images = read_table(
 )
 ```
 
+If you want to see the rendered outputs from this workflow, including example
+table listings and readback results, see the notebook example
+`examples/cytotable_with_profiles_and_images`.
+
 Unqualified reads still work for unique table or view names. The current layout is:
 
 - `profiles.joined_profiles`
