@@ -8,7 +8,7 @@ import re
 from importlib.util import find_spec
 from json import dumps
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 from unittest.mock import MagicMock, patch
 
 import numpy as np
