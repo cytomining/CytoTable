@@ -67,7 +67,12 @@ def _require_pyiceberg() -> None:
 
 def _qualify(name: str, namespace: str) -> str:
     """
-    Return a fully qualified Iceberg identifier.
+    Return a fully qualified Iceberg identifier such as
+    `profiles.joined_profiles` from a bare name and namespace.
+
+    This matters for Iceberg because tables and views live within namespaces,
+    unlike standalone table files where a single filename can identify the
+    dataset directly.
     """
 
     return name if "." in name else f"{namespace}.{name}"
