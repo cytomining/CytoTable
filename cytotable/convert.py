@@ -1543,10 +1543,12 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             but these intermediary files are temporary and are not retained as part
             of the final output at `dest_path`.
         dest_backend: Literal["parquet", "iceberg"]:
-            Output backend to write to. Defaults to 'parquet'. Use 'iceberg'
-            to store processed CytoTable tables in a local Iceberg warehouse.
+            Output backend to write to. Defaults to `"parquet"`. Use
+            `"iceberg"` to store processed CytoTable tables in a local
+            Iceberg warehouse.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Output destination datatype to write to. CytoTable uses this variable if the user specifies a parquet backend.
+            Output destination datatype to write to. CytoTable uses this
+            value when the selected backend is `"parquet"`.
         image_dir: Optional[str]
             Optional directory of source images aligned with the experiment of
             interest. CytoTable uses this directory to build OME-Arrow image
@@ -1559,7 +1561,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         mask_dir: Optional[str]
             Optional directory of segmentation masks aligned with `image_dir`.
             CytoTable uses these files to populate `ome_arrow_label` when no
-            outline is available. Requires `dest_backend="iceberg"`.
+            outline image is available. Requires `dest_backend="iceberg"`.
         outline_dir: Optional[str]
             Optional directory of outline images aligned with `image_dir`.
             CytoTable uses these files to populate `ome_arrow_label` before
@@ -1608,8 +1610,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         bbox_column_map: Optional[Dict[str, str]]
             Optional explicit mapping for image crop bounding box columns using
             keys `x_min`, `x_max`, `y_min`, and `y_max`. For Iceberg profile
-            exports, the resolved bounding box columns are normalized in the
-            materialized `joined_profiles` table as `Metadata_SourceBBoxXMin`,
+            exports, CytoTable normalizes the resolved bounding box columns in
+            `joined_profiles` as `Metadata_SourceBBoxXMin`,
             `Metadata_SourceBBoxXMax`, `Metadata_SourceBBoxYMin`, and
             `Metadata_SourceBBoxYMax`.
         sort_output: bool (Default value = True)
