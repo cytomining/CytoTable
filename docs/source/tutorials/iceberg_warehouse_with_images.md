@@ -135,11 +135,17 @@ In the materialized `joined_profiles` table, the resolved bbox columns are
 normalized as `Metadata_SourceBBoxXMin`, `Metadata_SourceBBoxXMax`,
 `Metadata_SourceBBoxYMin`, and `Metadata_SourceBBoxYMax`.
 
-Resolution order:
+CytoTable searches for bounding box columns in this order and only moves to
+the next option if the earlier one does not provide all four required columns:
 
 1. explicit `bbox_column_map`
 1. CellProfiler-style `AreaShape_BoundingBox...` column names
 1. substring fallback using `Minimum_X`, `Maximum_X`, `Minimum_Y`, `Maximum_Y`
+
+*Note:* The substring fallback is a broad last-resort match. It is useful when
+your data do not follow the standard CellProfiler bbox naming conventions, but
+if multiple unrelated columns contain those substrings, you should prefer an
+explicit `bbox_column_map`.
 
 If you need to override the automatic choice:
 
