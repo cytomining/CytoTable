@@ -72,7 +72,14 @@ joined data as parquet internally before writing the warehouse tables.
 
 ## Add image crops with OME-Arrow
 
-When `image_dir` is provided, CytoTable will process joined rows in chunks and append cropped image payloads into a separate `images.image_crops` table inside the warehouse.
+When a user specifies `image_dir`, CytoTable uses temporary parquet staging and
+chunked single-cell joins to append cropped image payloads into a separate
+`images.image_crops` table inside the warehouse.
+
+If `image_dir` is not provided, CytoTable writes only the profile-side Iceberg
+output, which is usually the right choice when you only need measurement data
+or want a lighter-weight warehouse. Provide `image_dir` when you want the
+warehouse to connect single-cell profiles to cropped images.
 
 ```python
 from cytotable import convert
