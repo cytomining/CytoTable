@@ -233,8 +233,14 @@ profiles = read_table("./ExampleHuman.parquet")
 
 ## What success looks like
 
+*Note:* In this tutorial, a "materialized table" means a table whose rows are
+stored directly in the warehouse. A "view" stores the logic for producing a
+result and re-runs that logic each time you read it, rather than storing its
+own rows directly.
+
 - the warehouse directory exists and contains Iceberg metadata/data files
-- `profiles.joined_profiles` appears as a materialized table
+- `profiles.joined_profiles` appears as a materialized table, meaning a stored
+  table with data rather than just a saved view definition
 - `images.image_crops` appears as a table only when `image_dir` was provided and crop rows were actually written
 - `images.source_images` appears as a table only when `include_source_images=True`
 - `profiles.profile_with_images` appears as a saved view only when `images.image_crops` exists and contains rows
