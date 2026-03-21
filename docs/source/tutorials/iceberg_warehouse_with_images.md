@@ -105,8 +105,11 @@ Important behavior:
 - image export requires `join=True` (the default)
 - CytoTable writes cropped images to a separate `images.image_crops` table
 - full source images may also be written to `images.source_images` with `include_source_images=True`
-- each `images.image_crops` row includes a stable `Metadata_ObjectID` for object-level references
-- each `images.image_crops` row also includes a stable `Metadata_ImageCropID` unique to that crop row
+- CytoTable deterministically generates `Metadata_ObjectID` values in
+  `images.image_crops` for object-level references, rather than assigning them
+  randomly
+- CytoTable also deterministically generates `Metadata_ImageCropID` values
+  unique to each crop row
 - outline files are preferred over mask files when both resolve
 
 If you also want the original images stored in the warehouse:
