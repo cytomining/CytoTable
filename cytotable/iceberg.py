@@ -502,7 +502,14 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     **kwargs,
 ) -> str:
     """
-    Normalize raw source data and store the resulting logical tables in Iceberg.
+    Write a CytoTable Iceberg warehouse from raw source data.
+
+    This helper powers `convert(..., dest_backend="iceberg")` and accepts the
+    same core conversion arguments for source selection, joins, chunking, and
+    image export. See `cytotable.convert.convert` for the shared argument
+    semantics; this function adds Iceberg-specific options such as
+    `default_namespace`, `images_namespace`, `registry_file`,
+    `profiles_table_name`, and `profile_with_images_view_name`.
     """
 
     _require_pyiceberg()
