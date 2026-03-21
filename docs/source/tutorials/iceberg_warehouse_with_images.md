@@ -7,7 +7,8 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 ## What you will accomplish
 
 - Convert CellProfiler outputs (e.g., SQLite file) to an Iceberg warehouse instead of a single Parquet file (which is default CytoTable behavior).
-- Store a materialized `profiles.joined_profiles` table in Iceberg.
+- Using Iceberg, create a materialized `profiles.joined_profiles` table that
+  connects single-cell profiles to cropped images.
 - Optionally build a separate `images.image_crops` Iceberg table containing OME-Arrow image crops.
 - Optionally build a separate `images.source_images` Iceberg table containing full OME-Arrow source images.
 - Add a saved `profiles.profile_with_images` warehouse view that manifests joined profiles with image crop references.
