@@ -11,7 +11,8 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
   connects single-cell profiles to cropped images.
 - Optionally build a separate `images.image_crops` Iceberg table containing OME-Arrow image crops.
 - Optionally build a separate `images.source_images` Iceberg table containing full OME-Arrow source images.
-- Add a saved `profiles.profile_with_images` warehouse view that manifests joined profiles with image crop references.
+- Save a `profiles.profile_with_images` warehouse "view" that displays joined
+  profiles with image crops.
 - Overlay mask or outline images into this "view".
 
 ````{admonition} When to use this tutorial
