@@ -1,6 +1,6 @@
 # Tutorial: Linking CellProfiler morphology features with single-cell image crops
 
-The Apache ecosystem tool, Iceberg, builds a warehouse data structure to manage connections between single-cell features and OME-arrow image crops. 
+The Apache ecosystem tool, Iceberg, builds a warehouse data structure to manage connections between single-cell features and OME-arrow image crops.
 
 In this tutorial, you will see a start-to-finish walkthrough of using CytoTable to link CellProfiler measurements and cropped microscopy images.
 
@@ -13,7 +13,7 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 - Add a saved `profiles.profile_with_images` warehouse view that manifests joined profiles with image crop references.
 - Overlay mask or outline images into this "view".
 
-```{admonition} When to use this tutorial
+````{admonition} When to use this tutorial
 - Use this tutorial when you want to bundle single-cell morphology features with single-cell image crops instead of a single Parquet file.
 - Skip this tutorial if you only need the standard joined measurement table; use the Parquet tutorial instead.
 
@@ -27,7 +27,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install "cytotable[iceberg-images]"
-```
+````
 
 ## Inputs and outputs
 
