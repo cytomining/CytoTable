@@ -103,7 +103,7 @@ Important behavior:
 
 - image export requires `dest_backend="iceberg"`
 - image export requires `join=True` (the default)
-- cropped images are written to a separate `images.image_crops` table
+- CytoTable writes cropped images to a separate `images.image_crops` table
 - full source images may also be written to `images.source_images` with `include_source_images=True`
 - each `images.image_crops` row includes a stable `Metadata_ObjectID` for object-level references
 - each `images.image_crops` row also includes a stable `Metadata_ImageCropID` unique to that crop row
