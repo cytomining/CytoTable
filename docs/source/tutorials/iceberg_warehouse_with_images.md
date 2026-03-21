@@ -21,8 +21,13 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 
 ## Setup
 
-*Note:* Image crop export requires Python 3.11 or newer because the optional `ome-arrow`
-dependency is only available on Python 3.11+.
+*Note:* This tutorial uses `cytotable[iceberg-images]` rather than
+`cytotable[iceberg]` because the image tables and views require both
+`pyiceberg` and `ome-arrow`. If you only need the Iceberg warehouse for profile
+tables and do not plan to export `images.image_crops` or `images.source_images`,
+then `cytotable[iceberg]` is sufficient. Image crop export requires Python 3.11
+or newer because the optional `ome-arrow` dependency is only available on
+Python 3.11+.
 
 ```bash
 python -m venv .venv
