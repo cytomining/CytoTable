@@ -1548,19 +1548,28 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
             Output destination datatype to write to. CytoTable uses this variable if the user specifies a parquet backend.
         image_dir: Optional[str]
-            Directory of existing images already collected for the experiment of interest. CytoTable uses this directory to generated OME-Arrow crops.
-            Optional parameter that requires `dest_backend="iceberg"`.
+            Optional directory of source images aligned with the experiment of
+            interest. CytoTable uses this directory to build OME-Arrow image
+            crops and, when `include_source_images=True`, full-image rows in
+            `images.source_images`. Requires `dest_backend="iceberg"`.
         include_source_images: bool
             Whether to also store full source images in an Iceberg
             `images.source_images` table. Requires `image_dir` and
             `dest_backend="iceberg"`.
         mask_dir: Optional[str]
-            Directory of existing (precomputed) segmentation masks, which must be aligned with the directory structure specified in `image_dir`. Optional parameter that requires `dest_backend="iceberg"`.
+            Optional directory of segmentation masks aligned with `image_dir`.
+            CytoTable uses these files to populate `ome_arrow_label` when no
+            outline is available. Requires `dest_backend="iceberg"`.
         outline_dir: Optional[str]
-            Directory of existing (precomputed) image outlines, which must be aligned with the directory structure specified in `image_dir`. Optional parameter that requires `dest_backend="iceberg"`.
+            Optional directory of outline images aligned with `image_dir`.
+            CytoTable uses these files to populate `ome_arrow_label` before
+            falling back to `mask_dir`. Requires `dest_backend="iceberg"`.
         segmentation_file_regex: Optional[Dict[str, str]]
             Optional regex mapping of segmentation filename patterns to source
-            image filename patterns for mask/outline resolution.
+            image filename patterns for mask/outline resolution. For example,
+            use `{r".*_outline\\.tiff$": r"(plateA_well_B03_site_1)\\.tiff$"}`
+            when outline files and source images do not share the same
+            basename. Requires `dest_backend="iceberg"`.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
