@@ -142,8 +142,16 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
   Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
-- __Apache Iceberg warehouse__: Iceberg is a table format for multi-table analytical storage with snapshot-aware metadata.
-  In CytoTable, Iceberg is exposed as an optional local warehouse backend which can store a materialized `profiles.joined_profiles` table, an optional `images.image_crops` table, an optional `images.source_images` table, and a `profiles.profile_with_images` view.
+- __Apache Iceberg warehouse__: Iceberg is a way to organize a warehouse
+  directory that contains multiple related tables, along with metadata that
+  tracks how those tables change over time so reads stay consistent.
+  In CytoTable, Iceberg is exposed as an optional local warehouse backend which
+  can store a materialized `profiles.joined_profiles` table, optional
+  `images.image_crops` and `images.source_images` tables, and a
+  `profiles.profile_with_images` view. These saved views help express
+  relationships between tables without storing every combined result as another
+  table. Under the hood, an Iceberg warehouse may be backed by multiple files
+  such as metadata files and table data files rather than a single output file.
 
 ```{eval-rst}
   Iceberg warehouse export may be specified by using :code:`convert(..., dest_backend="iceberg", dest_path="warehouse_dir", ...)` (:mod:`convert() <cytotable.convert.convert>`).
