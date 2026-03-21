@@ -11,6 +11,10 @@ These presets are intended to assist with common data source expectations.
 By default, CytoTable will use the "cellprofiler_csv" preset.
 Please note that these presets may not capture all possible outcomes.
 Use manual overrides within :mod:`convert() <cytotable.convert.convert>` as needed.
+In practice, this often means overriding the preset join SQL with
+:code:`convert(..., joins="SELECT ...", ...)` when you want different columns in
+the final joined output, or adjusting related parameters such as
+:code:`page_keys`, :code:`chunk_size`, or compartment names for your dataset.
 ```
 
 ## Data Sources
@@ -305,6 +309,13 @@ The word "join" here is interpreted through `SQL-based terminology on joins <htt
 Joins may be specified in CytoTable using `DuckDB-style SQL <https://duckdb.org/docs/sql/introduction.html>`_ through :code:`convert(..., joins="SELECT * FROM ... JOIN ...", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 Also see CytoTable's presets found here: :data:`presets.config <cytotable.presets.config>` or via `GitHub source code for presets.config <https://github.com/cytomining/CytoTable/blob/main/cytotable/presets.py>`_.
 ```
+
+A common reason to override a preset is to change which columns are carried into
+the final joined table. For example, one preset might only select image file
+columns while another selects :code:`image.*`. If the default joined output is
+missing image-level fields or includes more columns than you want, pass a custom
+:code:`joins=` SQL string to :mod:`convert() <cytotable.convert.convert>` and
+edit the :code:`SELECT` list directly.
 
 Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
 Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for example, [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
