@@ -246,7 +246,11 @@ own rows directly.
   CytoTable stores single-cell image crops as separate rows in the warehouse
 - `images.source_images` appears as a table only when `include_source_images=True`
 - `profiles.profile_with_images` appears as a saved view only when `images.image_crops` exists and contains rows
-- `images.image_crops` rows include a stable `Metadata_ObjectID` derived from measurement keys and crop bounds
-- `images.image_crops` rows include a stable `Metadata_ImageCropID` derived from measurement keys, crop bounds, and the source image reference
+- `images.image_crops` rows include a deterministic `Metadata_ObjectID`
+  derived from measurement keys and crop bounds, rather than a random ID
+- `images.image_crops` rows include a deterministic
+  `Metadata_ImageCropID` derived from measurement keys, crop bounds, and the
+  source image reference
 - `images.image_crops` rows include `ome_arrow_image` and optional `ome_arrow_label` payloads
-- `images.source_images` rows include a stable `Metadata_ImageID` derived from image-level keys and the source image reference
+- `images.source_images` rows include a deterministic `Metadata_ImageID`
+  derived from image-level keys and the source image reference
