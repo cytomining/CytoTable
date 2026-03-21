@@ -556,7 +556,10 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             parsl.load(parsl_config or _default_parsl_config())
             parsl_loaded_here = True
         else:
-            logger.warning("Reusing previously loaded Parsl configuration.")
+            logger.info(
+                "Reusing the already loaded Parsl configuration; "
+                "write_iceberg_warehouse will not replace it with a new one."
+            )
 
         profiles_path = cast(
             str,
