@@ -1534,30 +1534,30 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Note: may be local or remote object-storage location
             using convention "s3://..." or similar.
         dest_path: str:
-            Path to write files to. For `dest_backend="parquet"` this path will be
-            used for intermediary data work and must be a new file or directory path.
+            Path to write files to. Setting `dest_backend="parquet"` will trigger CytoTable to use the provided path to perform
+            intermediary data processing. The path must represent a new file or directory.
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
-            For `dest_backend="iceberg"` this path is the local warehouse root
-            directory. Parquet staging is still used internally during the write,
-            but those intermediary files are temporary and are not retained as part
+            Setting `dest_backend="iceberg"` will trigger CytoTable to use the provided path as the local warehouse root
+            directory. CytoTable still stages parquet files  internally (during write),
+            but these intermediary files are temporary and are not retained as part
             of the final output at `dest_path`.
         dest_backend: Literal["parquet", "iceberg"]:
             Output backend to write to. Defaults to 'parquet'. Use 'iceberg'
-            to store normalized CytoTable tables in a local Iceberg warehouse.
+            to store processed CytoTable tables in a local Iceberg warehouse.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Output destination datatype to write to for the parquet backend.
+            Output destination datatype to write to. CytoTable uses this variable if the user specifies a parquet backend.
         image_dir: Optional[str]
-            Optional directory of source images used to build OME-Arrow crops.
-            Requires `dest_backend="iceberg"`.
+            Directory of existing images already collected for the experiment of interest. CytoTable uses this directory to generated OME-Arrow crops.
+            Optional parameter that requires `dest_backend="iceberg"`.
         include_source_images: bool
             Whether to also store full source images in an Iceberg
             `images.source_images` table. Requires `image_dir` and
             `dest_backend="iceberg"`.
         mask_dir: Optional[str]
-            Optional directory of mask images aligned with `image_dir`.
+            Directory of existing (precomputed) segmentation masks, which must be aligned with the directory structure specified in `image_dir`. Optional parameter that requires `dest_backend="iceberg"`.
         outline_dir: Optional[str]
-            Optional directory of outline images aligned with `image_dir`.
+            Directory of existing (precomputed) image outlines, which must be aligned with the directory structure specified in `image_dir`. Optional parameter that requires `dest_backend="iceberg"`.
         segmentation_file_regex: Optional[Dict[str, str]]
             Optional regex mapping of segmentation filename patterns to source
             image filename patterns for mask/outline resolution.

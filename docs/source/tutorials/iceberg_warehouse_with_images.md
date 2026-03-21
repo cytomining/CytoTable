@@ -1,25 +1,25 @@
-# Tutorial: CellProfiler to Iceberg Warehouse with OME-Arrow Image Crops
+# Tutorial: Linking CellProfiler morphology features with single-cell image crops
 
-A start-to-finish walkthrough for users who want to keep CytoTable measurements and cropped images together in a local Iceberg warehouse.
+The Apache ecosystem tool, Iceberg, builds a warehouse data structure to manage connections between single-cell features and OME-arrow image crops. 
+
+In this tutorial, you will see a start-to-finish walkthrough of using CytoTable to link CellProfiler measurements and cropped microscopy images.
 
 ## What you will accomplish
 
-- Convert CellProfiler outputs to an Iceberg warehouse instead of a single Parquet file.
+- Convert CellProfiler outputs (e.g., SQLite file) to an Iceberg warehouse instead of a single Parquet file (which is default CytoTable behavior).
 - Store a materialized `profiles.joined_profiles` table in Iceberg.
 - Optionally build a separate `images.image_crops` Iceberg table containing OME-Arrow image crops.
 - Optionally build a separate `images.source_images` Iceberg table containing full OME-Arrow source images.
 - Add a saved `profiles.profile_with_images` warehouse view that manifests joined profiles with image crop references.
-- Use mask or outline images when available, with optional regex-based segmentation matching.
+- Overlay mask or outline images into this "view".
 
 ```{admonition} When to use this tutorial
-- Use this workflow when you want a multi-table result bundle instead of a single joined Parquet file.
-- Use it when you need cropped image payloads stored next to measurements for downstream analysis.
-- Skip it if you only need the standard joined measurement table; the Parquet tutorial is simpler.
-```
+- Use this tutorial when you want to bundle single-cell morphology features with single-cell image crops instead of a single Parquet file.
+- Skip this tutorial if you only need the standard joined measurement table; use the Parquet tutorial instead.
 
 ## Setup
 
-Image crop export requires Python 3.11 or newer because the optional `ome-arrow`
+*Note:* Image crop export requires Python 3.11 or newer because the optional `ome-arrow`
 dependency is only available on Python 3.11+.
 
 ```bash
@@ -33,7 +33,7 @@ pip install "cytotable[iceberg-images]"
 
 - **Measurement input:** a CellProfiler SQLite file or CSV folder
 - **Image input:** a directory containing source TIFF files
-- **Optional segmentation input:** directories containing mask or outline TIFF files
+- **Optional segmentation input:** a directory or directories containing mask and/or outline TIFF files
 - **Output:** a new local Iceberg warehouse directory
 
 ## Basic warehouse export
@@ -103,7 +103,7 @@ convert(
 
 ## Bounding boxes
 
-CytoTable uses bounding box columns from the joined measurement rows to crop each image.
+CytoTable uses bounding box columns from the joined measurement rows to dynamically crop each image.
 In the materialized `joined_profiles` table, the resolved bbox columns are
 normalized as `Metadata_SourceBBoxXMin`, `Metadata_SourceBBoxXMax`,
 `Metadata_SourceBBoxYMin`, and `Metadata_SourceBBoxYMax`.
@@ -135,7 +135,7 @@ convert(
 
 ## Segmentation matching
 
-By default, CytoTable matches masks and outlines by basename or stem.
+By default, CytoTable matches the CellProfiler columns that store mask and outline information by basename or stem.
 
 If your segmentation files follow a different naming convention, use `segmentation_file_regex` to map segmentation filename patterns to source image filename patterns.
 

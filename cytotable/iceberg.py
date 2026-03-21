@@ -61,7 +61,7 @@ def _require_pyiceberg() -> None:
 
     if _PYICEBERG_IMPORT_ERROR is not None:
         raise ImportError(
-            "Iceberg support requires the optional 'pyiceberg' dependency."
+            "Using CytoTable with iceberg/OME-arrow support requires the optional 'pyiceberg' dependency."
         ) from _PYICEBERG_IMPORT_ERROR
 
 
