@@ -109,14 +109,17 @@ def test_validate_image_export_prerequisites_requires_image_dir():
         )
 
 
-def test_validate_image_export_prerequisites_requires_join_page_key():
+def test_validate_image_export_prerequisites_requires_join_page_key(fx_tempdir: str):
     """
     Tests that image export requires page_keys['join'].
     """
 
+    images_dir = Path(fx_tempdir) / "images"
+    images_dir.mkdir()
+
     with pytest.raises(CytoTableException, match=r"page_keys.*join"):
         _validate_image_export_prerequisites(
-            image_dir="images",
+            image_dir=str(images_dir),
             mask_dir=None,
             outline_dir=None,
             bbox_column_map=None,
@@ -164,13 +167,16 @@ def test_write_iceberg_warehouse_fails_fast_for_image_export_without_joins(
     Tests that image export fails before staging when joins are missing.
     """
 
-    with pytest.raises(CytoTableException, match="requires join SQL"):
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+
+    with pytest.raises(ValueError, match="requires non-empty join SQL"):
         write_iceberg_warehouse(
             source_path=f"{fx_tempdir}/missing-source",
             source_datatype="csv",
             warehouse_path=f"{fx_tempdir}/example_warehouse",
             preset=None,
-            image_dir=f"{fx_tempdir}/images",
+            image_dir=str(image_dir),
             page_keys={"join": "Metadata_ImageNumber"},
         )
 
@@ -318,6 +324,8 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
     warehouse_path = Path(fx_tempdir) / "no_image_view_warehouse"
     stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
     joined_chunk = Path(fx_tempdir) / "joined_chunk.parquet"
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
 
@@ -345,7 +353,7 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
             source_datatype="csv",
             warehouse_path=warehouse_path,
             preset="cellprofiler_csv",
-            image_dir=f"{fx_tempdir}/images",
+            image_dir=str(image_dir),
             joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
             page_keys={"join": "Metadata_ImageNumber"},
         )

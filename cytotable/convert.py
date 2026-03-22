@@ -1739,6 +1739,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
         )
 
+    parsl_loaded_here = False
+
     # attempt to load parsl configuration if we didn't already load one
     if not _parsl_loaded():
         # if we don't have a parsl configuration provided, load the default
@@ -1747,6 +1749,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         else:
             # else we attempt to load the given parsl configuration
             parsl.load(parsl_config)
+        parsl_loaded_here = True
     else:
         # otherwise warn the user about previous config.
         logger.warning("Reusing previously loaded Parsl configuration.")
@@ -1817,7 +1820,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         **kwargs,
     )
 
-    # cleanup Parsl executor and related
-    parsl.dfk().cleanup()
+    # cleanup Parsl executor and related only if this call loaded it
+    if parsl_loaded_here:
+        parsl.dfk().cleanup()
 
     return output

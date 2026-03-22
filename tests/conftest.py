@@ -21,7 +21,7 @@ from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 from sqlalchemy.util import deprecations
 
-from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
+from cytotable.utils import _column_sort, _parsl_loaded
 
 # filters sqlalchemy 2.0 uber warning
 # referenced from: https://stackoverflow.com/a/76308286
@@ -60,18 +60,16 @@ def fixture_load_parsl_threaded(clear_parsl_config: None) -> None:
 @pytest.fixture(name="load_parsl_default", scope="module")
 def fixture_load_parsl_default(clear_parsl_config: None) -> None:
     """
-    Fixture for loading default cytotable parsl config for tests
+    Fixture for loading a Parsl config suitable for CytoTable tests.
 
-    This leverages Parsl's HighThroughputExecutor.
-    See here for more: https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html
+    We use a thread-based executor here because it is reliable in restricted
+    test environments where the default HighThroughputExecutor may hang or fail
+    while trying to start local worker processes and ZMQ sockets.
     """
 
-    config = _default_parsl_config()
-    # note: we add the debug option here for testing from the default
-    # referenced in configuration to help observe testing issues
-    config.executors[0].worker_debug = True
-
-    parsl.load(config)
+    parsl.load(
+        Config(executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")])
+    )
 
 
 # note: we use name here to avoid pylint flagging W0621
