@@ -6,7 +6,7 @@ Tests for CytoTable Iceberg helpers.
 
 import re
 from importlib.util import find_spec
-from json import dumps
+from json import dumps, loads
 from pathlib import Path
 from typing import Optional, cast
 from unittest.mock import MagicMock, patch
@@ -504,7 +504,7 @@ def test_write_iceberg_warehouse_records_cytotable_provenance(
         )
 
     bundle = catalog(warehouse_path)
-    registry = bundle._read_registry()
+    registry = loads((Path(warehouse_path) / "catalog.json").read_text())
     table = bundle.load_table(("profiles", "joined_profiles"))
 
     assert cast(dict[str, str], registry["properties"])["data-producer"].endswith(
