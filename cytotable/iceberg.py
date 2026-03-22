@@ -28,6 +28,7 @@ from cytotable.images import (
     source_image_table_from_joined_chunk,
 )
 from cytotable.presets import config
+from cytotable.sources import _build_path
 from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
 
 logger = logging.getLogger(__name__)
@@ -213,6 +214,7 @@ def _validate_image_export_prerequisites(
     segmentation_file_regex: Optional[Dict[str, str]],
     joins: str,
     page_keys: Dict[str, str],
+    path_kwargs: Optional[Dict[str, Any]] = None,
 ) -> bool:
     """
     Validate that image export configuration includes required join settings.
@@ -241,7 +243,13 @@ def _validate_image_export_prerequisites(
         ("mask_dir", mask_dir),
         ("outline_dir", outline_dir),
     ):
-        if path_value is not None and not Path(path_value).is_dir():
+        if path_value is None:
+            continue
+        built_path = _build_path(path_value, **(path_kwargs or {}))
+        path_exists = (
+            built_path.is_dir() if isinstance(built_path, Path) else built_path.exists()
+        )
+        if not path_exists:
             raise CytoTableException(
                 f"Image export requires '{label}' to reference an existing directory: "
                 f"'{path_value}'."
@@ -564,6 +572,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         segmentation_file_regex=segmentation_file_regex,
         joins=cast(str, resolved["joins"]),
         page_keys=cast(Dict[str, str], resolved["page_keys"]),
+        path_kwargs=kwargs,
     )
 
     root.mkdir(parents=True, exist_ok=False)
@@ -696,6 +705,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     outline_dir=outline_dir,
                     bbox_column_map=bbox_column_map,
                     segmentation_file_regex=segmentation_file_regex,
+                    path_kwargs=kwargs,
                 )
                 if crop_table.num_rows == 0:
                     continue
@@ -718,6 +728,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         mask_dir=mask_dir,
                         outline_dir=outline_dir,
                         segmentation_file_regex=segmentation_file_regex,
+                        path_kwargs=kwargs,
                     )
                     if source_image_table.num_rows != 0:
                         source_image_frame = source_image_table.to_pandas()

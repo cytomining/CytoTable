@@ -1555,22 +1555,25 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             temporary staging format before data are written into the Iceberg
             warehouse.
         image_dir: Optional[str]
-            Optional directory of source images aligned with the experiment of
-            interest. CytoTable uses this directory to build OME-Arrow image
-            crops and, when `include_source_images=True`, full-image rows in
+            Optional directory or cloud object-storage prefix of source images
+            aligned with the experiment of interest. CytoTable uses this input
+            to build OME-Arrow image crops and, when
+            `include_source_images=True`, full-image rows in
             `images.source_images`. Requires `dest_backend="iceberg"`.
         include_source_images: bool
             Whether to also store full source images in an Iceberg
             `images.source_images` table. Requires `image_dir` and
             `dest_backend="iceberg"`.
         mask_dir: Optional[str]
-            Optional directory of segmentation masks aligned with `image_dir`.
-            CytoTable uses these files to populate `ome_arrow_label` when no
-            outline image is available. Requires `dest_backend="iceberg"`.
+            Optional directory or cloud object-storage prefix of segmentation
+            masks aligned with `image_dir`. CytoTable uses these files to
+            populate `ome_arrow_label` when no outline image is available.
+            Requires `dest_backend="iceberg"`.
         outline_dir: Optional[str]
-            Optional directory of outline images aligned with `image_dir`.
-            CytoTable uses these files to populate `ome_arrow_label` before
-            falling back to `mask_dir`. Requires `dest_backend="iceberg"`.
+            Optional directory or cloud object-storage prefix of outline images
+            aligned with `image_dir`. CytoTable uses these files to populate
+            `ome_arrow_label` before falling back to `mask_dir`. Requires
+            `dest_backend="iceberg"`.
         segmentation_file_regex: Optional[Dict[str, str]]
             Optional regex mapping of segmentation filename patterns to source
             image filename patterns for mask/outline resolution. For example,

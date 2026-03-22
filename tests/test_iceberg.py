@@ -4,6 +4,7 @@ Tests for CytoTable Iceberg helpers.
 
 # pylint: disable=too-many-lines
 
+import pathlib
 import re
 from importlib.util import find_spec
 from json import dumps, loads
@@ -35,6 +36,7 @@ from cytotable.images import (
     IMAGE_TABLE_NAME,
     SOURCE_IMAGE_TABLE_NAME,
     _build_file_index,
+    _crop_ome_arrow,
     _find_matching_segmentation_path,
     _require_ome_arrow,
     _strip_null_fields_from_type,
@@ -504,7 +506,7 @@ def test_write_iceberg_warehouse_records_cytotable_provenance(
         )
 
     bundle = catalog(warehouse_path)
-    registry = loads((Path(warehouse_path) / "catalog.json").read_text())
+    registry = loads(bundle.registry_path.read_text())
     table = bundle.load_table(("profiles", "joined_profiles"))
 
     assert cast(dict[str, str], registry["properties"])["data-producer"].endswith(
@@ -572,7 +574,111 @@ def test_build_file_index_includes_zarr_directories(fx_tempdir: str):
 
     file_index = _build_file_index(str(image_root))
 
-    assert file_index.by_relative["example.ome.zarr"] == zarr_store
+    assert file_index.by_relative["example.ome.zarr"].resolve() == zarr_store.resolve()
+
+
+def test_build_file_index_supports_cloud_like_paths(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Tests indexing image-like files from cloud-style directory roots.
+    """
+
+    # pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
+    class FakeCloudPath:
+        def __init__(self, path: str, *, file: bool = False, directory: bool = False):
+            self._path = path
+            self._file = file
+            self._directory = directory
+
+        @property
+        def name(self) -> str:
+            return pathlib.PurePosixPath(self._path).name
+
+        @property
+        def stem(self) -> str:
+            return pathlib.PurePosixPath(self._path).stem
+
+        def is_file(self) -> bool:
+            return self._file
+
+        def is_dir(self) -> bool:
+            return self._directory
+
+        def exists(self) -> bool:
+            return True
+
+        @property
+        def fspath(self) -> str:
+            return "/tmp/fake-cloud-file.tiff"
+
+        def __str__(self) -> str:
+            return self._path
+
+    root = FakeCloudPath("s3://bucket/images", directory=True)
+    child = FakeCloudPath("s3://bucket/images/plate_a/cell.tiff", file=True)
+
+    monkeypatch.setattr("cytotable.images.CloudPath", FakeCloudPath)
+    monkeypatch.setattr("cytotable.images._build_path", lambda path, **kwargs: root)
+    monkeypatch.setattr("cytotable.images.cloud_glob", lambda start, pattern: [child])
+
+    file_index = _build_file_index("s3://bucket/images")
+
+    assert "plate_a/cell.tiff" in file_index.by_relative
+    assert file_index.by_basename["cell.tiff"] == [child]
+
+
+def test_crop_ome_arrow_localizes_cloud_like_paths(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Tests that cloud-like image paths are localized before OME-Arrow reads.
+    """
+
+    scanned_paths: list[str] = []
+
+    # pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
+    class FakeCloudPath:
+        def __init__(self, path: str):
+            self._path = path
+
+        @property
+        def fspath(self) -> str:
+            return "/tmp/local-cache/cell.tiff"
+
+        def __str__(self) -> str:
+            return self._path
+
+    class FakeCollected:
+        def __init__(self):
+            self.data = {"version": "0.0.8"}
+
+    class FakeScanner:
+        def slice_lazy(self, **_kwargs):
+            return self
+
+        def collect(self):
+            return FakeCollected()
+
+    class FakeOMEArrow:
+        @staticmethod
+        def scan(path: str):
+            scanned_paths.append(path)
+            return FakeScanner()
+
+    monkeypatch.setattr("cytotable.images.CloudPath", FakeCloudPath)
+    monkeypatch.setattr(
+        "cytotable.images._require_ome_arrow",
+        lambda: (FakeOMEArrow, pa.struct([pa.field("version", pa.string())])),
+    )
+
+    result = _crop_ome_arrow(
+        FakeCloudPath("s3://bucket/images/cell.tiff"),
+        {"x_min": 0, "x_max": 1, "y_min": 0, "y_max": 1},
+    )
+
+    assert scanned_paths == ["/tmp/local-cache/cell.tiff"]
+    assert result["version"] == "0.0.8"
 
 
 def test_build_file_index_raises_for_ambiguous_basenames(fx_tempdir: str):
@@ -998,7 +1104,8 @@ def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
         candidate_path=candidate,
     )
 
-    assert result == segmentation
+    assert result is not None
+    assert result.resolve() == segmentation.resolve()
 
 
 def test_find_matching_segmentation_path_handles_dotted_identifiers(
@@ -1025,7 +1132,8 @@ def test_find_matching_segmentation_path_handles_dotted_identifiers(
         candidate_path=candidate,
     )
 
-    assert result == segmentation
+    assert result is not None
+    assert result.resolve() == segmentation.resolve()
 
 
 def test_find_matching_segmentation_path_uses_index_and_cache(fx_tempdir: str):
@@ -1065,8 +1173,10 @@ def test_find_matching_segmentation_path_uses_index_and_cache(fx_tempdir: str):
             lookup_cache=lookup_cache,
         )
 
-    assert first == segmentation
-    assert second == segmentation
+    assert first is not None
+    assert second is not None
+    assert first.resolve() == segmentation.resolve()
+    assert second.resolve() == segmentation.resolve()
     assert len(lookup_cache) == 1
 
 

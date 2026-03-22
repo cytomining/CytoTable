@@ -10,6 +10,7 @@ from typing import List
 import pandas as pd
 import pyarrow as pa
 import pytest
+from botocore.exceptions import EndpointConnectionError
 
 from cytotable.utils import (
     _generate_pagesets,
@@ -243,11 +244,18 @@ def test_cloud_glob(root_path: str, max_matches: int, expected_result: List[str]
     """
 
     # check that our results match expected
-    assert sorted(
-        [
-            str(p)
-            for p in cloud_glob(
-                start=root_path, pattern="**/*.csv", max_matches=max_matches
-            )
-        ]
-    ) == sorted(expected_result)
+    try:
+        result = sorted(
+            [
+                str(p)
+                for p in cloud_glob(
+                    start=root_path, pattern="**/*.csv", max_matches=max_matches
+                )
+            ]
+        )
+    except EndpointConnectionError as exc:
+        pytest.skip(
+            f"Skipping live cloud listing test because the endpoint is unavailable: {exc}"
+        )
+
+    assert result == sorted(expected_result)

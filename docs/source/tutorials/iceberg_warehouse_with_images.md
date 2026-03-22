@@ -39,8 +39,8 @@ pip install "cytotable[iceberg-images]"
 ## Inputs and outputs
 
 - **Measurement input:** a CellProfiler SQLite file or CSV folder
-- **Image input:** a directory containing source TIFF files
-- **Optional segmentation input:** a directory or directories containing mask and/or outline TIFF files
+- **Image input:** a local directory or cloud object-storage prefix containing source TIFF files
+- **Optional segmentation input:** a local directory or cloud object-storage prefix containing mask and/or outline TIFF files
 - **Output:** a new local Iceberg warehouse directory containing
   `profiles.joined_profiles` and, when requested, image tables and views
   such as `images.image_crops`, `images.source_images`, and
@@ -75,6 +75,12 @@ joined data as parquet internally before writing the warehouse tables.
 When a user specifies `image_dir`, CytoTable uses temporary parquet staging and
 chunked single-cell joins to append cropped image payloads into a separate
 `images.image_crops` table inside the warehouse.
+
+`image_dir`, `mask_dir`, and `outline_dir` may reference local paths or cloud
+object-storage paths, following the same `s3://...`, `gs://...`, or `az://...`
+style supported for measurement inputs. If your cloud provider needs extra
+configuration, pass the relevant `cloudpathlib` client arguments through
+`convert(..., **kwargs)`.
 
 If `image_dir` is not provided, CytoTable writes only the profile-side Iceberg
 output, which is usually the right choice when you only need measurement data
@@ -127,6 +133,10 @@ convert(
     include_source_images=True,
 )
 ```
+
+The same pattern also works with cloud image paths, for example
+`image_dir="s3://example-bucket/images"` plus any needed authentication or
+client configuration arguments passed through `convert(..., **kwargs)`.
 
 ## Bounding boxes
 

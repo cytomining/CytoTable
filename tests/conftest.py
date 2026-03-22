@@ -53,7 +53,10 @@ def fixture_load_parsl_threaded(clear_parsl_config: None) -> None:
     """
 
     parsl.load(
-        Config(executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")])
+        Config(
+            executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")],
+            run_dir=tempfile.mkdtemp(prefix="cytotable-parsl-threaded-"),
+        )
     )
 
 
@@ -68,7 +71,10 @@ def fixture_load_parsl_default(clear_parsl_config: None) -> None:
     """
 
     parsl.load(
-        Config(executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")])
+        Config(
+            executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")],
+            run_dir=tempfile.mkdtemp(prefix="cytotable-parsl-default-"),
+        )
     )
 
 

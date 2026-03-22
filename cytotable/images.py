@@ -9,12 +9,16 @@ import pathlib
 import re
 from dataclasses import dataclass
 from json import dumps
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Union
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as parquet
+from cloudpathlib import AnyPath, CloudPath
+
+from cytotable.sources import _build_path
+from cytotable.utils import cloud_glob
 
 logger = logging.getLogger(__name__)
 
@@ -63,9 +67,12 @@ class FileIndex:
     Relative-path-first index for image-like files in a directory tree.
     """
 
-    by_relative: dict[str, pathlib.Path]
-    by_basename: dict[str, list[pathlib.Path]]
-    by_stem: dict[str, list[pathlib.Path]]
+    by_relative: dict[str, Union[pathlib.Path, AnyPath]]
+    by_basename: dict[str, list[Union[pathlib.Path, AnyPath]]]
+    by_stem: dict[str, list[Union[pathlib.Path, AnyPath]]]
+
+
+ImagePath = Union[pathlib.Path, AnyPath]
 
 
 def _require_ome_arrow() -> tuple[Any, Any]:
@@ -143,7 +150,38 @@ def _normalize_file_value(value: Any) -> Optional[str]:
     return pathlib.PurePath(normalized).as_posix()
 
 
-def _build_file_index(file_dir: Optional[str]) -> FileIndex:
+def _relative_index_key(path: ImagePath, root: ImagePath) -> str:
+    """
+    Build a normalized relative key for a file under an index root.
+    """
+
+    if isinstance(path, pathlib.Path) and isinstance(root, pathlib.Path):
+        return path.relative_to(root).as_posix()
+
+    root_str = str(root).rstrip("/")
+    path_str = str(path)
+    prefix = f"{root_str}/"
+    if path_str.startswith(prefix):
+        return path_str[len(prefix) :]
+    return pathlib.PurePosixPath(path_str).name
+
+
+def _local_image_io_path(path: ImagePath) -> pathlib.Path:
+    """
+    Return a local path for image I/O, caching cloud files when needed.
+    """
+
+    if isinstance(path, pathlib.Path):
+        return path
+    if isinstance(path, CloudPath):
+        return pathlib.Path(path.fspath)
+    return pathlib.Path(str(path))
+
+
+def _build_file_index(
+    file_dir: Optional[str],
+    path_kwargs: Optional[Dict[str, Any]] = None,
+) -> FileIndex:
     """
     Build a relative-path-first index for image-like files in a directory tree.
     """
@@ -151,14 +189,21 @@ def _build_file_index(file_dir: Optional[str]) -> FileIndex:
     if file_dir is None:
         return FileIndex(by_relative={}, by_basename={}, by_stem={})
 
-    root = pathlib.Path(file_dir)
-    if not root.exists():
+    root = _build_path(file_dir, **(path_kwargs or {}))
+    if isinstance(root, pathlib.Path):
+        root_exists = root.exists()
+    else:
+        try:
+            root_exists = root.exists()
+        except Exception:  # pragma: no cover - defensive for provider quirks
+            root_exists = True
+    if not root_exists:
         return FileIndex(by_relative={}, by_basename={}, by_stem={})
 
-    relative_index: dict[str, pathlib.Path] = {}
-    basename_index: dict[str, list[pathlib.Path]] = {}
-    stem_index: dict[str, list[pathlib.Path]] = {}
-    for path in root.rglob("*"):
+    relative_index: dict[str, ImagePath] = {}
+    basename_index: dict[str, list[ImagePath]] = {}
+    stem_index: dict[str, list[ImagePath]] = {}
+    for path in cloud_glob(root, "**/*"):
         lowered = path.name.lower()
         is_image_path = path.is_file() or (
             path.is_dir() and lowered.endswith((".zarr", ".ome.zarr"))
@@ -167,7 +212,7 @@ def _build_file_index(file_dir: Optional[str]) -> FileIndex:
             continue
         if not lowered.endswith(_IMAGE_SUFFIXES):
             continue
-        relative_key = path.relative_to(root).as_posix()
+        relative_key = _relative_index_key(path, root)
         relative_index[relative_key] = path
         basename_index.setdefault(path.name, []).append(path)
         stem_index.setdefault(path.stem, []).append(path)
@@ -182,7 +227,7 @@ def _build_file_index(file_dir: Optional[str]) -> FileIndex:
 def _resolve_indexed_path(
     normalized_value: str,
     file_index: FileIndex,
-) -> Optional[pathlib.Path]:
+) -> Optional[ImagePath]:
     """
     Resolve a normalized path string against a relative-path-first file index.
     """
@@ -220,10 +265,10 @@ def _find_matching_segmentation_path(
     data_value: str,
     pattern_map: Optional[dict[str, str]],
     file_dir: Optional[str],
-    candidate_path: pathlib.Path,
+    candidate_path: ImagePath,
     file_index: Optional[FileIndex] = None,
-    lookup_cache: Optional[dict[str, Optional[pathlib.Path]]] = None,
-) -> Optional[pathlib.Path]:
+    lookup_cache: Optional[dict[str, Optional[ImagePath]]] = None,
+) -> Optional[ImagePath]:
     """
     Resolve a matching mask/outline file path for an image value.
     """
@@ -253,16 +298,13 @@ def _find_matching_segmentation_path(
     )
 
     if pattern_map is None:
-        result = _resolve_indexed_path(
-            pathlib.PurePath(candidate_path).as_posix(),
-            indexed_files,
-        )
+        result = _resolve_indexed_path(data_value, indexed_files)
         if lookup_cache is not None and cache_key is not None:
             lookup_cache[cache_key] = result
         return result
 
     indexed_paths = sorted(
-        {path.resolve(): path for path in indexed_files.by_relative.values()}.values(),
+        {str(path): path for path in indexed_files.by_relative.values()}.values(),
         key=lambda path: path.name,
     )
 
@@ -279,8 +321,8 @@ def _find_matching_segmentation_path(
         )
         identifiers.extend(
             [
-                pathlib.Path(data_value).stem,
-                pathlib.Path(candidate_path).stem,
+                pathlib.PurePosixPath(data_value).stem,
+                pathlib.PurePosixPath(str(candidate_path)).stem,
             ]
         )
         identifiers = list(
@@ -524,7 +566,7 @@ def _build_stable_source_image_id(
 
 
 def _crop_ome_arrow(
-    image_path: pathlib.Path,
+    image_path: ImagePath,
     bbox: dict[str, int],
 ) -> dict[str, Any]:
     """
@@ -532,6 +574,7 @@ def _crop_ome_arrow(
     """
 
     OMEArrow, _ = _require_ome_arrow()
+    image_path = _local_image_io_path(image_path)
     crop = (
         OMEArrow.scan(str(image_path))
         .slice_lazy(
@@ -547,13 +590,14 @@ def _crop_ome_arrow(
 
 
 def _read_ome_arrow(
-    image_path: pathlib.Path,
+    image_path: ImagePath,
 ) -> dict[str, Any]:
     """
     Lazily load a full TIFF-backed image into an OME-Arrow struct.
     """
 
     OMEArrow, _ = _require_ome_arrow()
+    image_path = _local_image_io_path(image_path)
     image = OMEArrow.scan(str(image_path)).collect()
     data = image.data
     return data.as_py() if hasattr(data, "as_py") else data
@@ -600,6 +644,7 @@ def image_crop_table_from_joined_chunk(
     outline_dir: Optional[str] = None,
     bbox_column_map: Optional[Dict[str, str]] = None,
     segmentation_file_regex: Optional[Dict[str, str]] = None,
+    path_kwargs: Optional[Dict[str, Any]] = None,
 ) -> pa.Table:
     """
     Build an Arrow table of OME-Arrow image crops from one joined parquet chunk.
@@ -618,10 +663,10 @@ def image_crop_table_from_joined_chunk(
             "Unable to identify bounding box coordinate columns for image export."
         )
 
-    image_index = _build_file_index(image_dir)
-    mask_index = _build_file_index(mask_dir)
-    outline_index = _build_file_index(outline_dir)
-    segmentation_cache: dict[str, Optional[pathlib.Path]] = {}
+    image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
+    mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
+    outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+    segmentation_cache: dict[str, Optional[ImagePath]] = {}
 
     rows: list[dict[str, Any]] = []
     for _, row in data.iterrows():
@@ -816,6 +861,7 @@ def source_image_table_from_joined_chunk(
     mask_dir: Optional[str] = None,
     outline_dir: Optional[str] = None,
     segmentation_file_regex: Optional[Dict[str, str]] = None,
+    path_kwargs: Optional[Dict[str, Any]] = None,
 ) -> pa.Table:
     """
     Build an Arrow table of full OME-Arrow source images from one joined chunk.
@@ -826,10 +872,10 @@ def source_image_table_from_joined_chunk(
     data = parquet.read_table(chunk_path).to_pandas()
     image_columns = _resolve_image_columns(data)
 
-    image_index = _build_file_index(image_dir)
-    mask_index = _build_file_index(mask_dir)
-    outline_index = _build_file_index(outline_dir)
-    segmentation_cache: dict[str, Optional[pathlib.Path]] = {}
+    image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
+    mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
+    outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+    segmentation_cache: dict[str, Optional[ImagePath]] = {}
     rows_by_id: dict[str, dict[str, Any]] = {}
 
     for _, row in data.iterrows():

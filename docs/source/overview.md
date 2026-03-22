@@ -173,6 +173,7 @@ When using the Iceberg backend, CytoTable may also export a separate image-crop 
 Here, an "image-crop table" means a table where each row stores one cropped single-cell image linked back to the corresponding profile row.
 This table stores cropped images as OME-Arrow objects, meaning structured image records that keep image data together with related metadata. The table may also include mask and outline images through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
 Set :code:`include_source_images=True` to also store full source images in :code:`images.source_images`.
+These image, mask, and outline inputs may be local paths or remote object-storage paths, and they use the same :code:`convert(..., **kwargs)` cloud configuration pattern described above for other CytoTable inputs.
 ```
 
 ## Data Transformations
