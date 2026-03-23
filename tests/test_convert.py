@@ -236,11 +236,13 @@ def test_convert_preserves_positional_dest_datatype(monkeypatch: pytest.MonkeyPa
 
     run_export_workflow = Mock(return_value="example.h5ad")
     monkeypatch.setattr(convert_module, "_run_export_workflow", run_export_workflow)
+    monkeypatch.setattr(convert_module, "_parsl_loaded", lambda: True)
 
     result = convert(
         "example.sqlite",
         "example.h5ad",
         "anndata_h5ad",
+        page_keys={"join": "Metadata_ImageNumber"},
         preset=None,
     )
 
