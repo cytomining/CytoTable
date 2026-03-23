@@ -7,12 +7,10 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 ## What you will accomplish
 
 - Convert CellProfiler outputs (e.g., SQLite file) to an Iceberg warehouse instead of a single Parquet file (which is default CytoTable behavior).
-- Using Iceberg, create a materialized `profiles.joined_profiles` table that
-  connects single-cell profiles to cropped images.
+- Using Iceberg, create a materialized `profiles.joined_profiles` table that connects single-cell profiles to cropped images.
 - Optionally build a separate `images.image_crops` Iceberg table containing OME-Arrow image crops.
 - Optionally build a separate `images.source_images` Iceberg table containing full OME-Arrow source images.
-- Save a `profiles.profile_with_images` warehouse "view" that displays joined
-  profiles with image crops.
+- Save a `profiles.profile_with_images` warehouse "view" that displays joined profiles with image crops.
 - Overlay mask or outline images into this "view".
 
 ````{admonition} When to use this tutorial
@@ -21,7 +19,7 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 
 ## Setup
 
-*Note:* This tutorial uses `cytotable[iceberg-images]` rather than
+*Note:* This tutorial installs `cytotable[iceberg-images]` rather than
 `cytotable[iceberg]` because the image tables and views require both
 `pyiceberg` and `ome-arrow`. If you only need the Iceberg warehouse for profile
 tables and do not plan to export `images.image_crops` or `images.source_images`,
@@ -67,7 +65,7 @@ print(warehouse_path)
 ```
 
 *Note:* `dest_backend="iceberg"` means the final output is an Iceberg
-warehouse. `dest_datatype="parquet"` is still required because CytoTable stages
+warehouse. CytoTable still requires `dest_datatype="parquet"` because CytoTable stages
 joined data as parquet internally before writing the warehouse tables.
 
 ## Add image crops with OME-Arrow
@@ -142,13 +140,13 @@ client configuration arguments passed through `convert(..., **kwargs)`.
 
 CytoTable uses bounding box columns from the joined measurement rows to dynamically crop each image.
 In the materialized `joined_profiles` table, the resolved bbox columns are
-normalized as `Metadata_SourceBBoxXMin`, `Metadata_SourceBBoxXMax`,
+recoded as `Metadata_SourceBBoxXMin`, `Metadata_SourceBBoxXMax`,
 `Metadata_SourceBBoxYMin`, and `Metadata_SourceBBoxYMax`.
 
-CytoTable searches for bounding box columns in this order and only moves to
+CytoTable searches for bounding box columns in the following order and only moves to
 the next option if the earlier one does not provide all four required columns:
 
-1. explicit `bbox_column_map`
+1. user-defined explicit setting of `bbox_column_map` in `CytoTable.convert()` 
 1. CellProfiler-style `AreaShape_BoundingBox...` column names
 1. substring fallback using `Minimum_X`, `Maximum_X`, `Minimum_Y`, `Maximum_Y`
 
