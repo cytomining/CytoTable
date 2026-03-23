@@ -6,12 +6,13 @@ Note: these use the _default_parsl_config.
 
 # pylint: disable=no-member,too-many-lines,unused-argument
 
+import importlib
 import itertools
 import os
 import pathlib
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock
 
 import duckdb
 import pyarrow as pa
@@ -22,6 +23,7 @@ from parsl.app.app import python_app
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
+convert_module = importlib.import_module("cytotable.convert")
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
@@ -225,6 +227,55 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         preset=None,
         parsl_config=None,
     )
+
+
+def test_convert_preserves_positional_dest_datatype(monkeypatch: pytest.MonkeyPatch):
+    """
+    Tests backward-compatible positional dest_datatype handling.
+    """
+
+    run_export_workflow = Mock(return_value="example.h5ad")
+    monkeypatch.setattr(convert_module, "_run_export_workflow", run_export_workflow)
+
+    result = convert(
+        "example.sqlite",
+        "example.h5ad",
+        "anndata_h5ad",
+        preset=None,
+    )
+
+    assert result == "example.h5ad"
+    assert run_export_workflow.call_args.kwargs["dest_datatype"] == "anndata_h5ad"
+    assert run_export_workflow.call_args.kwargs["dest_path"] == "example.h5ad"
+
+
+def test_convert_cleans_up_parsl_when_validation_raises(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Tests Parsl cleanup when convert raises after loading Parsl.
+    """
+
+    cleanup = MagicMock()
+    monkeypatch.setattr(convert_module, "_parsl_loaded", lambda: False)
+    monkeypatch.setattr(convert_module.parsl, "load", MagicMock())
+    monkeypatch.setattr(
+        convert_module.parsl,
+        "dfk",
+        MagicMock(return_value=MagicMock(cleanup=cleanup)),
+    )
+    monkeypatch.setattr(convert_module, "_expand_path", lambda path: pathlib.Path(path))
+
+    with pytest.raises(CytoTableException, match=r"join=True.*page_keys"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            preset=None,
+            join=True,
+            page_keys=None,
+        )
+
+    cleanup.assert_called_once_with()
 
 
 @pytest.mark.parametrize(

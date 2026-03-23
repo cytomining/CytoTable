@@ -1497,8 +1497,8 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
 def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
-    dest_backend: Literal["parquet", "iceberg"] = "parquet",
     dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
+    dest_backend: Literal["parquet", "iceberg"] = "parquet",
     image_dir: Optional[str] = None,
     include_source_images: bool = False,
     mask_dir: Optional[str] = None,
@@ -1757,74 +1757,77 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         # otherwise warn the user about previous config.
         logger.warning("Reusing previously loaded Parsl configuration.")
 
-    # optionally load preset configuration for arguments
-    # note: defer to overrides from parameters whose values
-    # are not None (allows intermixing of presets and overrides)
-    if preset is not None:
-        metadata = (
-            cast(list, config[preset]["CONFIG_NAMES_METADATA"])
-            if metadata is None
-            else metadata
-        )
-        compartments = (
-            cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
-            if compartments is None
-            else compartments
-        )
-        identifying_columns = (
-            cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
-            if identifying_columns is None
-            else identifying_columns
-        )
-        joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
-        chunk_size = (
-            cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
-            if chunk_size is None
-            else chunk_size
-        )
-        page_keys = (
-            cast(dict, config[preset]["CONFIG_PAGE_KEYS"])
-            if page_keys is None
-            else page_keys
-        )
-
-    # Raise an exception for scenarios where one configures CytoTable to join
-    # but does not provide a pagination key for the joins.
-    if join and (page_keys is None or "join" not in page_keys.keys()):
-        raise CytoTableException(
-            (
-                "When using join=True one must pass a 'join' pagination key "
-                "in the page_keys parameter. The 'join' pagination key is a column "
-                "name found within the joined results based on the SQL provided from "
-                "the joins parameter. This special key is required as not all columns "
-                "from the source tables might not be included."
+    try:
+        # optionally load preset configuration for arguments
+        # note: defer to overrides from parameters whose values
+        # are not None (allows intermixing of presets and overrides)
+        if preset is not None:
+            metadata = (
+                cast(list, config[preset]["CONFIG_NAMES_METADATA"])
+                if metadata is None
+                else metadata
             )
+            compartments = (
+                cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
+                if compartments is None
+                else compartments
+            )
+            identifying_columns = (
+                cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
+                if identifying_columns is None
+                else identifying_columns
+            )
+            joins = (
+                cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
+            )
+            chunk_size = (
+                cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
+                if chunk_size is None
+                else chunk_size
+            )
+            page_keys = (
+                cast(dict, config[preset]["CONFIG_PAGE_KEYS"])
+                if page_keys is None
+                else page_keys
+            )
+
+        # Raise an exception for scenarios where one configures CytoTable to join
+        # but does not provide a pagination key for the joins.
+        if join and (page_keys is None or "join" not in page_keys.keys()):
+            raise CytoTableException(
+                (
+                    "When using join=True one must pass a 'join' pagination key "
+                    "in the page_keys parameter. The 'join' pagination key is a column "
+                    "name found within the joined results based on the SQL provided from "
+                    "the joins parameter. This special key is required as not all columns "
+                    "from the source tables might not be included."
+                )
+            )
+
+        # send sources to be written to parquet if selected
+        output = _run_export_workflow(
+            source_path=source_path,
+            dest_path=dest_path,
+            dest_datatype=dest_datatype,
+            source_datatype=source_datatype,
+            metadata=metadata,
+            compartments=compartments,
+            identifying_columns=identifying_columns,
+            concat=concat,
+            join=join,
+            joins=joins,
+            chunk_size=chunk_size,
+            infer_common_schema=infer_common_schema,
+            drop_null=drop_null,
+            data_type_cast_map=data_type_cast_map,
+            add_tablenumber=add_tablenumber,
+            sort_output=sort_output,
+            page_keys=cast(dict, page_keys),
+            **kwargs,
         )
 
-    # send sources to be written to parquet if selected
-    output = _run_export_workflow(
-        source_path=source_path,
-        dest_path=dest_path,
-        dest_datatype=dest_datatype,
-        source_datatype=source_datatype,
-        metadata=metadata,
-        compartments=compartments,
-        identifying_columns=identifying_columns,
-        concat=concat,
-        join=join,
-        joins=joins,
-        chunk_size=chunk_size,
-        infer_common_schema=infer_common_schema,
-        drop_null=drop_null,
-        data_type_cast_map=data_type_cast_map,
-        add_tablenumber=add_tablenumber,
-        sort_output=sort_output,
-        page_keys=cast(dict, page_keys),
-        **kwargs,
-    )
-
-    # cleanup Parsl executor and related only if this call loaded it
-    if parsl_loaded_here:
-        parsl.dfk().cleanup()
-
-    return output
+        return output
+    finally:
+        # cleanup Parsl executor and related only if this call loaded it
+        if parsl_loaded_here:
+            parsl.dfk().cleanup()

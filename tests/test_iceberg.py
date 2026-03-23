@@ -35,6 +35,7 @@ from cytotable.iceberg import (
 from cytotable.images import (
     IMAGE_TABLE_NAME,
     SOURCE_IMAGE_TABLE_NAME,
+    FileIndex,
     _build_file_index,
     _crop_ome_arrow,
     _find_matching_segmentation_path,
@@ -1106,6 +1107,67 @@ def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
 
     assert result is not None
     assert result.resolve() == segmentation.resolve()
+
+
+def test_find_matching_segmentation_path_supports_cloud_like_roots(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Tests regex-based segmentation resolution for cloud-style roots.
+    """
+
+    class FakeCloudPath:
+        def __init__(self, path: str, *, file: bool = False, directory: bool = False):
+            self._path = path
+            self._file = file
+            self._directory = directory
+
+        @property
+        def name(self) -> str:
+            return pathlib.PurePosixPath(self._path).name
+
+        @property
+        def stem(self) -> str:
+            return pathlib.PurePosixPath(self._path).stem
+
+        def is_file(self) -> bool:
+            return self._file
+
+        def is_dir(self) -> bool:
+            return self._directory
+
+        def exists(self) -> bool:
+            return True
+
+        def __str__(self) -> str:
+            return self._path
+
+    root = FakeCloudPath("s3://bucket/outlines", directory=True)
+    segmentation = FakeCloudPath(
+        "s3://bucket/outlines/plateA_well_B03_site_1_outline.tiff", file=True
+    )
+    candidate = FakeCloudPath(
+        "s3://bucket/images/plateA_well_B03_site_1.tiff", file=True
+    )
+
+    monkeypatch.setattr("cytotable.images.CloudPath", FakeCloudPath)
+    monkeypatch.setattr("cytotable.images._build_path", lambda path, **kwargs: root)
+
+    result = _find_matching_segmentation_path(
+        data_value="plateA_well_B03_site_1.tiff",
+        pattern_map={
+            r".*_outline\.tiff$": r"(plateA_well_B03_site_1)\.tiff$",
+        },
+        file_dir="s3://bucket/outlines",
+        candidate_path=candidate,
+        file_index=FileIndex(
+            by_relative={"plateA_well_B03_site_1_outline.tiff": segmentation},
+            by_basename={"plateA_well_B03_site_1_outline.tiff": [segmentation]},
+            by_stem={"plateA_well_B03_site_1_outline": [segmentation]},
+        ),
+    )
+
+    assert result == segmentation
 
 
 def test_find_matching_segmentation_path_handles_dotted_identifiers(

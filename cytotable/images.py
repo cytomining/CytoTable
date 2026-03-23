@@ -268,6 +268,7 @@ def _find_matching_segmentation_path(
     candidate_path: ImagePath,
     file_index: Optional[FileIndex] = None,
     lookup_cache: Optional[dict[str, Optional[ImagePath]]] = None,
+    path_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Optional[ImagePath]:
     """
     Resolve a matching mask/outline file path for an image value.
@@ -289,12 +290,21 @@ def _find_matching_segmentation_path(
     if file_dir is None:
         return None
 
-    root = pathlib.Path(file_dir)
-    if not root.exists():
+    root = _build_path(file_dir, **(path_kwargs or {}))
+    if isinstance(root, pathlib.Path):
+        root_exists = root.exists()
+    else:
+        try:
+            root_exists = root.exists()
+        except Exception:  # pragma: no cover - defensive for provider quirks
+            root_exists = True
+    if not root_exists:
         return None
 
     indexed_files = (
-        file_index if file_index is not None else _build_file_index(file_dir)
+        file_index
+        if file_index is not None
+        else _build_file_index(file_dir, path_kwargs=path_kwargs)
     )
 
     if pattern_map is None:
@@ -692,6 +702,7 @@ def image_crop_table_from_joined_chunk(
                 candidate_path=image_path,
                 file_index=outline_index,
                 lookup_cache=segmentation_cache,
+                path_kwargs=path_kwargs,
             )
             mask_path = _find_matching_segmentation_path(
                 data_value=image_name,
@@ -700,6 +711,7 @@ def image_crop_table_from_joined_chunk(
                 candidate_path=image_path,
                 file_index=mask_index,
                 lookup_cache=segmentation_cache,
+                path_kwargs=path_kwargs,
             )
             label_path = outline_path or mask_path
 
@@ -906,6 +918,7 @@ def source_image_table_from_joined_chunk(
                 candidate_path=image_path,
                 file_index=outline_index,
                 lookup_cache=segmentation_cache,
+                path_kwargs=path_kwargs,
             )
             mask_path = _find_matching_segmentation_path(
                 data_value=image_name,
@@ -914,6 +927,7 @@ def source_image_table_from_joined_chunk(
                 candidate_path=image_path,
                 file_index=mask_index,
                 lookup_cache=segmentation_cache,
+                path_kwargs=path_kwargs,
             )
             label_path = outline_path or mask_path
 
