@@ -1116,6 +1116,7 @@ def test_find_matching_segmentation_path_supports_cloud_like_roots(
     Tests regex-based segmentation resolution for cloud-style roots.
     """
 
+    # pylint: disable=missing-class-docstring,missing-function-docstring,too-few-public-methods
     class FakeCloudPath:
         def __init__(self, path: str, *, file: bool = False, directory: bool = False):
             self._path = path

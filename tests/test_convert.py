@@ -23,7 +23,6 @@ from parsl.app.app import python_app
 from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 
-convert_module = importlib.import_module("cytotable.convert")
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
@@ -46,6 +45,8 @@ from cytotable.utils import (
     _write_parquet_table_with_metadata,
     evaluate_futures,
 )
+
+convert_module = importlib.import_module("cytotable.convert")
 
 
 def test_config():
@@ -259,14 +260,14 @@ def test_convert_cleans_up_parsl_when_validation_raises(
     """
 
     cleanup = MagicMock()
-    monkeypatch.setattr(convert_module, "_parsl_loaded", lambda: False)
+    monkeypatch.setattr(convert_module, "_parsl_loaded", Mock(return_value=False))
     monkeypatch.setattr(convert_module.parsl, "load", MagicMock())
     monkeypatch.setattr(
         convert_module.parsl,
         "dfk",
         MagicMock(return_value=MagicMock(cleanup=cleanup)),
     )
-    monkeypatch.setattr(convert_module, "_expand_path", lambda path: pathlib.Path(path))
+    monkeypatch.setattr(convert_module, "_expand_path", pathlib.Path)
 
     with pytest.raises(CytoTableException, match=r"join=True.*page_keys"):
         convert(
