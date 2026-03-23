@@ -146,7 +146,7 @@ recoded as `Metadata_SourceBBoxXMin`, `Metadata_SourceBBoxXMax`,
 CytoTable searches for bounding box columns in the following order and only moves to
 the next option if the earlier one does not provide all four required columns:
 
-1. user-defined explicit setting of `bbox_column_map` in `CytoTable.convert()` 
+1. user-defined explicit setting of `bbox_column_map` in `CytoTable.convert()`
 1. CellProfiler-style `AreaShape_BoundingBox...` column names
 1. substring fallback using `Minimum_X`, `Maximum_X`, `Minimum_Y`, `Maximum_Y`
 

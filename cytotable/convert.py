@@ -1541,7 +1541,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             This parameter will result in a single file on `join=True`.
             Setting `dest_backend="iceberg"` will trigger CytoTable to use the provided path as the local warehouse root
             directory. CytoTable still stages parquet files internally (during write),
-            but these intermediary files are temporary and automatically deleted following write 
+            but these intermediary files are temporary and automatically deleted following write
             of the final output at `dest_path`.
         dest_backend: Literal["parquet", "iceberg"]:
             Output backend to write to. Defaults to `"parquet"`. Use
