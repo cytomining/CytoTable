@@ -145,7 +145,7 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
 - __Apache Iceberg warehouse__: Iceberg is a way to organize a warehouse
   directory that contains multiple related tables, along with metadata that
   tracks how those tables change over time so reads stay consistent.
-  In CytoTable, Iceberg is exposed as an optional local warehouse backend which
+  CytoTable uses Iceberg as an optional local warehouse backend which
   can store a materialized `profiles.joined_profiles` table, optional
   `images.image_crops` and `images.source_images` tables, and a
   `profiles.profile_with_images` view. In plain terms, this means one warehouse

@@ -1540,8 +1540,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
             Setting `dest_backend="iceberg"` will trigger CytoTable to use the provided path as the local warehouse root
-            directory. CytoTable still stages parquet files  internally (during write),
-            but these intermediary files are temporary and are not retained as part
+            directory. CytoTable still stages parquet files internally (during write),
+            but these intermediary files are temporary and automatically deleted following write 
             of the final output at `dest_path`.
         dest_backend: Literal["parquet", "iceberg"]:
             Output backend to write to. Defaults to `"parquet"`. Use
@@ -1551,32 +1551,32 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Output destination datatype to write to. CytoTable uses this
             value when the selected backend is `"parquet"`. For
             `dest_backend="iceberg"`, CytoTable currently requires
-            `dest_datatype="parquet"` because parquet is used as the
-            temporary staging format before data are written into the Iceberg
+            `dest_datatype="parquet"` because CytoTable uses parquet as the
+            temporary staging format before it writes data into the Iceberg
             warehouse.
         image_dir: Optional[str]
             Optional directory or cloud object-storage prefix of source images
             aligned with the experiment of interest. CytoTable uses this input
             to build OME-Arrow image crops and, when
             `include_source_images=True`, full-image rows in
-            `images.source_images`. Requires `dest_backend="iceberg"`.
+            the iceberg table called `images.source_images`. Requires `dest_backend="iceberg"`.
         include_source_images: bool
             Whether to also store full source images in an Iceberg
             `images.source_images` table. Requires `image_dir` and
             `dest_backend="iceberg"`.
         mask_dir: Optional[str]
             Optional directory or cloud object-storage prefix of segmentation
-            masks aligned with `image_dir`. CytoTable uses these files to
+            masks corresponding to images within `image_dir`. CytoTable uses these files to
             populate `ome_arrow_label` when no outline image is available.
             Requires `dest_backend="iceberg"`.
         outline_dir: Optional[str]
             Optional directory or cloud object-storage prefix of outline images
-            aligned with `image_dir`. CytoTable uses these files to populate
+            corresponding to images within `image_dir`. CytoTable uses these files to populate
             `ome_arrow_label` before falling back to `mask_dir`. Requires
             `dest_backend="iceberg"`.
         segmentation_file_regex: Optional[Dict[str, str]]
             Optional regex mapping of segmentation filename patterns to source
-            image filename patterns for mask/outline resolution. For example,
+            image filename patterns to link masks and/or outlines. For example,
             use `{r".*_outline\\.tiff$": r"(plateA_well_B03_site_1)\\.tiff$"}`
             when outline files and source images do not share the same
             basename. Requires `dest_backend="iceberg"`.
@@ -1616,9 +1616,9 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Interacts with the `chunk_size` parameter to form
             pages of `chunk_size`.
         bbox_column_map: Optional[Dict[str, str]]
-            Optional explicit mapping for image crop bounding box columns using
+            Optional dictionary that explicitly maps image crop bounding box columns using
             keys `x_min`, `x_max`, `y_min`, and `y_max`. For Iceberg profile
-            exports, CytoTable normalizes the resolved bounding box columns in
+            exports, CytoTable recodes the provided bounding box value pairs as new columns in
             `joined_profiles` as `Metadata_SourceBBoxXMin`,
             `Metadata_SourceBBoxXMax`, `Metadata_SourceBBoxYMin`, and
             `Metadata_SourceBBoxYMax`.
