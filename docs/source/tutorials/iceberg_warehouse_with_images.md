@@ -13,10 +13,10 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 - Save a `profiles.profile_with_images` warehouse "view" that displays joined profiles with image crops.
 - Overlay mask or outline images into this "view".
 
-````{admonition} When to use this tutorial
+```{admonition} When to use this tutorial
 - Use this tutorial when you want to bundle single-cell morphology features with single-cell image crops instead of a single Parquet file.
 - Skip this tutorial if you only need the standard joined measurement table; use the Parquet tutorial instead.
-````
+```
 
 ## Setup
 
@@ -33,7 +33,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install "cytotable[iceberg-images]"
-````
+```
 
 ## Inputs and outputs
 
