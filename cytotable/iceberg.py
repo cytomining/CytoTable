@@ -116,7 +116,8 @@ def _resolve_unqualified_name(
         return matches[0]
     if len(matches) > 1:
         raise CytoTableException(
-            f"Ambiguous unqualified Iceberg name '{name}'. Use a fully qualified name."
+            f"Ambiguous unqualified Iceberg name '{name}'. "
+            f"Use a fully qualified name such as '{matches[0]}'."
         )
     return default_qualified
 
