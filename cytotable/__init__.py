@@ -17,7 +17,6 @@ warnings.filterwarnings(
     module="google_crc32c.__config__",
 )
 
-from .access import list_tables, read_table
 from .convert import convert
 from .exceptions import (
     CytoTableException,
@@ -25,11 +24,14 @@ from .exceptions import (
     NoInputDataException,
     SchemaException,
 )
-from .iceberg import (
+from .presets import config
+from .warehouse import (
+    IMAGE_TABLE_NAME,
     describe_iceberg_warehouse,
     list_iceberg_tables,
+    list_tables,
+    object_id,
     read_iceberg_table,
+    read_table,
     write_iceberg_warehouse,
 )
-from .images import IMAGE_TABLE_NAME, object_id
-from .presets import config
