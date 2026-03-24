@@ -16,6 +16,7 @@ In this tutorial, you will see a start-to-finish walkthrough of using CytoTable 
 ````{admonition} When to use this tutorial
 - Use this tutorial when you want to bundle single-cell morphology features with single-cell image crops instead of a single Parquet file.
 - Skip this tutorial if you only need the standard joined measurement table; use the Parquet tutorial instead.
+````
 
 ## Setup
 
