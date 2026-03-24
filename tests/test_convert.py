@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Tuple, cast
 from unittest.mock import MagicMock, Mock
 
 import duckdb
+import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
@@ -34,6 +35,7 @@ from cytotable.convert import (
     convert,
 )
 from cytotable.exceptions import CytoTableException
+from cytotable.iceberg import read_iceberg_table
 from cytotable.presets import config
 from cytotable.sources import _infer_source_datatype
 from cytotable.utils import (
@@ -1203,6 +1205,68 @@ def test_convert_cellprofiler_csv(
 
     assert test_result.shape == control_result.shape
     assert test_result.equals(control_result)
+
+
+def test_convert_parquet_and_iceberg_joined_profiles_are_equivalent(
+    load_parsl_default: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+):
+    """
+    Tests that parquet and Iceberg profile exports agree on shared columns.
+    """
+
+    parquet_path = convert(
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{fx_tempdir}/ExampleHuman_profiles.parquet",
+        dest_datatype="parquet",
+        source_datatype="csv",
+        preset="cellprofiler_csv",
+    )
+    warehouse_path = convert(
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{fx_tempdir}/ExampleHuman_profiles_warehouse",
+        dest_backend="iceberg",
+        dest_datatype="parquet",
+        source_datatype="csv",
+        preset="cellprofiler_csv",
+    )
+
+    parquet_profiles = parquet.read_table(parquet_path).to_pandas()
+    iceberg_profiles = read_iceberg_table(warehouse_path, "joined_profiles")
+
+    shared_columns = sorted(
+        set(parquet_profiles.columns).intersection(iceberg_profiles.columns),
+        key=_column_sort,
+    )
+    extra_iceberg_columns = set(iceberg_profiles.columns).difference(
+        parquet_profiles.columns
+    )
+
+    assert extra_iceberg_columns.issubset(
+        {
+            "Metadata_ObjectID",
+            "Metadata_SourceBBoxXMin",
+            "Metadata_SourceBBoxXMax",
+            "Metadata_SourceBBoxYMin",
+            "Metadata_SourceBBoxYMax",
+        }
+    )
+
+    parquet_profiles = parquet_profiles[shared_columns].sort_values(
+        by=shared_columns,
+        na_position="first",
+    )
+    iceberg_profiles = iceberg_profiles[shared_columns].sort_values(
+        by=shared_columns,
+        na_position="first",
+    )
+
+    pd.testing.assert_frame_equal(
+        parquet_profiles.reset_index(drop=True),
+        iceberg_profiles.reset_index(drop=True),
+        check_like=True,
+    )
 
 
 def test_cast_data_types(
