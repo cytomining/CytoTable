@@ -60,7 +60,7 @@ Convert
 Access
 ------
 
-.. automodule:: cytotable.access
+.. automodule:: cytotable.warehouse.access
    :members:
    :private-members:
    :undoc-members:
@@ -71,7 +71,7 @@ Access
 Iceberg
 -------
 
-.. automodule:: cytotable.iceberg
+.. automodule:: cytotable.warehouse.iceberg
    :members:
    :private-members:
    :undoc-members:
@@ -82,7 +82,7 @@ Iceberg
 Images
 ------
 
-.. automodule:: cytotable.images
+.. automodule:: cytotable.warehouse.images
    :members:
    :private-members:
    :undoc-members:

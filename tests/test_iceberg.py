@@ -22,7 +22,8 @@ from parsl.executors import ThreadPoolExecutor
 from pyarrow import parquet
 
 from cytotable.exceptions import CytoTableException
-from cytotable.iceberg import (
+from cytotable.presets import config
+from cytotable.warehouse.iceberg import (
     _rewrite_join_sql_for_warehouse,
     _validate_iceberg_join_prerequisites,
     _validate_image_export_prerequisites,
@@ -32,7 +33,7 @@ from cytotable.iceberg import (
     read_iceberg_table,
     write_iceberg_warehouse,
 )
-from cytotable.images import (
+from cytotable.warehouse.images import (
     IMAGE_TABLE_NAME,
     SOURCE_IMAGE_TABLE_NAME,
     FileIndex,
@@ -48,7 +49,6 @@ from cytotable.images import (
     resolve_bbox_columns,
     source_image_table_from_joined_chunk,
 )
-from cytotable.presets import config
 
 
 def test_rewrite_join_sql_for_warehouse():
@@ -210,11 +210,11 @@ def test_write_iceberg_warehouse_cleans_up_failed_build_root(fx_tempdir: str):
     warehouse_path = Path(fx_tempdir) / "failed_warehouse"
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             side_effect=RuntimeError("boom"),
         ),
         pytest.raises(RuntimeError, match="boom"),
@@ -242,10 +242,10 @@ def test_write_iceberg_warehouse_cleans_up_failed_parsl_load(fx_tempdir: str):
 
     with (
         patch(
-            "cytotable.iceberg.parsl.load",
+            "cytotable.warehouse.iceberg.parsl.load",
             side_effect=RuntimeError("parsl load failed"),
         ),
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         pytest.raises(RuntimeError, match="parsl load failed"),
     ):
         write_iceberg_warehouse(
@@ -269,11 +269,11 @@ def test_write_iceberg_warehouse_does_not_cleanup_existing_parsl(fx_tempdir: str
     cleanup = MagicMock()
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=True),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=True),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             side_effect=RuntimeError("boom"),
         ),
         pytest.raises(RuntimeError, match="boom"),
@@ -300,10 +300,10 @@ def test_write_iceberg_warehouse_skips_joined_view_without_source_tables(
     warehouse_path = Path(fx_tempdir) / "empty_warehouse"
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
-        patch("cytotable.iceberg._run_export_workflow", return_value={}),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg._run_export_workflow", return_value={}),
     ):
         dfk.return_value.cleanup = MagicMock()
         write_iceberg_warehouse(
@@ -333,18 +333,18 @@ def test_write_iceberg_warehouse_skips_profile_view_without_image_table(
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             side_effect=[
                 str(stage_parquet),
                 [str(joined_chunk)],
             ],
         ),
         patch(
-            "cytotable.iceberg.image_crop_table_from_joined_chunk",
+            "cytotable.warehouse.iceberg.image_crop_table_from_joined_chunk",
             return_value=pa.table(
                 {"Metadata_ObjectID": pa.array([], type=pa.string())}
             ),
@@ -382,11 +382,11 @@ def test_write_iceberg_warehouse_does_not_store_compartment_tables(
     )
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             return_value=str(stage_parquet),
         ),
     ):
@@ -438,11 +438,11 @@ def test_write_iceberg_warehouse_supports_immediate_table_readback(
     )
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             return_value=str(stage_parquet),
         ),
     ):
@@ -488,11 +488,11 @@ def test_write_iceberg_warehouse_records_cytotable_provenance(
     )
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             return_value=str(stage_parquet),
         ),
     ):
@@ -536,7 +536,9 @@ def test_describe_iceberg_warehouse_handles_missing_snapshot(
     bundle.list_views.return_value = []
     bundle.load_table.return_value = table
 
-    monkeypatch.setattr("cytotable.iceberg.catalog", lambda *args, **kwargs: bundle)
+    monkeypatch.setattr(
+        "cytotable.warehouse.iceberg.catalog", lambda *args, **kwargs: bundle
+    )
 
     described = describe_iceberg_warehouse("example_warehouse")
 
@@ -619,9 +621,13 @@ def test_build_file_index_supports_cloud_like_paths(
     root = FakeCloudPath("s3://bucket/images", directory=True)
     child = FakeCloudPath("s3://bucket/images/plate_a/cell.tiff", file=True)
 
-    monkeypatch.setattr("cytotable.images.CloudPath", FakeCloudPath)
-    monkeypatch.setattr("cytotable.images._build_path", lambda path, **kwargs: root)
-    monkeypatch.setattr("cytotable.images.cloud_glob", lambda start, pattern: [child])
+    monkeypatch.setattr("cytotable.warehouse.images.CloudPath", FakeCloudPath)
+    monkeypatch.setattr(
+        "cytotable.warehouse.images._build_path", lambda path, **kwargs: root
+    )
+    monkeypatch.setattr(
+        "cytotable.warehouse.images.cloud_glob", lambda start, pattern: [child]
+    )
 
     file_index = _build_file_index("s3://bucket/images")
 
@@ -667,9 +673,9 @@ def test_crop_ome_arrow_localizes_cloud_like_paths(
             scanned_paths.append(path)
             return FakeScanner()
 
-    monkeypatch.setattr("cytotable.images.CloudPath", FakeCloudPath)
+    monkeypatch.setattr("cytotable.warehouse.images.CloudPath", FakeCloudPath)
     monkeypatch.setattr(
-        "cytotable.images._require_ome_arrow",
+        "cytotable.warehouse.images._require_ome_arrow",
         lambda: (FakeOMEArrow, pa.struct([pa.field("version", pa.string())])),
     )
 
@@ -990,21 +996,21 @@ def test_write_iceberg_warehouse_writes_source_images_when_requested(
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             side_effect=[str(stage_parquet), [str(joined_chunk)]],
         ),
         patch(
-            "cytotable.iceberg.image_crop_table_from_joined_chunk",
+            "cytotable.warehouse.iceberg.image_crop_table_from_joined_chunk",
             return_value=pa.table(
                 {"Metadata_ObjectID": pa.array(["obj-1"], type=pa.string())}
             ),
         ),
         patch(
-            "cytotable.iceberg.source_image_table_from_joined_chunk",
+            "cytotable.warehouse.iceberg.source_image_table_from_joined_chunk",
             return_value=pa.table(
                 {"Metadata_ImageID": pa.array(["img-1"], type=pa.string())}
             ),
@@ -1043,24 +1049,24 @@ def test_write_iceberg_warehouse_deduplicates_source_images_across_chunks(
     parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk_b)
 
     with (
-        patch("cytotable.iceberg.parsl.load"),
-        patch("cytotable.iceberg.parsl.dfk") as dfk,
-        patch("cytotable.iceberg._parsl_loaded", return_value=False),
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
         patch(
-            "cytotable.iceberg._run_export_workflow",
+            "cytotable.warehouse.iceberg._run_export_workflow",
             side_effect=[
                 str(stage_parquet),
                 [str(joined_chunk_a), str(joined_chunk_b)],
             ],
         ),
         patch(
-            "cytotable.iceberg.image_crop_table_from_joined_chunk",
+            "cytotable.warehouse.iceberg.image_crop_table_from_joined_chunk",
             return_value=pa.table(
                 {"Metadata_ObjectID": pa.array(["obj-1"], type=pa.string())}
             ),
         ),
         patch(
-            "cytotable.iceberg.source_image_table_from_joined_chunk",
+            "cytotable.warehouse.iceberg.source_image_table_from_joined_chunk",
             side_effect=[
                 pa.table({"Metadata_ImageID": pa.array(["img-1"], type=pa.string())}),
                 pa.table({"Metadata_ImageID": pa.array(["img-1"], type=pa.string())}),
@@ -1151,8 +1157,10 @@ def test_find_matching_segmentation_path_supports_cloud_like_roots(
         "s3://bucket/images/plateA_well_B03_site_1.tiff", file=True
     )
 
-    monkeypatch.setattr("cytotable.images.CloudPath", FakeCloudPath)
-    monkeypatch.setattr("cytotable.images._build_path", lambda path, **kwargs: root)
+    monkeypatch.setattr("cytotable.warehouse.images.CloudPath", FakeCloudPath)
+    monkeypatch.setattr(
+        "cytotable.warehouse.images._build_path", lambda path, **kwargs: root
+    )
 
     result = _find_matching_segmentation_path(
         data_value="plateA_well_B03_site_1.tiff",

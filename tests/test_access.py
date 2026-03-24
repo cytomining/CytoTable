@@ -10,8 +10,8 @@ import pyarrow as pa
 import pytest
 from pyarrow import parquet
 
-from cytotable.access import list_tables, read_table
 from cytotable.exceptions import CytoTableException
+from cytotable.warehouse.access import list_tables, read_table
 
 
 def test_list_tables_for_single_parquet_file(fx_tempdir: str):
@@ -57,9 +57,11 @@ def test_read_table_requires_table_name_for_multi_table_iceberg(
     Tests read_table validation for Iceberg warehouses with multiple tables.
     """
 
-    monkeypatch.setattr("cytotable.access._is_iceberg_warehouse", lambda path: True)
     monkeypatch.setattr(
-        "cytotable.access.list_iceberg_tables",
+        "cytotable.warehouse.access._is_iceberg_warehouse", lambda path: True
+    )
+    monkeypatch.setattr(
+        "cytotable.warehouse.access.list_iceberg_tables",
         lambda path, include_views=True: [
             "profiles.joined_profiles",
             "images.image_crops",
@@ -80,8 +82,10 @@ def test_read_table_uses_iceberg_reader_when_name_is_provided(
     expected = pd.DataFrame({"a": [1]})
     reader = MagicMock(return_value=expected)
 
-    monkeypatch.setattr("cytotable.access._is_iceberg_warehouse", lambda path: True)
-    monkeypatch.setattr("cytotable.access.read_iceberg_table", reader)
+    monkeypatch.setattr(
+        "cytotable.warehouse.access._is_iceberg_warehouse", lambda path: True
+    )
+    monkeypatch.setattr("cytotable.warehouse.access.read_iceberg_table", reader)
 
     result = read_table("example_warehouse", table_name="joined_profiles")
 

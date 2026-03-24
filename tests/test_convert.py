@@ -35,7 +35,6 @@ from cytotable.convert import (
     convert,
 )
 from cytotable.exceptions import CytoTableException
-from cytotable.iceberg import read_iceberg_table
 from cytotable.presets import config
 from cytotable.sources import _infer_source_datatype
 from cytotable.utils import (
@@ -47,6 +46,7 @@ from cytotable.utils import (
     _write_parquet_table_with_metadata,
     evaluate_futures,
 )
+from cytotable.warehouse.iceberg import read_iceberg_table
 
 convert_module = importlib.import_module("cytotable.convert")
 
@@ -194,7 +194,7 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
 
     write_iceberg_warehouse = Mock(return_value="example_warehouse")
     monkeypatch.setattr(
-        "cytotable.iceberg.write_iceberg_warehouse",
+        "cytotable.warehouse.iceberg.write_iceberg_warehouse",
         write_iceberg_warehouse,
     )
 

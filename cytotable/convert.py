@@ -1690,7 +1690,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
     if dest_backend == "iceberg":
 
-        from cytotable.iceberg import write_iceberg_warehouse
+        from cytotable.warehouse.iceberg import write_iceberg_warehouse
 
         return write_iceberg_warehouse(
             source_path=source_path,
