@@ -312,10 +312,10 @@ Also see CytoTable's presets found here: :data:`presets.config <cytotable.preset
 
 A common reason to override a preset is to change which columns CytoTable retains in
 the output table. For example, a user might want only image file
-columns while another wants all image columns (:code:`image.*`). If CytoTable's output is
+columns while another wants all image columns (`image.*`). If CytoTable's output is
 missing image-level fields or includes more columns than you want, pass a custom
-:code:`joins=` SQL string to :mod:`convert() <cytotable.convert.convert>` and
-edit the :code:`SELECT` list directly.
+`joins=` SQL string to {func}`cytotable.convert.convert` and edit the `SELECT`
+list directly ([example](tutorials/cellprofiler_to_parquet.md#step-2-run-the-conversion-minimal-python)).
 
 Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
 Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for example, [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
