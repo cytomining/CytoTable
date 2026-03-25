@@ -120,6 +120,8 @@ custom_joins = config[PRESET]["CONFIG_JOINS"].replace(
     "image.*,",
 )
 
+print(custom_joins)
+
 result = cytotable.convert(
     source_path=SOURCE_PATH,
     source_datatype=SOURCE_DATATYPE,
@@ -128,6 +130,17 @@ result = cytotable.convert(
     preset=PRESET,
     joins=custom_joins,
 )
+```
+
+Example printed output from `print(custom_joins)`:
+
+```text
+SELECT
+    image.*,
+    cells.*,
+    cytoplasm.*,
+    nuclei.*
+...
 ```
 
 This is the main way to customize which columns are included in the joined
