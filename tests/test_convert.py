@@ -10,6 +10,7 @@ import importlib
 import itertools
 import os
 import pathlib
+from importlib.util import find_spec
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
 from unittest.mock import MagicMock, Mock
@@ -1207,6 +1208,7 @@ def test_convert_cellprofiler_csv(
     assert test_result.equals(control_result)
 
 
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
 def test_convert_parquet_and_iceberg_joined_profiles_are_equivalent(
     load_parsl_default: None,
     fx_tempdir: str,
