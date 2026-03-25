@@ -143,8 +143,8 @@ SELECT
 ...
 ```
 
-This is the main way to customize which columns are included in the joined
-output while still reusing the rest of the preset.
+This is how we recommend customizing the CellProfiler columns CytoTable returns in the joined
+output. Note that CytoTable retains all other preset parameters.
 
 ````
 

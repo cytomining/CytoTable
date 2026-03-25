@@ -13,8 +13,8 @@ Please note that these presets may not capture all possible outcomes.
 Use manual overrides within :mod:`convert() <cytotable.convert.convert>` as needed.
 In practice, this often means overriding the preset join SQL with
 :code:`convert(..., joins="SELECT ...", ...)` when you want different columns in
-the final joined output, or adjusting related parameters such as
-:code:`page_keys`, :code:`chunk_size`, or compartment names for your dataset.
+the final joined output. You can also adjust other parameters (such as
+:code:`page_keys`, :code:`chunk_size`, or compartment names) without altering all preset parameters.
 ```
 
 ## Data Sources
@@ -310,9 +310,9 @@ Joins may be specified in CytoTable using `DuckDB-style SQL <https://duckdb.org/
 Also see CytoTable's presets found here: :data:`presets.config <cytotable.presets.config>` or via `GitHub source code for presets.config <https://github.com/cytomining/CytoTable/blob/main/cytotable/presets.py>`_.
 ```
 
-A common reason to override a preset is to change which columns are carried into
-the final joined table. For example, one preset might only select image file
-columns while another selects :code:`image.*`. If the default joined output is
+A common reason to override a preset is to change which columns CytoTable retains in
+the output table. For example, a user might want only image file
+columns while another wants all image columns (:code:`image.*`). If CytoTable's output is
 missing image-level fields or includes more columns than you want, pass a custom
 :code:`joins=` SQL string to :mod:`convert() <cytotable.convert.convert>` and
 edit the :code:`SELECT` list directly.
