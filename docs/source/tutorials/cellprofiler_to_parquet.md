@@ -14,7 +14,7 @@ A start-to-finish walkthrough for image analysts who want a working Parquet expo
 - CellProfiler CSV folders: point `source_path` to the folder that contains `Cells.csv`, `Cytoplasm.csv`, etc.; set `source_datatype="csv"` and `preset="cellprofiler_csv"`.
 - Only certain compartments: add `targets=["cells", "nuclei"]` (case-insensitive).
 - Memory constrained: lower `chunk_size` (e.g., 10000) and ensure `CACHE_DIR` has space.
-````
+```
 
 ## Setup (copy-paste)
 
@@ -23,7 +23,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install cytotable
-````
+```
 
 ## Inputs and outputs
 
