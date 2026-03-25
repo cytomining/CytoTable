@@ -14,7 +14,7 @@ A start-to-finish walkthrough for image analysts who want a working Parquet expo
 - CellProfiler CSV folders: point `source_path` to the folder that contains `Cells.csv`, `Cytoplasm.csv`, etc.; set `source_datatype="csv"` and `preset="cellprofiler_csv"`.
 - Only certain compartments: add `targets=["cells", "nuclei"]` (case-insensitive).
 - Memory constrained: lower `chunk_size` (e.g., 10000) and ensure `CACHE_DIR` has space.
-```
+````
 
 ## Setup (copy-paste)
 
@@ -23,7 +23,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install cytotable
-```
+````
 
 ## Inputs and outputs
 
@@ -115,7 +115,7 @@ For example, you can start from your preset and edit the `SELECT` list:
 import cytotable
 from cytotable.presets import config
 
-custom_joins = config["cellprofiler_csv"]["CONFIG_JOINS"].replace(
+custom_joins = config[PRESET]["CONFIG_JOINS"].replace(
     "image.Metadata_ImageNumber,",
     "image.*,",
 )
@@ -128,7 +128,7 @@ result = cytotable.convert(
     preset=PRESET,
     joins=custom_joins,
 )
-````
+```
 
 This is the main way to customize which columns are included in the joined
 output while still reusing the rest of the preset.
@@ -149,7 +149,7 @@ the preset-driven join SQL by passing a custom `joins=` string to
 ls "$DEST_PATH"
 # SQLite example: br00126114.parquet
 # CSV example: examplehuman.parquet
-````
+```
 
 ## What success looks like
 
