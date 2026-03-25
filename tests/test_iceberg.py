@@ -1089,6 +1089,65 @@ def test_write_iceberg_warehouse_deduplicates_source_images_across_chunks(
     assert source_images["Metadata_ImageID"].tolist() == ["img-1"]
 
 
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_write_iceberg_warehouse_preserves_nullable_source_image_string_schema(
+    fx_tempdir: str,
+):
+    """
+    Tests that deduplicated source images keep nullable string columns typed.
+    """
+
+    warehouse_path = Path(fx_tempdir) / "source_images_nullable_schema_warehouse"
+    stage_parquet = Path(fx_tempdir) / "joined_profiles.parquet"
+    joined_chunk = Path(fx_tempdir) / "joined_chunk.parquet"
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), stage_parquet)
+    parquet.write_table(pa.table({"Metadata_ImageNumber": [1]}), joined_chunk)
+
+    with (
+        patch("cytotable.warehouse.iceberg.parsl.load"),
+        patch("cytotable.warehouse.iceberg.parsl.dfk") as dfk,
+        patch("cytotable.warehouse.iceberg._parsl_loaded", return_value=False),
+        patch(
+            "cytotable.warehouse.iceberg._run_export_workflow",
+            side_effect=[str(stage_parquet), [str(joined_chunk)]],
+        ),
+        patch(
+            "cytotable.warehouse.iceberg.image_crop_table_from_joined_chunk",
+            return_value=pa.table(
+                {"Metadata_ObjectID": pa.array(["obj-1"], type=pa.string())}
+            ),
+        ),
+        patch(
+            "cytotable.warehouse.iceberg.source_image_table_from_joined_chunk",
+            return_value=pa.table(
+                {
+                    "Metadata_ImageID": pa.array(["img-1"], type=pa.string()),
+                    "source_image_column": pa.array(
+                        ["Image_FileName_DNA"], type=pa.string()
+                    ),
+                    "source_image_file": pa.array(["cell.tiff"], type=pa.string()),
+                    "label_source_kind": pa.array([None], type=pa.string()),
+                }
+            ),
+        ),
+    ):
+        dfk.return_value.cleanup = MagicMock()
+        write_iceberg_warehouse(
+            source_path=f"{fx_tempdir}/missing-source",
+            source_datatype="csv",
+            warehouse_path=warehouse_path,
+            preset="cellprofiler_csv",
+            image_dir=fx_tempdir,
+            include_source_images=True,
+            joins="SELECT * FROM read_parquet('cells.parquet') AS cells",
+            page_keys={"join": "Metadata_ImageNumber"},
+        )
+
+    source_images = read_iceberg_table(warehouse_path, "source_images")
+    assert source_images["Metadata_ImageID"].tolist() == ["img-1"]
+    assert source_images["label_source_kind"].isna().tolist() == [True]
+
+
 def test_find_matching_segmentation_path_uses_regex_mapping(fx_tempdir: str):
     """
     Tests regex-based segmentation file resolution.

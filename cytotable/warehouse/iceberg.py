@@ -742,7 +742,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         if source_image_frame.empty:
                             continue
                         filtered_source_image_table = pa.Table.from_pandas(
-                            source_image_frame, preserve_index=False
+                            source_image_frame,
+                            schema=source_image_table.schema,
+                            preserve_index=False,
                         )
                         if source_images_table is None:
                             source_images_table = (
