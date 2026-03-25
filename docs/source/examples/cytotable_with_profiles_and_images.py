@@ -29,8 +29,9 @@
 import pathlib
 import shutil
 
-import cytotable
 from ome_arrow import OMEArrow
+
+import cytotable
 
 # paths used throughout the notebook
 source_path = "../../../tests/data/cellprofiler/ExampleHuman"
