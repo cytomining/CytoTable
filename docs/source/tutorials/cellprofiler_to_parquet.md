@@ -132,7 +132,7 @@ result = cytotable.convert(
 )
 ```
 
-Example printed output from `print(custom_joins)`:
+Abbreviated example output from `print(custom_joins)` (truncated for brevity):
 
 ```text
 SELECT
