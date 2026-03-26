@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cytotable.warehouse.images &#8212; CytoTable v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=99150370" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=01d9ba92" />
+    <script src="../../../_static/documentation_options.js?v=2fea6348"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);</script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cytotable.warehouse.images</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Helpers for exporting image crops alongside CytoTable measurement data.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">dumps</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">NAMESPACE_URL</span><span class="p">,</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span><span class="p">,</span> <span class="n">uuid5</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
+<span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
+
+<span class="kn">from</span> <span class="nn">cytotable.sources</span> <span class="kn">import</span> <span class="n">_build_path</span>
+<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">cloud_glob</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">IMAGE_TABLE_NAME</span> <span class="o">=</span> <span class="s2">&quot;image_crops&quot;</span>
+<span class="n">SOURCE_IMAGE_TABLE_NAME</span> <span class="o">=</span> <span class="s2">&quot;source_images&quot;</span>
+<span class="n">PROFILE_BBOX_METADATA_COLUMNS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;x_min&quot;</span><span class="p">:</span> <span class="s2">&quot;Metadata_SourceBBoxXMin&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;x_max&quot;</span><span class="p">:</span> <span class="s2">&quot;Metadata_SourceBBoxXMax&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_min&quot;</span><span class="p">:</span> <span class="s2">&quot;Metadata_SourceBBoxYMin&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;y_max&quot;</span><span class="p">:</span> <span class="s2">&quot;Metadata_SourceBBoxYMax&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">_IMAGE_SUFFIXES</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">&quot;.tif&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.tiff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.ome.tif&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.ome.tiff&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.zarr&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;.ome.zarr&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="object_id">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.object_id">[docs]</a>
+<span class="k">def</span> <span class="nf">object_id</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">UUID</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;obj&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a stable string identifier with a UUID-shaped payload.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">value</span> <span class="o">=</span> <span class="n">uuid4</span><span class="p">()</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">uuid5</span><span class="p">(</span><span class="n">NAMESPACE_URL</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="BBoxColumns">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.BBoxColumns">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BBoxColumns</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Bounding box column names for cropped image export.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">x_min</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">x_max</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">y_min</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">y_max</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="FileIndex">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.FileIndex">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">FileIndex</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Relative-path-first index for image-like files in a directory tree.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">by_relative</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]]</span>
+    <span class="n">by_basename</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]]]</span>
+    <span class="n">by_stem</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]]]</span></div>
+
+
+
+<span class="n">ImagePath</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="_require_ome_arrow">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._require_ome_arrow">[docs]</a>
+<span class="k">def</span> <span class="nf">_require_ome_arrow</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Import and return OME-Arrow objects needed for crop export.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span> <span class="nn">ome_arrow</span> <span class="kn">import</span> <span class="n">OMEArrow</span>  <span class="c1"># type: ignore</span>
+        <span class="kn">from</span> <span class="nn">ome_arrow.meta</span> <span class="kn">import</span> <span class="n">OME_ARROW_STRUCT</span>  <span class="c1"># type: ignore</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;Image crop export requires the optional &#39;ome-arrow&#39; dependency.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
+
+    <span class="k">return</span> <span class="n">OMEArrow</span><span class="p">,</span> <span class="n">OME_ARROW_STRUCT</span></div>
+
+
+
+<div class="viewcode-block" id="_strip_null_fields_from_type">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._strip_null_fields_from_type">[docs]</a>
+<span class="k">def</span> <span class="nf">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">data_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove null-typed fields from nested Arrow types for Iceberg compatibility.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_struct</span><span class="p">(</span><span class="n">data_type</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">struct</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">pa</span><span class="o">.</span><span class="n">field</span><span class="p">(</span>
+                    <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">),</span>
+                    <span class="n">nullable</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">nullable</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="n">field</span><span class="o">.</span><span class="n">metadata</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">data_type</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_list</span><span class="p">(</span><span class="n">data_type</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">list_</span><span class="p">(</span><span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">data_type</span><span class="o">.</span><span class="n">value_type</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">data_type</span></div>
+
+
+
+<div class="viewcode-block" id="_strip_null_fields_from_value">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._strip_null_fields_from_value">[docs]</a>
+<span class="k">def</span> <span class="nf">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove values corresponding to null-typed nested Arrow fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_struct</span><span class="p">(</span><span class="n">data_type</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="s2">&quot;as_py&quot;</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">as_py</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">data_type</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_null</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_list</span><span class="p">(</span><span class="n">data_type</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">data_type</span><span class="o">.</span><span class="n">value_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">value</span>
+        <span class="p">]</span>
+    <span class="k">return</span> <span class="n">value</span></div>
+
+
+
+<div class="viewcode-block" id="_normalize_file_value">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._normalize_file_value">[docs]</a>
+<span class="k">def</span> <span class="nf">_normalize_file_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalize a file-like value to a comparable path string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">normalized</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">normalized</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;file:&quot;</span><span class="p">):</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="n">normalized</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">&quot;file:&quot;</span><span class="p">)</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePath</span><span class="p">(</span><span class="n">normalized</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="_relative_index_key">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._relative_index_key">[docs]</a>
+<span class="k">def</span> <span class="nf">_relative_index_key</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a normalized relative key for a file under an index root.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+
+    <span class="n">root_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">root</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">path_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">root_str</span><span class="si">}</span><span class="s2">/&quot;</span>
+    <span class="k">if</span> <span class="n">path_str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">path_str</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">path_str</span><span class="p">)</span><span class="o">.</span><span class="n">name</span></div>
+
+
+
+<div class="viewcode-block" id="_local_image_io_path">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._local_image_io_path">[docs]</a>
+<span class="k">def</span> <span class="nf">_local_image_io_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a local path for image I/O, caching cloud files when needed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">path</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">fspath</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="_build_file_index">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_file_index">[docs]</a>
+<span class="k">def</span> <span class="nf">_build_file_index</span><span class="p">(</span>
+    <span class="n">file_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileIndex</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a relative-path-first index for image-like files in a directory tree.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">file_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">FileIndex</span><span class="p">(</span><span class="n">by_relative</span><span class="o">=</span><span class="p">{},</span> <span class="n">by_basename</span><span class="o">=</span><span class="p">{},</span> <span class="n">by_stem</span><span class="o">=</span><span class="p">{})</span>
+
+    <span class="n">root</span> <span class="o">=</span> <span class="n">_build_path</span><span class="p">(</span><span class="n">file_dir</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">path_kwargs</span> <span class="ow">or</span> <span class="p">{}))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+        <span class="n">root_exists</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">root_exists</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover - defensive for provider quirks</span>
+            <span class="n">root_exists</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">root_exists</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">FileIndex</span><span class="p">(</span><span class="n">by_relative</span><span class="o">=</span><span class="p">{},</span> <span class="n">by_basename</span><span class="o">=</span><span class="p">{},</span> <span class="n">by_stem</span><span class="o">=</span><span class="p">{})</span>
+
+    <span class="n">relative_index</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ImagePath</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">basename_index</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">stem_index</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">cloud_glob</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s2">&quot;**/*&quot;</span><span class="p">):</span>
+        <span class="n">lowered</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">is_image_path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="n">lowered</span><span class="o">.</span><span class="n">endswith</span><span class="p">((</span><span class="s2">&quot;.zarr&quot;</span><span class="p">,</span> <span class="s2">&quot;.ome.zarr&quot;</span><span class="p">))</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_image_path</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">lowered</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">_IMAGE_SUFFIXES</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">relative_key</span> <span class="o">=</span> <span class="n">_relative_index_key</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">root</span><span class="p">)</span>
+        <span class="n">relative_index</span><span class="p">[</span><span class="n">relative_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">basename_index</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">stem_index</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">FileIndex</span><span class="p">(</span>
+        <span class="n">by_relative</span><span class="o">=</span><span class="n">relative_index</span><span class="p">,</span>
+        <span class="n">by_basename</span><span class="o">=</span><span class="n">basename_index</span><span class="p">,</span>
+        <span class="n">by_stem</span><span class="o">=</span><span class="n">stem_index</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_resolve_indexed_path">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._resolve_indexed_path">[docs]</a>
+<span class="k">def</span> <span class="nf">_resolve_indexed_path</span><span class="p">(</span>
+    <span class="n">normalized_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">file_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resolve a normalized path string against a relative-path-first file index.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">normalized_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">normalized_value</span><span class="p">)</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="n">normalized_path</span><span class="o">.</span><span class="n">parts</span>
+
+    <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)):</span>
+        <span class="n">candidate</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">[</span><span class="n">offset</span><span class="p">:])</span><span class="o">.</span><span class="n">as_posix</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">file_index</span><span class="o">.</span><span class="n">by_relative</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">file_index</span><span class="o">.</span><span class="n">by_relative</span><span class="p">[</span><span class="n">candidate</span><span class="p">]</span>
+
+    <span class="n">basename_matches</span> <span class="o">=</span> <span class="n">file_index</span><span class="o">.</span><span class="n">by_basename</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">normalized_path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">basename_matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">basename_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">basename_matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ambiguous image basename &#39;</span><span class="si">{</span><span class="n">normalized_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+            <span class="s2">&quot;Provide a relative path to disambiguate.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">stem_matches</span> <span class="o">=</span> <span class="n">file_index</span><span class="o">.</span><span class="n">by_stem</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">normalized_path</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stem_matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">stem_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stem_matches</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Ambiguous image stem &#39;</span><span class="si">{</span><span class="n">normalized_path</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+            <span class="s2">&quot;Provide a relative path to disambiguate.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="_find_matching_segmentation_path">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._find_matching_segmentation_path">[docs]</a>
+<span class="k">def</span> <span class="nf">_find_matching_segmentation_path</span><span class="p">(</span>
+    <span class="n">data_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pattern_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">file_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">candidate_path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span>
+    <span class="n">file_index</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">FileIndex</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lookup_cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resolve a matching mask/outline file path for an image value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cache_key</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">lookup_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cache_key</span> <span class="o">=</span> <span class="s2">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">file_dir</span><span class="p">),</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">candidate_path</span><span class="p">),</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">data_value</span><span class="p">),</span>
+                <span class="n">dumps</span><span class="p">(</span><span class="n">pattern_map</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">pattern_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache_key</span> <span class="ow">in</span> <span class="n">lookup_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">lookup_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">file_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">root</span> <span class="o">=</span> <span class="n">_build_path</span><span class="p">(</span><span class="n">file_dir</span><span class="p">,</span> <span class="o">**</span><span class="p">(</span><span class="n">path_kwargs</span> <span class="ow">or</span> <span class="p">{}))</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">):</span>
+        <span class="n">root_exists</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">root_exists</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pragma: no cover - defensive for provider quirks</span>
+            <span class="n">root_exists</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">root_exists</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">indexed_files</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">file_index</span>
+        <span class="k">if</span> <span class="n">file_index</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">file_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pattern_map</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_resolve_indexed_path</span><span class="p">(</span><span class="n">data_value</span><span class="p">,</span> <span class="n">indexed_files</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">lookup_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cache_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">lookup_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="n">indexed_paths</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">):</span> <span class="n">path</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">indexed_files</span><span class="o">.</span><span class="n">by_relative</span><span class="o">.</span><span class="n">values</span><span class="p">()}</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">path</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">original_pattern</span> <span class="ow">in</span> <span class="n">pattern_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">matched</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">original_pattern</span><span class="p">,</span> <span class="n">data_value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">matched</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">identifiers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">identifiers</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">matched</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">group</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">identifiers</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="n">data_value</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span>
+                <span class="n">pathlib</span><span class="o">.</span><span class="n">PurePosixPath</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">candidate_path</span><span class="p">))</span><span class="o">.</span><span class="n">stem</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">identifiers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">identifier</span> <span class="k">for</span> <span class="n">identifier</span> <span class="ow">in</span> <span class="n">identifiers</span> <span class="k">if</span> <span class="n">identifier</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">normalized_identifiers</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">identifier</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">identifier</span> <span class="ow">in</span> <span class="n">identifiers</span> <span class="k">if</span> <span class="n">identifier</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">indexed_paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">normalized_identifiers</span> <span class="ow">or</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="n">identifier</span> <span class="ow">in</span> <span class="n">file</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">identifier</span> <span class="ow">in</span> <span class="n">normalized_identifiers</span>
+            <span class="p">):</span>
+                <span class="k">if</span> <span class="n">lookup_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cache_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">lookup_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
+                <span class="k">return</span> <span class="n">file</span>
+
+    <span class="k">if</span> <span class="n">lookup_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">cache_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lookup_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="_resolve_image_columns">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._resolve_image_columns">[docs]</a>
+<span class="k">def</span> <span class="nf">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Find joined-table columns that look like image filename columns.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">image_columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_object_dtype</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+        <span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_string_dtype</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]):</span>
+            <span class="k">continue</span>
+        <span class="n">non_null</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">non_null</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">non_null</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">value</span><span class="p">:</span> <span class="n">value</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">_IMAGE_SUFFIXES</span><span class="p">))</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">image_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">image_columns</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_bbox_columns">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.resolve_bbox_columns">[docs]</a>
+<span class="k">def</span> <span class="nf">resolve_bbox_columns</span><span class="p">(</span>
+    <span class="n">columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BBoxColumns</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Resolve bbox columns using custom mapping, CellProfiler naming, then fallback tags.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">col_by_name</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">):</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">bbox_column_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">custom</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">key</span><span class="p">:</span> <span class="n">col_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">bbox_column_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;x_min&quot;</span><span class="p">,</span> <span class="s2">&quot;x_max&quot;</span><span class="p">,</span> <span class="s2">&quot;y_min&quot;</span><span class="p">,</span> <span class="s2">&quot;y_max&quot;</span><span class="p">}</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="n">custom</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;x_min&quot;</span><span class="p">,</span> <span class="s2">&quot;x_max&quot;</span><span class="p">,</span> <span class="s2">&quot;y_min&quot;</span><span class="p">,</span> <span class="s2">&quot;y_max&quot;</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">return</span> <span class="n">BBoxColumns</span><span class="p">(</span>
+                <span class="n">x_min</span><span class="o">=</span><span class="n">custom</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">x_max</span><span class="o">=</span><span class="n">custom</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">y_min</span><span class="o">=</span><span class="n">custom</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">y_max</span><span class="o">=</span><span class="n">custom</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="p">)</span>
+
+    <span class="n">metadata_bbox</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">col_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">PROFILE_BBOX_METADATA_COLUMNS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">metadata_bbox</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="k">return</span> <span class="n">BBoxColumns</span><span class="p">(</span>
+            <span class="n">x_min</span><span class="o">=</span><span class="n">metadata_bbox</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">x_max</span><span class="o">=</span><span class="n">metadata_bbox</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">y_min</span><span class="o">=</span><span class="n">metadata_bbox</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">y_max</span><span class="o">=</span><span class="n">metadata_bbox</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="p">)</span>
+
+    <span class="n">cp_prefixes</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Cytoplasm_&quot;</span><span class="p">,</span> <span class="s2">&quot;Nuclei_&quot;</span><span class="p">,</span> <span class="s2">&quot;Cells_&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">cp_prefixes</span><span class="p">:</span>
+        <span class="n">matched</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;x_min&quot;</span><span class="p">:</span> <span class="n">col_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">AreaShape_BoundingBoxMinimum_X&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;x_max&quot;</span><span class="p">:</span> <span class="n">col_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">AreaShape_BoundingBoxMaximum_X&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;y_min&quot;</span><span class="p">:</span> <span class="n">col_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">AreaShape_BoundingBoxMinimum_Y&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;y_max&quot;</span><span class="p">:</span> <span class="n">col_by_name</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">AreaShape_BoundingBoxMaximum_Y&quot;</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">matched</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+            <span class="k">return</span> <span class="n">BBoxColumns</span><span class="p">(</span>
+                <span class="n">x_min</span><span class="o">=</span><span class="n">matched</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">x_max</span><span class="o">=</span><span class="n">matched</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">y_min</span><span class="o">=</span><span class="n">matched</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+                <span class="n">y_max</span><span class="o">=</span><span class="n">matched</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="p">)</span>
+
+    <span class="n">fallback</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;x_min&quot;</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;Minimum_X&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;x_max&quot;</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;Maximum_X&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;y_min&quot;</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;Minimum_Y&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;y_max&quot;</span><span class="p">:</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span> <span class="k">if</span> <span class="s2">&quot;Maximum_Y&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)),</span>
+            <span class="kc">None</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">fallback</span><span class="o">.</span><span class="n">values</span><span class="p">()):</span>
+        <span class="k">return</span> <span class="n">BBoxColumns</span><span class="p">(</span>
+            <span class="n">x_min</span><span class="o">=</span><span class="n">fallback</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">x_max</span><span class="o">=</span><span class="n">fallback</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">y_min</span><span class="o">=</span><span class="n">fallback</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+            <span class="n">y_max</span><span class="o">=</span><span class="n">fallback</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">],</span>  <span class="c1"># type: ignore[arg-type]</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="_extract_key_fields">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._extract_key_fields">[docs]</a>
+<span class="k">def</span> <span class="nf">_extract_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract practical measurement key fields to carry into the image table.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">preferred_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Metadata_TableNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_ImageNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_ObjectNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Plate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Plate&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">column</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">preferred_columns</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">index</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+        <span class="n">column_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">column_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_Object_Number&quot;</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">column_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_Parent_Cells&quot;</span><span class="p">)</span>
+                <span class="ow">or</span> <span class="n">column_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_Parent_Nuclei&quot;</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="ow">and</span> <span class="n">column_str</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">keys</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+        <span class="p">):</span>
+            <span class="n">keys</span><span class="p">[</span><span class="n">column_str</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">keys</span></div>
+
+
+
+<div class="viewcode-block" id="_extract_image_key_fields">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._extract_image_key_fields">[docs]</a>
+<span class="k">def</span> <span class="nf">_extract_image_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract image-level key fields to carry into source image rows.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">preferred_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Metadata_TableNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_ImageNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Plate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Plate&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">column</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">preferred_columns</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">index</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="_build_stable_object_id">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_object_id">[docs]</a>
+<span class="k">def</span> <span class="nf">_build_stable_object_id</span><span class="p">(</span>
+    <span class="n">key_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">bbox</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a deterministic object identifier for warehouse image rows.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;keys&quot;</span><span class="p">:</span> <span class="n">key_fields</span><span class="p">,</span>
+            <span class="s2">&quot;bbox&quot;</span><span class="p">:</span> <span class="n">bbox</span> <span class="ow">or</span> <span class="p">{},</span>
+        <span class="p">},</span>
+        <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_id</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_build_stable_image_crop_id">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_image_crop_id">[docs]</a>
+<span class="k">def</span> <span class="nf">_build_stable_image_crop_id</span><span class="p">(</span>
+    <span class="n">key_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">image_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">bbox</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a deterministic identifier for one object/image crop row.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;keys&quot;</span><span class="p">:</span> <span class="n">key_fields</span><span class="p">,</span>
+            <span class="s2">&quot;bbox&quot;</span><span class="p">:</span> <span class="n">bbox</span> <span class="ow">or</span> <span class="p">{},</span>
+            <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">image_column</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_id</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_build_stable_source_image_id">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_source_image_id">[docs]</a>
+<span class="k">def</span> <span class="nf">_build_stable_source_image_id</span><span class="p">(</span>
+    <span class="n">key_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">image_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a deterministic identifier for one source image row.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">payload</span> <span class="o">=</span> <span class="n">dumps</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;keys&quot;</span><span class="p">:</span> <span class="n">key_fields</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">image_column</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">object_id</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_crop_ome_arrow">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._crop_ome_arrow">[docs]</a>
+<span class="k">def</span> <span class="nf">_crop_ome_arrow</span><span class="p">(</span>
+    <span class="n">image_path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span>
+    <span class="n">bbox</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lazily crop a TIFF-backed image into an OME-Arrow struct.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">OMEArrow</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">image_path</span> <span class="o">=</span> <span class="n">_local_image_io_path</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+    <span class="n">crop</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">OMEArrow</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">slice_lazy</span><span class="p">(</span>
+            <span class="n">x_min</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bbox</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">]),</span>
+            <span class="n">x_max</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bbox</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">]),</span>
+            <span class="n">y_min</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bbox</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">]),</span>
+            <span class="n">y_max</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">bbox</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">]),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">crop</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">as_py</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;as_py&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">data</span></div>
+
+
+
+<div class="viewcode-block" id="_read_ome_arrow">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._read_ome_arrow">[docs]</a>
+<span class="k">def</span> <span class="nf">_read_ome_arrow</span><span class="p">(</span>
+    <span class="n">image_path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lazily load a full TIFF-backed image into an OME-Arrow struct.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">OMEArrow</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">image_path</span> <span class="o">=</span> <span class="n">_local_image_io_path</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span>
+    <span class="n">image</span> <span class="o">=</span> <span class="n">OMEArrow</span><span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">image_path</span><span class="p">))</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">as_py</span><span class="p">()</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;as_py&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">data</span></div>
+
+
+
+<div class="viewcode-block" id="_validated_bbox_values">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._validated_bbox_values">[docs]</a>
+<span class="k">def</span> <span class="nf">_validated_bbox_values</span><span class="p">(</span>
+    <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
+    <span class="n">bbox_columns</span><span class="p">:</span> <span class="n">BBoxColumns</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate and normalize row bbox values for image cropping.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">numeric_bbox</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">column</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">&quot;x_min&quot;</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="o">.</span><span class="n">x_min</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;x_max&quot;</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="o">.</span><span class="n">x_max</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;y_min&quot;</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="o">.</span><span class="n">y_min</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;y_max&quot;</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="o">.</span><span class="n">y_max</span><span class="p">),</span>
+    <span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="n">column</span><span class="p">],</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="n">numeric_bbox</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">]</span>
+        <span class="ow">or</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">]</span>
+    <span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;x_min&quot;</span><span class="p">:</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;x_max&quot;</span><span class="p">:</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;y_min&quot;</span><span class="p">:</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;y_max&quot;</span><span class="p">:</span> <span class="n">numeric_bbox</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">],</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="image_crop_table_from_joined_chunk">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.image_crop_table_from_joined_chunk">[docs]</a>
+<span class="k">def</span> <span class="nf">image_crop_table_from_joined_chunk</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build an Arrow table of OME-Arrow image crops from one joined parquet chunk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="n">image_columns</span> <span class="o">=</span> <span class="n">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">bbox_columns</span> <span class="o">=</span> <span class="n">resolve_bbox_columns</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">bbox_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Unable to identify bounding box coordinate columns for image export.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">segmentation_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">bbox_values</span> <span class="o">=</span> <span class="n">_validated_bbox_values</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bbox_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping image crop for invalid bounding box values.&quot;</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="n">key_fields</span> <span class="o">=</span> <span class="n">_extract_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">image_column</span> <span class="ow">in</span> <span class="n">image_columns</span><span class="p">:</span>
+            <span class="n">image_name</span> <span class="o">=</span> <span class="n">_normalize_file_value</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_column</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">image_path</span> <span class="o">=</span> <span class="n">_resolve_indexed_path</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">image_index</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">image_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping image crop for unresolved image </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">image_name</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">outline_path</span> <span class="o">=</span> <span class="n">_find_matching_segmentation_path</span><span class="p">(</span>
+                <span class="n">data_value</span><span class="o">=</span><span class="n">image_name</span><span class="p">,</span>
+                <span class="n">pattern_map</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                <span class="n">file_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+                <span class="n">candidate_path</span><span class="o">=</span><span class="n">image_path</span><span class="p">,</span>
+                <span class="n">file_index</span><span class="o">=</span><span class="n">outline_index</span><span class="p">,</span>
+                <span class="n">lookup_cache</span><span class="o">=</span><span class="n">segmentation_cache</span><span class="p">,</span>
+                <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">mask_path</span> <span class="o">=</span> <span class="n">_find_matching_segmentation_path</span><span class="p">(</span>
+                <span class="n">data_value</span><span class="o">=</span><span class="n">image_name</span><span class="p">,</span>
+                <span class="n">pattern_map</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                <span class="n">file_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+                <span class="n">candidate_path</span><span class="o">=</span><span class="n">image_path</span><span class="p">,</span>
+                <span class="n">file_index</span><span class="o">=</span><span class="n">mask_index</span><span class="p">,</span>
+                <span class="n">lookup_cache</span><span class="o">=</span><span class="n">segmentation_cache</span><span class="p">,</span>
+                <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">label_path</span> <span class="o">=</span> <span class="n">outline_path</span> <span class="ow">or</span> <span class="n">mask_path</span>
+
+            <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="o">**</span><span class="n">key_fields</span><span class="p">,</span>
+                <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">:</span> <span class="n">_build_stable_object_id</span><span class="p">(</span>
+                    <span class="n">key_fields</span><span class="o">=</span><span class="n">key_fields</span><span class="p">,</span>
+                    <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;Metadata_ImageCropID&quot;</span><span class="p">:</span> <span class="n">_build_stable_image_crop_id</span><span class="p">(</span>
+                    <span class="n">key_fields</span><span class="o">=</span><span class="n">key_fields</span><span class="p">,</span>
+                    <span class="n">image_column</span><span class="o">=</span><span class="n">image_column</span><span class="p">,</span>
+                    <span class="n">image_name</span><span class="o">=</span><span class="n">image_name</span><span class="p">,</span>
+                    <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span><span class="p">,</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">image_column</span><span class="p">,</span>
+                <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span>
+                <span class="s2">&quot;source_bbox_x_min&quot;</span><span class="p">:</span> <span class="n">bbox_values</span><span class="p">[</span><span class="s2">&quot;x_min&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;source_bbox_x_max&quot;</span><span class="p">:</span> <span class="n">bbox_values</span><span class="p">[</span><span class="s2">&quot;x_max&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;source_bbox_y_min&quot;</span><span class="p">:</span> <span class="n">bbox_values</span><span class="p">[</span><span class="s2">&quot;y_min&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;source_bbox_y_max&quot;</span><span class="p">:</span> <span class="n">bbox_values</span><span class="p">[</span><span class="s2">&quot;y_max&quot;</span><span class="p">],</span>
+                <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">:</span> <span class="n">_crop_ome_arrow</span><span class="p">(</span>
+                    <span class="n">image_path</span><span class="o">=</span><span class="n">image_path</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">_crop_ome_arrow</span><span class="p">(</span><span class="n">image_path</span><span class="o">=</span><span class="n">outline_path</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">outline_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">_crop_ome_arrow</span><span class="p">(</span><span class="n">image_path</span><span class="o">=</span><span class="n">mask_path</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">_crop_ome_arrow</span><span class="p">(</span><span class="n">image_path</span><span class="o">=</span><span class="n">label_path</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">label_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;label_source_kind&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="s2">&quot;outline&quot;</span>
+                    <span class="k">if</span> <span class="n">outline_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="s2">&quot;mask&quot;</span> <span class="k">if</span> <span class="n">mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+            <span class="p">}</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="n">key_field_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">{</span><span class="n">key</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="o">-</span> <span class="p">{</span>
+            <span class="s2">&quot;source_image_column&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;label_source_kind&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Metadata_ImageCropID&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_bbox_x_min&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_bbox_x_max&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_bbox_y_min&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_bbox_y_max&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">())</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">key_field_names</span><span class="p">},</span>
+                <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;Metadata_ImageCropID&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;label_source_kind&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;source_bbox_x_min&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
+                <span class="s2">&quot;source_bbox_x_max&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
+                <span class="s2">&quot;source_bbox_y_min&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
+                <span class="s2">&quot;source_bbox_y_max&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
+                <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="n">key_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="kc">None</span> <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">key_field_names</span>
+    <span class="p">}</span>
+    <span class="n">fixed_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;Metadata_ImageCropID&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Metadata_ImageCropID&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_image_column&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_image_file&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;label_source_kind&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;label_source_kind&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_bbox_x_min&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_bbox_x_min&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_bbox_x_max&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_bbox_x_max&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_bbox_y_min&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_bbox_y_min&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_bbox_y_max&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_bbox_y_max&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span>
+                    <span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">({</span><span class="o">**</span><span class="n">key_columns</span><span class="p">,</span> <span class="o">**</span><span class="n">fixed_columns</span><span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="source_image_table_from_joined_chunk">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk">[docs]</a>
+<span class="k">def</span> <span class="nf">source_image_table_from_joined_chunk</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build an Arrow table of full OME-Arrow source images from one joined chunk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="n">image_columns</span> <span class="o">=</span> <span class="n">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">segmentation_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">rows_by_id</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">key_fields</span> <span class="o">=</span> <span class="n">_extract_image_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">image_column</span> <span class="ow">in</span> <span class="n">image_columns</span><span class="p">:</span>
+            <span class="n">image_name</span> <span class="o">=</span> <span class="n">_normalize_file_value</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_column</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">image_path</span> <span class="o">=</span> <span class="n">_resolve_indexed_path</span><span class="p">(</span><span class="n">image_name</span><span class="p">,</span> <span class="n">image_index</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">image_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;Skipping source image export for unresolved image </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">image_name</span>
+                <span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">source_image_id</span> <span class="o">=</span> <span class="n">_build_stable_source_image_id</span><span class="p">(</span>
+                <span class="n">key_fields</span><span class="o">=</span><span class="n">key_fields</span><span class="p">,</span>
+                <span class="n">image_column</span><span class="o">=</span><span class="n">image_column</span><span class="p">,</span>
+                <span class="n">image_name</span><span class="o">=</span><span class="n">image_name</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">source_image_id</span> <span class="ow">in</span> <span class="n">rows_by_id</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">outline_path</span> <span class="o">=</span> <span class="n">_find_matching_segmentation_path</span><span class="p">(</span>
+                <span class="n">data_value</span><span class="o">=</span><span class="n">image_name</span><span class="p">,</span>
+                <span class="n">pattern_map</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                <span class="n">file_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+                <span class="n">candidate_path</span><span class="o">=</span><span class="n">image_path</span><span class="p">,</span>
+                <span class="n">file_index</span><span class="o">=</span><span class="n">outline_index</span><span class="p">,</span>
+                <span class="n">lookup_cache</span><span class="o">=</span><span class="n">segmentation_cache</span><span class="p">,</span>
+                <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">mask_path</span> <span class="o">=</span> <span class="n">_find_matching_segmentation_path</span><span class="p">(</span>
+                <span class="n">data_value</span><span class="o">=</span><span class="n">image_name</span><span class="p">,</span>
+                <span class="n">pattern_map</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                <span class="n">file_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+                <span class="n">candidate_path</span><span class="o">=</span><span class="n">image_path</span><span class="p">,</span>
+                <span class="n">file_index</span><span class="o">=</span><span class="n">mask_index</span><span class="p">,</span>
+                <span class="n">lookup_cache</span><span class="o">=</span><span class="n">segmentation_cache</span><span class="p">,</span>
+                <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">label_path</span> <span class="o">=</span> <span class="n">outline_path</span> <span class="ow">or</span> <span class="n">mask_path</span>
+
+            <span class="n">rows_by_id</span><span class="p">[</span><span class="n">source_image_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="o">**</span><span class="n">key_fields</span><span class="p">,</span>
+                <span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">:</span> <span class="n">source_image_id</span><span class="p">,</span>
+                <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">image_column</span><span class="p">,</span>
+                <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span>
+                <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">:</span> <span class="n">_read_ome_arrow</span><span class="p">(</span><span class="n">image_path</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">_read_ome_arrow</span><span class="p">(</span><span class="n">outline_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">outline_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">_read_ome_arrow</span><span class="p">(</span><span class="n">mask_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="n">_read_ome_arrow</span><span class="p">(</span><span class="n">label_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">label_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+                <span class="s2">&quot;label_source_kind&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="s2">&quot;outline&quot;</span>
+                    <span class="k">if</span> <span class="n">outline_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="s2">&quot;mask&quot;</span> <span class="k">if</span> <span class="n">mask_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
+            <span class="p">}</span>
+
+    <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rows_by_id</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="n">key_field_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">{</span><span class="n">key</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="o">-</span> <span class="p">{</span>
+            <span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_column&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_file&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;label_source_kind&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">())</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">key_field_names</span><span class="p">},</span>
+                <span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;label_source_kind&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()),</span>
+                <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+                <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([],</span> <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">),</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="n">key_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">key</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="kc">None</span> <span class="k">if</span> <span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">key_field_names</span>
+    <span class="p">}</span>
+    <span class="n">fixed_columns</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_image_column&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;source_image_file&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;label_source_kind&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;label_source_kind&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">],</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span>
+                    <span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">],</span> <span class="n">ome_arrow_struct</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span>
+            <span class="p">],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">ome_arrow_struct</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">({</span><span class="o">**</span><span class="n">key_columns</span><span class="p">,</span> <span class="o">**</span><span class="n">fixed_columns</span><span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="add_object_id_to_profiles_frame">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.add_object_id_to_profiles_frame">[docs]</a>
+<span class="k">def</span> <span class="nf">add_object_id_to_profiles_frame</span><span class="p">(</span>
+    <span class="n">joined_frame</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add a stable object identifier column to a joined profiles frame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">bbox_columns</span> <span class="o">=</span> <span class="n">resolve_bbox_columns</span><span class="p">(</span>
+        <span class="n">joined_frame</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span>
+    <span class="p">)</span>
+    <span class="n">frame</span> <span class="o">=</span> <span class="n">joined_frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="s2">&quot;Metadata_ObjectID&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">frame</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">object_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">joined_frame</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+            <span class="n">key_fields</span> <span class="o">=</span> <span class="n">_extract_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+            <span class="n">bbox_values</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">_validated_bbox_values</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">bbox_columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">)</span>
+            <span class="n">object_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">_build_stable_object_id</span><span class="p">(</span><span class="n">key_fields</span><span class="o">=</span><span class="n">key_fields</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox_values</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="n">metadata_columns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">column</span>
+            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">frame</span><span class="o">.</span><span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;metadata_&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">insert_at</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metadata_columns</span><span class="p">)</span>
+        <span class="n">frame</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">insert_at</span><span class="p">,</span> <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">,</span> <span class="n">object_ids</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">bbox_columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">rename_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="n">bbox_columns</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span> <span class="n">alias</span>
+            <span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">PROFILE_BBOX_METADATA_COLUMNS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">bbox_columns</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span> <span class="o">!=</span> <span class="n">alias</span> <span class="ow">and</span> <span class="n">alias</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">frame</span><span class="o">.</span><span class="n">columns</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">rename_map</span><span class="p">:</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rename_map</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">frame</span></div>
+
+
+
+<div class="viewcode-block" id="profile_with_images_frame">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.profile_with_images_frame">[docs]</a>
+<span class="k">def</span> <span class="nf">profile_with_images_frame</span><span class="p">(</span>
+    <span class="n">joined_frame</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">image_frame</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Expand joined measurement rows into stable object/image references and merge crops.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">image_columns</span> <span class="o">=</span> <span class="n">_resolve_image_columns</span><span class="p">(</span><span class="n">joined_frame</span><span class="p">)</span>
+    <span class="n">bbox_columns</span> <span class="o">=</span> <span class="n">resolve_bbox_columns</span><span class="p">(</span>
+        <span class="n">joined_frame</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">bbox_columns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">image_columns</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">joined_frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">expanded_rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">joined_frame</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
+        <span class="n">bbox</span> <span class="o">=</span> <span class="n">_validated_bbox_values</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">bbox</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">key_fields</span> <span class="o">=</span> <span class="n">_extract_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+        <span class="n">row_dict</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        <span class="n">stable_object_id</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;Metadata_ObjectID&quot;</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">index</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isna</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">])</span>
+            <span class="k">else</span> <span class="n">_build_stable_object_id</span><span class="p">(</span><span class="n">key_fields</span><span class="o">=</span><span class="n">key_fields</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">bbox</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">image_column</span> <span class="ow">in</span> <span class="n">image_columns</span><span class="p">:</span>
+            <span class="n">image_name</span> <span class="o">=</span> <span class="n">_normalize_file_value</span><span class="p">(</span><span class="n">row</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">image_column</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">image_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">expanded_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="o">**</span><span class="n">row_dict</span><span class="p">,</span>
+                    <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">:</span> <span class="n">stable_object_id</span><span class="p">,</span>
+                    <span class="s2">&quot;source_image_column&quot;</span><span class="p">:</span> <span class="n">image_column</span><span class="p">,</span>
+                    <span class="s2">&quot;source_image_file&quot;</span><span class="p">:</span> <span class="n">image_name</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">expanded_rows</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">joined_frame</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="n">expanded</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">expanded_rows</span><span class="p">)</span>
+    <span class="n">merge_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">column</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="p">(</span>
+            <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_column&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;source_image_file&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">image_frame</span><span class="o">.</span><span class="n">columns</span>
+    <span class="p">]</span>
+    <span class="n">image_columns_to_add</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">column</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">image_frame</span><span class="o">.</span><span class="n">columns</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">joined_frame</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">merge_columns</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">expanded</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span>
+        <span class="n">image_frame</span><span class="p">[</span><span class="n">image_columns_to_add</span><span class="p">],</span>
+        <span class="n">on</span><span class="o">=</span><span class="n">merge_columns</span><span class="p">,</span>
+        <span class="n">how</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span>
+        <span class="n">suffixes</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;_image&quot;</span><span class="p">),</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">CytoTable</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=CytoTable&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../presentations.html">Presentations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

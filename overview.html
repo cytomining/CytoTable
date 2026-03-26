@@ -602,12 +602,37 @@ It provides efficient data compression and encoding schemes with enhanced perfor
 <div><p>Parquet data destination type may be specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;parquet&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 </div></blockquote>
 <ul class="simple">
+<li><p><strong>Apache Iceberg warehouse</strong>: Iceberg is a way to organize a warehouse
+directory that contains multiple related tables, along with metadata that
+tracks how those tables change over time so reads stay consistent.
+CytoTable uses Iceberg as an optional local warehouse backend which
+can store a materialized <code class="docutils literal notranslate"><span class="pre">profiles.joined_profiles</span></code> table, optional
+<code class="docutils literal notranslate"><span class="pre">images.image_crops</span></code> and <code class="docutils literal notranslate"><span class="pre">images.source_images</span></code> tables, and a
+<code class="docutils literal notranslate"><span class="pre">profiles.profile_with_images</span></code> view. In plain terms, this means one warehouse
+can hold profile features, image data, and saved relationships between them.
+These saved views help express relationships between tables without storing
+every combined result as another table. Under the hood, an Iceberg warehouse
+may be backed by multiple files such as metadata files and table data files
+rather than a single output file.</p></li>
+</ul>
+<blockquote>
+<div><p>Iceberg warehouse export may be specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_backend=&quot;iceberg&quot;,</span> <span class="pre">dest_path=&quot;warehouse_dir&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
+</div></blockquote>
+<ul class="simple">
 <li><p><strong>scverse anndata (<code class="docutils literal notranslate"><span class="pre">.h5ad</span></code>, <code class="docutils literal notranslate"><span class="pre">.zarr</span></code>)</strong>: anndata is a Python package and data format for handling annotated data matrices which uses pandas and xarray to enable data management.
 It offers many computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface. (<a class="reference external" href="https://anndata.readthedocs.io/en/stable/index.html">reference</a>)</p></li>
 </ul>
 <blockquote>
 <div><p>Anndata data destination type may be specified by using <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;anndata_h5ad&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>) or <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">dest_datatype=&quot;anndata_zarr&quot;,</span> <span class="pre">...)</span></code> (<a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>).</p>
 </div></blockquote>
+</section>
+<section id="optional-image-export">
+<h3>Optional image export<a class="headerlink" href="#optional-image-export" title="Link to this heading">¶</a></h3>
+<p>When using the Iceberg backend, CytoTable may also export a separate image-crop table by providing <code class="code docutils literal notranslate"><span class="pre">image_dir</span></code> to <a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-mod docutils literal notranslate"><span class="pre">convert()</span></code></a>.
+Here, an “image-crop table” means a table where each row stores one cropped single-cell image linked back to the corresponding profile row.
+This table stores cropped images as OME-Arrow objects, meaning structured image records that keep image data together with related metadata. The table may also include mask and outline images through <code class="code docutils literal notranslate"><span class="pre">mask_dir</span></code>, <code class="code docutils literal notranslate"><span class="pre">outline_dir</span></code>, and <code class="code docutils literal notranslate"><span class="pre">segmentation_file_regex</span></code>.
+Set <code class="code docutils literal notranslate"><span class="pre">include_source_images=True</span></code> to also store full source images in <code class="code docutils literal notranslate"><span class="pre">images.source_images</span></code>.
+These image, mask, and outline inputs may be local paths or remote object-storage paths, and they use the same <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">**kwargs)</span></code> cloud configuration pattern described above for other CytoTable inputs.</p>
 </section>
 </section>
 <section id="data-transformations">
@@ -781,6 +806,7 @@ For large datasets, smaller chunk sizes or specific pagination columns can help 
 <li class="toctree-l2"><a class="reference internal" href="#data-destinations">Data Destinations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#data-destination-locations">Data Destination Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#data-destination-types">Data Destination Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optional-image-export">Optional image export</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#data-transformations">Data Transformations</a><ul>

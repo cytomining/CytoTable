@@ -8,7 +8,8 @@ We’ve split material by audience:
 
 ```{admonition} Who this helps (and doesn’t)
 - Helps: image analysts who want to get CellProfiler/DeepProfiler/InCarta outputs into Parquet with minimal coding; people comfortable running a few commands.
-- Not ideal: raw image ingestion or pipeline authoring (use CellProfiler/DeepProfiler upstream); workflows needing a GUI-only experience.
+- Also helps: users who want a local Iceberg warehouse with a separate OME-Arrow image crop table.
+- Not ideal: full image analysis pipeline authoring (use CellProfiler/DeepProfiler upstream); workflows needing a GUI-only experience.
 - Effort: install, copy/paste a few commands, validate outputs in minutes.
 ```
 
@@ -18,6 +19,7 @@ maxdepth: 2
 caption: Tutorials (start here)
 ---
 tutorials/cellprofiler_to_parquet
+tutorials/iceberg_warehouse_with_images
 tutorials/npz_embeddings_to_parquet
 tutorials/multi_plate_merge_tablenumber
 ```

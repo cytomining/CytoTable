@@ -46,7 +46,8 @@ We’ve split material by audience:</p>
 <p class="admonition-title">Who this helps (and doesn’t)</p>
 <ul class="simple">
 <li><p>Helps: image analysts who want to get CellProfiler/DeepProfiler/InCarta outputs into Parquet with minimal coding; people comfortable running a few commands.</p></li>
-<li><p>Not ideal: raw image ingestion or pipeline authoring (use CellProfiler/DeepProfiler upstream); workflows needing a GUI-only experience.</p></li>
+<li><p>Also helps: users who want a local Iceberg warehouse with a separate OME-Arrow image crop table.</p></li>
+<li><p>Not ideal: full image analysis pipeline authoring (use CellProfiler/DeepProfiler upstream); workflows needing a GUI-only experience.</p></li>
 <li><p>Effort: install, copy/paste a few commands, validate outputs in minutes.</p></li>
 </ul>
 </div>
@@ -62,6 +63,18 @@ We’ve split material by audience:</p>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#step-2-run-the-conversion-minimal-python">Step 2: run the conversion (minimal Python)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#step-3-check-that-the-outputs-look-right">Step 3: check that the outputs look right</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#what-success-looks-like">What success looks like</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html">Tutorial: Linking CellProfiler morphology features with single-cell image crops</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#what-you-will-accomplish">What you will accomplish</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#setup">Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#inputs-and-outputs">Inputs and outputs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#basic-warehouse-export">Basic warehouse export</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#add-image-crops-with-ome-arrow">Add image crops with OME-Arrow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#bounding-boxes">Bounding boxes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#segmentation-matching">Segmentation matching</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#reading-the-warehouse">Reading the warehouse</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#what-success-looks-like">What success looks like</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/npz_embeddings_to_parquet.html">Tutorial: NPZ embeddings + metadata to Parquet</a><ul>
@@ -150,6 +163,7 @@ It will be a directory when <code class="docutils literal notranslate"><span cla
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html">Tutorial: CellProfiler SQLite or CSV to Parquet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html">Tutorial: Linking CellProfiler morphology features with single-cell image crops</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/npz_embeddings_to_parquet.html">Tutorial: NPZ embeddings + metadata to Parquet</a></li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/multi_plate_merge_tablenumber.html">Tutorial: Merging multiple plates with Tablenumber</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#quick-recipe-cellprofiler-csv-to-parquet">Quick recipe: CellProfiler CSV to Parquet</a></li>

@@ -148,6 +148,7 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 <li class="toctree-l2"><a class="reference internal" href="overview.html#data-destinations">Data Destinations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="overview.html#data-destination-locations">Data Destination Locations</a></li>
 <li class="toctree-l3"><a class="reference internal" href="overview.html#data-destination-types">Data Destination Types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="overview.html#optional-image-export">Optional image export</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="overview.html#data-transformations">Data Transformations</a><ul>
@@ -169,6 +170,18 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 <li class="toctree-l3"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#step-2-run-the-conversion-minimal-python">Step 2: run the conversion (minimal Python)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#step-3-check-that-the-outputs-look-right">Step 3: check that the outputs look right</a></li>
 <li class="toctree-l3"><a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#what-success-looks-like">What success looks like</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html">Tutorial: Linking CellProfiler morphology features with single-cell image crops</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#what-you-will-accomplish">What you will accomplish</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#setup">Setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#inputs-and-outputs">Inputs and outputs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#basic-warehouse-export">Basic warehouse export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#add-image-crops-with-ome-arrow">Add image crops with OME-Arrow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#bounding-boxes">Bounding boxes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#segmentation-matching">Segmentation matching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#reading-the-warehouse">Reading the warehouse</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tutorials/iceberg_warehouse_with_images.html#what-success-looks-like">What success looks like</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="tutorials/npz_embeddings_to_parquet.html">Tutorial: NPZ embeddings + metadata to Parquet</a><ul>
@@ -204,6 +217,11 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 <li class="toctree-l2"><a class="reference internal" href="examples/cytotable_from_the_cloud.html">CytoTable from the cloud (using cloud-based data sources)</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="examples/cytotable_from_the_cloud.html#using-cytotable-with-cloud-based-csv-s">Using CytoTable with cloud-based CSV’s</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/cytotable_from_the_cloud.html#using-cytotable-with-cloud-based-sqlite-databases">Using CytoTable with cloud-based SQLite databases</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/cytotable_with_profiles_and_images.html">CytoTable with Iceberg profiles and images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/cytotable_with_profiles_and_images.html#build-an-iceberg-warehouse-with-joined-profiles-image-crops-and-source-images">Build an Iceberg warehouse with joined profiles, image crops, and source images</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cytotable_with_profiles_and_images.html#show-a-cropped-image-next-to-profile-values">Show a cropped image next to profile values</a></li>
 </ul>
 </li>
 </ul>
@@ -292,6 +310,49 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._set_tablenumber"><code class="docutils literal notranslate"><span class="pre">_set_tablenumber()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._prepend_column_name"><code class="docutils literal notranslate"><span class="pre">_prepend_column_name()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._source_pageset_to_parquet"><code class="docutils literal notranslate"><span class="pre">_source_pageset_to_parquet()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.warehouse.access">Access</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.access.list_tables"><code class="docutils literal notranslate"><span class="pre">list_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.access.read_table"><code class="docutils literal notranslate"><span class="pre">read_table()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.warehouse.iceberg">Iceberg</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.iceberg.TinyCatalog"><code class="docutils literal notranslate"><span class="pre">TinyCatalog</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.iceberg.catalog"><code class="docutils literal notranslate"><span class="pre">catalog()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.iceberg.describe_iceberg_warehouse"><code class="docutils literal notranslate"><span class="pre">describe_iceberg_warehouse()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.iceberg.list_iceberg_tables"><code class="docutils literal notranslate"><span class="pre">list_iceberg_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.iceberg.read_iceberg_table"><code class="docutils literal notranslate"><span class="pre">read_iceberg_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.iceberg.write_iceberg_warehouse"><code class="docutils literal notranslate"><span class="pre">write_iceberg_warehouse()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.warehouse.images">Images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.BBoxColumns"><code class="docutils literal notranslate"><span class="pre">BBoxColumns</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.FileIndex"><code class="docutils literal notranslate"><span class="pre">FileIndex</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._build_file_index"><code class="docutils literal notranslate"><span class="pre">_build_file_index()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._build_stable_image_crop_id"><code class="docutils literal notranslate"><span class="pre">_build_stable_image_crop_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._build_stable_object_id"><code class="docutils literal notranslate"><span class="pre">_build_stable_object_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._build_stable_source_image_id"><code class="docutils literal notranslate"><span class="pre">_build_stable_source_image_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._crop_ome_arrow"><code class="docutils literal notranslate"><span class="pre">_crop_ome_arrow()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._extract_image_key_fields"><code class="docutils literal notranslate"><span class="pre">_extract_image_key_fields()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._extract_key_fields"><code class="docutils literal notranslate"><span class="pre">_extract_key_fields()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._find_matching_segmentation_path"><code class="docutils literal notranslate"><span class="pre">_find_matching_segmentation_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._local_image_io_path"><code class="docutils literal notranslate"><span class="pre">_local_image_io_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._normalize_file_value"><code class="docutils literal notranslate"><span class="pre">_normalize_file_value()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._read_ome_arrow"><code class="docutils literal notranslate"><span class="pre">_read_ome_arrow()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._relative_index_key"><code class="docutils literal notranslate"><span class="pre">_relative_index_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._require_ome_arrow"><code class="docutils literal notranslate"><span class="pre">_require_ome_arrow()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._resolve_image_columns"><code class="docutils literal notranslate"><span class="pre">_resolve_image_columns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._resolve_indexed_path"><code class="docutils literal notranslate"><span class="pre">_resolve_indexed_path()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._strip_null_fields_from_type"><code class="docutils literal notranslate"><span class="pre">_strip_null_fields_from_type()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._strip_null_fields_from_value"><code class="docutils literal notranslate"><span class="pre">_strip_null_fields_from_value()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images._validated_bbox_values"><code class="docutils literal notranslate"><span class="pre">_validated_bbox_values()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.add_object_id_to_profiles_frame"><code class="docutils literal notranslate"><span class="pre">add_object_id_to_profiles_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.image_crop_table_from_joined_chunk"><code class="docutils literal notranslate"><span class="pre">image_crop_table_from_joined_chunk()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.object_id"><code class="docutils literal notranslate"><span class="pre">object_id()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.profile_with_images_frame"><code class="docutils literal notranslate"><span class="pre">profile_with_images_frame()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.resolve_bbox_columns"><code class="docutils literal notranslate"><span class="pre">resolve_bbox_columns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk"><code class="docutils literal notranslate"><span class="pre">source_image_table_from_joined_chunk()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.sources">Sources</a><ul>
