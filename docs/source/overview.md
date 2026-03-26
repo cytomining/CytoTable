@@ -142,11 +142,38 @@ Specify the converted data destination using the  :code:`convert(..., dest_path=
   Parquet data destination type may be specified by using :code:`convert(..., dest_datatype="parquet", ...)` (:mod:`convert() <cytotable.convert.convert>`).
 ```
 
+- __Apache Iceberg warehouse__: Iceberg is a way to organize a warehouse
+  directory that contains multiple related tables, along with metadata that
+  tracks how those tables change over time so reads stay consistent.
+  CytoTable uses Iceberg as an optional local warehouse backend which
+  can store a materialized `profiles.joined_profiles` table, optional
+  `images.image_crops` and `images.source_images` tables, and a
+  `profiles.profile_with_images` view. In plain terms, this means one warehouse
+  can hold profile features, image data, and saved relationships between them.
+  These saved views help express relationships between tables without storing
+  every combined result as another table. Under the hood, an Iceberg warehouse
+  may be backed by multiple files such as metadata files and table data files
+  rather than a single output file.
+
+```{eval-rst}
+  Iceberg warehouse export may be specified by using :code:`convert(..., dest_backend="iceberg", dest_path="warehouse_dir", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
 - __scverse anndata (`.h5ad`, `.zarr`)__: anndata is a Python package and data format for handling annotated data matrices which uses pandas and xarray to enable data management.
   It offers many computationally efficient features including, among others, sparse data support, lazy operations, and a PyTorch interface. ([reference](https://anndata.readthedocs.io/en/stable/index.html))
 
 ```{eval-rst}
   Anndata data destination type may be specified by using :code:`convert(..., dest_datatype="anndata_h5ad", ...)` (:mod:`convert() <cytotable.convert.convert>`) or :code:`convert(..., dest_datatype="anndata_zarr", ...)` (:mod:`convert() <cytotable.convert.convert>`).
+```
+
+### Optional image export
+
+```{eval-rst}
+When using the Iceberg backend, CytoTable may also export a separate image-crop table by providing :code:`image_dir` to :mod:`convert() <cytotable.convert.convert>`.
+Here, an "image-crop table" means a table where each row stores one cropped single-cell image linked back to the corresponding profile row.
+This table stores cropped images as OME-Arrow objects, meaning structured image records that keep image data together with related metadata. The table may also include mask and outline images through :code:`mask_dir`, :code:`outline_dir`, and :code:`segmentation_file_regex`.
+Set :code:`include_source_images=True` to also store full source images in :code:`images.source_images`.
+These image, mask, and outline inputs may be local paths or remote object-storage paths, and they use the same :code:`convert(..., **kwargs)` cloud configuration pattern described above for other CytoTable inputs.
 ```
 
 ## Data Transformations

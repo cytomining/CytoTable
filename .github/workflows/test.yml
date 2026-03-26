@@ -36,8 +36,12 @@ jobs:
           rm poetry.lock
       - name: Setup for poetry
         uses: ./.github/actions/setup-poetry
-      - name: Install environment
-        run: poetry install --no-interaction --no-ansi
+      - name: Install environment with Iceberg support
+        if: matrix.python_version == '3.10'
+        run: poetry install --no-interaction --no-ansi --extras "iceberg"
+      - name: Install environment with Iceberg and image support
+        if: matrix.python_version != '3.10'
+        run: poetry install --no-interaction --no-ansi --extras "iceberg-images"
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
       - name: Run pytest
@@ -57,7 +61,7 @@ jobs:
           python-version: "3.11"
       - name: Setup for poetry
         uses: ./.github/actions/setup-poetry
-      - name: Install environment
-        run: poetry install --no-interaction --no-ansi
+      - name: Install environment with Iceberg and image support
+        run: poetry install --no-interaction --no-ansi --extras "iceberg-images"
       - name: Run pytest for large data tests
         run: poetry run pytest -m "large_data_tests"

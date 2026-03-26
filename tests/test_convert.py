@@ -6,13 +6,17 @@ Note: these use the _default_parsl_config.
 
 # pylint: disable=no-member,too-many-lines,unused-argument
 
+import importlib
 import itertools
 import os
 import pathlib
+from importlib.util import find_spec
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
+from unittest.mock import MagicMock, Mock
 
 import duckdb
+import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pytest
@@ -43,6 +47,9 @@ from cytotable.utils import (
     _write_parquet_table_with_metadata,
     evaluate_futures,
 )
+from cytotable.warehouse.iceberg import read_iceberg_table
+
+convert_module = importlib.import_module("cytotable.convert")
 
 
 def test_config():
@@ -162,6 +169,222 @@ def test_existing_dest_path(fx_tempdir: str, data_dir_cellprofiler_sqlite_nf1: s
             dest_path=".",
             dest_datatype="parquet",
             preset="cellprofiler_sqlite_pycytominer",
+        )
+
+
+def test_invalid_dest_backend():
+    """
+    Tests running cytotable.convert with an invalid dest_backend.
+    """
+
+    with pytest.raises(
+        CytoTableException,
+        match=r"Invalid dest_backend provided: invalid",
+    ):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            dest_backend="invalid",  # type: ignore[arg-type]
+        )
+
+
+def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
+    """
+    Tests convert dispatch for the iceberg backend.
+    """
+
+    write_iceberg_warehouse = Mock(return_value="example_warehouse")
+    monkeypatch.setattr(
+        "cytotable.warehouse.iceberg.write_iceberg_warehouse",
+        write_iceberg_warehouse,
+    )
+
+    result = convert(
+        source_path="example.sqlite",
+        dest_path="example_warehouse",
+        dest_backend="iceberg",
+        dest_datatype="parquet",
+        preset=None,
+    )
+
+    assert result == "example_warehouse"
+    write_iceberg_warehouse.assert_called_once_with(
+        source_path="example.sqlite",
+        warehouse_path="example_warehouse",
+        source_datatype=None,
+        metadata=None,
+        compartments=None,
+        identifying_columns=None,
+        joins=None,
+        chunk_size=None,
+        infer_common_schema=True,
+        data_type_cast_map=None,
+        add_tablenumber=None,
+        page_keys=None,
+        image_dir=None,
+        include_source_images=False,
+        mask_dir=None,
+        outline_dir=None,
+        segmentation_file_regex=None,
+        bbox_column_map=None,
+        sort_output=True,
+        preset=None,
+        parsl_config=None,
+    )
+
+
+def test_convert_preserves_positional_dest_datatype(monkeypatch: pytest.MonkeyPatch):
+    """
+    Tests backward-compatible positional dest_datatype handling.
+    """
+
+    run_export_workflow = Mock(return_value="example.h5ad")
+    monkeypatch.setattr(convert_module, "_run_export_workflow", run_export_workflow)
+    monkeypatch.setattr(convert_module, "_parsl_loaded", lambda: True)
+
+    result = convert(
+        "example.sqlite",
+        "example.h5ad",
+        "anndata_h5ad",
+        page_keys={"join": "Metadata_ImageNumber"},
+        preset=None,
+    )
+
+    assert result == "example.h5ad"
+    assert run_export_workflow.call_args.kwargs["dest_datatype"] == "anndata_h5ad"
+    assert run_export_workflow.call_args.kwargs["dest_path"] == "example.h5ad"
+
+
+def test_convert_cleans_up_parsl_when_validation_raises(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Tests Parsl cleanup when convert raises after loading Parsl.
+    """
+
+    cleanup = MagicMock()
+    monkeypatch.setattr(convert_module, "_parsl_loaded", Mock(return_value=False))
+    monkeypatch.setattr(convert_module.parsl, "load", MagicMock())
+    monkeypatch.setattr(
+        convert_module.parsl,
+        "dfk",
+        MagicMock(return_value=MagicMock(cleanup=cleanup)),
+    )
+    monkeypatch.setattr(convert_module, "_expand_path", pathlib.Path)
+
+    with pytest.raises(CytoTableException, match=r"join=True.*page_keys"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            preset=None,
+            join=True,
+            page_keys=None,
+        )
+
+    cleanup.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"concat": False}, "concat=False"),
+        ({"join": False}, "join=False"),
+        ({"drop_null": True}, "drop_null=True"),
+    ],
+)
+def test_iceberg_rejects_parquet_only_flow_controls(
+    kwargs: dict[str, bool], match: str
+):
+    """
+    Tests Iceberg validation for parquet-only flow control parameters.
+    """
+
+    with pytest.raises(CytoTableException, match=match):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example_warehouse",
+            dest_backend="iceberg",
+            dest_datatype="parquet",
+            preset=None,
+            **kwargs,
+        )
+
+
+def test_image_export_requires_iceberg_backend():
+    """
+    Tests image export validation for non-Iceberg destinations.
+    """
+
+    with pytest.raises(CytoTableException, match="dest_backend='iceberg'"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            image_dir="images",
+            join=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"bbox_column_map": {"x_min": "Cells_AreaShape_BoundingBoxMinimum_X"}},
+        {"segmentation_file_regex": {r".*_mask\.tiff$": r"(cell)\.tiff$"}},
+    ],
+)
+def test_image_export_ancillary_options_require_iceberg_backend(
+    kwargs: dict[str, dict[str, str]],
+):
+    """
+    Tests ancillary image export options for non-Iceberg destinations.
+    """
+
+    with pytest.raises(CytoTableException, match="dest_backend='iceberg'"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example.parquet",
+            image_dir="images",
+            join=True,
+            **kwargs,
+        )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"include_source_images": True},
+        {"mask_dir": "masks"},
+        {"outline_dir": "outlines"},
+        {"bbox_column_map": {"x_min": "Cells_AreaShape_BoundingBoxMinimum_X"}},
+        {"segmentation_file_regex": {r".*_mask\.tiff$": r"(cell)\.tiff$"}},
+    ],
+)
+def test_image_export_options_require_image_dir(kwargs: dict[str, object]):
+    """
+    Tests that image export options are rejected without image_dir.
+    """
+
+    with pytest.raises(CytoTableException, match="require image_dir"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example_warehouse",
+            dest_backend="iceberg",
+            join=True,
+            **kwargs,
+        )
+
+
+def test_image_export_requires_join():
+    """
+    Tests image export validation for join=False.
+    """
+
+    with pytest.raises(CytoTableException, match="join=True"):
+        convert(
+            source_path="example.sqlite",
+            dest_path="example_warehouse",
+            dest_backend="iceberg",
+            image_dir="images",
+            join=False,
         )
 
 
@@ -983,6 +1206,69 @@ def test_convert_cellprofiler_csv(
 
     assert test_result.shape == control_result.shape
     assert test_result.equals(control_result)
+
+
+@pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
+def test_convert_parquet_and_iceberg_joined_profiles_are_equivalent(
+    load_parsl_default: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+):
+    """
+    Tests that parquet and Iceberg profile exports agree on shared columns.
+    """
+
+    parquet_path = convert(
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{fx_tempdir}/ExampleHuman_profiles.parquet",
+        dest_datatype="parquet",
+        source_datatype="csv",
+        preset="cellprofiler_csv",
+    )
+    warehouse_path = convert(
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{fx_tempdir}/ExampleHuman_profiles_warehouse",
+        dest_backend="iceberg",
+        dest_datatype="parquet",
+        source_datatype="csv",
+        preset="cellprofiler_csv",
+    )
+
+    parquet_profiles = parquet.read_table(parquet_path).to_pandas()
+    iceberg_profiles = read_iceberg_table(warehouse_path, "joined_profiles")
+
+    shared_columns = sorted(
+        set(parquet_profiles.columns).intersection(iceberg_profiles.columns),
+        key=_column_sort,
+    )
+    extra_iceberg_columns = set(iceberg_profiles.columns).difference(
+        parquet_profiles.columns
+    )
+
+    assert extra_iceberg_columns.issubset(
+        {
+            "Metadata_ObjectID",
+            "Metadata_SourceBBoxXMin",
+            "Metadata_SourceBBoxXMax",
+            "Metadata_SourceBBoxYMin",
+            "Metadata_SourceBBoxYMax",
+        }
+    )
+
+    parquet_profiles = parquet_profiles[shared_columns].sort_values(
+        by=shared_columns,
+        na_position="first",
+    )
+    iceberg_profiles = iceberg_profiles[shared_columns].sort_values(
+        by=shared_columns,
+        na_position="first",
+    )
+
+    pd.testing.assert_frame_equal(
+        parquet_profiles.reset_index(drop=True),
+        iceberg_profiles.reset_index(drop=True),
+        check_like=True,
+    )
 
 
 def test_cast_data_types(

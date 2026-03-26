@@ -25,3 +25,13 @@ from .exceptions import (
     SchemaException,
 )
 from .presets import config
+from .warehouse import (
+    IMAGE_TABLE_NAME,
+    describe_iceberg_warehouse,
+    list_iceberg_tables,
+    list_tables,
+    object_id,
+    read_iceberg_table,
+    read_table,
+    write_iceberg_warehouse,
+)

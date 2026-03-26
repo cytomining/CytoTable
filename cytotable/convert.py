@@ -21,6 +21,7 @@ from cytotable.utils import (
     _parsl_loaded,
     evaluate_futures,
 )
+from cytotable.validation import validate_convert_backend_options
 
 logger = logging.getLogger(__name__)
 
@@ -1497,6 +1498,12 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     source_path: str,
     dest_path: str,
     dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"] = "parquet",
+    dest_backend: Literal["parquet", "iceberg"] = "parquet",
+    image_dir: Optional[str] = None,
+    include_source_images: bool = False,
+    mask_dir: Optional[str] = None,
+    outline_dir: Optional[str] = None,
+    segmentation_file_regex: Optional[Dict[str, str]] = None,
     source_datatype: Optional[str] = None,
     metadata: Optional[Union[List[str], Tuple[str, ...]]] = None,
     compartments: Optional[Union[List[str], Tuple[str, ...]]] = None,
@@ -1510,6 +1517,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     data_type_cast_map: Optional[Dict[str, str]] = None,
     add_tablenumber: Optional[bool] = None,
     page_keys: Optional[Dict[str, str]] = None,
+    bbox_column_map: Optional[Dict[str, str]] = None,
     sort_output: bool = True,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
@@ -1527,13 +1535,51 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Note: may be local or remote object-storage location
             using convention "s3://..." or similar.
         dest_path: str:
-            Path to write files to. This path will be used for
-            intermediary data work and must be a new file or directory path.
+            Path to write files to. Setting `dest_backend="parquet"` will trigger CytoTable to use the provided path to perform
+            intermediary data processing. The path must represent a new file or directory.
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
-            Note: this may only be a local path.
+            Setting `dest_backend="iceberg"` will trigger CytoTable to use the provided path as the local warehouse root
+            directory. CytoTable still stages parquet files internally (during write),
+            but these intermediary files are temporary and automatically deleted following write
+            of the final output at `dest_path`.
+        dest_backend: Literal["parquet", "iceberg"]:
+            Output backend to write to. Defaults to `"parquet"`. Use
+            `"iceberg"` to store processed CytoTable tables in a local
+            Iceberg warehouse.
         dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
-            Output destination datatype to write to.
+            Output destination datatype to write to. CytoTable uses this
+            value when the selected backend is `"parquet"`. For
+            `dest_backend="iceberg"`, CytoTable currently requires
+            `dest_datatype="parquet"` because CytoTable uses parquet as the
+            temporary staging format before it writes data into the Iceberg
+            warehouse.
+        image_dir: Optional[str]
+            Optional directory or cloud object-storage prefix of source images
+            aligned with the experiment of interest. CytoTable uses this input
+            to build OME-Arrow image crops and, when
+            `include_source_images=True`, full-image rows in
+            the iceberg table called `images.source_images`. Requires `dest_backend="iceberg"`.
+        include_source_images: bool
+            Whether to also store full source images in an Iceberg
+            `images.source_images` table. Requires `image_dir` and
+            `dest_backend="iceberg"`.
+        mask_dir: Optional[str]
+            Optional directory or cloud object-storage prefix of segmentation
+            masks corresponding to images within `image_dir`. CytoTable uses these files to
+            populate `ome_arrow_label` when no outline image is available.
+            Requires `dest_backend="iceberg"`.
+        outline_dir: Optional[str]
+            Optional directory or cloud object-storage prefix of outline images
+            corresponding to images within `image_dir`. CytoTable uses these files to populate
+            `ome_arrow_label` before falling back to `mask_dir`. Requires
+            `dest_backend="iceberg"`.
+        segmentation_file_regex: Optional[Dict[str, str]]
+            Optional regex mapping of segmentation filename patterns to source
+            image filename patterns to link masks and/or outlines. For example,
+            use `{r".*_outline\\.tiff$": r"(plateA_well_B03_site_1)\\.tiff$"}`
+            when outline files and source images do not share the same
+            basename. Requires `dest_backend="iceberg"`.
         source_datatype: Optional[str]:  (Default value = None)
             Source datatype to focus on during conversion.
         metadata: Union[List[str], Tuple[str, ...]]:
@@ -1569,6 +1615,13 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Expects columns to include numeric data (ints or floats).
             Interacts with the `chunk_size` parameter to form
             pages of `chunk_size`.
+        bbox_column_map: Optional[Dict[str, str]]
+            Optional dictionary that explicitly maps image crop bounding box columns using
+            keys `x_min`, `x_max`, `y_min`, and `y_max`. For Iceberg profile
+            exports, CytoTable recodes the provided bounding box value pairs as new columns in
+            `joined_profiles` as `Metadata_SourceBBoxXMin`,
+            `Metadata_SourceBBoxXMax`, `Metadata_SourceBBoxYMin`, and
+            `Metadata_SourceBBoxYMax`.
         sort_output: bool (Default value = True)
             Specifies whether to sort cytotable output or not.
         drop_null: bool (Default value = False)
@@ -1621,6 +1674,49 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
     """
 
+    validate_convert_backend_options(
+        dest_backend=dest_backend,
+        dest_datatype=dest_datatype,
+        image_dir=image_dir,
+        include_source_images=include_source_images,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        bbox_column_map=bbox_column_map,
+        segmentation_file_regex=segmentation_file_regex,
+        concat=concat,
+        join=join,
+        drop_null=drop_null,
+    )
+
+    if dest_backend == "iceberg":
+
+        from cytotable.warehouse.iceberg import write_iceberg_warehouse
+
+        return write_iceberg_warehouse(
+            source_path=source_path,
+            warehouse_path=dest_path,
+            source_datatype=source_datatype,
+            metadata=metadata,
+            compartments=compartments,
+            identifying_columns=identifying_columns,
+            joins=joins,
+            chunk_size=chunk_size,
+            infer_common_schema=infer_common_schema,
+            data_type_cast_map=data_type_cast_map,
+            add_tablenumber=add_tablenumber,
+            page_keys=cast(Optional[Dict[str, str]], page_keys),
+            image_dir=image_dir,
+            include_source_images=include_source_images,
+            mask_dir=mask_dir,
+            outline_dir=outline_dir,
+            segmentation_file_regex=segmentation_file_regex,
+            bbox_column_map=bbox_column_map,
+            sort_output=sort_output,
+            preset=preset,
+            parsl_config=parsl_config,
+            **kwargs,
+        )
+
     # check that our destination type is valid
     if dest_datatype not in ["parquet", "anndata_h5ad", "anndata_zarr"]:
         raise DatatypeException(
@@ -1646,6 +1742,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             )
         )
 
+    parsl_loaded_here = False
+
     # attempt to load parsl configuration if we didn't already load one
     if not _parsl_loaded():
         # if we don't have a parsl configuration provided, load the default
@@ -1654,77 +1752,82 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         else:
             # else we attempt to load the given parsl configuration
             parsl.load(parsl_config)
+        parsl_loaded_here = True
     else:
         # otherwise warn the user about previous config.
         logger.warning("Reusing previously loaded Parsl configuration.")
 
-    # optionally load preset configuration for arguments
-    # note: defer to overrides from parameters whose values
-    # are not None (allows intermixing of presets and overrides)
-    if preset is not None:
-        metadata = (
-            cast(list, config[preset]["CONFIG_NAMES_METADATA"])
-            if metadata is None
-            else metadata
-        )
-        compartments = (
-            cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
-            if compartments is None
-            else compartments
-        )
-        identifying_columns = (
-            cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
-            if identifying_columns is None
-            else identifying_columns
-        )
-        joins = cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
-        chunk_size = (
-            cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
-            if chunk_size is None
-            else chunk_size
-        )
-        page_keys = (
-            cast(dict, config[preset]["CONFIG_PAGE_KEYS"])
-            if page_keys is None
-            else page_keys
-        )
-
-    # Raise an exception for scenarios where one configures CytoTable to join
-    # but does not provide a pagination key for the joins.
-    if join and (page_keys is None or "join" not in page_keys.keys()):
-        raise CytoTableException(
-            (
-                "When using join=True one must pass a 'join' pagination key "
-                "in the page_keys parameter. The 'join' pagination key is a column "
-                "name found within the joined results based on the SQL provided from "
-                "the joins parameter. This special key is required as not all columns "
-                "from the source tables might not be included."
+    try:
+        # optionally load preset configuration for arguments
+        # note: defer to overrides from parameters whose values
+        # are not None (allows intermixing of presets and overrides)
+        if preset is not None:
+            metadata = (
+                cast(list, config[preset]["CONFIG_NAMES_METADATA"])
+                if metadata is None
+                else metadata
             )
+            compartments = (
+                cast(list, config[preset]["CONFIG_NAMES_COMPARTMENTS"])
+                if compartments is None
+                else compartments
+            )
+            identifying_columns = (
+                cast(list, config[preset]["CONFIG_IDENTIFYING_COLUMNS"])
+                if identifying_columns is None
+                else identifying_columns
+            )
+            joins = (
+                cast(str, config[preset]["CONFIG_JOINS"]) if joins is None else joins
+            )
+            chunk_size = (
+                cast(int, config[preset]["CONFIG_CHUNK_SIZE"])
+                if chunk_size is None
+                else chunk_size
+            )
+            page_keys = (
+                cast(dict, config[preset]["CONFIG_PAGE_KEYS"])
+                if page_keys is None
+                else page_keys
+            )
+
+        # Raise an exception for scenarios where one configures CytoTable to join
+        # but does not provide a pagination key for the joins.
+        if join and (page_keys is None or "join" not in page_keys.keys()):
+            raise CytoTableException(
+                (
+                    "When using join=True one must pass a 'join' pagination key "
+                    "in the page_keys parameter. The 'join' pagination key is a column "
+                    "name found within the joined results based on the SQL provided from "
+                    "the joins parameter. This special key is required as not all columns "
+                    "from the source tables might not be included."
+                )
+            )
+
+        # send sources to be written to parquet if selected
+        output = _run_export_workflow(
+            source_path=source_path,
+            dest_path=dest_path,
+            dest_datatype=dest_datatype,
+            source_datatype=source_datatype,
+            metadata=metadata,
+            compartments=compartments,
+            identifying_columns=identifying_columns,
+            concat=concat,
+            join=join,
+            joins=joins,
+            chunk_size=chunk_size,
+            infer_common_schema=infer_common_schema,
+            drop_null=drop_null,
+            data_type_cast_map=data_type_cast_map,
+            add_tablenumber=add_tablenumber,
+            sort_output=sort_output,
+            page_keys=cast(dict, page_keys),
+            **kwargs,
         )
 
-    # send sources to be written to parquet if selected
-    output = _run_export_workflow(
-        source_path=source_path,
-        dest_path=dest_path,
-        dest_datatype=dest_datatype,
-        source_datatype=source_datatype,
-        metadata=metadata,
-        compartments=compartments,
-        identifying_columns=identifying_columns,
-        concat=concat,
-        join=join,
-        joins=joins,
-        chunk_size=chunk_size,
-        infer_common_schema=infer_common_schema,
-        drop_null=drop_null,
-        data_type_cast_map=data_type_cast_map,
-        add_tablenumber=add_tablenumber,
-        sort_output=sort_output,
-        page_keys=cast(dict, page_keys),
-        **kwargs,
-    )
-
-    # cleanup Parsl executor and related
-    parsl.dfk().cleanup()
-
-    return output
+        return output
+    finally:
+        # cleanup Parsl executor and related only if this call loaded it
+        if parsl_loaded_here:
+            parsl.dfk().cleanup()
