@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cytotable.convert &#8212; CytoTable v0.0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=99150370" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=01d9ba92" />
@@ -471,32 +471,32 @@ window.addEventListener("load", load);</script>
 <span class="sd">CytoTable: convert - transforming data for use with pyctyominer.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">itertools</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
-<span class="kn">import</span> <span class="nn">parsl</span>
-<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-<span class="kn">from</span> <span class="nn">parsl.app.app</span> <span class="kn">import</span> <span class="n">python_app</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">parsl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsl.app.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">python_app</span>
 
-<span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">CytoTableException</span><span class="p">,</span> <span class="n">DatatypeException</span>
-<span class="kn">from</span> <span class="nn">cytotable.presets</span> <span class="kn">import</span> <span class="n">config</span>
-<span class="kn">from</span> <span class="nn">cytotable.sources</span> <span class="kn">import</span> <span class="n">_gather_sources</span>
-<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CytoTableException</span><span class="p">,</span> <span class="n">DatatypeException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.presets</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gather_sources</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">_column_sort</span><span class="p">,</span>
     <span class="n">_default_parsl_config</span><span class="p">,</span>
     <span class="n">_expand_path</span><span class="p">,</span>
     <span class="n">_parsl_loaded</span><span class="p">,</span>
     <span class="n">evaluate_futures</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">cytotable.validation</span> <span class="kn">import</span> <span class="n">validate_convert_backend_options</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_convert_backend_options</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_get_table_columns_and_types</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_table_columns_and_types</span><span class="p">(</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -514,9 +514,9 @@ window.addEventListener("load", load);</script>
 <span class="sd">            list of dictionaries which each include column level information</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">duckdb</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
 
     <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
     <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
@@ -600,7 +600,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_prep_cast_column_data_types</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prep_cast_column_data_types</span><span class="p">(</span>
     <span class="n">columns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -629,9 +629,9 @@ window.addEventListener("load", load);</script>
 <span class="sd">            list of dictionaries which each include column level information</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_arrow_type_cast_if_specified</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_arrow_type_cast_if_specified</span>
 
     <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
@@ -652,7 +652,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_set_tablenumber</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_set_tablenumber</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">add_tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
@@ -682,9 +682,9 @@ window.addEventListener("load", load);</script>
 <span class="sd">            New source group with added TableNumber details.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_gather_tablenumber_checksum</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gather_tablenumber_checksum</span>
 
     <span class="n">image_table_groups</span> <span class="o">=</span> <span class="p">{</span>
         <span class="c1"># create a data structure with the common parent for each dataset</span>
@@ -752,7 +752,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_get_table_keyset_pagination_sets</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_table_keyset_pagination_sets</span><span class="p">(</span>
     <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -784,14 +784,14 @@ window.addEventListener("load", load);</script>
 <span class="sd">            List of keys to use for reading the data later on.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">logging</span>
-    <span class="kn">import</span> <span class="nn">sqlite3</span>
-    <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">closing</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">closing</span>
 
-    <span class="kn">import</span> <span class="nn">duckdb</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">NoInputDataException</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_generate_pagesets</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoInputDataException</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_generate_pagesets</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -853,7 +853,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_source_pageset_to_parquet</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_pageset_to_parquet</span><span class="p">(</span>
     <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">pageset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]],</span>
@@ -881,12 +881,12 @@ window.addEventListener("load", load);</script>
 <span class="sd">            A string of the output filepath.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
-    <span class="kn">import</span> <span class="nn">duckdb</span>
-    <span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_duckdb_reader</span><span class="p">,</span>
         <span class="n">_extract_npz_to_parquet</span><span class="p">,</span>
         <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">,</span>
@@ -1012,7 +1012,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_prepend_column_name</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepend_column_name</span><span class="p">(</span>
     <span class="n">table_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">identifying_columns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1044,13 +1044,13 @@ window.addEventListener("load", load);</script>
 <span class="sd">            Path to the modified file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">logging</span>
-    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_write_parquet_table_with_metadata</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -1155,7 +1155,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_concat_source_group</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_concat_source_group</span><span class="p">(</span>
     <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1215,18 +1215,18 @@ window.addEventListener("load", load);</script>
 <span class="sd">            Updated dictionary containing concatenated sources.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">errno</span>
-    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
-    <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
         <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">cytotable.exceptions</span> <span class="kn">import</span> <span class="n">SchemaException</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_natural_sort</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SchemaException</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_natural_sort</span>
 
     <span class="c1"># build a result placeholder</span>
     <span class="n">concatted</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
@@ -1309,7 +1309,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">_prepare_join_sql</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_prepare_join_sql</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1330,7 +1330,7 @@ window.addEventListener("load", load);</script>
 <span class="sd">        str:</span>
 <span class="sd">            String representing the SQL to be used in later join work.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
     <span class="c1"># replace with real location of sources for join sql</span>
     <span class="n">order_by_tables</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1348,7 +1348,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_join_source_pageset</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_join_source_pageset</span><span class="p">(</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1377,9 +1377,9 @@ window.addEventListener("load", load);</script>
 <span class="sd">            Path to joined file which is created as a result of this function.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_write_parquet_table_with_metadata</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_write_parquet_table_with_metadata</span>
 
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
@@ -1431,7 +1431,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_concat_join_sources</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_concat_join_sources</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">join_sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1463,17 +1463,17 @@ window.addEventListener("load", load);</script>
 <span class="sd">            Path to concatenated file which is created as a result of this function.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">pathlib</span>
-    <span class="kn">import</span> <span class="nn">shutil</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 
-    <span class="kn">import</span> <span class="nn">anndata</span> <span class="k">as</span> <span class="nn">ad</span>
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">anndata</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ad</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.constants</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
         <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_duckdb_reader</span><span class="p">,</span>
         <span class="n">_natural_sort</span><span class="p">,</span>
         <span class="n">find_anndata_metadata_field_names</span><span class="p">,</span>
@@ -1565,7 +1565,7 @@ window.addEventListener("load", load);</script>
 
 
 <span class="nd">@python_app</span>
-<span class="k">def</span> <span class="nf">_infer_source_group_common_schema</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_source_group_common_schema</span><span class="p">(</span>
     <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">]]:</span>
@@ -1588,10 +1588,10 @@ window.addEventListener("load", load);</script>
 <span class="sd">            This data will later be used as the basis for forming a PyArrow schema.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-    <span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 
-    <span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">map_pyarrow_type</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_pyarrow_type</span>
 
     <span class="c1"># Read the first file to establish the base schema</span>
     <span class="n">common_schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -1665,7 +1665,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_run_export_workflow">
 <a class="viewcode-back" href="../../python-api.html#cytotable.convert._run_export_workflow">[docs]</a>
-<span class="k">def</span> <span class="nf">_run_export_workflow</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments, too-many-locals</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_run_export_workflow</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments, too-many-locals</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -1968,7 +1968,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="convert">
 <a class="viewcode-back" href="../../python-api.html#cytotable.convert.convert">[docs]</a>
-<span class="k">def</span> <span class="nf">convert</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments,too-many-locals</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments,too-many-locals</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
@@ -2164,7 +2164,7 @@ window.addEventListener("load", load);</script>
 
     <span class="k">if</span> <span class="n">dest_backend</span> <span class="o">==</span> <span class="s2">&quot;iceberg&quot;</span><span class="p">:</span>
 
-        <span class="kn">from</span> <span class="nn">cytotable.warehouse.iceberg</span> <span class="kn">import</span> <span class="n">write_iceberg_warehouse</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.warehouse.iceberg</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_iceberg_warehouse</span>
 
         <span class="k">return</span> <span class="n">write_iceberg_warehouse</span><span class="p">(</span>
             <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>

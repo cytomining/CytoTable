@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cytotable.warehouse.images &#8212; CytoTable v0.0.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=99150370" />
     <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
     <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=01d9ba92" />
@@ -471,23 +471,23 @@ window.addEventListener("load", load);</script>
 <span class="sd">Helpers for exporting image crops alongside CytoTable measurement data.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">pathlib</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">dataclass</span>
-<span class="kn">from</span> <span class="nn">json</span> <span class="kn">import</span> <span class="n">dumps</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
-<span class="kn">from</span> <span class="nn">uuid</span> <span class="kn">import</span> <span class="n">NAMESPACE_URL</span><span class="p">,</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span><span class="p">,</span> <span class="n">uuid5</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">NAMESPACE_URL</span><span class="p">,</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span><span class="p">,</span> <span class="n">uuid5</span>
 
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">pyarrow</span> <span class="k">as</span> <span class="nn">pa</span>
-<span class="kn">import</span> <span class="nn">pyarrow.parquet</span> <span class="k">as</span> <span class="nn">parquet</span>
-<span class="kn">from</span> <span class="nn">cloudpathlib</span> <span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 
-<span class="kn">from</span> <span class="nn">cytotable.sources</span> <span class="kn">import</span> <span class="n">_build_path</span>
-<span class="kn">from</span> <span class="nn">cytotable.utils</span> <span class="kn">import</span> <span class="n">cloud_glob</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cloud_glob</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -511,7 +511,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="object_id">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.object_id">[docs]</a>
-<span class="k">def</span> <span class="nf">object_id</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">UUID</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;obj&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">object_id</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">UUID</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;obj&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a stable string identifier with a UUID-shaped payload.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -524,7 +524,7 @@ window.addEventListener("load", load);</script>
 <div class="viewcode-block" id="BBoxColumns">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.BBoxColumns">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">BBoxColumns</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BBoxColumns</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Bounding box column names for cropped image export.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -539,7 +539,7 @@ window.addEventListener("load", load);</script>
 <div class="viewcode-block" id="FileIndex">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.FileIndex">[docs]</a>
 <span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">FileIndex</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FileIndex</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Relative-path-first index for image-like files in a directory tree.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -555,18 +555,18 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_require_ome_arrow">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._require_ome_arrow">[docs]</a>
-<span class="k">def</span> <span class="nf">_require_ome_arrow</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_require_ome_arrow</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Import and return OME-Arrow objects needed for crop export.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="kn">from</span> <span class="nn">ome_arrow</span> <span class="kn">import</span> <span class="n">OMEArrow</span>  <span class="c1"># type: ignore</span>
-        <span class="kn">from</span> <span class="nn">ome_arrow.meta</span> <span class="kn">import</span> <span class="n">OME_ARROW_STRUCT</span>  <span class="c1"># type: ignore</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ome_arrow</span><span class="w"> </span><span class="kn">import</span> <span class="n">OMEArrow</span>  <span class="c1"># type: ignore</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ome_arrow.meta</span><span class="w"> </span><span class="kn">import</span> <span class="n">OME_ARROW_STRUCT</span>  <span class="c1"># type: ignore</span>
     <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
             <span class="s2">&quot;Image crop export requires the optional &#39;ome-arrow&#39; dependency.&quot;</span>
-        <span class="p">)</span> <span class="kn">from</span> <span class="nn">exc</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
 
     <span class="k">return</span> <span class="n">OMEArrow</span><span class="p">,</span> <span class="n">OME_ARROW_STRUCT</span></div>
 
@@ -574,7 +574,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_strip_null_fields_from_type">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._strip_null_fields_from_type">[docs]</a>
-<span class="k">def</span> <span class="nf">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">data_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">data_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove null-typed fields from nested Arrow types for Iceberg compatibility.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -600,7 +600,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_strip_null_fields_from_value">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._strip_null_fields_from_value">[docs]</a>
-<span class="k">def</span> <span class="nf">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_strip_null_fields_from_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">data_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Remove values corresponding to null-typed nested Arrow fields.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -625,7 +625,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_normalize_file_value">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._normalize_file_value">[docs]</a>
-<span class="k">def</span> <span class="nf">_normalize_file_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_normalize_file_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Normalize a file-like value to a comparable path string.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -642,7 +642,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_relative_index_key">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._relative_index_key">[docs]</a>
-<span class="k">def</span> <span class="nf">_relative_index_key</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_relative_index_key</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span> <span class="n">root</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build a normalized relative key for a file under an index root.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -661,7 +661,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_local_image_io_path">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._local_image_io_path">[docs]</a>
-<span class="k">def</span> <span class="nf">_local_image_io_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_local_image_io_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a local path for image I/O, caching cloud files when needed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -676,7 +676,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_build_file_index">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_file_index">[docs]</a>
-<span class="k">def</span> <span class="nf">_build_file_index</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_file_index</span><span class="p">(</span>
     <span class="n">file_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileIndex</span><span class="p">:</span>
@@ -725,7 +725,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_resolve_indexed_path">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._resolve_indexed_path">[docs]</a>
-<span class="k">def</span> <span class="nf">_resolve_indexed_path</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_indexed_path</span><span class="p">(</span>
     <span class="n">normalized_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">file_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]:</span>
@@ -765,7 +765,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_find_matching_segmentation_path">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._find_matching_segmentation_path">[docs]</a>
-<span class="k">def</span> <span class="nf">_find_matching_segmentation_path</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_find_matching_segmentation_path</span><span class="p">(</span>
     <span class="n">data_value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">pattern_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
     <span class="n">file_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
@@ -864,7 +864,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_resolve_image_columns">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._resolve_image_columns">[docs]</a>
-<span class="k">def</span> <span class="nf">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Find joined-table columns that look like image filename columns.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -886,7 +886,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="resolve_bbox_columns">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.resolve_bbox_columns">[docs]</a>
-<span class="k">def</span> <span class="nf">resolve_bbox_columns</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_bbox_columns</span><span class="p">(</span>
     <span class="n">columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BBoxColumns</span><span class="p">]:</span>
@@ -971,7 +971,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_extract_key_fields">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._extract_key_fields">[docs]</a>
-<span class="k">def</span> <span class="nf">_extract_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extract practical measurement key fields to carry into the image table.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1008,7 +1008,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_extract_image_key_fields">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._extract_image_key_fields">[docs]</a>
-<span class="k">def</span> <span class="nf">_extract_image_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_image_key_fields</span><span class="p">(</span><span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Extract image-level key fields to carry into source image rows.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1031,7 +1031,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_build_stable_object_id">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_object_id">[docs]</a>
-<span class="k">def</span> <span class="nf">_build_stable_object_id</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_stable_object_id</span><span class="p">(</span>
     <span class="n">key_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">bbox</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1053,7 +1053,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_build_stable_image_crop_id">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_image_crop_id">[docs]</a>
-<span class="k">def</span> <span class="nf">_build_stable_image_crop_id</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_stable_image_crop_id</span><span class="p">(</span>
     <span class="n">key_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">image_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1079,7 +1079,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_build_stable_source_image_id">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_source_image_id">[docs]</a>
-<span class="k">def</span> <span class="nf">_build_stable_source_image_id</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_stable_source_image_id</span><span class="p">(</span>
     <span class="n">key_fields</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">image_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">image_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
@@ -1103,7 +1103,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_crop_ome_arrow">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._crop_ome_arrow">[docs]</a>
-<span class="k">def</span> <span class="nf">_crop_ome_arrow</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_crop_ome_arrow</span><span class="p">(</span>
     <span class="n">image_path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span>
     <span class="n">bbox</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
@@ -1130,7 +1130,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_read_ome_arrow">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._read_ome_arrow">[docs]</a>
-<span class="k">def</span> <span class="nf">_read_ome_arrow</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_read_ome_arrow</span><span class="p">(</span>
     <span class="n">image_path</span><span class="p">:</span> <span class="n">ImagePath</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -1147,7 +1147,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="_validated_bbox_values">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._validated_bbox_values">[docs]</a>
-<span class="k">def</span> <span class="nf">_validated_bbox_values</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_validated_bbox_values</span><span class="p">(</span>
     <span class="n">row</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span>
     <span class="n">bbox_columns</span><span class="p">:</span> <span class="n">BBoxColumns</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
@@ -1184,7 +1184,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="image_crop_table_from_joined_chunk">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.image_crop_table_from_joined_chunk">[docs]</a>
-<span class="k">def</span> <span class="nf">image_crop_table_from_joined_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">image_crop_table_from_joined_chunk</span><span class="p">(</span>
     <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1407,7 +1407,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="source_image_table_from_joined_chunk">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk">[docs]</a>
-<span class="k">def</span> <span class="nf">source_image_table_from_joined_chunk</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_image_table_from_joined_chunk</span><span class="p">(</span>
     <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1580,7 +1580,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="add_object_id_to_profiles_frame">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.add_object_id_to_profiles_frame">[docs]</a>
-<span class="k">def</span> <span class="nf">add_object_id_to_profiles_frame</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_object_id_to_profiles_frame</span><span class="p">(</span>
     <span class="n">joined_frame</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
@@ -1628,7 +1628,7 @@ window.addEventListener("load", load);</script>
 
 <div class="viewcode-block" id="profile_with_images_frame">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.profile_with_images_frame">[docs]</a>
-<span class="k">def</span> <span class="nf">profile_with_images_frame</span><span class="p">(</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">profile_with_images_frame</span><span class="p">(</span>
     <span class="n">joined_frame</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">image_frame</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
     <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
