@@ -2,12 +2,13 @@
 Utility functions for CytoTable
 """
 
+import fnmatch
 import logging
 import os
 import pathlib
 import sys
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 import boto3
 import duckdb
@@ -924,24 +925,77 @@ def find_anndata_metadata_field_names(
     return numeric_fields, non_numeric_fields
 
 
+def _glob_pattern_matches(rel_parts: Tuple[str, ...], pat_parts: List[str]) -> bool:
+    """
+    Match path components against pattern components using pathlib-glob
+    semantics: ``**`` matches zero or more components, ``*`` and ``?`` are
+    fnmatch wildcards within a single component, and matching is anchored at
+    the left of ``rel_parts``.
+    """
+    if not pat_parts:
+        return not rel_parts
+    head, *rest = pat_parts
+    if head == "**":
+        for i in range(len(rel_parts) + 1):
+            if _glob_pattern_matches(rel_parts[i:], rest):
+                return True
+        return False
+    if not rel_parts:
+        return False
+    if fnmatch.fnmatchcase(rel_parts[0], head):
+        return _glob_pattern_matches(rel_parts[1:], rest)
+    return False
+
+
 def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
     """
     Like ``Path.glob(pattern)``, but follows symlinked directories on every
     Python version CytoTable supports. ``Path.glob`` only gained
-    ``recurse_symlinks=True`` in 3.13; on 3.10–3.12 we walk the tree with
-    ``os.walk(followlinks=True)`` and apply the post-``**/`` portion of the
-    pattern at each visited directory.
+    ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the tree with
+    ``os.walk(followlinks=True)`` and match each entry's relative path
+    against the full pattern, so any pattern accepted by ``Path.glob`` works
+    across versions.
     """
     if sys.version_info >= (3, 13):
-        yield from start.glob(pattern, recurse_symlinks=True)
+        # ``Path.glob(recurse_symlinks=True)`` yields each reachable path,
+        # so two symlinks pointing at the same target produce duplicate
+        # entries. Deduplicate by real path. The 3.10-3.12 walker prunes
+        # alias directories before descent and so already yields unique
+        # paths.
+        seen: Set[str] = set()
+        for path in start.glob(pattern, recurse_symlinks=True):
+            real = os.path.realpath(path)
+            if real in seen:
+                continue
+            seen.add(real)
+            yield path
         return
 
-    if pattern.startswith("**/"):
-        local_pattern = pattern[3:]
-        for root, _dirs, _files in os.walk(str(start), followlinks=True):
-            yield from Path(root).glob(local_pattern)
-    else:
-        yield from start.glob(pattern)
+    yield from _walk_and_match(start, pattern)
+
+
+def _walk_and_match(start: Path, pattern: str) -> Iterator[Path]:
+    pat_parts = pattern.split("/")
+    visited_dirs: Set[str] = {os.path.realpath(start)}
+    for root, dirs, files in os.walk(start, followlinks=True):
+        # Prune subdirectories whose real path we've already entered, so that
+        # cyclic symlinks (e.g. ``start/foo -> start/``) cannot trap os.walk
+        # in an infinite descent.
+        kept = []
+        for d in dirs:
+            d_real = os.path.realpath(os.path.join(root, d))
+            if d_real in visited_dirs:
+                continue
+            visited_dirs.add(d_real)
+            kept.append(d)
+        dirs[:] = kept
+
+        root_path = Path(root)
+        for name in (*dirs, *files):
+            full = root_path / name
+            rel_parts = full.relative_to(start).parts
+            if _glob_pattern_matches(rel_parts, pat_parts):
+                yield full
 
 
 def cloud_glob(

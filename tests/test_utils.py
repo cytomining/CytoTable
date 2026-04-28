@@ -265,9 +265,9 @@ def test_cloud_glob_follows_symlinked_directories(tmp_path: pathlib.Path):
     """
     Regression test for https://github.com/cytomining/CytoTable/issues/440.
 
-    Mimics the Nextflow `stageInMode='symlink'` layout: per-site CSVs live in a
-    real directory and are exposed under a staging directory through a symlinked
-    subdirectory. cloud_glob must discover the CSVs via the symlinked path.
+    Per-site CSVs live in a real directory and are exposed under a separate
+    parent through a symlinked subdirectory. cloud_glob must discover the CSVs
+    via the symlinked path.
     """
     real = tmp_path / "real" / "analysis"
     real.mkdir(parents=True)
@@ -293,3 +293,90 @@ def test_cloud_glob_follows_symlinked_directories(tmp_path: pathlib.Path):
         for p in cloud_glob(start=str(staged_root), pattern="**/*.csv")
     )
     assert str_results == sorted(expected_names)
+
+    # The unrestricted '**/*' wildcard also yields directories, so filter to
+    # files before asserting we recover the same CSV set.
+    all_path_results = sorted(
+        p.name
+        for p in cloud_glob(start=staged_root, pattern="**/*")
+        if pathlib.Path(p).is_file()
+    )
+    assert all_path_results == sorted(expected_names)
+
+    all_str_results = sorted(
+        pathlib.Path(p).name
+        for p in cloud_glob(start=str(staged_root), pattern="**/*")
+        if pathlib.Path(p).is_file()
+    )
+    assert all_str_results == sorted(expected_names)
+
+
+def test_cloud_glob_supports_non_double_star_prefixed_patterns(
+    tmp_path: pathlib.Path,
+):
+    """
+    cloud_glob must honour pathlib-glob semantics for patterns that do not
+    start with ``**/`` even on Python versions that lack
+    ``Path.glob(recurse_symlinks=True)``.
+    """
+    real = tmp_path / "real" / "analysis"
+    real.mkdir(parents=True)
+    (real / "Cells.csv").write_text("a,b\n1,2\n")
+    (real / "notes.txt").write_text("ignore me")
+    nested = real / "nested"
+    nested.mkdir()
+    (nested / "Cells.csv").write_text("a,b\n3,4\n")
+
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    (staged / "analysis").symlink_to(real, target_is_directory=True)
+
+    # Anchored, no '**' anywhere — only the top-level CSV under analysis/.
+    anchored = sorted(
+        str(p.relative_to(staged))
+        for p in cloud_glob(start=staged, pattern="analysis/*.csv")
+    )
+    assert anchored == ["analysis/Cells.csv"]
+
+    # '**' in the middle of the pattern.
+    mid_double_star = sorted(
+        str(p.relative_to(staged))
+        for p in cloud_glob(start=staged, pattern="analysis/**/*.csv")
+    )
+    assert mid_double_star == ["analysis/Cells.csv", "analysis/nested/Cells.csv"]
+
+
+def test_cloud_glob_deduplicates_paths_with_same_real_target(
+    tmp_path: pathlib.Path,
+):
+    """
+    When the same file is reachable through both a real path and a symlink
+    inside the search tree, cloud_glob must yield it only once.
+    """
+    real = tmp_path / "real"
+    real.mkdir()
+    (real / "Cells.csv").write_text("a,b\n1,2\n")
+
+    # 'mirror' points back at the real directory inside the same search tree,
+    # so a naive walk would yield 'real/Cells.csv' and 'mirror/Cells.csv'.
+    (tmp_path / "mirror").symlink_to(real, target_is_directory=True)
+
+    results = list(cloud_glob(start=tmp_path, pattern="**/*.csv"))
+    assert len(results) == 1
+    assert pathlib.Path(results[0]).name == "Cells.csv"
+
+
+def test_cloud_glob_terminates_on_cyclic_symlinks(tmp_path: pathlib.Path):
+    """
+    A symlink cycle inside the search tree must not cause cloud_glob to hang
+    or recurse without bound.
+    """
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "Cells.csv").write_text("a,b\n1,2\n")
+    # 'loop' under sub points back at the search root, creating a cycle:
+    # tmp_path -> sub -> loop -> tmp_path -> sub -> ...
+    (sub / "loop").symlink_to(tmp_path, target_is_directory=True)
+
+    results = list(cloud_glob(start=tmp_path, pattern="**/*.csv"))
+    assert [pathlib.Path(p).name for p in results] == ["Cells.csv"]
