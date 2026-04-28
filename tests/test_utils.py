@@ -259,3 +259,37 @@ def test_cloud_glob(root_path: str, max_matches: int, expected_result: List[str]
         )
 
     assert result == sorted(expected_result)
+
+
+def test_cloud_glob_follows_symlinked_directories(tmp_path: pathlib.Path):
+    """
+    Regression test for https://github.com/cytomining/CytoTable/issues/440.
+
+    Mimics the Nextflow `stageInMode='symlink'` layout: per-site CSVs live in a
+    real directory and are exposed under a staging directory through a symlinked
+    subdirectory. cloud_glob must discover the CSVs via the symlinked path.
+    """
+    real = tmp_path / "real" / "analysis"
+    real.mkdir(parents=True)
+    expected_names = ["Cells.csv", "Cytoplasm.csv", "Image.csv", "Nuclei.csv"]
+    for name in expected_names:
+        (real / name).write_text("ImageNumber,ObjectNumber\n1,1\n")
+
+    staged = tmp_path / "staged" / "1"
+    staged.mkdir(parents=True)
+    (staged / "analysis").symlink_to(real, target_is_directory=True)
+
+    staged_root = tmp_path / "staged"
+
+    # Path input
+    path_results = sorted(
+        p.name for p in cloud_glob(start=staged_root, pattern="**/*.csv")
+    )
+    assert path_results == sorted(expected_names)
+
+    # str input (exercises the string-path branch)
+    str_results = sorted(
+        pathlib.Path(p).name
+        for p in cloud_glob(start=str(staged_root), pattern="**/*.csv")
+    )
+    assert str_results == sorted(expected_names)

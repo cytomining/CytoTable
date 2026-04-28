@@ -5,6 +5,7 @@ Utility functions for CytoTable
 import logging
 import os
 import pathlib
+import sys
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 
@@ -923,6 +924,26 @@ def find_anndata_metadata_field_names(
     return numeric_fields, non_numeric_fields
 
 
+def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
+    """
+    Like ``Path.glob(pattern)``, but follows symlinked directories on every
+    Python version CytoTable supports. ``Path.glob`` only gained
+    ``recurse_symlinks=True`` in 3.13; on 3.10–3.12 we walk the tree with
+    ``os.walk(followlinks=True)`` and apply the post-``**/`` portion of the
+    pattern at each visited directory.
+    """
+    if sys.version_info >= (3, 13):
+        yield from start.glob(pattern, recurse_symlinks=True)
+        return
+
+    if pattern.startswith("**/"):
+        local_pattern = pattern[3:]
+        for root, _dirs, _files in os.walk(str(start), followlinks=True):
+            yield from Path(root).glob(local_pattern)
+    else:
+        yield from start.glob(pattern)
+
+
 def cloud_glob(
     start: Union[str, CloudPath, Path],
     pattern: str,
@@ -1018,7 +1039,7 @@ def cloud_glob(
     # ---- Branch 2: local Path ----
     if isinstance(start, Path):
         yielded = 0
-        for child in start.glob(pattern):
+        for child in _glob_follow_symlinks(start, pattern):
             yield child
             yielded += 1
             if max_matches is not None and yielded >= max_matches:
@@ -1042,7 +1063,7 @@ def cloud_glob(
         else:
             base = Path(start)
             yielded = 0
-            for child in base.glob(pattern):
+            for child in _glob_follow_symlinks(base, pattern):
                 yield child
                 yielded += 1
                 if max_matches is not None and yielded >= max_matches:
