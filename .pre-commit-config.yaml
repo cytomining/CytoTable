@@ -80,6 +80,12 @@ repos:
     rev: v0.1.16
     hooks:
     -   id: almanack-check
+-   repo: https://github.com/jsh9/pydoclint
+    rev: 0.8.3
+    hooks:
+    -   id: pydoclint
+        args:
+        -   --style=google
 -   repo: https://github.com/PyCQA/pylint
     rev: v4.0.5
     hooks:

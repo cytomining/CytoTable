@@ -128,12 +128,17 @@ def _warehouse_dir(path: Union[str, Path], registry_file: str) -> Path:
     Return the directory that stores Iceberg metadata and data files.
 
     Args:
-        path:
+        path (Union[str, Path]):
             Warehouse root path or an internal warehouse data directory.
-        registry_file:
+        registry_file (str):
             Name of the CytoTable registry file that records warehouse tables
-            and views, used to determine whether `path` already points at the
+            and views, used to determine whether ``path`` already points at the
             warehouse root.
+
+    Returns:
+        Path:
+            ``path`` itself when it already contains the registry file,
+            otherwise the conventional warehouse data subdirectory beneath it.
     """
 
     root = Path(path)
@@ -528,20 +533,82 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     """
     Write a CytoTable Iceberg warehouse from raw source data.
 
-    This helper powers `convert(..., dest_backend="iceberg")` and accepts the
+    This helper powers ``convert(..., dest_backend="iceberg")`` and accepts the
     same core conversion arguments for source selection, joins, chunking, and
-    image export. See `cytotable.convert.convert` for the shared argument
+    image export. See :func:`cytotable.convert.convert` for the shared argument
     semantics; this function adds Iceberg-specific options such as
-    `default_namespace`, `images_namespace`, `registry_file`,
-    `profiles_table_name`, and `profile_with_images_view_name`.
+    ``default_namespace``, ``images_namespace``, ``registry_file``,
+    ``profiles_table_name``, and ``profile_with_images_view_name``.
+
+    Args:
+        source_path (str):
+            Source path passed through to the underlying conversion. See
+            :func:`cytotable.convert.convert`.
+        warehouse_path (Union[str, Path]):
+            Filesystem path at which to create the Iceberg warehouse root.
+            Must not already exist.
+        source_datatype (Optional[str]):
+            See :func:`cytotable.convert.convert`.
+        metadata (Optional[Tuple[str, ...] | list[str]]):
+            See :func:`cytotable.convert.convert`.
+        compartments (Optional[Tuple[str, ...] | list[str]]):
+            See :func:`cytotable.convert.convert`.
+        identifying_columns (Optional[Tuple[str, ...] | list[str]]):
+            See :func:`cytotable.convert.convert`.
+        joins (Optional[str]):
+            See :func:`cytotable.convert.convert`.
+        chunk_size (Optional[int]):
+            See :func:`cytotable.convert.convert`.
+        infer_common_schema (bool):
+            See :func:`cytotable.convert.convert`.
+        data_type_cast_map (Optional[Dict[str, str]]):
+            See :func:`cytotable.convert.convert`.
+        add_tablenumber (Optional[bool]):
+            See :func:`cytotable.convert.convert`.
+        page_keys (Optional[Dict[str, str]]):
+            See :func:`cytotable.convert.convert`.
+        sort_output (bool):
+            See :func:`cytotable.convert.convert`.
+        preset (Optional[str]):
+            See :func:`cytotable.convert.convert`.
+        image_dir (Optional[str]):
+            See :func:`cytotable.convert.convert`.
+        mask_dir (Optional[str]):
+            See :func:`cytotable.convert.convert`.
+        outline_dir (Optional[str]):
+            See :func:`cytotable.convert.convert`.
+        bbox_column_map (Optional[Dict[str, str]]):
+            See :func:`cytotable.convert.convert`.
+        segmentation_file_regex (Optional[Dict[str, str]]):
+            See :func:`cytotable.convert.convert`.
+        include_source_images (bool):
+            See :func:`cytotable.convert.convert`.
+        default_namespace (str):
+            Iceberg namespace under which the profiles table is registered.
+        images_namespace (str):
+            Iceberg namespace under which image-related tables are registered
+            when image export is enabled.
+        registry_file (str):
+            Filename of the CytoTable registry file written under the warehouse
+            root. Used to record warehouse tables and views.
+        profiles_table_name (str):
+            Name of the joined profiles table written into ``default_namespace``.
+        profile_with_images_view_name (Optional[str]):
+            Optional view name registered when image export is enabled, joining
+            profile rows with their corresponding image rows.
+        parsl_config (Optional[parsl.Config]):
+            See :func:`cytotable.convert.convert`.
+        **kwargs:
+            Additional keyword args forwarded to source-gathering. See
+            :func:`cytotable.convert.convert`.
 
     Returns:
-        Path to the created Iceberg warehouse root.
+        str:
+            Path to the created Iceberg warehouse root.
 
     Raises:
-        CytoTableException: If the warehouse path already exists or image
-            export prerequisites are invalid.
-        ValueError: If required join SQL or join pagination keys are missing.
+        CytoTableException:
+            Raised when ``warehouse_path`` already exists.
     """
 
     _require_pyiceberg()
