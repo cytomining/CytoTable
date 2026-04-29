@@ -183,7 +183,7 @@ def _sqlite_mixed_type_query_to_parquet(
     pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
     tablenumber: Optional[int] = None,
-) -> str:
+) -> pa.Table:
     """
     Performs SQLite table data extraction where one or many
     columns include data values of potentially mismatched type
@@ -205,8 +205,10 @@ def _sqlite_mixed_type_query_to_parquet(
             Defaults to None.
 
     Returns:
-        str:
-            Path to the resulting parquet file containing the extracted data.
+        pa.Table:
+            A PyArrow table containing the extracted rows, with mixed-type
+            cells coerced to nulls where storage class disagrees with column
+            type.
     """
     import sqlite3
 

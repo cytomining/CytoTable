@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from cloudpathlib import AnyPath
 
-from cytotable.exceptions import NoInputDataException
 from cytotable.utils import cloud_glob
 
 
@@ -318,27 +317,18 @@ def _file_is_more_than_one_line(path: Union[pathlib.Path, AnyPath]) -> bool:
     Returns:
         bool:
             True if the file has more than one line, False otherwise.
-
-    Raises:
-        NoInputDataException:
-            Raised when the file has zero lines.
+            For sqlite and npz files (which are not line-oriented),
+            always returns True.
     """
 
     # if we don't have a sqlite file
     # (we can't check sqlite files for lines)
     if path.suffix.lower() not in [".sqlite", ".npz"]:
         with path.open("r") as f:
-            try:
-                # read two lines, if the second is empty return false
-                return bool(f.readline() and f.readline())
-
-            except StopIteration:
-                # If we encounter the end of the file, it has only one line
-                raise NoInputDataException(
-                    f"Data file has 0 rows of values. Error in file: {path}"
-                )
-    else:
-        return True
+            # read two lines; if either is empty (EOF) the file has fewer
+            # than two lines so we report False
+            return bool(f.readline() and f.readline())
+    return True
 
 
 def _gather_sources(
