@@ -501,6 +501,7 @@ def test_convert_multi_source_colliding_parent_dir_names(
         preset="cellprofiler_csv",
         join=False,
     )
+    assert isinstance(result, dict)
 
     assert set(result.keys()) == {
         "Cells.csv",
@@ -517,6 +518,7 @@ def test_convert_multi_source_colliding_parent_dir_names(
         preset="cellprofiler_csv",
         join=False,
     )
+    assert isinstance(single_site_result, dict)
 
     for compartment in ("Cells.csv", "Cytoplasm.csv", "Nuclei.csv"):
         multi_rows = parquet.read_table(

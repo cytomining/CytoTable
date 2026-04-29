@@ -430,7 +430,8 @@ def _source_pageset_to_parquet(
     # hash of parent path discriminates sources whose parent dirs share a name
     # (e.g. analyses/{1,2}/analysis) — see cytomining/CytoTable#442
     source_parent_hash = hashlib.sha1(
-        str(source["source_path"].parent).encode("utf-8")
+        str(source["source_path"].parent).encode("utf-8"),
+        usedforsecurity=False,
     ).hexdigest()[:12]
     source_dest_path = (
         f"{dest_path}/{str(AnyPath(source_group_name).stem).lower()}/"
