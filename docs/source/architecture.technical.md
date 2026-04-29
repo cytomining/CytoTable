@@ -34,6 +34,12 @@ Local data paths are handled using [Python's Pathlib](https://docs.python.org/3/
 Cloud-based data paths are managed by [cloudpathlib](https://cloudpathlib.drivendata.org/~latest/).
 Reference the following page for how cloudpathlib client arguments may be used: [Overview: Data Source Locations](overview.md#data-source-locations)
 
+#### Data Paths - Symlinked Directories
+
+Source discovery follows symbolic links when scanning local and network filesystem paths, so layouts that expose data through symlinked subdirectories (for example, the directories produced by Nextflow's `stageInMode='symlink'`) are traversed transparently.
+Symlink-following applies only to local and network filesystem paths; cloud object stores (S3, GCS, Azure) have no filesystem-level symlinks and are unaffected.
+Two paths that resolve to the same real file are yielded once, and symlink cycles are detected and pruned so traversal always terminates.
+
 #### Data Paths - Cloud-based SQLite
 
 SQLite data stored in cloud-based paths are downloaded locally using cloudpathlib's [caching capabilities](https://cloudpathlib.drivendata.org/stable/caching/) to perform SQL queries.
