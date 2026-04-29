@@ -950,11 +950,13 @@ def _glob_pattern_matches(rel_parts: Tuple[str, ...], pat_parts: List[str]) -> b
 def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
     """
     Like ``Path.glob(pattern)``, but follows symlinked directories on every
-    Python version CytoTable supports. ``Path.glob`` only gained
-    ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the tree with
-    ``os.walk(followlinks=True)`` and match each entry's relative path
-    against the full pattern, so any pattern accepted by ``Path.glob`` works
-    across versions.
+    Python version CytoTable supports. Intended for local and network
+    filesystems only - cloud object stores have no filesystem symlinks and
+    must use the ``CloudPath`` branches in :func:`cloud_glob`. ``Path.glob``
+    only gained ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the
+    tree with ``os.walk(followlinks=True)`` and match each entry's relative
+    path against the full pattern, so any pattern accepted by ``Path.glob``
+    works across versions.
     """
     if sys.version_info >= (3, 13):
         # ``Path.glob(recurse_symlinks=True)`` yields each reachable path,
@@ -1015,8 +1017,12 @@ def cloud_glob(
           Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.
       - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):
           Fallback to CloudPath.glob(pattern), yielding CloudPath.
-      - Local filesystem (pathlib.Path or non-s3 string):
-          Fallback to Path.glob(pattern), yielding pathlib.Path.
+      - Local or network filesystem (pathlib.Path or non-s3 string):
+          Walk with symlinked subdirectories followed, yielding pathlib.Path.
+
+    Symlink-following is only applied to the local-/network-filesystem
+    branch. Object stores (S3, GCS, Azure) do not have filesystem-level
+    symlinks, so the CloudPath branches are unaffected.
 
     Args:
         start:
