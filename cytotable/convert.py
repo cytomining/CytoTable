@@ -412,6 +412,7 @@ def _source_pageset_to_parquet(
             A string of the output filepath.
     """
 
+    import hashlib
     import pathlib
 
     import duckdb
@@ -426,10 +427,15 @@ def _source_pageset_to_parquet(
 
     source_type = str(source["source_path"].suffix).lower()
 
-    # attempt to build dest_path
+    # hash of parent path discriminates sources whose parent dirs share a name
+    # (e.g. analyses/{1,2}/analysis) — see cytomining/CytoTable#442
+    source_parent_hash = hashlib.sha1(
+        str(source["source_path"].parent).encode("utf-8")
+    ).hexdigest()[:12]
     source_dest_path = (
         f"{dest_path}/{str(AnyPath(source_group_name).stem).lower()}/"
-        f"{str(source['source_path'].parent.name).lower()}"
+        f"{str(source['source_path'].parent.name).lower()}/"
+        f"{source_parent_hash}"
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
@@ -825,13 +831,15 @@ def _concat_source_group(
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
 
-            # attempt to clean up dir containing original table(s) only if it's empty
-            try:
-                pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
-            except OSError as os_err:
-                # raise only if we don't have a dir not empty errno
-                if os_err.errno != errno.ENOTEMPTY:
-                    raise
+            # clean up the per-source hash dir and its parent if empty
+            chunk_parent = pathlib.Path(source["table"][0]).parent
+            for cleanup_dir in (chunk_parent, chunk_parent.parent):
+                try:
+                    cleanup_dir.rmdir()
+                except OSError as os_err:
+                    if os_err.errno != errno.ENOTEMPTY:
+                        raise
+                    break
 
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]

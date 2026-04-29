@@ -6,6 +6,7 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 
 
 import pathlib
+import shutil
 from typing import List
 
 import anndata as ad
@@ -470,3 +471,61 @@ def test_convert_nested_dirs(fx_tempdir: pathlib.Path):
 
     table = parquet.read_table(source=result)
     assert table.shape == (397, 6049)
+
+
+def test_convert_multi_source_colliding_parent_dir_names(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+):
+    """
+    Regression test for cytomining/CytoTable#442: multi-source convert with
+    identical parent dir names (analyses/{1,2,3}/analysis) used to collide on
+    intermediate parquet paths.
+    """
+
+    src_root = pathlib.Path(fx_tempdir) / "analyses"
+    for site in ("1", "2", "3"):
+        site_dir = src_root / site / "analysis"
+        site_dir.mkdir(parents=True, exist_ok=True)
+        for table_name in ("Cells.csv", "Cytoplasm.csv", "Nuclei.csv", "Image.csv"):
+            shutil.copy(
+                f"{data_dir_cellprofiler}/ExampleHuman/{table_name}",
+                site_dir / table_name,
+            )
+
+    result = convert(
+        source_path=str(src_root),
+        dest_path=f"{fx_tempdir}/multi_site.parquet",
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+        join=False,
+    )
+
+    assert set(result.keys()) == {
+        "Cells.csv",
+        "Cytoplasm.csv",
+        "Nuclei.csv",
+        "Image.csv",
+    }
+
+    single_site_result = convert(
+        source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+        dest_path=f"{fx_tempdir}/single_site.parquet",
+        dest_datatype="parquet",
+        source_datatype="csv",
+        preset="cellprofiler_csv",
+        join=False,
+    )
+
+    for compartment in ("Cells.csv", "Cytoplasm.csv", "Nuclei.csv"):
+        multi_rows = parquet.read_table(
+            source=result[compartment][0]["table"][0]
+        ).num_rows
+        single_rows = parquet.read_table(
+            source=single_site_result[compartment][0]["table"][0]
+        ).num_rows
+        assert multi_rows == 3 * single_rows, (
+            f"{compartment}: expected 3x single-site rows ({3 * single_rows}),"
+            f" got {multi_rows}"
+        )
