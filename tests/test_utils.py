@@ -261,13 +261,29 @@ def test_cloud_glob(root_path: str, max_matches: int, expected_result: List[str]
     assert result == sorted(expected_result)
 
 
-def test_cloud_glob_follows_symlinked_directories(tmp_path: pathlib.Path):
+@pytest.mark.parametrize(
+    "input_kind, pattern, filter_to_files",
+    [
+        ("path", "**/*.csv", False),
+        ("str", "**/*.csv", False),
+        # ``**/*`` also yields directories, so filter to files before comparing.
+        ("path", "**/*", True),
+        ("str", "**/*", True),
+    ],
+)
+def test_cloud_glob_follows_symlinked_directories(
+    tmp_path: pathlib.Path,
+    input_kind: str,
+    pattern: str,
+    filter_to_files: bool,
+):
     """
     Regression test for https://github.com/cytomining/CytoTable/issues/440.
 
     Per-site CSVs live in a real directory and are exposed under a separate
-    parent through a symlinked subdirectory. cloud_glob must discover the CSVs
-    via the symlinked path.
+    parent through a symlinked subdirectory. cloud_glob must discover the
+    CSVs via the symlinked path for both ``Path`` and ``str`` inputs and
+    for both extension-anchored and unrestricted glob patterns.
     """
     real = tmp_path / "real" / "analysis"
     real.mkdir(parents=True)
@@ -280,39 +296,31 @@ def test_cloud_glob_follows_symlinked_directories(tmp_path: pathlib.Path):
     (staged / "analysis").symlink_to(real, target_is_directory=True)
 
     staged_root = tmp_path / "staged"
+    start = staged_root if input_kind == "path" else str(staged_root)
 
-    # Path input
-    path_results = sorted(
-        p.name for p in cloud_glob(start=staged_root, pattern="**/*.csv")
-    )
-    assert path_results == sorted(expected_names)
-
-    # str input (exercises the string-path branch)
-    str_results = sorted(
-        pathlib.Path(p).name
-        for p in cloud_glob(start=str(staged_root), pattern="**/*.csv")
-    )
-    assert str_results == sorted(expected_names)
-
-    # The unrestricted '**/*' wildcard also yields directories, so filter to
-    # files before asserting we recover the same CSV set.
-    all_path_results = sorted(
-        p.name
-        for p in cloud_glob(start=staged_root, pattern="**/*")
-        if pathlib.Path(p).is_file()
-    )
-    assert all_path_results == sorted(expected_names)
-
-    all_str_results = sorted(
-        pathlib.Path(p).name
-        for p in cloud_glob(start=str(staged_root), pattern="**/*")
-        if pathlib.Path(p).is_file()
-    )
-    assert all_str_results == sorted(expected_names)
+    results = cloud_glob(start=start, pattern=pattern)
+    if filter_to_files:
+        results = (p for p in results if pathlib.Path(p).is_file())
+    names = sorted(pathlib.Path(p).name for p in results)
+    assert names == sorted(expected_names)
 
 
+@pytest.mark.parametrize(
+    "pattern, expected",
+    [
+        # Anchored, no '**' anywhere -- only the top-level CSV under analysis/.
+        ("analysis/*.csv", ["analysis/Cells.csv"]),
+        # '**' in the middle of the pattern.
+        (
+            "analysis/**/*.csv",
+            ["analysis/Cells.csv", "analysis/nested/Cells.csv"],
+        ),
+    ],
+)
 def test_cloud_glob_supports_non_double_star_prefixed_patterns(
     tmp_path: pathlib.Path,
+    pattern: str,
+    expected: List[str],
 ):
     """
     cloud_glob must honour pathlib-glob semantics for patterns that do not
@@ -331,19 +339,11 @@ def test_cloud_glob_supports_non_double_star_prefixed_patterns(
     staged.mkdir()
     (staged / "analysis").symlink_to(real, target_is_directory=True)
 
-    # Anchored, no '**' anywhere — only the top-level CSV under analysis/.
-    anchored = sorted(
+    results = sorted(
         str(p.relative_to(staged))
-        for p in cloud_glob(start=staged, pattern="analysis/*.csv")
+        for p in cloud_glob(start=staged, pattern=pattern)
     )
-    assert anchored == ["analysis/Cells.csv"]
-
-    # '**' in the middle of the pattern.
-    mid_double_star = sorted(
-        str(p.relative_to(staged))
-        for p in cloud_glob(start=staged, pattern="analysis/**/*.csv")
-    )
-    assert mid_double_star == ["analysis/Cells.csv", "analysis/nested/Cells.csv"]
+    assert results == expected
 
 
 def test_cloud_glob_deduplicates_paths_with_same_real_target(
