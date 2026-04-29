@@ -931,6 +931,18 @@ def _glob_pattern_matches(rel_parts: Tuple[str, ...], pat_parts: List[str]) -> b
     semantics: ``**`` matches zero or more components, ``*`` and ``?`` are
     fnmatch wildcards within a single component, and matching is anchored at
     the left of ``rel_parts``.
+
+    Args:
+        rel_parts:
+            Path components of the candidate, relative to the search root
+            (e.g. ``("analysis", "Cells.csv")``).
+        pat_parts:
+            Pattern components produced by splitting the glob on ``"/"``
+            (e.g. ``["**", "*.csv"]``).
+
+    Returns:
+        ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics
+        described above, else ``False``.
     """
     if not pat_parts:
         return not rel_parts
@@ -957,6 +969,17 @@ def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
     tree with ``os.walk(followlinks=True)`` and match each entry's relative
     path against the full pattern, so any pattern accepted by ``Path.glob``
     works across versions.
+
+    Args:
+        start:
+            Root directory to glob under. Must reference a local or network
+            filesystem path.
+        pattern:
+            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
+
+    Yields:
+        ``pathlib.Path`` entries matching ``pattern``, deduplicated so that
+        two paths resolving to the same real file are only yielded once.
     """
     if sys.version_info >= (3, 13):
         # ``Path.glob(recurse_symlinks=True)`` yields each reachable path,
@@ -977,6 +1000,25 @@ def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
 
 
 def _walk_and_match(start: Path, pattern: str) -> Iterator[Path]:
+    """
+    Walk ``start`` with ``os.walk(followlinks=True)`` and yield entries
+    whose path (relative to ``start``) matches ``pattern`` under
+    pathlib-glob semantics. Implements the 3.10-3.12 fallback used by
+    :func:`_glob_follow_symlinks`. Subdirectories whose real path has
+    already been entered are pruned before descent so that cyclic or
+    aliasing symlinks neither hang the walk nor produce duplicate yields.
+
+    Args:
+        start:
+            Root directory of the walk. Must reference a local or network
+            filesystem path.
+        pattern:
+            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
+
+    Yields:
+        ``pathlib.Path`` entries (files or directories) matching
+        ``pattern``.
+    """
     pat_parts = pattern.split("/")
     visited_dirs: Set[str] = {os.path.realpath(start)}
     for root, dirs, files in os.walk(start, followlinks=True):
