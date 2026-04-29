@@ -34,15 +34,20 @@ def _get_table_columns_and_types(
     Gather column data from table through duckdb.
 
     Args:
-        source: Dict[str, Any]
+        source (Dict[str, Any]):
             Contains source data details. Represents a single
             file or table of some kind.
-        sort_output:
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
 
     Returns:
-        List[Optional[Dict[str, str]]]
+        List[Optional[Dict[str, str]]]:
             list of dictionaries which each include column level information
+
+    Raises:
+        duckdb.Error:
+            Re-raised when the underlying duckdb query fails for a reason
+            other than mixed-type errors on a sqlite source.
     """
 
     import duckdb
@@ -145,9 +150,10 @@ def _prep_cast_column_data_types(
     to a "REAL" dtype ("REAL" in duckdb is roughly equivalent to "float32")
 
     Args:
-        table_path: str:
-            Path to a parquet file which will be modified.
-        data_type_cast_map: Dict[str, str]
+        columns (List[Dict[str, str]]):
+            Column metadata records (each with ``column_id``, ``column_name``,
+            and ``column_dtype``) describing the columns to cast.
+        data_type_cast_map (Dict[str, str]):
             A dictionary mapping data type groups to specific types.
             Roughly to eventually align with DuckDB types:
             https://duckdb.org/docs/sql/data_types/overview
@@ -156,7 +162,7 @@ def _prep_cast_column_data_types(
             use in Pandas and/or PyArrow via cytotable.utils.DATA_TYPE_SYNONYMS
 
     Returns:
-        List[Dict[str, str]]
+        List[Dict[str, str]]:
             list of dictionaries which each include column level information
     """
 
@@ -202,14 +208,14 @@ def _set_tablenumber(
     - If using SQLite data sources, the entire SQLite database is used for checksum.
 
     Args:
-        sources: Dict[str, List[Dict[str, Any]]]
+        sources (Dict[str, List[Dict[str, Any]]]):
             Contains metadata about data tables and related contents.
-        add_tablenumber: Optional[bool]
+        add_tablenumber (Optional[bool]):
             Whether to add a calculated tablenumber.
             Note: when False, adds None as the tablenumber
 
     Returns:
-        List[Dict[str, Any]]
+        Dict[str, List[Dict[str, Any]]]:
             New source group with added TableNumber details.
     """
 
@@ -297,21 +303,21 @@ def _get_table_keyset_pagination_sets(
     input data which will be ignored with warnings.
 
     Args:
-        source: Dict[str, Any]
-            Contains the source data to be chunked. Represents a single
-            file or table of some kind.
-        chunk_size: int
+        chunk_size (int):
             The size in rowcount of the chunks to create.
-        page_key: str
+        page_key (str):
             The column name to be used to identify pagination chunks.
             Expected to be of numeric type (int, float) for ordering.
-        sql_stmt:
+        source (Optional[Dict[str, Any]]):
+            Contains the source data to be chunked. Represents a single
+            file or table of some kind.
+        sql_stmt (Optional[str]):
             Optional sql statement to form the pagination set from.
             Default behavior extracts pagination sets from the full
             data source.
 
     Returns:
-         Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], None]
+        Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None]:
             List of keys to use for reading the data later on.
     """
 
@@ -395,21 +401,29 @@ def _source_pageset_to_parquet(
     Export source data to chunked parquet file using chunk size and offsets.
 
     Args:
-        source_group_name: str
+        source_group_name (str):
             Name of the source group (for ex. compartment or metadata table name).
-        source: Dict[str, Any]
+        source (Dict[str, Any]):
             Contains the source data to be chunked. Represents a single
             file or table of some kind along with collected information about table.
-        pageset: Optional[Tuple[Union[int, float], Union[int, float]]]
+        pageset (Optional[Tuple[Union[int, float], Union[int, float]]]):
             The pageset for chunking the data from source.
-        dest_path: str
+        dest_path (str):
             Path to store the output data.
-        sort_output: bool
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
 
     Returns:
-        str
+        str:
             A string of the output filepath.
+
+    Raises:
+        CytoTableException:
+            Raised when ``pageset`` is ``None`` for non-NPZ source types,
+            since a pageset range is required for table queries.
+        duckdb.Error:
+            Re-raised when the duckdb-based read fails for a reason other
+            than a mixed-type sqlite error.
     """
 
     import pathlib
@@ -558,20 +572,20 @@ def _prepend_column_name(
     is specified within targets.
 
     Args:
-        table_path: str:
+        table_path (str):
             Path to a parquet file which will be modified.
-        source_group_name: str:
+        source_group_name (str):
             Name of data source source group (for common compartments, etc).
-        identifying_columns: List[str]:
+        identifying_columns (List[str]):
             Column names which are used as ID's and as a result need to be
             treated differently when renaming.
-        metadata: Union[List[str], Tuple[str, ...]]:
+        metadata (Union[List[str], Tuple[str, ...]]):
             List of source data names which are used as metadata.
-        compartments: List[str]:
+        compartments (List[str]):
             List of source data names which are used as compartments.
 
     Returns:
-        str
+        str:
             Path to the modified file.
     """
 
@@ -729,21 +743,29 @@ def _concat_source_group(
 
 
     Args:
-        source_group_name: str
+        source_group_name (str):
             Name of data source source group (for common compartments, etc).
-        source_group: List[Dict[str, Any]]:
+        source_group (List[Dict[str, Any]]):
             Data structure containing grouped data for concatenation.
-        dest_path: Optional[str] (Default value = None)
+        dest_path (str):
             Optional destination path for concatenated sources.
-        common_schema: List[Tuple[str, str]] (Default value = None)
+        common_schema (Optional[List[Tuple[str, str]]]):
             Common schema to use for concatenation amongst arrow tables
             which may have slightly different but compatible schema.
-        sort_output: bool
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
 
     Returns:
-        List[Dict[str, Any]]
+        List[Dict[str, Any]]:
             Updated dictionary containing concatenated sources.
+
+    Raises:
+        SchemaException:
+            Raised when source files cannot be unified under a common schema
+            during concatenation.
+        OSError:
+            Re-raised when cleaning up the source-group directory fails
+            with an errno other than ``ENOTEMPTY``.
     """
 
     import errno
@@ -848,14 +870,12 @@ def _prepare_join_sql(
     Prepare join SQL statement with actual locations of data based on the sources.
 
     Args:
-        sources: Dict[str, List[Dict[str, Any]]]:
+        sources (Dict[str, List[Dict[str, Any]]]):
             Grouped datasets of files which will be used by other functions.
             Includes the metadata concerning location of actual data.
-        joins: str:
+        joins (str):
             DuckDB-compatible SQL which will be used to perform the join
             operations using the join_group keys as a reference.
-        sort_output: bool
-            Specifies whether to sort cytotable output or not.
 
     Returns:
         str:
@@ -891,20 +911,24 @@ def _join_source_pageset(
     Join sources based on join group keys (group of specific join column values)
 
     Args:
-        dest_path: str:
+        dest_path (str):
             Destination path to write file-based content.
-        joins: str:
+        joins (str):
             DuckDB-compatible SQL which will be used to perform the join
             operations using the join_group keys as a reference.
-        join_group: List[Dict[str, Any]]:
-            Group of joinable keys to be used as "chunked" filter
-            of overall dataset.
-        drop_null: bool:
+        page_key (str):
+            Column name used to filter rows for the current pageset.
+        pageset (Union[Tuple[int, int], None]):
+            Inclusive ``(start, end)`` bounds on ``page_key`` for the chunk
+            being processed; ``None`` selects the entire joined result.
+        sort_output (bool):
+            Whether to sort the joined output by ``page_key``.
+        drop_null (bool):
             Whether to drop rows with null values within the resulting
             joined data.
 
     Returns:
-        str
+        str:
             Path to joined file which is created as a result of this function.
     """
 
@@ -976,21 +1000,21 @@ def _concat_join_sources(
     https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html
 
     Args:
-        sources: Dict[str, List[Dict[str, Any]]]:
+        sources (Dict[str, List[Dict[str, Any]]]):
             Grouped datasets of files which will be used by other functions.
             Includes the metadata concerning location of actual data.
-        dest_path: str:
+        dest_path (str):
             Destination path to write file-based content.
-        join_sources: List[str]:
+        join_sources (List[str]):
             List of local filepath destination for join source chunks
             which will be concatenated.
-        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]
+        dest_datatype (Literal["parquet", "anndata_h5ad", "anndata_zarr"]):
             The datatype of the output destination file. Default is 'parquet'.
-        sort_output: bool
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
 
     Returns:
-        str
+        str:
             Path to concatenated file which is created as a result of this function.
     """
 
@@ -1106,15 +1130,16 @@ def _infer_source_group_common_schema(
     data concatenation and other operations.
 
     Args:
-        source_group: List[Dict[str, Any]]:
+        source_group (List[Dict[str, Any]]):
             Group of one or more data sources which includes metadata about
             path to parquet data.
-        data_type_cast_map: Optional[Dict[str, str]], default None
+        data_type_cast_map (Optional[Dict[str, str]]):
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
+
     Returns:
-        List[Tuple[str, pa.DataType]]
+        List[Tuple[str, pa.DataType]]:
             A list of tuples which includes column name and PyArrow datatype.
             This data will later be used as the basis for forming a PyArrow schema.
     """
@@ -1218,57 +1243,66 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     Export data to various formats (e.g., parquet) based on configuration.
 
     Args:
-        source_path: str:
+        source_path (str):
             str reference to read source files from.
             Note: may be local or remote object-storage
             location using convention "s3://..." or similar.
-        dest_path: str:
+        dest_path (str):
             Path to write files to. This path will be used for
             intermediary data work and must be a new file or directory path.
             This parameter will result in a directory on `join=False`.
             This parameter will result in a single file on `join=True`.
             Note: this may only be a local path.
-        source_datatype: Optional[str]: (Default value = None)
+        source_datatype (Optional[str]):
             Source datatype to focus on during conversion.
-        metadata: Union[List[str], Tuple[str, ...]]:
+        metadata (Optional[Union[List[str], Tuple[str, ...]]]):
             Metadata names to use for conversion.
-        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)
+        compartments (Optional[Union[List[str], Tuple[str, ...]]]):
             Compartment names to use for conversion.
-        identifying_columns: Union[List[str], Tuple[str, ...]]:
+        identifying_columns (Optional[Union[List[str], Tuple[str, ...]]]):
             Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
-        concat: bool:
+        concat (bool):
             Whether to concatenate similar files together.
-        join: bool:
+        join (bool):
             Whether to join the compartment data together into one dataset.
-        joins: str:
+        joins (Optional[str]):
             DuckDB-compatible SQL which will be used to perform the join operations.
-        chunk_size: Optional[int],
+        chunk_size (Optional[int]):
             Size of join chunks which is used to limit data size during join ops.
-        infer_common_schema: bool:  (Default value = True)
+        infer_common_schema (bool):
             Whether to infer a common schema when concatenating sources.
-        drop_null: bool:
+        drop_null (bool):
             Whether to drop null results.
-        sort_output: bool
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
-        page_keys: Dict[str, str]
+        page_keys (Dict[str, str]):
             A dictionary which defines which column names are used for keyset pagination
             in order to perform data extraction.
-        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
+        dest_datatype (Literal["parquet", "anndata_h5ad", "anndata_zarr"]):
             Output destination datatype to write to. Defaults to 'parquet'.
-        data_type_cast_map: Dict[str, str]
+        data_type_cast_map (Optional[Dict[str, str]]):
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
-        **kwargs: Any:
+        add_tablenumber (Optional[bool]):
+            Whether to add a calculated tablenumber column which helps
+            differentiate repeated values (such as ``ObjectNumber``) across
+            source data.
+        **kwargs:
             Keyword args used for gathering source data, primarily relevant for
             Cloudpathlib cloud-based client configuration.
 
     Returns:
-        Union[Dict[str, List[Dict[str, Any]]], str]:
+        Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
             Grouped sources which include metadata about destination filepath
             where parquet file was written or a string filepath for the joined
             result.
+
+    Raises:
+        CytoTableException:
+            Raised when a source group lacks a matching ``page_keys`` entry
+            for non-NPZ source data, since pagination requires a key column.
     """
 
     # gather sources to be processed
@@ -1530,113 +1564,124 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     using convention "s3://..." or similar.
 
     Args:
-        source_path: str:
+        source_path (str):
             str reference to read source files from.
             Note: may be local or remote object-storage location
             using convention "s3://..." or similar.
-        dest_path: str:
-            Path to write files to. Setting `dest_backend="parquet"` will trigger CytoTable to use the provided path to perform
+        dest_path (str):
+            Path to write files to. Setting ``dest_backend="parquet"`` will trigger CytoTable to use the provided path to perform
             intermediary data processing. The path must represent a new file or directory.
-            This parameter will result in a directory on `join=False`.
-            This parameter will result in a single file on `join=True`.
-            Setting `dest_backend="iceberg"` will trigger CytoTable to use the provided path as the local warehouse root
+            This parameter will result in a directory on ``join=False``.
+            This parameter will result in a single file on ``join=True``.
+            Setting ``dest_backend="iceberg"`` will trigger CytoTable to use the provided path as the local warehouse root
             directory. CytoTable still stages parquet files internally (during write),
             but these intermediary files are temporary and automatically deleted following write
-            of the final output at `dest_path`.
-        dest_backend: Literal["parquet", "iceberg"]:
-            Output backend to write to. Defaults to `"parquet"`. Use
-            `"iceberg"` to store processed CytoTable tables in a local
-            Iceberg warehouse.
-        dest_datatype: Literal["parquet", "anndata_h5ad", "anndata_zarr"]:
+            of the final output at ``dest_path``.
+        dest_datatype (Literal["parquet", "anndata_h5ad", "anndata_zarr"]):
             Output destination datatype to write to. CytoTable uses this
-            value when the selected backend is `"parquet"`. For
-            `dest_backend="iceberg"`, CytoTable currently requires
-            `dest_datatype="parquet"` because CytoTable uses parquet as the
+            value when the selected backend is ``"parquet"``. For
+            ``dest_backend="iceberg"``, CytoTable currently requires
+            ``dest_datatype="parquet"`` because CytoTable uses parquet as the
             temporary staging format before it writes data into the Iceberg
             warehouse.
-        image_dir: Optional[str]
+        dest_backend (Literal["parquet", "iceberg"]):
+            Output backend to write to. Defaults to ``"parquet"``. Use
+            ``"iceberg"`` to store processed CytoTable tables in a local
+            Iceberg warehouse.
+        image_dir (Optional[str]):
             Optional directory or cloud object-storage prefix of source images
             aligned with the experiment of interest. CytoTable uses this input
             to build OME-Arrow image crops and, when
-            `include_source_images=True`, full-image rows in
-            the iceberg table called `images.source_images`. Requires `dest_backend="iceberg"`.
-        include_source_images: bool
+            ``include_source_images=True``, full-image rows in
+            the iceberg table called ``images.source_images``. Requires ``dest_backend="iceberg"``.
+        include_source_images (bool):
             Whether to also store full source images in an Iceberg
-            `images.source_images` table. Requires `image_dir` and
-            `dest_backend="iceberg"`.
-        mask_dir: Optional[str]
+            ``images.source_images`` table. Requires ``image_dir`` and
+            ``dest_backend="iceberg"``.
+        mask_dir (Optional[str]):
             Optional directory or cloud object-storage prefix of segmentation
-            masks corresponding to images within `image_dir`. CytoTable uses these files to
-            populate `ome_arrow_label` when no outline image is available.
-            Requires `dest_backend="iceberg"`.
-        outline_dir: Optional[str]
+            masks corresponding to images within ``image_dir``. CytoTable uses these files to
+            populate ``ome_arrow_label`` when no outline image is available.
+            Requires ``dest_backend="iceberg"``.
+        outline_dir (Optional[str]):
             Optional directory or cloud object-storage prefix of outline images
-            corresponding to images within `image_dir`. CytoTable uses these files to populate
-            `ome_arrow_label` before falling back to `mask_dir`. Requires
-            `dest_backend="iceberg"`.
-        segmentation_file_regex: Optional[Dict[str, str]]
+            corresponding to images within ``image_dir``. CytoTable uses these files to populate
+            ``ome_arrow_label`` before falling back to ``mask_dir``. Requires
+            ``dest_backend="iceberg"``.
+        segmentation_file_regex (Optional[Dict[str, str]]):
             Optional regex mapping of segmentation filename patterns to source
             image filename patterns to link masks and/or outlines. For example,
-            use `{r".*_outline\\.tiff$": r"(plateA_well_B03_site_1)\\.tiff$"}`
+            use ``{r".*_outline\\.tiff$": r"(plateA_well_B03_site_1)\\.tiff$"}``
             when outline files and source images do not share the same
-            basename. Requires `dest_backend="iceberg"`.
-        source_datatype: Optional[str]:  (Default value = None)
+            basename. Requires ``dest_backend="iceberg"``.
+        source_datatype (Optional[str]):
             Source datatype to focus on during conversion.
-        metadata: Union[List[str], Tuple[str, ...]]:
+        metadata (Optional[Union[List[str], Tuple[str, ...]]]):
             Metadata names to use for conversion.
-        compartments: Union[List[str], Tuple[str, str, str, str]]:
-            (Default value = None)
+        compartments (Optional[Union[List[str], Tuple[str, ...]]]):
             Compartment names to use for conversion.
-        identifying_columns: Union[List[str], Tuple[str, ...]]:
+        identifying_columns (Optional[Union[List[str], Tuple[str, ...]]]):
             Column names which are used as ID's and as a result need to be
             ignored with regards to renaming.
-        concat: bool:  (Default value = True)
+        concat (bool):
             Whether to concatenate similar files together.
-        join: bool:  (Default value = True)
-            Whether to join the compartment data together into one dataset
-        joins: str: (Default value = None):
+        join (bool):
+            Whether to join the compartment data together into one dataset.
+        joins (Optional[str]):
             DuckDB-compatible SQL which will be used to perform the join operations.
-        chunk_size: Optional[int] (Default value = None)
-            Size of join chunks which is used to limit data size during join ops
-        infer_common_schema: bool (Default value = True)
+        chunk_size (Optional[int]):
+            Size of join chunks which is used to limit data size during join ops.
+        infer_common_schema (bool):
             Whether to infer a common schema when concatenating sources.
-        data_type_cast_map: Dict[str, str], (Default value = None)
+        drop_null (bool):
+            Whether to drop nan/null values from results.
+        data_type_cast_map (Optional[Dict[str, str]]):
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
-        add_tablenumber: Optional[bool]
+        add_tablenumber (Optional[bool]):
             Whether to add a calculated tablenumber which helps differentiate
             various repeated values (such as ObjectNumber) within source data.
             Useful for processing multiple SQLite or CSV data sources together
             to retain distinction from each dataset.
-        page_keys: str:
+        page_keys (Optional[Dict[str, str]]):
             The table and column names to be used for key pagination.
-            Uses the form: {"table_name":"column_name"}.
+            Uses the form: ``{"table_name": "column_name"}``.
             Expects columns to include numeric data (ints or floats).
-            Interacts with the `chunk_size` parameter to form
-            pages of `chunk_size`.
-        bbox_column_map: Optional[Dict[str, str]]
+            Interacts with the ``chunk_size`` parameter to form
+            pages of ``chunk_size``.
+        bbox_column_map (Optional[Dict[str, str]]):
             Optional dictionary that explicitly maps image crop bounding box columns using
-            keys `x_min`, `x_max`, `y_min`, and `y_max`. For Iceberg profile
+            keys ``x_min``, ``x_max``, ``y_min``, and ``y_max``. For Iceberg profile
             exports, CytoTable recodes the provided bounding box value pairs as new columns in
-            `joined_profiles` as `Metadata_SourceBBoxXMin`,
-            `Metadata_SourceBBoxXMax`, `Metadata_SourceBBoxYMin`, and
-            `Metadata_SourceBBoxYMax`.
-        sort_output: bool (Default value = True)
+            ``joined_profiles`` as ``Metadata_SourceBBoxXMin``,
+            ``Metadata_SourceBBoxXMax``, ``Metadata_SourceBBoxYMin``, and
+            ``Metadata_SourceBBoxYMax``.
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
-        drop_null: bool (Default value = False)
-            Whether to drop nan/null values from results
-        preset: str (Default value = "cellprofiler_csv")
-            an optional group of presets to use based on common configurations
-        parsl_config: Optional[parsl.Config] (Default value = None)
+        preset (Optional[str]):
+            An optional group of presets to use based on common configurations.
+        parsl_config (Optional[parsl.Config]):
             Optional Parsl configuration to use for running CytoTable operations.
             Note: when using CytoTable multiple times in the same process,
             CytoTable will use the first provided configuration for all runs.
+        **kwargs:
+            Additional keyword args forwarded to source-gathering and
+            backend-specific writers (for example, Cloudpathlib client
+            configuration or Iceberg-specific options).
 
     Returns:
-        Union[Dict[str, List[Dict[str, Any]]], str]
+        Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
             Grouped sources which include metadata about destination filepath
             where parquet file was written or str of joined result filepath.
+
+    Raises:
+        CytoTableException:
+            Raised when input options are inconsistent (for example, when a
+            source group lacks a matching ``page_keys`` entry for non-NPZ
+            data).
+        DatatypeException:
+            Raised when ``source_datatype`` is not a supported source type.
 
     Example:
 
