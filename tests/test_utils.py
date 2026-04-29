@@ -340,8 +340,7 @@ def test_cloud_glob_supports_non_double_star_prefixed_patterns(
     (staged / "analysis").symlink_to(real, target_is_directory=True)
 
     results = sorted(
-        str(p.relative_to(staged))
-        for p in cloud_glob(start=staged, pattern=pattern)
+        str(p.relative_to(staged)) for p in cloud_glob(start=staged, pattern=pattern)
     )
     assert results == expected
 
