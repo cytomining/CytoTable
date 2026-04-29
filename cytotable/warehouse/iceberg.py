@@ -608,8 +608,18 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
     Raises:
         CytoTableException:
-            Raised when ``warehouse_path`` already exists.
-    """
+            Raised when ``warehouse_path`` already exists, when image-export
+            options are inconsistent (for example, ancillary image options
+            provided without ``image_dir``, ``image_dir``/``mask_dir``/
+            ``outline_dir`` referencing a missing directory, missing join SQL,
+            or ``page_keys`` lacking a non-empty ``'join'`` entry while image
+            export is requested), or when the optional ``pyiceberg``
+            dependency is unavailable.
+        ValueError:
+            Raised when Iceberg export's join configuration is missing -- an
+            empty ``joins`` SQL string or a ``page_keys`` mapping without a
+            non-empty ``'join'`` entry.
+    """  # noqa: DOC503
 
     _require_pyiceberg()
 
