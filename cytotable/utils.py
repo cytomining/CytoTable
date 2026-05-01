@@ -140,7 +140,9 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     for ex., using: `with _duckdb_reader() as ddb_reader:`
 
     Returns:
-        duckdb.DuckDBPyConnection
+        duckdb.DuckDBPyConnection:
+            A configured DuckDB connection with the sqlite_scanner and
+            httpfs extensions installed and loaded.
     """
 
     import duckdb
@@ -183,32 +185,32 @@ def _sqlite_mixed_type_query_to_parquet(
     pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
     tablenumber: Optional[int] = None,
-) -> str:
+) -> pa.Table:
     """
     Performs SQLite table data extraction where one or many
     columns include data values of potentially mismatched type
     such that the data may be exported to Arrow for later use.
 
     Args:
-        source_path: str:
+        source_path (str):
             A str which is a path to a SQLite database file.
-        table_name: str:
+        table_name (str):
             The name of the table being queried.
-        page_key: str:
+        page_key (str):
             The column name to be used to identify pagination chunks.
-        pageset: Tuple[Union[int, float], Union[int, float]]:
+        pageset (Tuple[Union[int, float], Union[int, float]]):
             The range for values used for paginating data from source.
-        sort_output: bool
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
-        add_cytotable_meta: bool, default=False:
-            Whether to add CytoTable metadata fields or not
-        tablenumber: Optional[int], default=None:
+        tablenumber (Optional[int]):
             An optional table number to append to the results.
             Defaults to None.
 
     Returns:
-        pyarrow.Table:
-           The resulting arrow table for the data
+        pa.Table:
+            A PyArrow table containing the extracted rows, with mixed-type
+            cells coerced to nulls where storage class disagrees with column
+            type.
     """
     import sqlite3
 
@@ -316,12 +318,12 @@ def _cache_cloudpath_to_local(path: AnyPath) -> pathlib.Path:
     for use in scenarios where remote work is not possible (sqlite).
 
     Args:
-        path: Union[str, AnyPath]
+        path (AnyPath):
             A filepath which will be checked and potentially
             converted to a local filepath.
 
     Returns:
-        pathlib.Path
+        pathlib.Path:
             A local pathlib.Path to cached version of cloudpath file.
     """
 
@@ -353,16 +355,16 @@ def _arrow_type_cast_if_specified(
     Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.
 
     Args:
-        column: Dict[str, str]:
+        column (Dict[str, str]):
             Dictionary which includes a column idx, name, and dtype
-        data_type_cast_map: Dict[str, str]
+        data_type_cast_map (Dict[str, str]):
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
             Example: {"float": "float32"}
 
     Returns:
-        Dict[str, str]
+        Dict[str, str]:
             A potentially data type updated dictionary of column information
     """
 
@@ -416,11 +418,11 @@ def _expand_path(
     Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.
 
     Args:
-        path: Union[str, pathlib.Path, CloudPath]:
+        path (Union[str, pathlib.Path, AnyPath]):
             Path to expand.
 
     Returns:
-        Union[pathlib.Path, Any]
+        Union[pathlib.Path, AnyPath]:
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
@@ -445,7 +447,7 @@ def _get_cytotable_version() -> str:
     or dunamai to determine the current version being used.
 
     Returns:
-        str
+        str:
             A string representing the version of CytoTable currently being used.
     """
 
@@ -470,9 +472,9 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
     https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html
 
     Args:
-        table: pa.Table:
+        table (pa.Table):
             Pyarrow table to be serialized as parquet table.
-        **kwargs: Any:
+        **kwargs:
             kwargs provided to this function roughly align with
             pyarrow.parquet.write_table. The following might be
             examples of what to expect here:
@@ -499,13 +501,13 @@ def _gather_tablenumber_checksum(pathname: str, buffer_size: int = 1048576) -> i
     https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129
 
     Args:
-        pathname: str:
+        pathname (str):
             A path to a file with which to generate the checksum on.
-        buffer_size: int:
+        buffer_size (int):
             Buffer size to use for reading data.
 
     Returns:
-        int
+        int:
             an integer representing the checksum of the pathname file.
     """
 
@@ -539,12 +541,12 @@ def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
     where there are no futures.
 
     Args:
-        val: Union[parsl.dataflow.futures.AppFuture, Any]
+        val (Union[parsl.dataflow.futures.AppFuture, Any]):
             A value which may or may not be a Parsl future which
             needs to be evaluated.
 
     Returns:
-        Any
+        Any:
             Returns the value as-is if there's no future, the future
             result if Parsl futures are encountered.
     """
@@ -570,14 +572,14 @@ def _unwrap_source(
     Helper function to unwrap futures from sources.
 
     Args:
-        source: Union[
-            Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
-            Union[parsl.dataflow.futures.AppFuture, Any],
-        ]
+        source (Union[Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]], Union[parsl.dataflow.futures.AppFuture, Any]]):
             A source is a portion of an internal data structure used by
-            CytoTable for processing and organizing data results.
+            CytoTable for processing and organizing data results. May be a
+            dictionary of values (some of which may be Parsl futures) or
+            a single value or future.
+
     Returns:
-        Union[Dict[str, Any], Any]
+        Union[Dict[str, Any], Any]:
             An evaluated dictionary or other value type.
     """
     # if we have a dictionary, unwrap any values which may be futures
@@ -597,14 +599,14 @@ def evaluate_futures(
     future result evaluation for concurrency.
 
     Args:
-        sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]
+        sources (Union[Dict[str, List[Dict[str, Any]]], List[Any], str]):
             Sources are an internal data structure used by CytoTable for
             processing and organizing data results. They may include futures
             which require asynchronous processing through Parsl, so we
             process them through this function.
 
     Returns:
-        Union[Dict[str, List[Dict[str, Any]]], str]
+        Any:
             A data structure which includes evaluated futures where they were found.
     """
 
@@ -635,10 +637,10 @@ def _generate_pagesets(
     """
     Generate a pageset (keyset pagination) from a list of keys.
 
-    Parameters:
-        keys List[Union[int, float]]:
+    Args:
+        keys (List[Union[int, float]]):
             List of keys to paginate.
-        chunk_size int:
+        chunk_size (int):
             Size of each chunk/page.
 
     Returns:
@@ -676,18 +678,19 @@ def _generate_pagesets(
     return chunks
 
 
-def _natural_sort(list_to_sort):
+def _natural_sort(list_to_sort: List[Any]) -> List[Any]:
     """
     Sorts the given iterable using natural sort adapted from approach
     provided by the following link:
     https://stackoverflow.com/a/4836734
 
     Args:
-      list_to_sort: List:
-        The list to sort.
+        list_to_sort (List[Any]):
+            The list to sort.
 
     Returns:
-      List: The sorted list.
+        List[Any]:
+            The sorted list.
     """
     import re
 
@@ -746,15 +749,15 @@ def _extract_npz_to_parquet(
     }
 
     Args:
-        source_path: str
+        source_path (str):
             Path to the .npz file.
-        dest_path: str
+        dest_path (str):
             Destination path for the parquet file.
-        tablenumber: Optional[int]
+        tablenumber (Optional[int]):
             Optional tablenumber to be added to the data.
 
     Returns:
-        str
+        str:
             Path to the exported parquet file.
     """
 
@@ -816,11 +819,11 @@ def map_pyarrow_type(
     `data_type_cast_map` parameter.
 
     Args:
-        field_type: pa.DataType
+        field_type (pa.DataType):
             The PyArrow data type to be mapped.
             This can include simple types (e.g., int, float, string)
             or nested types (e.g., list, struct).
-        data_type_cast_map: Optional[Dict[str, str]], default None
+        data_type_cast_map (Optional[Dict[str, str]]):
             A dictionary mapping data type groups to specific types.
             This allows for custom type casting.
             For example:
@@ -832,7 +835,7 @@ def map_pyarrow_type(
             None, default PyArrow types are used.
 
     Returns:
-        pa.DataType
+        pa.DataType:
             The mapped PyArrow data type.
             If no mapping is needed, the original
             `field_type` is returned.
@@ -894,13 +897,13 @@ def find_anndata_metadata_field_names(
     numeric-ness for downstream processing.
 
     Args:
-        source:
+        source (Union[str, pathlib.Path]):
             Path to a Parquet file to inspect.
 
     Returns:
-        A 2-tuple ``(numeric_fields, non_numeric_fields)``,
-        where each element is
-        a list of column names.
+        tuple[list[str], list[str]]:
+            A 2-tuple ``(numeric_fields, non_numeric_fields)``, where each
+            element is a list of column names.
     """
 
     import pyarrow.parquet as parquet
@@ -1047,7 +1050,7 @@ def cloud_glob(
     pattern: str,
     max_matches: Optional[int] = None,
     cp_client: Optional[S3Client] = None,
-    boto_s3_client=None,
+    boto_s3_client: Optional[Any] = None,
 ) -> Iterator[Union[CloudPath, Path]]:
     """
     Globs under `start` and yields matching paths.
@@ -1067,21 +1070,26 @@ def cloud_glob(
     symlinks, so the CloudPath branches are unaffected.
 
     Args:
-        start:
+        start (Union[str, CloudPath, Path]):
             CloudPath, pathlib.Path, or URI string.
-        pattern:
+        pattern (str):
             Glob pattern *relative to* `start` (supports ** for S3 branch).
-        max_matches:
+        max_matches (Optional[int]):
             Optional cap on yielded results.
-        cp_client:
+        cp_client (Optional[S3Client]):
             cloudpathlib S3Client (unsigned recommended).
-        boto_s3_client:
+        boto_s3_client (Optional[Any]):
             boto3 S3 client (unsigned recommended).
 
     Yields:
-        cloudpathlib.S3Path for S3;
-        CloudPath for other cloud providers;
-        pathlib.Path for local.
+        Union[CloudPath, Path]:
+            cloudpathlib.S3Path for S3, CloudPath for other cloud providers,
+            or pathlib.Path for local filesystem entries.
+
+    Raises:
+        TypeError:
+            Raised when ``start`` is not a ``CloudPath``, ``pathlib.Path``,
+            or string URI.
     """
 
     def _ensure_trailing_slash(s: str) -> str:
