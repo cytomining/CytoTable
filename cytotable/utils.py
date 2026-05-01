@@ -2,11 +2,13 @@
 Utility functions for CytoTable
 """
 
+import fnmatch
 import logging
 import os
 import pathlib
+import sys
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 import boto3
 import duckdb
@@ -923,6 +925,123 @@ def find_anndata_metadata_field_names(
     return numeric_fields, non_numeric_fields
 
 
+def _glob_pattern_matches(rel_parts: Tuple[str, ...], pat_parts: List[str]) -> bool:
+    """
+    Match path components against pattern components using pathlib-glob
+    semantics: ``**`` matches zero or more components, ``*`` and ``?`` are
+    fnmatch wildcards within a single component, and matching is anchored at
+    the left of ``rel_parts``.
+
+    Args:
+        rel_parts:
+            Path components of the candidate, relative to the search root
+            (e.g. ``("analysis", "Cells.csv")``).
+        pat_parts:
+            Pattern components produced by splitting the glob on ``"/"``
+            (e.g. ``["**", "*.csv"]``).
+
+    Returns:
+        ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics
+        described above, else ``False``.
+    """
+    if not pat_parts:
+        return not rel_parts
+    head, *rest = pat_parts
+    if head == "**":
+        for i in range(len(rel_parts) + 1):
+            if _glob_pattern_matches(rel_parts[i:], rest):
+                return True
+        return False
+    if not rel_parts:
+        return False
+    if fnmatch.fnmatchcase(rel_parts[0], head):
+        return _glob_pattern_matches(rel_parts[1:], rest)
+    return False
+
+
+def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
+    """
+    Like ``Path.glob(pattern)``, but follows symlinked directories on every
+    Python version CytoTable supports. Intended for local and network
+    filesystems only - cloud object stores have no filesystem symlinks and
+    must use the ``CloudPath`` branches in :func:`cloud_glob`. ``Path.glob``
+    only gained ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the
+    tree with ``os.walk(followlinks=True)`` and match each entry's relative
+    path against the full pattern, so any pattern accepted by ``Path.glob``
+    works across versions.
+
+    Args:
+        start:
+            Root directory to glob under. Must reference a local or network
+            filesystem path.
+        pattern:
+            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
+
+    Yields:
+        ``pathlib.Path`` entries matching ``pattern``, deduplicated so that
+        two paths resolving to the same real file are only yielded once.
+    """
+    if sys.version_info >= (3, 13):
+        # ``Path.glob(recurse_symlinks=True)`` yields each reachable path,
+        # so two symlinks pointing at the same target produce duplicate
+        # entries. Deduplicate by real path. The 3.10-3.12 walker prunes
+        # alias directories before descent and so already yields unique
+        # paths.
+        seen: Set[str] = set()
+        for path in start.glob(pattern, recurse_symlinks=True):
+            real = os.path.realpath(path)
+            if real in seen:
+                continue
+            seen.add(real)
+            yield path
+        return
+
+    yield from _walk_and_match(start, pattern)
+
+
+def _walk_and_match(start: Path, pattern: str) -> Iterator[Path]:
+    """
+    Walk ``start`` with ``os.walk(followlinks=True)`` and yield entries
+    whose path (relative to ``start``) matches ``pattern`` under
+    pathlib-glob semantics. Implements the 3.10-3.12 fallback used by
+    :func:`_glob_follow_symlinks`. Subdirectories whose real path has
+    already been entered are pruned before descent so that cyclic or
+    aliasing symlinks neither hang the walk nor produce duplicate yields.
+
+    Args:
+        start:
+            Root directory of the walk. Must reference a local or network
+            filesystem path.
+        pattern:
+            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
+
+    Yields:
+        ``pathlib.Path`` entries (files or directories) matching
+        ``pattern``.
+    """
+    pat_parts = pattern.split("/")
+    visited_dirs: Set[str] = {os.path.realpath(start)}
+    for root, dirs, files in os.walk(start, followlinks=True):
+        # Prune subdirectories whose real path we've already entered, so that
+        # cyclic symlinks (e.g. ``start/foo -> start/``) cannot trap os.walk
+        # in an infinite descent.
+        kept = []
+        for d in dirs:
+            d_real = os.path.realpath(os.path.join(root, d))
+            if d_real in visited_dirs:
+                continue
+            visited_dirs.add(d_real)
+            kept.append(d)
+        dirs[:] = kept
+
+        root_path = Path(root)
+        for name in (*dirs, *files):
+            full = root_path / name
+            rel_parts = full.relative_to(start).parts
+            if _glob_pattern_matches(rel_parts, pat_parts):
+                yield full
+
+
 def cloud_glob(
     start: Union[str, CloudPath, Path],
     pattern: str,
@@ -940,8 +1059,12 @@ def cloud_glob(
           Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.
       - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):
           Fallback to CloudPath.glob(pattern), yielding CloudPath.
-      - Local filesystem (pathlib.Path or non-s3 string):
-          Fallback to Path.glob(pattern), yielding pathlib.Path.
+      - Local or network filesystem (pathlib.Path or non-s3 string):
+          Walk with symlinked subdirectories followed, yielding pathlib.Path.
+
+    Symlink-following is only applied to the local-/network-filesystem
+    branch. Object stores (S3, GCS, Azure) do not have filesystem-level
+    symlinks, so the CloudPath branches are unaffected.
 
     Args:
         start:
@@ -1018,7 +1141,7 @@ def cloud_glob(
     # ---- Branch 2: local Path ----
     if isinstance(start, Path):
         yielded = 0
-        for child in start.glob(pattern):
+        for child in _glob_follow_symlinks(start, pattern):
             yield child
             yielded += 1
             if max_matches is not None and yielded >= max_matches:
@@ -1042,7 +1165,7 @@ def cloud_glob(
         else:
             base = Path(start)
             yielded = 0
-            for child in base.glob(pattern):
+            for child in _glob_follow_symlinks(base, pattern):
                 yield child
                 yielded += 1
                 if max_matches is not None and yielded >= max_matches:
