@@ -472,11 +472,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">Utility functions for CytoTable</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">fnmatch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span><span class="p">,</span> <span class="n">PurePosixPath</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">cast</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">boto3</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
@@ -1453,6 +1455,132 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="_glob_pattern_matches">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._glob_pattern_matches">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_glob_pattern_matches</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">pat_parts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Match path components against pattern components using pathlib-glob</span>
+<span class="sd">    semantics: ``**`` matches zero or more components, ``*`` and ``?`` are</span>
+<span class="sd">    fnmatch wildcards within a single component, and matching is anchored at</span>
+<span class="sd">    the left of ``rel_parts``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rel_parts:</span>
+<span class="sd">            Path components of the candidate, relative to the search root</span>
+<span class="sd">            (e.g. ``(&quot;analysis&quot;, &quot;Cells.csv&quot;)``).</span>
+<span class="sd">        pat_parts:</span>
+<span class="sd">            Pattern components produced by splitting the glob on ``&quot;/&quot;``</span>
+<span class="sd">            (e.g. ``[&quot;**&quot;, &quot;*.csv&quot;]``).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics</span>
+<span class="sd">        described above, else ``False``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">pat_parts</span><span class="p">:</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">rel_parts</span>
+    <span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">pat_parts</span>
+    <span class="k">if</span> <span class="n">head</span> <span class="o">==</span> <span class="s2">&quot;**&quot;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">_glob_pattern_matches</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">[</span><span class="n">i</span><span class="p">:],</span> <span class="n">rest</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rel_parts</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">fnmatch</span><span class="o">.</span><span class="n">fnmatchcase</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">head</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_glob_pattern_matches</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">rest</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="_glob_follow_symlinks">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._glob_follow_symlinks">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_glob_follow_symlinks</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Like ``Path.glob(pattern)``, but follows symlinked directories on every</span>
+<span class="sd">    Python version CytoTable supports. Intended for local and network</span>
+<span class="sd">    filesystems only - cloud object stores have no filesystem symlinks and</span>
+<span class="sd">    must use the ``CloudPath`` branches in :func:`cloud_glob`. ``Path.glob``</span>
+<span class="sd">    only gained ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the</span>
+<span class="sd">    tree with ``os.walk(followlinks=True)`` and match each entry&#39;s relative</span>
+<span class="sd">    path against the full pattern, so any pattern accepted by ``Path.glob``</span>
+<span class="sd">    works across versions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        start:</span>
+<span class="sd">            Root directory to glob under. Must reference a local or network</span>
+<span class="sd">            filesystem path.</span>
+<span class="sd">        pattern:</span>
+<span class="sd">            Glob pattern relative to ``start`` (e.g. ``&quot;**/*.csv&quot;``).</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        ``pathlib.Path`` entries matching ``pattern``, deduplicated so that</span>
+<span class="sd">        two paths resolving to the same real file are only yielded once.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
+        <span class="c1"># ``Path.glob(recurse_symlinks=True)`` yields each reachable path,</span>
+        <span class="c1"># so two symlinks pointing at the same target produce duplicate</span>
+        <span class="c1"># entries. Deduplicate by real path. The 3.10-3.12 walker prunes</span>
+        <span class="c1"># alias directories before descent and so already yields unique</span>
+        <span class="c1"># paths.</span>
+        <span class="n">seen</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">start</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">recurse_symlinks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+            <span class="n">real</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">real</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">real</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">path</span>
+        <span class="k">return</span>
+
+    <span class="k">yield from</span> <span class="n">_walk_and_match</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_walk_and_match">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._walk_and_match">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_walk_and_match</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Walk ``start`` with ``os.walk(followlinks=True)`` and yield entries</span>
+<span class="sd">    whose path (relative to ``start``) matches ``pattern`` under</span>
+<span class="sd">    pathlib-glob semantics. Implements the 3.10-3.12 fallback used by</span>
+<span class="sd">    :func:`_glob_follow_symlinks`. Subdirectories whose real path has</span>
+<span class="sd">    already been entered are pruned before descent so that cyclic or</span>
+<span class="sd">    aliasing symlinks neither hang the walk nor produce duplicate yields.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        start:</span>
+<span class="sd">            Root directory of the walk. Must reference a local or network</span>
+<span class="sd">            filesystem path.</span>
+<span class="sd">        pattern:</span>
+<span class="sd">            Glob pattern relative to ``start`` (e.g. ``&quot;**/*.csv&quot;``).</span>
+
+<span class="sd">    Yields:</span>
+<span class="sd">        ``pathlib.Path`` entries (files or directories) matching</span>
+<span class="sd">        ``pattern``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pat_parts</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+    <span class="n">visited_dirs</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">start</span><span class="p">)}</span>
+    <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">followlinks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="c1"># Prune subdirectories whose real path we&#39;ve already entered, so that</span>
+        <span class="c1"># cyclic symlinks (e.g. ``start/foo -&gt; start/``) cannot trap os.walk</span>
+        <span class="c1"># in an infinite descent.</span>
+        <span class="n">kept</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dirs</span><span class="p">:</span>
+            <span class="n">d_real</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">d_real</span> <span class="ow">in</span> <span class="n">visited_dirs</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">visited_dirs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">d_real</span><span class="p">)</span>
+            <span class="n">kept</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+        <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">kept</span>
+
+        <span class="n">root_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">root</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">dirs</span><span class="p">,</span> <span class="o">*</span><span class="n">files</span><span class="p">):</span>
+            <span class="n">full</span> <span class="o">=</span> <span class="n">root_path</span> <span class="o">/</span> <span class="n">name</span>
+            <span class="n">rel_parts</span> <span class="o">=</span> <span class="n">full</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="o">.</span><span class="n">parts</span>
+            <span class="k">if</span> <span class="n">_glob_pattern_matches</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">,</span> <span class="n">pat_parts</span><span class="p">):</span>
+                <span class="k">yield</span> <span class="n">full</span></div>
+
+
+
 <div class="viewcode-block" id="cloud_glob">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils.cloud_glob">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">cloud_glob</span><span class="p">(</span>
@@ -1472,8 +1600,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">          Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.</span>
 <span class="sd">      - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):</span>
 <span class="sd">          Fallback to CloudPath.glob(pattern), yielding CloudPath.</span>
-<span class="sd">      - Local filesystem (pathlib.Path or non-s3 string):</span>
-<span class="sd">          Fallback to Path.glob(pattern), yielding pathlib.Path.</span>
+<span class="sd">      - Local or network filesystem (pathlib.Path or non-s3 string):</span>
+<span class="sd">          Walk with symlinked subdirectories followed, yielding pathlib.Path.</span>
+
+<span class="sd">    Symlink-following is only applied to the local-/network-filesystem</span>
+<span class="sd">    branch. Object stores (S3, GCS, Azure) do not have filesystem-level</span>
+<span class="sd">    symlinks, so the CloudPath branches are unaffected.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        start:</span>
@@ -1550,7 +1682,7 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># ---- Branch 2: local Path ----</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">Path</span><span class="p">):</span>
         <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">start</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">_glob_follow_symlinks</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
             <span class="k">yield</span> <span class="n">child</span>
             <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>
@@ -1574,7 +1706,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
             <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">_glob_follow_symlinks</span><span class="p">(</span><span class="n">base</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
                 <span class="k">yield</span> <span class="n">child</span>
                 <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
                 <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>

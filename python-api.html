@@ -1309,6 +1309,55 @@ or dunamai to determine the current version being used.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._glob_follow_symlinks">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_glob_follow_symlinks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_glob_follow_symlinks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._glob_follow_symlinks" title="Link to this definition">¶</a></dt>
+<dd><p>Like <code class="docutils literal notranslate"><span class="pre">Path.glob(pattern)</span></code>, but follows symlinked directories on every
+Python version CytoTable supports. Intended for local and network
+filesystems only - cloud object stores have no filesystem symlinks and
+must use the <code class="docutils literal notranslate"><span class="pre">CloudPath</span></code> branches in <a class="reference internal" href="#cytotable.utils.cloud_glob" title="cytotable.utils.cloud_glob"><code class="xref py py-func docutils literal notranslate"><span class="pre">cloud_glob()</span></code></a>. <code class="docutils literal notranslate"><span class="pre">Path.glob</span></code>
+only gained <code class="docutils literal notranslate"><span class="pre">recurse_symlinks=True</span></code> in 3.13; on 3.10-3.12 we walk the
+tree with <code class="docutils literal notranslate"><span class="pre">os.walk(followlinks=True)</span></code> and match each entry’s relative
+path against the full pattern, so any pattern accepted by <code class="docutils literal notranslate"><span class="pre">Path.glob</span></code>
+works across versions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – Root directory to glob under. Must reference a local or network
+filesystem path.</p></li>
+<li><p><strong>pattern</strong> – Glob pattern relative to <code class="docutils literal notranslate"><span class="pre">start</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;**/*.csv&quot;</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code> entries matching <code class="docutils literal notranslate"><span class="pre">pattern</span></code>, deduplicated so that
+two paths resolving to the same real file are only yielded once.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._glob_pattern_matches">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_glob_pattern_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rel_parts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pat_parts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_glob_pattern_matches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._glob_pattern_matches" title="Link to this definition">¶</a></dt>
+<dd><p>Match path components against pattern components using pathlib-glob
+semantics: <code class="docutils literal notranslate"><span class="pre">**</span></code> matches zero or more components, <code class="docutils literal notranslate"><span class="pre">*</span></code> and <code class="docutils literal notranslate"><span class="pre">?</span></code> are
+fnmatch wildcards within a single component, and matching is anchored at
+the left of <code class="docutils literal notranslate"><span class="pre">rel_parts</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rel_parts</strong> – Path components of the candidate, relative to the search root
+(e.g. <code class="docutils literal notranslate"><span class="pre">(&quot;analysis&quot;,</span> <span class="pre">&quot;Cells.csv&quot;)</span></code>).</p></li>
+<li><p><strong>pat_parts</strong> – Pattern components produced by splitting the glob on <code class="docutils literal notranslate"><span class="pre">&quot;/&quot;</span></code>
+(e.g. <code class="docutils literal notranslate"><span class="pre">[&quot;**&quot;,</span> <span class="pre">&quot;*.csv&quot;]</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if <code class="docutils literal notranslate"><span class="pre">rel_parts</span></code> matches <code class="docutils literal notranslate"><span class="pre">pat_parts</span></code> under the semantics
+described above, else <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._natural_sort">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_natural_sort</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_to_sort</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/utils.html#_natural_sort"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._natural_sort" title="Link to this definition">¶</a></dt>
 <dd><p>Sorts the given iterable using natural sort adapted from approach
@@ -1416,6 +1465,30 @@ result if Parsl futures are encountered.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._walk_and_match">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_walk_and_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_walk_and_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._walk_and_match" title="Link to this definition">¶</a></dt>
+<dd><p>Walk <code class="docutils literal notranslate"><span class="pre">start</span></code> with <code class="docutils literal notranslate"><span class="pre">os.walk(followlinks=True)</span></code> and yield entries
+whose path (relative to <code class="docutils literal notranslate"><span class="pre">start</span></code>) matches <code class="docutils literal notranslate"><span class="pre">pattern</span></code> under
+pathlib-glob semantics. Implements the 3.10-3.12 fallback used by
+<a class="reference internal" href="#cytotable.utils._glob_follow_symlinks" title="cytotable.utils._glob_follow_symlinks"><code class="xref py py-func docutils literal notranslate"><span class="pre">_glob_follow_symlinks()</span></code></a>. Subdirectories whose real path has
+already been entered are pruned before descent so that cyclic or
+aliasing symlinks neither hang the walk nor produce duplicate yields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> – Root directory of the walk. Must reference a local or network
+filesystem path.</p></li>
+<li><p><strong>pattern</strong> – Glob pattern relative to <code class="docutils literal notranslate"><span class="pre">start</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">&quot;**/*.csv&quot;</span></code>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Yields<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">pathlib.Path</span></code> entries (files or directories) matching
+<code class="docutils literal notranslate"><span class="pre">pattern</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._write_parquet_table_with_metadata">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_write_parquet_table_with_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Table</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_write_parquet_table_with_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._write_parquet_table_with_metadata" title="Link to this definition">¶</a></dt>
 <dd><p>Adds metadata to parquet output from CytoTable.
@@ -1455,13 +1528,16 @@ as needed based on platform SDK’s.</p>
 </dl>
 </li>
 <li><dl class="simple">
-<dt>Local filesystem (pathlib.Path or non-s3 string):</dt><dd><p>Fallback to Path.glob(pattern), yielding pathlib.Path.</p>
+<dt>Local or network filesystem (pathlib.Path or non-s3 string):</dt><dd><p>Walk with symlinked subdirectories followed, yielding pathlib.Path.</p>
 </dd>
 </dl>
 </li>
 </ul>
 </dd>
 </dl>
+<p>Symlink-following is only applied to the local-/network-filesystem
+branch. Object stores (S3, GCS, Azure) do not have filesystem-level
+symlinks, so the CloudPath branches are unaffected.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -1735,11 +1811,14 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._gather_tablenumber_checksum"><code class="docutils literal notranslate"><span class="pre">_gather_tablenumber_checksum()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._generate_pagesets"><code class="docutils literal notranslate"><span class="pre">_generate_pagesets()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._get_cytotable_version"><code class="docutils literal notranslate"><span class="pre">_get_cytotable_version()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._glob_follow_symlinks"><code class="docutils literal notranslate"><span class="pre">_glob_follow_symlinks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._glob_pattern_matches"><code class="docutils literal notranslate"><span class="pre">_glob_pattern_matches()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._natural_sort"><code class="docutils literal notranslate"><span class="pre">_natural_sort()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._walk_and_match"><code class="docutils literal notranslate"><span class="pre">_walk_and_match()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._write_parquet_table_with_metadata"><code class="docutils literal notranslate"><span class="pre">_write_parquet_table_with_metadata()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.cloud_glob"><code class="docutils literal notranslate"><span class="pre">cloud_glob()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils.evaluate_futures"><code class="docutils literal notranslate"><span class="pre">evaluate_futures()</span></code></a></li>

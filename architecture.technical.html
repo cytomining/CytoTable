@@ -63,6 +63,12 @@ This note does not apply to the <code class="docutils literal notranslate"><span
 Local data paths are handled using <a class="reference external" href="https://docs.python.org/3/library/pathlib.html">Python’s Pathlib</a> module.
 Cloud-based data paths are managed by <a class="reference external" href="https://cloudpathlib.drivendata.org/~latest/">cloudpathlib</a>.
 Reference the following page for how cloudpathlib client arguments may be used: <a class="reference internal" href="overview.html#data-source-locations"><span class="std std-ref">Overview: Data Source Locations</span></a></p>
+<section id="data-paths-symlinked-directories">
+<h4>Data Paths - Symlinked Directories<a class="headerlink" href="#data-paths-symlinked-directories" title="Link to this heading">¶</a></h4>
+<p>Source discovery follows symbolic links when scanning local and network filesystem paths, so layouts that expose data through symlinked subdirectories (for example, the directories produced by Nextflow’s <code class="docutils literal notranslate"><span class="pre">stageInMode='symlink'</span></code>) are traversed transparently.
+Symlink-following applies only to local and network filesystem paths; cloud object stores (S3, GCS, Azure) have no filesystem-level symlinks and are unaffected.
+Two paths that resolve to the same real file are yielded once, and symlink cycles are detected and pruned so traversal always terminates.</p>
+</section>
 <section id="data-paths-cloud-based-sqlite">
 <h4>Data Paths - Cloud-based SQLite<a class="headerlink" href="#data-paths-cloud-based-sqlite" title="Link to this heading">¶</a></h4>
 <p>SQLite data stored in cloud-based paths are downloaded locally using cloudpathlib’s <a class="reference external" href="https://cloudpathlib.drivendata.org/stable/caching/">caching capabilities</a> to perform SQL queries.
