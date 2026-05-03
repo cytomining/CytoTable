@@ -259,3 +259,123 @@ def test_cloud_glob(root_path: str, max_matches: int, expected_result: List[str]
         )
 
     assert result == sorted(expected_result)
+
+
+@pytest.mark.parametrize(
+    "input_kind, pattern, filter_to_files",
+    [
+        ("path", "**/*.csv", False),
+        ("str", "**/*.csv", False),
+        # ``**/*`` also yields directories, so filter to files before comparing.
+        ("path", "**/*", True),
+        ("str", "**/*", True),
+    ],
+)
+def test_cloud_glob_follows_symlinked_directories(
+    tmp_path: pathlib.Path,
+    input_kind: str,
+    pattern: str,
+    filter_to_files: bool,
+):
+    """
+    Regression test for https://github.com/cytomining/CytoTable/issues/440.
+
+    Per-site CSVs live in a real directory and are exposed under a separate
+    parent through a symlinked subdirectory. cloud_glob must discover the
+    CSVs via the symlinked path for both ``Path`` and ``str`` inputs and
+    for both extension-anchored and unrestricted glob patterns.
+    """
+    real = tmp_path / "real" / "analysis"
+    real.mkdir(parents=True)
+    expected_names = ["Cells.csv", "Cytoplasm.csv", "Image.csv", "Nuclei.csv"]
+    for name in expected_names:
+        (real / name).write_text("ImageNumber,ObjectNumber\n1,1\n")
+
+    staged = tmp_path / "staged" / "1"
+    staged.mkdir(parents=True)
+    (staged / "analysis").symlink_to(real, target_is_directory=True)
+
+    staged_root = tmp_path / "staged"
+    start = staged_root if input_kind == "path" else str(staged_root)
+
+    results = cloud_glob(start=start, pattern=pattern)
+    if filter_to_files:
+        results = (p for p in results if pathlib.Path(p).is_file())
+    names = sorted(pathlib.Path(p).name for p in results)
+    assert names == sorted(expected_names)
+
+
+@pytest.mark.parametrize(
+    "pattern, expected",
+    [
+        # Anchored, no '**' anywhere -- only the top-level CSV under analysis/.
+        ("analysis/*.csv", ["analysis/Cells.csv"]),
+        # '**' in the middle of the pattern.
+        (
+            "analysis/**/*.csv",
+            ["analysis/Cells.csv", "analysis/nested/Cells.csv"],
+        ),
+    ],
+)
+def test_cloud_glob_supports_non_double_star_prefixed_patterns(
+    tmp_path: pathlib.Path,
+    pattern: str,
+    expected: List[str],
+):
+    """
+    cloud_glob must honour pathlib-glob semantics for patterns that do not
+    start with ``**/`` even on Python versions that lack
+    ``Path.glob(recurse_symlinks=True)``.
+    """
+    real = tmp_path / "real" / "analysis"
+    real.mkdir(parents=True)
+    (real / "Cells.csv").write_text("a,b\n1,2\n")
+    (real / "notes.txt").write_text("ignore me")
+    nested = real / "nested"
+    nested.mkdir()
+    (nested / "Cells.csv").write_text("a,b\n3,4\n")
+
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    (staged / "analysis").symlink_to(real, target_is_directory=True)
+
+    results = sorted(
+        str(p.relative_to(staged)) for p in cloud_glob(start=staged, pattern=pattern)
+    )
+    assert results == expected
+
+
+def test_cloud_glob_deduplicates_paths_with_same_real_target(
+    tmp_path: pathlib.Path,
+):
+    """
+    When the same file is reachable through both a real path and a symlink
+    inside the search tree, cloud_glob must yield it only once.
+    """
+    real = tmp_path / "real"
+    real.mkdir()
+    (real / "Cells.csv").write_text("a,b\n1,2\n")
+
+    # 'mirror' points back at the real directory inside the same search tree,
+    # so a naive walk would yield 'real/Cells.csv' and 'mirror/Cells.csv'.
+    (tmp_path / "mirror").symlink_to(real, target_is_directory=True)
+
+    results = list(cloud_glob(start=tmp_path, pattern="**/*.csv"))
+    assert len(results) == 1
+    assert pathlib.Path(results[0]).name == "Cells.csv"
+
+
+def test_cloud_glob_terminates_on_cyclic_symlinks(tmp_path: pathlib.Path):
+    """
+    A symlink cycle inside the search tree must not cause cloud_glob to hang
+    or recurse without bound.
+    """
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "Cells.csv").write_text("a,b\n1,2\n")
+    # 'loop' under sub points back at the search root, creating a cycle:
+    # tmp_path -> sub -> loop -> tmp_path -> sub -> ...
+    (sub / "loop").symlink_to(tmp_path, target_is_directory=True)
+
+    results = list(cloud_glob(start=tmp_path, pattern="**/*.csv"))
+    assert [pathlib.Path(p).name for p in results] == ["Cells.csv"]
