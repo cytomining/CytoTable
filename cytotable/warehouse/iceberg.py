@@ -613,8 +613,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             provided without ``image_dir``, ``image_dir``/``mask_dir``/
             ``outline_dir`` referencing a missing directory, missing join SQL,
             or ``page_keys`` lacking a non-empty ``'join'`` entry while image
-            export is requested), or when the optional ``pyiceberg``
-            dependency is unavailable.
+            export is requested).
+        ImportError:
+            Raised when the optional ``pyiceberg`` dependency is unavailable.
         ValueError:
             Raised when Iceberg export's join configuration is missing -- an
             empty ``joins`` SQL string or a ``page_keys`` mapping without a
