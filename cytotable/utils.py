@@ -936,16 +936,17 @@ def _glob_pattern_matches(rel_parts: Tuple[str, ...], pat_parts: List[str]) -> b
     the left of ``rel_parts``.
 
     Args:
-        rel_parts:
+        rel_parts (Tuple[str, ...]):
             Path components of the candidate, relative to the search root
             (e.g. ``("analysis", "Cells.csv")``).
-        pat_parts:
+        pat_parts (List[str]):
             Pattern components produced by splitting the glob on ``"/"``
             (e.g. ``["**", "*.csv"]``).
 
     Returns:
-        ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics
-        described above, else ``False``.
+        bool:
+            ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics
+            described above, else ``False``.
     """
     if not pat_parts:
         return not rel_parts
@@ -974,15 +975,17 @@ def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
     works across versions.
 
     Args:
-        start:
+        start (Path):
             Root directory to glob under. Must reference a local or network
             filesystem path.
-        pattern:
+        pattern (str):
             Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
 
     Yields:
-        ``pathlib.Path`` entries matching ``pattern``, deduplicated so that
-        two paths resolving to the same real file are only yielded once.
+        Path:
+            ``pathlib.Path`` entries matching ``pattern``, deduplicated so
+            that two paths resolving to the same real file are only yielded
+            once.
     """
     if sys.version_info >= (3, 13):
         # ``Path.glob(recurse_symlinks=True)`` yields each reachable path,
@@ -1012,15 +1015,16 @@ def _walk_and_match(start: Path, pattern: str) -> Iterator[Path]:
     aliasing symlinks neither hang the walk nor produce duplicate yields.
 
     Args:
-        start:
+        start (Path):
             Root directory of the walk. Must reference a local or network
             filesystem path.
-        pattern:
+        pattern (str):
             Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
 
     Yields:
-        ``pathlib.Path`` entries (files or directories) matching
-        ``pattern``.
+        Path:
+            ``pathlib.Path`` entries (files or directories) matching
+            ``pattern``.
     """
     pat_parts = pattern.split("/")
     visited_dirs: Set[str] = {os.path.realpath(start)}
