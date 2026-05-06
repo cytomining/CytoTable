@@ -624,7 +624,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    for ex., using: `with _duckdb_reader() as ddb_reader:`</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        duckdb.DuckDBPyConnection</span>
+<span class="sd">        duckdb.DuckDBPyConnection:</span>
+<span class="sd">            A configured DuckDB connection with the sqlite_scanner and</span>
+<span class="sd">            httpfs extensions installed and loaded.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
@@ -670,32 +672,32 @@ window.runMermaid = runMermaid;</script>
     <span class="n">pageset</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Performs SQLite table data extraction where one or many</span>
 <span class="sd">    columns include data values of potentially mismatched type</span>
 <span class="sd">    such that the data may be exported to Arrow for later use.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_path: str:</span>
+<span class="sd">        source_path (str):</span>
 <span class="sd">            A str which is a path to a SQLite database file.</span>
-<span class="sd">        table_name: str:</span>
+<span class="sd">        table_name (str):</span>
 <span class="sd">            The name of the table being queried.</span>
-<span class="sd">        page_key: str:</span>
+<span class="sd">        page_key (str):</span>
 <span class="sd">            The column name to be used to identify pagination chunks.</span>
-<span class="sd">        pageset: Tuple[Union[int, float], Union[int, float]]:</span>
+<span class="sd">        pageset (Tuple[Union[int, float], Union[int, float]]):</span>
 <span class="sd">            The range for values used for paginating data from source.</span>
-<span class="sd">        sort_output: bool</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
-<span class="sd">        add_cytotable_meta: bool, default=False:</span>
-<span class="sd">            Whether to add CytoTable metadata fields or not</span>
-<span class="sd">        tablenumber: Optional[int], default=None:</span>
+<span class="sd">        tablenumber (Optional[int]):</span>
 <span class="sd">            An optional table number to append to the results.</span>
 <span class="sd">            Defaults to None.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        pyarrow.Table:</span>
-<span class="sd">           The resulting arrow table for the data</span>
+<span class="sd">        pa.Table:</span>
+<span class="sd">            A PyArrow table containing the extracted rows, with mixed-type</span>
+<span class="sd">            cells coerced to nulls where storage class disagrees with column</span>
+<span class="sd">            type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
 
@@ -806,12 +808,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    for use in scenarios where remote work is not possible (sqlite).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        path: Union[str, AnyPath]</span>
+<span class="sd">        path (AnyPath):</span>
 <span class="sd">            A filepath which will be checked and potentially</span>
 <span class="sd">            converted to a local filepath.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        pathlib.Path</span>
+<span class="sd">        pathlib.Path:</span>
 <span class="sd">            A local pathlib.Path to cached version of cloudpath file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -846,16 +848,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        column: Dict[str, str]:</span>
+<span class="sd">        column (Dict[str, str]):</span>
 <span class="sd">            Dictionary which includes a column idx, name, and dtype</span>
-<span class="sd">        data_type_cast_map: Dict[str, str]</span>
+<span class="sd">        data_type_cast_map (Dict[str, str]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
 <span class="sd">            Example: {&quot;float&quot;: &quot;float32&quot;}</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, str]</span>
+<span class="sd">        Dict[str, str]:</span>
 <span class="sd">            A potentially data type updated dictionary of column information</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -912,11 +914,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Expands &quot;~&quot; user directory references with the user&#39;s home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        path: Union[str, pathlib.Path, CloudPath]:</span>
+<span class="sd">        path (Union[str, pathlib.Path, AnyPath]):</span>
 <span class="sd">            Path to expand.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[pathlib.Path, Any]</span>
+<span class="sd">        Union[pathlib.Path, AnyPath]:</span>
 <span class="sd">            A local pathlib.Path or Cloudpathlib.AnyPath type path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -944,7 +946,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    or dunamai to determine the current version being used.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            A string representing the version of CytoTable currently being used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -972,9 +974,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        table: pa.Table:</span>
+<span class="sd">        table (pa.Table):</span>
 <span class="sd">            Pyarrow table to be serialized as parquet table.</span>
-<span class="sd">        **kwargs: Any:</span>
+<span class="sd">        **kwargs:</span>
 <span class="sd">            kwargs provided to this function roughly align with</span>
 <span class="sd">            pyarrow.parquet.write_table. The following might be</span>
 <span class="sd">            examples of what to expect here:</span>
@@ -1004,13 +1006,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        pathname: str:</span>
+<span class="sd">        pathname (str):</span>
 <span class="sd">            A path to a file with which to generate the checksum on.</span>
-<span class="sd">        buffer_size: int:</span>
+<span class="sd">        buffer_size (int):</span>
 <span class="sd">            Buffer size to use for reading data.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        int</span>
+<span class="sd">        int:</span>
 <span class="sd">            an integer representing the checksum of the pathname file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1047,12 +1049,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    where there are no futures.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        val: Union[parsl.dataflow.futures.AppFuture, Any]</span>
+<span class="sd">        val (Union[parsl.dataflow.futures.AppFuture, Any]):</span>
 <span class="sd">            A value which may or may not be a Parsl future which</span>
 <span class="sd">            needs to be evaluated.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Any</span>
+<span class="sd">        Any:</span>
 <span class="sd">            Returns the value as-is if there&#39;s no future, the future</span>
 <span class="sd">            result if Parsl futures are encountered.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1081,14 +1083,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Helper function to unwrap futures from sources.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source: Union[</span>
-<span class="sd">            Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],</span>
-<span class="sd">            Union[parsl.dataflow.futures.AppFuture, Any],</span>
-<span class="sd">        ]</span>
+<span class="sd">        source (Union[Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]], Union[parsl.dataflow.futures.AppFuture, Any]]):</span>
 <span class="sd">            A source is a portion of an internal data structure used by</span>
-<span class="sd">            CytoTable for processing and organizing data results.</span>
+<span class="sd">            CytoTable for processing and organizing data results. May be a</span>
+<span class="sd">            dictionary of values (some of which may be Parsl futures) or</span>
+<span class="sd">            a single value or future.</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[Dict[str, Any], Any]</span>
+<span class="sd">        Union[Dict[str, Any], Any]:</span>
 <span class="sd">            An evaluated dictionary or other value type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># if we have a dictionary, unwrap any values which may be futures</span>
@@ -1111,14 +1113,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    future result evaluation for concurrency.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]</span>
+<span class="sd">        sources (Union[Dict[str, List[Dict[str, Any]]], List[Any], str]):</span>
 <span class="sd">            Sources are an internal data structure used by CytoTable for</span>
 <span class="sd">            processing and organizing data results. They may include futures</span>
 <span class="sd">            which require asynchronous processing through Parsl, so we</span>
 <span class="sd">            process them through this function.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], str]</span>
+<span class="sd">        Any:</span>
 <span class="sd">            A data structure which includes evaluated futures where they were found.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1152,10 +1154,10 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Generate a pageset (keyset pagination) from a list of keys.</span>
 
-<span class="sd">    Parameters:</span>
-<span class="sd">        keys List[Union[int, float]]:</span>
+<span class="sd">    Args:</span>
+<span class="sd">        keys (List[Union[int, float]]):</span>
 <span class="sd">            List of keys to paginate.</span>
-<span class="sd">        chunk_size int:</span>
+<span class="sd">        chunk_size (int):</span>
 <span class="sd">            Size of each chunk/page.</span>
 
 <span class="sd">    Returns:</span>
@@ -1196,18 +1198,19 @@ window.runMermaid = runMermaid;</script>
 
 <div class="viewcode-block" id="_natural_sort">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._natural_sort">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Sorts the given iterable using natural sort adapted from approach</span>
 <span class="sd">    provided by the following link:</span>
 <span class="sd">    https://stackoverflow.com/a/4836734</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      list_to_sort: List:</span>
-<span class="sd">        The list to sort.</span>
+<span class="sd">        list_to_sort (List[Any]):</span>
+<span class="sd">            The list to sort.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      List: The sorted list.</span>
+<span class="sd">        List[Any]:</span>
+<span class="sd">            The sorted list.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 
@@ -1269,15 +1272,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    }</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_path: str</span>
+<span class="sd">        source_path (str):</span>
 <span class="sd">            Path to the .npz file.</span>
-<span class="sd">        dest_path: str</span>
+<span class="sd">        dest_path (str):</span>
 <span class="sd">            Destination path for the parquet file.</span>
-<span class="sd">        tablenumber: Optional[int]</span>
+<span class="sd">        tablenumber (Optional[int]):</span>
 <span class="sd">            Optional tablenumber to be added to the data.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            Path to the exported parquet file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1342,11 +1345,11 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    `data_type_cast_map` parameter.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        field_type: pa.DataType</span>
+<span class="sd">        field_type (pa.DataType):</span>
 <span class="sd">            The PyArrow data type to be mapped.</span>
 <span class="sd">            This can include simple types (e.g., int, float, string)</span>
 <span class="sd">            or nested types (e.g., list, struct).</span>
-<span class="sd">        data_type_cast_map: Optional[Dict[str, str]], default None</span>
+<span class="sd">        data_type_cast_map (Optional[Dict[str, str]]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            This allows for custom type casting.</span>
 <span class="sd">            For example:</span>
@@ -1358,7 +1361,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            None, default PyArrow types are used.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        pa.DataType</span>
+<span class="sd">        pa.DataType:</span>
 <span class="sd">            The mapped PyArrow data type.</span>
 <span class="sd">            If no mapping is needed, the original</span>
 <span class="sd">            `field_type` is returned.</span>
@@ -1423,13 +1426,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    numeric-ness for downstream processing.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source:</span>
+<span class="sd">        source (Union[str, pathlib.Path]):</span>
 <span class="sd">            Path to a Parquet file to inspect.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        A 2-tuple ``(numeric_fields, non_numeric_fields)``,</span>
-<span class="sd">        where each element is</span>
-<span class="sd">        a list of column names.</span>
+<span class="sd">        tuple[list[str], list[str]]:</span>
+<span class="sd">            A 2-tuple ``(numeric_fields, non_numeric_fields)``, where each</span>
+<span class="sd">            element is a list of column names.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
@@ -1465,16 +1468,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    the left of ``rel_parts``.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        rel_parts:</span>
+<span class="sd">        rel_parts (Tuple[str, ...]):</span>
 <span class="sd">            Path components of the candidate, relative to the search root</span>
 <span class="sd">            (e.g. ``(&quot;analysis&quot;, &quot;Cells.csv&quot;)``).</span>
-<span class="sd">        pat_parts:</span>
+<span class="sd">        pat_parts (List[str]):</span>
 <span class="sd">            Pattern components produced by splitting the glob on ``&quot;/&quot;``</span>
 <span class="sd">            (e.g. ``[&quot;**&quot;, &quot;*.csv&quot;]``).</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics</span>
-<span class="sd">        described above, else ``False``.</span>
+<span class="sd">        bool:</span>
+<span class="sd">            ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics</span>
+<span class="sd">            described above, else ``False``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">pat_parts</span><span class="p">:</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="n">rel_parts</span>
@@ -1506,15 +1510,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    works across versions.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        start:</span>
+<span class="sd">        start (Path):</span>
 <span class="sd">            Root directory to glob under. Must reference a local or network</span>
 <span class="sd">            filesystem path.</span>
-<span class="sd">        pattern:</span>
+<span class="sd">        pattern (str):</span>
 <span class="sd">            Glob pattern relative to ``start`` (e.g. ``&quot;**/*.csv&quot;``).</span>
 
 <span class="sd">    Yields:</span>
-<span class="sd">        ``pathlib.Path`` entries matching ``pattern``, deduplicated so that</span>
-<span class="sd">        two paths resolving to the same real file are only yielded once.</span>
+<span class="sd">        Path:</span>
+<span class="sd">            ``pathlib.Path`` entries matching ``pattern``, deduplicated so</span>
+<span class="sd">            that two paths resolving to the same real file are only yielded</span>
+<span class="sd">            once.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
         <span class="c1"># ``Path.glob(recurse_symlinks=True)`` yields each reachable path,</span>
@@ -1547,15 +1553,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    aliasing symlinks neither hang the walk nor produce duplicate yields.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        start:</span>
+<span class="sd">        start (Path):</span>
 <span class="sd">            Root directory of the walk. Must reference a local or network</span>
 <span class="sd">            filesystem path.</span>
-<span class="sd">        pattern:</span>
+<span class="sd">        pattern (str):</span>
 <span class="sd">            Glob pattern relative to ``start`` (e.g. ``&quot;**/*.csv&quot;``).</span>
 
 <span class="sd">    Yields:</span>
-<span class="sd">        ``pathlib.Path`` entries (files or directories) matching</span>
-<span class="sd">        ``pattern``.</span>
+<span class="sd">        Path:</span>
+<span class="sd">            ``pathlib.Path`` entries (files or directories) matching</span>
+<span class="sd">            ``pattern``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">pat_parts</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
     <span class="n">visited_dirs</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">start</span><span class="p">)}</span>
@@ -1588,7 +1595,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">max_matches</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">cp_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">S3Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">boto_s3_client</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">boto_s3_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CloudPath</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Globs under `start` and yields matching paths.</span>
@@ -1608,21 +1615,26 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    symlinks, so the CloudPath branches are unaffected.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        start:</span>
+<span class="sd">        start (Union[str, CloudPath, Path]):</span>
 <span class="sd">            CloudPath, pathlib.Path, or URI string.</span>
-<span class="sd">        pattern:</span>
+<span class="sd">        pattern (str):</span>
 <span class="sd">            Glob pattern *relative to* `start` (supports ** for S3 branch).</span>
-<span class="sd">        max_matches:</span>
+<span class="sd">        max_matches (Optional[int]):</span>
 <span class="sd">            Optional cap on yielded results.</span>
-<span class="sd">        cp_client:</span>
+<span class="sd">        cp_client (Optional[S3Client]):</span>
 <span class="sd">            cloudpathlib S3Client (unsigned recommended).</span>
-<span class="sd">        boto_s3_client:</span>
+<span class="sd">        boto_s3_client (Optional[Any]):</span>
 <span class="sd">            boto3 S3 client (unsigned recommended).</span>
 
 <span class="sd">    Yields:</span>
-<span class="sd">        cloudpathlib.S3Path for S3;</span>
-<span class="sd">        CloudPath for other cloud providers;</span>
-<span class="sd">        pathlib.Path for local.</span>
+<span class="sd">        Union[CloudPath, Path]:</span>
+<span class="sd">            cloudpathlib.S3Path for S3, CloudPath for other cloud providers,</span>
+<span class="sd">            or pathlib.Path for local filesystem entries.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        TypeError:</span>
+<span class="sd">            Raised when ``start`` is not a ``CloudPath``, ``pathlib.Path``,</span>
+<span class="sd">            or string URI.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_trailing_slash</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

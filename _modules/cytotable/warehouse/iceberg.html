@@ -598,12 +598,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Return the directory that stores Iceberg metadata and data files.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        path:</span>
+<span class="sd">        path (Union[str, Path]):</span>
 <span class="sd">            Warehouse root path or an internal warehouse data directory.</span>
-<span class="sd">        registry_file:</span>
+<span class="sd">        registry_file (str):</span>
 <span class="sd">            Name of the CytoTable registry file that records warehouse tables</span>
-<span class="sd">            and views, used to determine whether `path` already points at the</span>
+<span class="sd">            and views, used to determine whether ``path`` already points at the</span>
 <span class="sd">            warehouse root.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Path:</span>
+<span class="sd">            ``path`` itself when it already contains the registry file,</span>
+<span class="sd">            otherwise the conventional warehouse data subdirectory beneath it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
@@ -1006,21 +1011,94 @@ window.runMermaid = runMermaid;</script>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Write a CytoTable Iceberg warehouse from raw source data.</span>
 
-<span class="sd">    This helper powers `convert(..., dest_backend=&quot;iceberg&quot;)` and accepts the</span>
+<span class="sd">    This helper powers ``convert(..., dest_backend=&quot;iceberg&quot;)`` and accepts the</span>
 <span class="sd">    same core conversion arguments for source selection, joins, chunking, and</span>
-<span class="sd">    image export. See `cytotable.convert.convert` for the shared argument</span>
+<span class="sd">    image export. See :func:`cytotable.convert.convert` for the shared argument</span>
 <span class="sd">    semantics; this function adds Iceberg-specific options such as</span>
-<span class="sd">    `default_namespace`, `images_namespace`, `registry_file`,</span>
-<span class="sd">    `profiles_table_name`, and `profile_with_images_view_name`.</span>
+<span class="sd">    ``default_namespace``, ``images_namespace``, ``registry_file``,</span>
+<span class="sd">    ``profiles_table_name``, and ``profile_with_images_view_name``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source_path (str):</span>
+<span class="sd">            Source path passed through to the underlying conversion. See</span>
+<span class="sd">            :func:`cytotable.convert.convert`.</span>
+<span class="sd">        warehouse_path (Union[str, Path]):</span>
+<span class="sd">            Filesystem path at which to create the Iceberg warehouse root.</span>
+<span class="sd">            Must not already exist.</span>
+<span class="sd">        source_datatype (Optional[str]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        metadata (Optional[Tuple[str, ...] | list[str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        compartments (Optional[Tuple[str, ...] | list[str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        identifying_columns (Optional[Tuple[str, ...] | list[str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        joins (Optional[str]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        chunk_size (Optional[int]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        infer_common_schema (bool):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        data_type_cast_map (Optional[Dict[str, str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        add_tablenumber (Optional[bool]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        page_keys (Optional[Dict[str, str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        sort_output (bool):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        preset (Optional[str]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        image_dir (Optional[str]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        mask_dir (Optional[str]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        outline_dir (Optional[str]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        bbox_column_map (Optional[Dict[str, str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        segmentation_file_regex (Optional[Dict[str, str]]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        include_source_images (bool):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        default_namespace (str):</span>
+<span class="sd">            Iceberg namespace under which the profiles table is registered.</span>
+<span class="sd">        images_namespace (str):</span>
+<span class="sd">            Iceberg namespace under which image-related tables are registered</span>
+<span class="sd">            when image export is enabled.</span>
+<span class="sd">        registry_file (str):</span>
+<span class="sd">            Filename of the CytoTable registry file written under the warehouse</span>
+<span class="sd">            root. Used to record warehouse tables and views.</span>
+<span class="sd">        profiles_table_name (str):</span>
+<span class="sd">            Name of the joined profiles table written into ``default_namespace``.</span>
+<span class="sd">        profile_with_images_view_name (Optional[str]):</span>
+<span class="sd">            Optional view name registered when image export is enabled, joining</span>
+<span class="sd">            profile rows with their corresponding image rows.</span>
+<span class="sd">        parsl_config (Optional[parsl.Config]):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        **kwargs:</span>
+<span class="sd">            Additional keyword args forwarded to source-gathering. See</span>
+<span class="sd">            :func:`cytotable.convert.convert`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Path to the created Iceberg warehouse root.</span>
+<span class="sd">        str:</span>
+<span class="sd">            Path to the created Iceberg warehouse root.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        CytoTableException: If the warehouse path already exists or image</span>
-<span class="sd">            export prerequisites are invalid.</span>
-<span class="sd">        ValueError: If required join SQL or join pagination keys are missing.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when ``warehouse_path`` already exists, when image-export</span>
+<span class="sd">            options are inconsistent (for example, ancillary image options</span>
+<span class="sd">            provided without ``image_dir``, ``image_dir``/``mask_dir``/</span>
+<span class="sd">            ``outline_dir`` referencing a missing directory, missing join SQL,</span>
+<span class="sd">            or ``page_keys`` lacking a non-empty ``&#39;join&#39;`` entry while image</span>
+<span class="sd">            export is requested).</span>
+<span class="sd">        ImportError:</span>
+<span class="sd">            Raised when the optional ``pyiceberg`` dependency is unavailable.</span>
+<span class="sd">        ValueError:</span>
+<span class="sd">            Raised when Iceberg export&#39;s join configuration is missing -- an</span>
+<span class="sd">            empty ``joins`` SQL string or a ``page_keys`` mapping without a</span>
+<span class="sd">            non-empty ``&#39;join&#39;`` entry.</span>
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa: DOC503</span>
 
     <span class="n">_require_pyiceberg</span><span class="p">()</span>
 

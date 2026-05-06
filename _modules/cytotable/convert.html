@@ -504,15 +504,20 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Gather column data from table through duckdb.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source: Dict[str, Any]</span>
+<span class="sd">        source (Dict[str, Any]):</span>
 <span class="sd">            Contains source data details. Represents a single</span>
 <span class="sd">            file or table of some kind.</span>
-<span class="sd">        sort_output:</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Optional[Dict[str, str]]]</span>
+<span class="sd">        List[Optional[Dict[str, str]]]:</span>
 <span class="sd">            list of dictionaries which each include column level information</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        duckdb.Error:</span>
+<span class="sd">            Re-raised when the underlying duckdb query fails for a reason</span>
+<span class="sd">            other than mixed-type errors on a sqlite source.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
@@ -615,9 +620,10 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    to a &quot;REAL&quot; dtype (&quot;REAL&quot; in duckdb is roughly equivalent to &quot;float32&quot;)</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        table_path: str:</span>
-<span class="sd">            Path to a parquet file which will be modified.</span>
-<span class="sd">        data_type_cast_map: Dict[str, str]</span>
+<span class="sd">        columns (List[Dict[str, str]]):</span>
+<span class="sd">            Column metadata records (each with ``column_id``, ``column_name``,</span>
+<span class="sd">            and ``column_dtype``) describing the columns to cast.</span>
+<span class="sd">        data_type_cast_map (Dict[str, str]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly to eventually align with DuckDB types:</span>
 <span class="sd">            https://duckdb.org/docs/sql/data_types/overview</span>
@@ -626,7 +632,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            use in Pandas and/or PyArrow via cytotable.utils.DATA_TYPE_SYNONYMS</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Dict[str, str]]</span>
+<span class="sd">        List[Dict[str, str]]:</span>
 <span class="sd">            list of dictionaries which each include column level information</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -672,14 +678,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    - If using SQLite data sources, the entire SQLite database is used for checksum.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
 <span class="sd">            Contains metadata about data tables and related contents.</span>
-<span class="sd">        add_tablenumber: Optional[bool]</span>
+<span class="sd">        add_tablenumber (Optional[bool]):</span>
 <span class="sd">            Whether to add a calculated tablenumber.</span>
 <span class="sd">            Note: when False, adds None as the tablenumber</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Dict[str, Any]]</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            New source group with added TableNumber details.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -767,21 +773,21 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    input data which will be ignored with warnings.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source: Dict[str, Any]</span>
-<span class="sd">            Contains the source data to be chunked. Represents a single</span>
-<span class="sd">            file or table of some kind.</span>
-<span class="sd">        chunk_size: int</span>
+<span class="sd">        chunk_size (int):</span>
 <span class="sd">            The size in rowcount of the chunks to create.</span>
-<span class="sd">        page_key: str</span>
+<span class="sd">        page_key (str):</span>
 <span class="sd">            The column name to be used to identify pagination chunks.</span>
 <span class="sd">            Expected to be of numeric type (int, float) for ordering.</span>
-<span class="sd">        sql_stmt:</span>
+<span class="sd">        source (Optional[Dict[str, Any]]):</span>
+<span class="sd">            Contains the source data to be chunked. Represents a single</span>
+<span class="sd">            file or table of some kind.</span>
+<span class="sd">        sql_stmt (Optional[str]):</span>
 <span class="sd">            Optional sql statement to form the pagination set from.</span>
 <span class="sd">            Default behavior extracts pagination sets from the full</span>
 <span class="sd">            data source.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">         Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], None]</span>
+<span class="sd">        Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None]:</span>
 <span class="sd">            List of keys to use for reading the data later on.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -865,21 +871,29 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Export source data to chunked parquet file using chunk size and offsets.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_group_name: str</span>
+<span class="sd">        source_group_name (str):</span>
 <span class="sd">            Name of the source group (for ex. compartment or metadata table name).</span>
-<span class="sd">        source: Dict[str, Any]</span>
+<span class="sd">        source (Dict[str, Any]):</span>
 <span class="sd">            Contains the source data to be chunked. Represents a single</span>
 <span class="sd">            file or table of some kind along with collected information about table.</span>
-<span class="sd">        pageset: Optional[Tuple[Union[int, float], Union[int, float]]]</span>
+<span class="sd">        pageset (Optional[Tuple[Union[int, float], Union[int, float]]]):</span>
 <span class="sd">            The pageset for chunking the data from source.</span>
-<span class="sd">        dest_path: str</span>
+<span class="sd">        dest_path (str):</span>
 <span class="sd">            Path to store the output data.</span>
-<span class="sd">        sort_output: bool</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            A string of the output filepath.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when ``pageset`` is ``None`` for non-NPZ source types,</span>
+<span class="sd">            since a pageset range is required for table queries.</span>
+<span class="sd">        duckdb.Error:</span>
+<span class="sd">            Re-raised when the duckdb-based read fails for a reason other</span>
+<span class="sd">            than a mixed-type sqlite error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
@@ -1028,20 +1042,20 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    is specified within targets.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        table_path: str:</span>
+<span class="sd">        table_path (str):</span>
 <span class="sd">            Path to a parquet file which will be modified.</span>
-<span class="sd">        source_group_name: str:</span>
+<span class="sd">        source_group_name (str):</span>
 <span class="sd">            Name of data source source group (for common compartments, etc).</span>
-<span class="sd">        identifying_columns: List[str]:</span>
+<span class="sd">        identifying_columns (List[str]):</span>
 <span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
 <span class="sd">            treated differently when renaming.</span>
-<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">        metadata (Union[List[str], Tuple[str, ...]]):</span>
 <span class="sd">            List of source data names which are used as metadata.</span>
-<span class="sd">        compartments: List[str]:</span>
+<span class="sd">        compartments (List[str]):</span>
 <span class="sd">            List of source data names which are used as compartments.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            Path to the modified file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1199,21 +1213,29 @@ window.runMermaid = runMermaid;</script>
 
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_group_name: str</span>
+<span class="sd">        source_group_name (str):</span>
 <span class="sd">            Name of data source source group (for common compartments, etc).</span>
-<span class="sd">        source_group: List[Dict[str, Any]]:</span>
+<span class="sd">        source_group (List[Dict[str, Any]]):</span>
 <span class="sd">            Data structure containing grouped data for concatenation.</span>
-<span class="sd">        dest_path: Optional[str] (Default value = None)</span>
+<span class="sd">        dest_path (str):</span>
 <span class="sd">            Optional destination path for concatenated sources.</span>
-<span class="sd">        common_schema: List[Tuple[str, str]] (Default value = None)</span>
+<span class="sd">        common_schema (Optional[List[Tuple[str, str]]]):</span>
 <span class="sd">            Common schema to use for concatenation amongst arrow tables</span>
 <span class="sd">            which may have slightly different but compatible schema.</span>
-<span class="sd">        sort_output: bool</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Dict[str, Any]]</span>
+<span class="sd">        List[Dict[str, Any]]:</span>
 <span class="sd">            Updated dictionary containing concatenated sources.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        SchemaException:</span>
+<span class="sd">            Raised when source files cannot be unified under a common schema</span>
+<span class="sd">            during concatenation.</span>
+<span class="sd">        OSError:</span>
+<span class="sd">            Re-raised when cleaning up the source-group directory fails</span>
+<span class="sd">            with an errno other than ``ENOTEMPTY``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
@@ -1318,14 +1340,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Prepare join SQL statement with actual locations of data based on the sources.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
 <span class="sd">            Grouped datasets of files which will be used by other functions.</span>
 <span class="sd">            Includes the metadata concerning location of actual data.</span>
-<span class="sd">        joins: str:</span>
+<span class="sd">        joins (str):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join</span>
 <span class="sd">            operations using the join_group keys as a reference.</span>
-<span class="sd">        sort_output: bool</span>
-<span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
@@ -1361,20 +1381,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Join sources based on join group keys (group of specific join column values)</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        dest_path: str:</span>
+<span class="sd">        dest_path (str):</span>
 <span class="sd">            Destination path to write file-based content.</span>
-<span class="sd">        joins: str:</span>
+<span class="sd">        joins (str):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join</span>
 <span class="sd">            operations using the join_group keys as a reference.</span>
-<span class="sd">        join_group: List[Dict[str, Any]]:</span>
-<span class="sd">            Group of joinable keys to be used as &quot;chunked&quot; filter</span>
-<span class="sd">            of overall dataset.</span>
-<span class="sd">        drop_null: bool:</span>
+<span class="sd">        page_key (str):</span>
+<span class="sd">            Column name used to filter rows for the current pageset.</span>
+<span class="sd">        pageset (Union[Tuple[int, int], None]):</span>
+<span class="sd">            Inclusive ``(start, end)`` bounds on ``page_key`` for the chunk</span>
+<span class="sd">            being processed; ``None`` selects the entire joined result.</span>
+<span class="sd">        sort_output (bool):</span>
+<span class="sd">            Whether to sort the joined output by ``page_key``.</span>
+<span class="sd">        drop_null (bool):</span>
 <span class="sd">            Whether to drop rows with null values within the resulting</span>
 <span class="sd">            joined data.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            Path to joined file which is created as a result of this function.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1446,21 +1470,21 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    https://arrow.apache.org/docs/python/generated/pyarrow.concat_tables.html</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
 <span class="sd">            Grouped datasets of files which will be used by other functions.</span>
 <span class="sd">            Includes the metadata concerning location of actual data.</span>
-<span class="sd">        dest_path: str:</span>
+<span class="sd">        dest_path (str):</span>
 <span class="sd">            Destination path to write file-based content.</span>
-<span class="sd">        join_sources: List[str]:</span>
+<span class="sd">        join_sources (List[str]):</span>
 <span class="sd">            List of local filepath destination for join source chunks</span>
 <span class="sd">            which will be concatenated.</span>
-<span class="sd">        dest_datatype: Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]</span>
+<span class="sd">        dest_datatype (Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]):</span>
 <span class="sd">            The datatype of the output destination file. Default is &#39;parquet&#39;.</span>
-<span class="sd">        sort_output: bool</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            Path to concatenated file which is created as a result of this function.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1576,15 +1600,16 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    data concatenation and other operations.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_group: List[Dict[str, Any]]:</span>
+<span class="sd">        source_group (List[Dict[str, Any]]):</span>
 <span class="sd">            Group of one or more data sources which includes metadata about</span>
 <span class="sd">            path to parquet data.</span>
-<span class="sd">        data_type_cast_map: Optional[Dict[str, str]], default None</span>
+<span class="sd">        data_type_cast_map (Optional[Dict[str, str]]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">        List[Tuple[str, pa.DataType]]</span>
+<span class="sd">        List[Tuple[str, pa.DataType]]:</span>
 <span class="sd">            A list of tuples which includes column name and PyArrow datatype.</span>
 <span class="sd">            This data will later be used as the basis for forming a PyArrow schema.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1690,57 +1715,66 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Export data to various formats (e.g., parquet) based on configuration.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_path: str:</span>
+<span class="sd">        source_path (str):</span>
 <span class="sd">            str reference to read source files from.</span>
 <span class="sd">            Note: may be local or remote object-storage</span>
 <span class="sd">            location using convention &quot;s3://...&quot; or similar.</span>
-<span class="sd">        dest_path: str:</span>
+<span class="sd">        dest_path (str):</span>
 <span class="sd">            Path to write files to. This path will be used for</span>
 <span class="sd">            intermediary data work and must be a new file or directory path.</span>
 <span class="sd">            This parameter will result in a directory on `join=False`.</span>
 <span class="sd">            This parameter will result in a single file on `join=True`.</span>
 <span class="sd">            Note: this may only be a local path.</span>
-<span class="sd">        source_datatype: Optional[str]: (Default value = None)</span>
+<span class="sd">        source_datatype (Optional[str]):</span>
 <span class="sd">            Source datatype to focus on during conversion.</span>
-<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">        metadata (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Metadata names to use for conversion.</span>
-<span class="sd">        compartments: Union[List[str], Tuple[str, ...]]: (Default value = None)</span>
+<span class="sd">        compartments (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Compartment names to use for conversion.</span>
-<span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">        identifying_columns (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
 <span class="sd">            ignored with regards to renaming.</span>
-<span class="sd">        concat: bool:</span>
+<span class="sd">        concat (bool):</span>
 <span class="sd">            Whether to concatenate similar files together.</span>
-<span class="sd">        join: bool:</span>
+<span class="sd">        join (bool):</span>
 <span class="sd">            Whether to join the compartment data together into one dataset.</span>
-<span class="sd">        joins: str:</span>
+<span class="sd">        joins (Optional[str]):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
-<span class="sd">        chunk_size: Optional[int],</span>
+<span class="sd">        chunk_size (Optional[int]):</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
-<span class="sd">        infer_common_schema: bool:  (Default value = True)</span>
+<span class="sd">        infer_common_schema (bool):</span>
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
-<span class="sd">        drop_null: bool:</span>
+<span class="sd">        drop_null (bool):</span>
 <span class="sd">            Whether to drop null results.</span>
-<span class="sd">        sort_output: bool</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
-<span class="sd">        page_keys: Dict[str, str]</span>
+<span class="sd">        page_keys (Dict[str, str]):</span>
 <span class="sd">            A dictionary which defines which column names are used for keyset pagination</span>
 <span class="sd">            in order to perform data extraction.</span>
-<span class="sd">        dest_datatype: Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]:</span>
+<span class="sd">        dest_datatype (Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]):</span>
 <span class="sd">            Output destination datatype to write to. Defaults to &#39;parquet&#39;.</span>
-<span class="sd">        data_type_cast_map: Dict[str, str]</span>
+<span class="sd">        data_type_cast_map (Optional[Dict[str, str]]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
-<span class="sd">        **kwargs: Any:</span>
+<span class="sd">        add_tablenumber (Optional[bool]):</span>
+<span class="sd">            Whether to add a calculated tablenumber column which helps</span>
+<span class="sd">            differentiate repeated values (such as ``ObjectNumber``) across</span>
+<span class="sd">            source data.</span>
+<span class="sd">        **kwargs:</span>
 <span class="sd">            Keyword args used for gathering source data, primarily relevant for</span>
 <span class="sd">            Cloudpathlib cloud-based client configuration.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], str]:</span>
+<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:</span>
 <span class="sd">            Grouped sources which include metadata about destination filepath</span>
 <span class="sd">            where parquet file was written or a string filepath for the joined</span>
 <span class="sd">            result.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when a source group lacks a matching ``page_keys`` entry</span>
+<span class="sd">            for non-NPZ source data, since pagination requires a key column.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># gather sources to be processed</span>
@@ -2005,113 +2039,124 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    using convention &quot;s3://...&quot; or similar.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_path: str:</span>
+<span class="sd">        source_path (str):</span>
 <span class="sd">            str reference to read source files from.</span>
 <span class="sd">            Note: may be local or remote object-storage location</span>
 <span class="sd">            using convention &quot;s3://...&quot; or similar.</span>
-<span class="sd">        dest_path: str:</span>
-<span class="sd">            Path to write files to. Setting `dest_backend=&quot;parquet&quot;` will trigger CytoTable to use the provided path to perform</span>
+<span class="sd">        dest_path (str):</span>
+<span class="sd">            Path to write files to. Setting ``dest_backend=&quot;parquet&quot;`` will trigger CytoTable to use the provided path to perform</span>
 <span class="sd">            intermediary data processing. The path must represent a new file or directory.</span>
-<span class="sd">            This parameter will result in a directory on `join=False`.</span>
-<span class="sd">            This parameter will result in a single file on `join=True`.</span>
-<span class="sd">            Setting `dest_backend=&quot;iceberg&quot;` will trigger CytoTable to use the provided path as the local warehouse root</span>
+<span class="sd">            This parameter will result in a directory on ``join=False``.</span>
+<span class="sd">            This parameter will result in a single file on ``join=True``.</span>
+<span class="sd">            Setting ``dest_backend=&quot;iceberg&quot;`` will trigger CytoTable to use the provided path as the local warehouse root</span>
 <span class="sd">            directory. CytoTable still stages parquet files internally (during write),</span>
 <span class="sd">            but these intermediary files are temporary and automatically deleted following write</span>
-<span class="sd">            of the final output at `dest_path`.</span>
-<span class="sd">        dest_backend: Literal[&quot;parquet&quot;, &quot;iceberg&quot;]:</span>
-<span class="sd">            Output backend to write to. Defaults to `&quot;parquet&quot;`. Use</span>
-<span class="sd">            `&quot;iceberg&quot;` to store processed CytoTable tables in a local</span>
-<span class="sd">            Iceberg warehouse.</span>
-<span class="sd">        dest_datatype: Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]:</span>
+<span class="sd">            of the final output at ``dest_path``.</span>
+<span class="sd">        dest_datatype (Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]):</span>
 <span class="sd">            Output destination datatype to write to. CytoTable uses this</span>
-<span class="sd">            value when the selected backend is `&quot;parquet&quot;`. For</span>
-<span class="sd">            `dest_backend=&quot;iceberg&quot;`, CytoTable currently requires</span>
-<span class="sd">            `dest_datatype=&quot;parquet&quot;` because CytoTable uses parquet as the</span>
+<span class="sd">            value when the selected backend is ``&quot;parquet&quot;``. For</span>
+<span class="sd">            ``dest_backend=&quot;iceberg&quot;``, CytoTable currently requires</span>
+<span class="sd">            ``dest_datatype=&quot;parquet&quot;`` because CytoTable uses parquet as the</span>
 <span class="sd">            temporary staging format before it writes data into the Iceberg</span>
 <span class="sd">            warehouse.</span>
-<span class="sd">        image_dir: Optional[str]</span>
+<span class="sd">        dest_backend (Literal[&quot;parquet&quot;, &quot;iceberg&quot;]):</span>
+<span class="sd">            Output backend to write to. Defaults to ``&quot;parquet&quot;``. Use</span>
+<span class="sd">            ``&quot;iceberg&quot;`` to store processed CytoTable tables in a local</span>
+<span class="sd">            Iceberg warehouse.</span>
+<span class="sd">        image_dir (Optional[str]):</span>
 <span class="sd">            Optional directory or cloud object-storage prefix of source images</span>
 <span class="sd">            aligned with the experiment of interest. CytoTable uses this input</span>
 <span class="sd">            to build OME-Arrow image crops and, when</span>
-<span class="sd">            `include_source_images=True`, full-image rows in</span>
-<span class="sd">            the iceberg table called `images.source_images`. Requires `dest_backend=&quot;iceberg&quot;`.</span>
-<span class="sd">        include_source_images: bool</span>
+<span class="sd">            ``include_source_images=True``, full-image rows in</span>
+<span class="sd">            the iceberg table called ``images.source_images``. Requires ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">        include_source_images (bool):</span>
 <span class="sd">            Whether to also store full source images in an Iceberg</span>
-<span class="sd">            `images.source_images` table. Requires `image_dir` and</span>
-<span class="sd">            `dest_backend=&quot;iceberg&quot;`.</span>
-<span class="sd">        mask_dir: Optional[str]</span>
+<span class="sd">            ``images.source_images`` table. Requires ``image_dir`` and</span>
+<span class="sd">            ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">        mask_dir (Optional[str]):</span>
 <span class="sd">            Optional directory or cloud object-storage prefix of segmentation</span>
-<span class="sd">            masks corresponding to images within `image_dir`. CytoTable uses these files to</span>
-<span class="sd">            populate `ome_arrow_label` when no outline image is available.</span>
-<span class="sd">            Requires `dest_backend=&quot;iceberg&quot;`.</span>
-<span class="sd">        outline_dir: Optional[str]</span>
+<span class="sd">            masks corresponding to images within ``image_dir``. CytoTable uses these files to</span>
+<span class="sd">            populate ``ome_arrow_label`` when no outline image is available.</span>
+<span class="sd">            Requires ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">        outline_dir (Optional[str]):</span>
 <span class="sd">            Optional directory or cloud object-storage prefix of outline images</span>
-<span class="sd">            corresponding to images within `image_dir`. CytoTable uses these files to populate</span>
-<span class="sd">            `ome_arrow_label` before falling back to `mask_dir`. Requires</span>
-<span class="sd">            `dest_backend=&quot;iceberg&quot;`.</span>
-<span class="sd">        segmentation_file_regex: Optional[Dict[str, str]]</span>
+<span class="sd">            corresponding to images within ``image_dir``. CytoTable uses these files to populate</span>
+<span class="sd">            ``ome_arrow_label`` before falling back to ``mask_dir``. Requires</span>
+<span class="sd">            ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">        segmentation_file_regex (Optional[Dict[str, str]]):</span>
 <span class="sd">            Optional regex mapping of segmentation filename patterns to source</span>
 <span class="sd">            image filename patterns to link masks and/or outlines. For example,</span>
-<span class="sd">            use `{r&quot;.*_outline\\.tiff$&quot;: r&quot;(plateA_well_B03_site_1)\\.tiff$&quot;}`</span>
+<span class="sd">            use ``{r&quot;.*_outline\\.tiff$&quot;: r&quot;(plateA_well_B03_site_1)\\.tiff$&quot;}``</span>
 <span class="sd">            when outline files and source images do not share the same</span>
-<span class="sd">            basename. Requires `dest_backend=&quot;iceberg&quot;`.</span>
-<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">            basename. Requires ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">        source_datatype (Optional[str]):</span>
 <span class="sd">            Source datatype to focus on during conversion.</span>
-<span class="sd">        metadata: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">        metadata (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Metadata names to use for conversion.</span>
-<span class="sd">        compartments: Union[List[str], Tuple[str, str, str, str]]:</span>
-<span class="sd">            (Default value = None)</span>
+<span class="sd">        compartments (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Compartment names to use for conversion.</span>
-<span class="sd">        identifying_columns: Union[List[str], Tuple[str, ...]]:</span>
+<span class="sd">        identifying_columns (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
 <span class="sd">            ignored with regards to renaming.</span>
-<span class="sd">        concat: bool:  (Default value = True)</span>
+<span class="sd">        concat (bool):</span>
 <span class="sd">            Whether to concatenate similar files together.</span>
-<span class="sd">        join: bool:  (Default value = True)</span>
-<span class="sd">            Whether to join the compartment data together into one dataset</span>
-<span class="sd">        joins: str: (Default value = None):</span>
+<span class="sd">        join (bool):</span>
+<span class="sd">            Whether to join the compartment data together into one dataset.</span>
+<span class="sd">        joins (Optional[str]):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
-<span class="sd">        chunk_size: Optional[int] (Default value = None)</span>
-<span class="sd">            Size of join chunks which is used to limit data size during join ops</span>
-<span class="sd">        infer_common_schema: bool (Default value = True)</span>
+<span class="sd">        chunk_size (Optional[int]):</span>
+<span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
+<span class="sd">        infer_common_schema (bool):</span>
 <span class="sd">            Whether to infer a common schema when concatenating sources.</span>
-<span class="sd">        data_type_cast_map: Dict[str, str], (Default value = None)</span>
+<span class="sd">        drop_null (bool):</span>
+<span class="sd">            Whether to drop nan/null values from results.</span>
+<span class="sd">        data_type_cast_map (Optional[Dict[str, str]]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
-<span class="sd">        add_tablenumber: Optional[bool]</span>
+<span class="sd">        add_tablenumber (Optional[bool]):</span>
 <span class="sd">            Whether to add a calculated tablenumber which helps differentiate</span>
 <span class="sd">            various repeated values (such as ObjectNumber) within source data.</span>
 <span class="sd">            Useful for processing multiple SQLite or CSV data sources together</span>
 <span class="sd">            to retain distinction from each dataset.</span>
-<span class="sd">        page_keys: str:</span>
+<span class="sd">        page_keys (Optional[Dict[str, str]]):</span>
 <span class="sd">            The table and column names to be used for key pagination.</span>
-<span class="sd">            Uses the form: {&quot;table_name&quot;:&quot;column_name&quot;}.</span>
+<span class="sd">            Uses the form: ``{&quot;table_name&quot;: &quot;column_name&quot;}``.</span>
 <span class="sd">            Expects columns to include numeric data (ints or floats).</span>
-<span class="sd">            Interacts with the `chunk_size` parameter to form</span>
-<span class="sd">            pages of `chunk_size`.</span>
-<span class="sd">        bbox_column_map: Optional[Dict[str, str]]</span>
+<span class="sd">            Interacts with the ``chunk_size`` parameter to form</span>
+<span class="sd">            pages of ``chunk_size``.</span>
+<span class="sd">        bbox_column_map (Optional[Dict[str, str]]):</span>
 <span class="sd">            Optional dictionary that explicitly maps image crop bounding box columns using</span>
-<span class="sd">            keys `x_min`, `x_max`, `y_min`, and `y_max`. For Iceberg profile</span>
+<span class="sd">            keys ``x_min``, ``x_max``, ``y_min``, and ``y_max``. For Iceberg profile</span>
 <span class="sd">            exports, CytoTable recodes the provided bounding box value pairs as new columns in</span>
-<span class="sd">            `joined_profiles` as `Metadata_SourceBBoxXMin`,</span>
-<span class="sd">            `Metadata_SourceBBoxXMax`, `Metadata_SourceBBoxYMin`, and</span>
-<span class="sd">            `Metadata_SourceBBoxYMax`.</span>
-<span class="sd">        sort_output: bool (Default value = True)</span>
+<span class="sd">            ``joined_profiles`` as ``Metadata_SourceBBoxXMin``,</span>
+<span class="sd">            ``Metadata_SourceBBoxXMax``, ``Metadata_SourceBBoxYMin``, and</span>
+<span class="sd">            ``Metadata_SourceBBoxYMax``.</span>
+<span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
-<span class="sd">        drop_null: bool (Default value = False)</span>
-<span class="sd">            Whether to drop nan/null values from results</span>
-<span class="sd">        preset: str (Default value = &quot;cellprofiler_csv&quot;)</span>
-<span class="sd">            an optional group of presets to use based on common configurations</span>
-<span class="sd">        parsl_config: Optional[parsl.Config] (Default value = None)</span>
+<span class="sd">        preset (Optional[str]):</span>
+<span class="sd">            An optional group of presets to use based on common configurations.</span>
+<span class="sd">        parsl_config (Optional[parsl.Config]):</span>
 <span class="sd">            Optional Parsl configuration to use for running CytoTable operations.</span>
 <span class="sd">            Note: when using CytoTable multiple times in the same process,</span>
 <span class="sd">            CytoTable will use the first provided configuration for all runs.</span>
+<span class="sd">        **kwargs:</span>
+<span class="sd">            Additional keyword args forwarded to source-gathering and</span>
+<span class="sd">            backend-specific writers (for example, Cloudpathlib client</span>
+<span class="sd">            configuration or Iceberg-specific options).</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], str]</span>
+<span class="sd">        Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:</span>
 <span class="sd">            Grouped sources which include metadata about destination filepath</span>
 <span class="sd">            where parquet file was written or str of joined result filepath.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when input options are inconsistent (for example, when a</span>
+<span class="sd">            source group lacks a matching ``page_keys`` entry for non-NPZ</span>
+<span class="sd">            data).</span>
+<span class="sd">        DatatypeException:</span>
+<span class="sd">            Raised when ``source_datatype`` is not a supported source type.</span>
 
 <span class="sd">    Example:</span>
 

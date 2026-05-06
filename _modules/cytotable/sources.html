@@ -478,7 +478,6 @@ window.runMermaid = runMermaid;</script>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoInputDataException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cloud_glob</span>
 
 
@@ -489,14 +488,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Build a path client or return local path.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        path: Union[pathlib.Path, Any]:</span>
+<span class="sd">        path (str):</span>
 <span class="sd">            Path to seek filepaths within.</span>
-<span class="sd">        **kwargs: Any</span>
+<span class="sd">        **kwargs:</span>
 <span class="sd">            keyword arguments to be used with</span>
 <span class="sd">            Cloudpathlib.CloudPath.client .</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Union[pathlib.Path, Any]</span>
+<span class="sd">        Union[pathlib.Path, AnyPath]:</span>
 <span class="sd">            A local pathlib.Path or Cloudpathlib.AnyPath type path.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -529,16 +528,23 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Gather dataset of filepaths from a provided directory path.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        path: Union[pathlib.Path, Any]:</span>
+<span class="sd">        path (Union[pathlib.Path, AnyPath]):</span>
 <span class="sd">            Either a directory path to seek filepaths within or a path directly to a file.</span>
-<span class="sd">        targets: List[str]:</span>
+<span class="sd">        targets (Optional[List[str]]):</span>
 <span class="sd">            Compartment and metadata names to seek within the provided path.</span>
-<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">        source_datatype (Optional[str]):</span>
 <span class="sd">            The source datatype (extension) to use for reading the tables.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            Data structure which groups related files based on the compartments.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        DatatypeException:</span>
+<span class="sd">            Raised when both ``targets`` and ``source_datatype`` are unset,</span>
+<span class="sd">            since at least one is required to identify source files.</span>
+<span class="sd">        NoInputDataException:</span>
+<span class="sd">            Raised when no input files are found at ``path``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
@@ -696,15 +702,21 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Infers and optionally validates datatype (extension) of files.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]:</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
 <span class="sd">            Grouped datasets of files which will be used by other functions.</span>
-<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">        source_datatype (Optional[str]):</span>
 <span class="sd">            Optional source datatype to validate within the context of</span>
 <span class="sd">            detected datatypes.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        str</span>
+<span class="sd">        str:</span>
 <span class="sd">            A string of the datatype detected or validated source_datatype.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        DatatypeException:</span>
+<span class="sd">            Raised when more than one datatype is inferred without an explicit</span>
+<span class="sd">            ``source_datatype``, or when the requested ``source_datatype`` is</span>
+<span class="sd">            not present among the detected file suffixes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatatypeException</span>
@@ -747,13 +759,13 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Filter source filepaths based on provided source_datatype.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        sources: Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
 <span class="sd">            Grouped datasets of files which will be used by other functions.</span>
-<span class="sd">        source_datatype: str</span>
+<span class="sd">        source_datatype (str):</span>
 <span class="sd">            Source datatype to use for filtering the dataset.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            Data structure which groups related files based on the datatype.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -789,26 +801,18 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        bool:</span>
 <span class="sd">            True if the file has more than one line, False otherwise.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        NoInputDataException: If the file has zero lines.</span>
+<span class="sd">            For sqlite and npz files (which are not line-oriented),</span>
+<span class="sd">            always returns True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="c1"># if we don&#39;t have a sqlite file</span>
     <span class="c1"># (we can&#39;t check sqlite files for lines)</span>
     <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.sqlite&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">]:</span>
         <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="c1"># read two lines, if the second is empty return false</span>
-                <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
-
-            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
-                <span class="c1"># If we encounter the end of the file, it has only one line</span>
-                <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Data file has 0 rows of values. Error in file: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">True</span></div>
+            <span class="c1"># read two lines; if either is empty (EOF) the file has fewer</span>
+            <span class="c1"># than two lines so we report False</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
+    <span class="k">return</span> <span class="kc">True</span></div>
 
 
 
@@ -824,15 +828,18 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Flow for gathering data sources for conversion.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        source_path: str:</span>
+<span class="sd">        source_path (str):</span>
 <span class="sd">            Where to gather file-based data from.</span>
-<span class="sd">        source_datatype: Optional[str]:  (Default value = None)</span>
+<span class="sd">        source_datatype (Optional[str]):</span>
 <span class="sd">            The source datatype (extension) to use for reading the tables.</span>
-<span class="sd">        targets: Optional[List[str]]:  (Default value = None)</span>
+<span class="sd">        targets (Optional[List[str]]):</span>
 <span class="sd">            The source file names to target within the provided path.</span>
+<span class="sd">        **kwargs:</span>
+<span class="sd">            Additional keyword args forwarded to the cloudpathlib client when</span>
+<span class="sd">            reading source paths from cloud object storage.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, List[Dict[str, Any]]]</span>
+<span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            Data structure which groups related files based on the compartments.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
