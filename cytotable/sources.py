@@ -8,7 +8,6 @@ from typing import Any, Dict, List, Optional, Union
 
 from cloudpathlib import AnyPath
 
-from cytotable.exceptions import NoInputDataException
 from cytotable.utils import cloud_glob
 
 
@@ -17,14 +16,14 @@ def _build_path(path: str, **kwargs) -> Union[pathlib.Path, AnyPath]:
     Build a path client or return local path.
 
     Args:
-        path: Union[pathlib.Path, Any]:
+        path (str):
             Path to seek filepaths within.
-        **kwargs: Any
+        **kwargs:
             keyword arguments to be used with
             Cloudpathlib.CloudPath.client .
 
     Returns:
-        Union[pathlib.Path, Any]
+        Union[pathlib.Path, AnyPath]:
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
@@ -54,16 +53,23 @@ def _get_source_filepaths(
     Gather dataset of filepaths from a provided directory path.
 
     Args:
-        path: Union[pathlib.Path, Any]:
+        path (Union[pathlib.Path, AnyPath]):
             Either a directory path to seek filepaths within or a path directly to a file.
-        targets: List[str]:
+        targets (Optional[List[str]]):
             Compartment and metadata names to seek within the provided path.
-        source_datatype: Optional[str]:  (Default value = None)
+        source_datatype (Optional[str]):
             The source datatype (extension) to use for reading the tables.
 
     Returns:
-        Dict[str, List[Dict[str, Any]]]
+        Dict[str, List[Dict[str, Any]]]:
             Data structure which groups related files based on the compartments.
+
+    Raises:
+        DatatypeException:
+            Raised when both ``targets`` and ``source_datatype`` are unset,
+            since at least one is required to identify source files.
+        NoInputDataException:
+            Raised when no input files are found at ``path``.
     """
 
     import os
@@ -218,15 +224,21 @@ def _infer_source_datatype(
     Infers and optionally validates datatype (extension) of files.
 
     Args:
-        sources: Dict[str, List[Dict[str, Any]]]:
+        sources (Dict[str, List[Dict[str, Any]]]):
             Grouped datasets of files which will be used by other functions.
-        source_datatype: Optional[str]:  (Default value = None)
+        source_datatype (Optional[str]):
             Optional source datatype to validate within the context of
             detected datatypes.
 
     Returns:
-        str
+        str:
             A string of the datatype detected or validated source_datatype.
+
+    Raises:
+        DatatypeException:
+            Raised when more than one datatype is inferred without an explicit
+            ``source_datatype``, or when the requested ``source_datatype`` is
+            not present among the detected file suffixes.
     """
 
     from cytotable.exceptions import DatatypeException
@@ -266,13 +278,13 @@ def _filter_source_filepaths(
     Filter source filepaths based on provided source_datatype.
 
     Args:
-        sources: Dict[str, List[Dict[str, Any]]]
+        sources (Dict[str, List[Dict[str, Any]]]):
             Grouped datasets of files which will be used by other functions.
-        source_datatype: str
+        source_datatype (str):
             Source datatype to use for filtering the dataset.
 
     Returns:
-        Dict[str, List[Dict[str, Any]]]
+        Dict[str, List[Dict[str, Any]]]:
             Data structure which groups related files based on the datatype.
     """
 
@@ -305,26 +317,18 @@ def _file_is_more_than_one_line(path: Union[pathlib.Path, AnyPath]) -> bool:
     Returns:
         bool:
             True if the file has more than one line, False otherwise.
-
-    Raises:
-        NoInputDataException: If the file has zero lines.
+            For sqlite and npz files (which are not line-oriented),
+            always returns True.
     """
 
     # if we don't have a sqlite file
     # (we can't check sqlite files for lines)
     if path.suffix.lower() not in [".sqlite", ".npz"]:
         with path.open("r") as f:
-            try:
-                # read two lines, if the second is empty return false
-                return bool(f.readline() and f.readline())
-
-            except StopIteration:
-                # If we encounter the end of the file, it has only one line
-                raise NoInputDataException(
-                    f"Data file has 0 rows of values. Error in file: {path}"
-                )
-    else:
-        return True
+            # read two lines; if either is empty (EOF) the file has fewer
+            # than two lines so we report False
+            return bool(f.readline() and f.readline())
+    return True
 
 
 def _gather_sources(
@@ -337,15 +341,18 @@ def _gather_sources(
     Flow for gathering data sources for conversion.
 
     Args:
-        source_path: str:
+        source_path (str):
             Where to gather file-based data from.
-        source_datatype: Optional[str]:  (Default value = None)
+        source_datatype (Optional[str]):
             The source datatype (extension) to use for reading the tables.
-        targets: Optional[List[str]]:  (Default value = None)
+        targets (Optional[List[str]]):
             The source file names to target within the provided path.
+        **kwargs:
+            Additional keyword args forwarded to the cloudpathlib client when
+            reading source paths from cloud object storage.
 
     Returns:
-        Dict[str, List[Dict[str, Any]]]
+        Dict[str, List[Dict[str, Any]]]:
             Data structure which groups related files based on the compartments.
     """
 
