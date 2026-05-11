@@ -38,6 +38,9 @@ identifiers:
   - description: Software DOI
     type: doi
     value: "10.5281/zenodo.14888111"
+  - description: Manuscript DOI
+    type: doi
+    value: "10.1016/j.patter.2026.101514"
   - description: Preprint DOI
     type: doi
     value: "10.1101/2025.06.19.660613"
