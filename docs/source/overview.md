@@ -17,8 +17,8 @@ Use manual overrides within :mod:`convert() <cytotable.convert.convert>` as need
 
 ```{mermaid}
 flowchart LR
-    images[("Image\nfile(s)")]:::outlined --> image-tools[Image Analysis Tools]:::outlined
-    image-tools --> measurements[("Measurement\nfile(s)")]:::green
+    images[("Image<br/>file(s)")]:::outlined --> image-tools[Image Analysis Tools]:::outlined
+    image-tools --> measurements[("Measurement<br/>file(s)")]:::green
     measurements --> CytoTable:::green
 
     classDef outlined fill:#fff,stroke:#333
