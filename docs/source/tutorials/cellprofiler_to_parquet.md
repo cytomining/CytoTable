@@ -103,11 +103,60 @@ Why these flags matter (in plain language):
 - `chunk_size`: processes data in pieces so you don’t need excessive RAM.
 - `no_sign_request`: needed because the sample bucket is public and unsigned.
 
+````{admonition} If expected columns are missing
+Presets control more than file names and pagination. They also define the join
+SQL used to build the final joined table. If you expected different image-level
+or compartment columns in the output, override the preset join SQL with
+`joins=...` in `convert()`.
+
+For example, you can start from your preset and edit the `SELECT` list:
+
+```python
+import cytotable
+from cytotable.presets import config
+
+custom_joins = config[PRESET]["CONFIG_JOINS"].replace(
+    "image.Metadata_ImageNumber,",
+    "image.*,",
+)
+
+print(custom_joins)
+
+result = cytotable.convert(
+    source_path=SOURCE_PATH,
+    source_datatype=SOURCE_DATATYPE,
+    dest_path=DEST_PATH,
+    dest_datatype="parquet",
+    preset=PRESET,
+    joins=custom_joins,
+)
+```
+
+Abbreviated example output from `print(custom_joins)` (truncated for brevity):
+
+```text
+SELECT
+    image.*,
+    cells.*,
+    cytoplasm.*,
+    nuclei.*
+...
+```
+
+This is how we recommend customizing the CellProfiler columns CytoTable returns in the joined
+output. Note that CytoTable retains all other preset parameters.
+
+````
+
 ## Step 3: check that the outputs look right
 
 You should see Parquet files in the destination directory.
 If you set `join=True` (handy for the SQLite example), you get a single `. parquet` file containing all compartments.
 If you set `join=False` (handy for CSV folders), you get separate Parquet files for each compartment.
+
+If the file exists but the columns are not what you expected, go back and adjust
+the preset-driven join SQL by passing a custom `joins=` string to
+`cytotable.convert(...)`.
 
 ```bash
 ls "$DEST_PATH"
