@@ -21,7 +21,7 @@ from pyarrow import csv, parquet
 from pycytominer.cyto_utils.cells import SingleCells
 from sqlalchemy.util import deprecations
 
-from cytotable.utils import _column_sort, _default_parsl_config, _parsl_loaded
+from cytotable.utils import _column_sort, _parsl_loaded
 
 # filters sqlalchemy 2.0 uber warning
 # referenced from: https://stackoverflow.com/a/76308286
@@ -53,25 +53,29 @@ def fixture_load_parsl_threaded(clear_parsl_config: None) -> None:
     """
 
     parsl.load(
-        Config(executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")])
+        Config(
+            executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")],
+            run_dir=tempfile.mkdtemp(prefix="cytotable-parsl-threaded-"),
+        )
     )
 
 
 @pytest.fixture(name="load_parsl_default", scope="module")
 def fixture_load_parsl_default(clear_parsl_config: None) -> None:
     """
-    Fixture for loading default cytotable parsl config for tests
+    Fixture for loading a Parsl config suitable for CytoTable tests.
 
-    This leverages Parsl's HighThroughputExecutor.
-    See here for more: https://parsl.readthedocs.io/en/stable/stubs/parsl.executors.HighThroughputExecutor.html
+    We use a thread-based executor here because it is reliable in restricted
+    test environments where the default HighThroughputExecutor may hang or fail
+    while trying to start local worker processes and ZMQ sockets.
     """
 
-    config = _default_parsl_config()
-    # note: we add the debug option here for testing from the default
-    # referenced in configuration to help observe testing issues
-    config.executors[0].worker_debug = True
-
-    parsl.load(config)
+    parsl.load(
+        Config(
+            executors=[ThreadPoolExecutor(label="tpe_for_cytotable_testing")],
+            run_dir=tempfile.mkdtemp(prefix="cytotable-parsl-default-"),
+        )
+    )
 
 
 # note: we use name here to avoid pylint flagging W0621
@@ -482,10 +486,7 @@ def fixture_cellprofiler_merged_examplehuman(
     cells_table = col_renames(name="Cells", table=cells_table)
     nuclei_table = col_renames(name="Nuclei", table=nuclei_table)
 
-    control_result = (
-        duckdb.connect()
-        .execute(
-            """
+    control_result = duckdb.connect().execute("""
             SELECT
                 *
             FROM
@@ -498,10 +499,7 @@ def fixture_cellprofiler_merged_examplehuman(
             LEFT JOIN nuclei_table AS nuclei ON
                 nuclei.Metadata_ImageNumber = cytoplasm.Metadata_ImageNumber
                 AND nuclei.Metadata_ObjectNumber = cytoplasm.Metadata_Cytoplasm_Parent_Nuclei
-        """
-        )
-        .arrow()
-    )
+        """).fetch_arrow_table()
 
     # reversed order column check as col removals will change index order
     cols = []
@@ -546,8 +544,7 @@ def fixture_cellprofiler_merged_nf1data(
                 f"{data_dir_cellprofiler}/NF1_SchwannCell_data/all_cellprofiler.sqlite"
             ],
         )
-        .execute(
-            """
+        .execute("""
             /* perform query on sqlite tables through duckdb */
             SELECT
                 image.ImageNumber,
@@ -564,9 +561,8 @@ def fixture_cellprofiler_merged_nf1data(
             WHERE
                 cells.Cells_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Cells
                 AND nuclei.Nuclei_Number_Object_Number = cytoplasm.Cytoplasm_Parent_Nuclei
-        """
-        )
-        .arrow()
+        """)
+        .fetch_arrow_table()
         .drop_null()
     )
 

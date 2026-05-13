@@ -4,28 +4,27 @@ default_language_version:
   python: python3.10
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-yaml
-    -   id: check-added-large-files
     -   id: check-toml
 -   repo: https://github.com/python-poetry/poetry
-    rev: 2.1.3
+    rev: 2.4.1
     hooks:
     -   id: poetry-check
 -   repo: https://github.com/tox-dev/pyproject-fmt
-    rev: "v2.6.0"
+    rev: "v2.12.1"
     hooks:
     -   id: pyproject-fmt
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.1
+    rev: v2.4.2
     hooks:
     -   id: codespell
         exclude: >
           (?x)^(
-              .*\.lock|.*\.csv|.*\.cff
+              .*\.lock|.*\.csv|.*\.cff|.*\.ipynb|.*\.cppipe
           )$
         additional_dependencies:
         -   tomli
@@ -37,30 +36,30 @@ repos:
         -   mdformat-myst
         -   mdformat-gfm
 -   repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.1
+    rev: v1.38.0
     hooks:
     -   id: yamllint
         exclude: ".pre-commit-config.yaml"
 -   repo: https://github.com/psf/black
-    rev: 25.1.0
+    rev: 26.3.1
     hooks:
     -   id: black
 -   repo: https://github.com/asottile/blacken-docs
-    rev: 1.19.1
+    rev: 1.20.0
     hooks:
     -   id: blacken-docs
 -   repo: https://github.com/PyCQA/bandit
-    rev: 1.8.5
+    rev: 1.9.4
     hooks:
     -   id: bandit
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
 -   repo: https://github.com/PyCQA/isort
-    rev: 6.0.1
+    rev: 8.0.1
     hooks:
     -   id: isort
 -   repo: https://github.com/jendrikseipp/vulture
-    rev: v2.14
+    rev: v2.16
     hooks:
     -   id: vulture
 -   repo: https://github.com/pre-commit/mirrors-mypy
@@ -70,14 +69,25 @@ repos:
         exclude: >
           (?x)(
               test_convert\.py$ |
-              cytotable_mise_en_place\.py$
+              cytotable_mise_en_place_general_overview\.py$ |
+              cytotable_from_the_cloud\.py$
           )
 -   repo: https://github.com/citation-file-format/cffconvert
     rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
     hooks:
     -   id: validate-cff
+-   repo: https://github.com/software-gardening/almanack
+    rev: v0.1.16
+    hooks:
+    -   id: almanack-check
+-   repo: https://github.com/jsh9/pydoclint
+    rev: 0.8.3
+    hooks:
+    -   id: pydoclint
+        args:
+        -   --style=google
 -   repo: https://github.com/PyCQA/pylint
-    rev: v3.3.7
+    rev: v4.0.5
     hooks:
     -   id: pylint
         name: pylint
@@ -94,9 +104,11 @@ repos:
         -   "moto[server,s3]>=4.0.0,<5.0.0"
         -   "duckdb>=0.8.0"
         -   "parsl>=2023.4.24"
-        -   "git+https://github.com/cytomining/pycytominer.git@09b2c79aa94908e3520f0931a844db4fba7fd3fb"
+        -   "pycytominer>=1.2.4"
+        -   "anndata"
 -   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
     rev: v0.6.0
     hooks:
     -   id: pre-commit-update
-        args: ["--keep", "mdformat", "--keep", "pre-commit-update", "--keep", "cffconvert"]
+        args: ["--keep", "mdformat", "--keep", "pre-commit-update", "--keep", "cffconvert",
+          "--keep", "pyproject-fmt"]

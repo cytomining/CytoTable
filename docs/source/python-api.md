@@ -57,6 +57,39 @@ Convert
 
 |
 
+Access
+------
+
+.. automodule:: cytotable.warehouse.access
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
+Iceberg
+-------
+
+.. automodule:: cytotable.warehouse.iceberg
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
+Images
+------
+
+.. automodule:: cytotable.warehouse.images
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
 Sources
 -------
 

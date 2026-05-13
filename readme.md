@@ -5,18 +5,22 @@
 ![PyPI - Version](https://img.shields.io/pypi/v/cytotable)
 [![Build Status](https://github.com/cytomining/cytotable/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/cytomining/cytotable/actions/workflows/test.yml?query=branch%3Amain)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
-[![Software DOI badge](https://zenodo.org/badge/DOI/10.5281/zenodo.14888111.svg)](https://doi.org/10.5281/zenodo.14888111)
+[![Manuscript DOI badge](https://img.shields.io/badge/Manuscript_DOI-10.1016%2Fj.patter.2026.101514-blue)](https://doi.org/10.1016/j.patter.2026.101514)
+[![Software DOI badge](https://img.shields.io/badge/Software_DOI-10.5281/zenodo.14888111-blue)](https://doi.org/10.5281/zenodo.14888111)
 
 ![dataflow](https://raw.githubusercontent.com/cytomining/cytotable/main/docs/source/_static/dataflow.svg?raw=true)
 _Diagram showing data flow relative to this project._
 
 ## Summary
 
-CytoTable enables single-cell morphology data analysis by cleaning and transforming CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), and DeepProfiler (`.npz`), and other sources such as IN Carta data output data at scale.
-CytoTable creates parquet files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
-The Parquet files will have a unified and documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other projects).
+Image-based profiling often entails preparing data for analysis by transforming the outputs of image analysis tools into a consistent, analysis-ready format.
+CytoTable streamlines analyses by harmonizing CellProfiler (`.csv` or `.sqlite`), cytominer-database (`.sqlite`), DeepProfiler (`.npz`), or other sources such as IN Carta output data at scale.
+This helps biologists by lowering the barrier between image acquisition and data interpretation, enabling them to focus on biological insights rather than file formats or data wrangling.
 
-The name for the project is inspired from:
+CytoTable creates Parquet or AnnData files for both independent analysis and for input into [Pycytominer](https://github.com/cytomining/pycytominer).
+The output files (such as [Parquet](https://parquet.apache.org/) and [AnnData](https://github.com/scverse/anndata) file formats) have a documented data model, including referenceable schema where appropriate (for validation within Pycytominer or other image-based profiling projects).
+
+The name for the project is inspired by:
 
 - __Cyto__: "1. (biology) cell." ([Wiktionary: Cyto-](https://en.wiktionary.org/wiki/cyto-))
 - __Table__:
@@ -35,15 +39,42 @@ pip install cytotable
 pip install git+https://github.com/cytomining/CytoTable.git
 ```
 
+## Getting started
+
+Check out the following resources to get started with CytoTable!
+We created tutorials which follow a narrative-driven approach.
+We also provide Jupyter notebooks for pragmatic, hands-on explanations.
+
+We suggest image analysts begin with the tutorials and explore the example notebooks afterwards.
+
+| Resource         | What it covers                                  | Link                                                                                                           |
+| ---------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Tutorial         | CellProfiler SQLite or CSV to Parquet           | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/cellprofiler_to_parquet.html)                 |
+| Tutorial         | NPZ embeddings to Parquet                       | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/npz_embeddings_to_parquet.html)               |
+| Tutorial         | Multi-plate merge with tablenumber              | [Open tutorial](https://cytomining.github.io/CytoTable/tutorials/multi_plate_merge_tablenumber.html)           |
+| Example notebook | CytoTable mise en place (general overview)      | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_mise_en_place_general_overview.html) |
+| Example notebook | CytoTable from the cloud (cloud-based overview) | [Open notebook](https://cytomining.github.io/CytoTable/examples/cytotable_from_the_cloud.html)                 |
+
 ## Contributing, Development, and Testing
 
 We test CytoTable using `ubuntu-latest` and `macos-latest` [GitHub Actions runner images](https://github.com/actions/runner-images#available-images).
 
 Please see [contributing.md](docs/source/contributing.md) for more details on contributions, development, and testing.
 
+## Relationship to other projects
+
+CytoTable focuses on image-based profiling data harmonization and serialization.
+At scale, CytoTable transforms data into file formats which can be directly integrated with:
+
+**Please let us know how you use CytoTable (we'd love to add your project to this list)**!
+
+- [Pycytominer](https://github.com/cytomining/pycytominer) for the bioinformatics pipeline for image-based profiling.
+- [coSMicQC](https://github.com/cytomining/coSMicQC) for quality control.
+- [CytoDataFrame](https://github.com/cytomining/CytoDataFrame) for interactive visualization of profiles with single cell images.
+
 ## References
 
-- [pycytominer](https://github.com/cytomining/pycytominer)
+- [Pycytominer](https://github.com/cytomining/pycytominer)
 - [cytominer-database](https://github.com/cytomining/cytominer-database)
 - [DeepProfiler](https://github.com/cytomining/DeepProfiler)
 - [CellProfiler](https://github.com/CellProfiler/CellProfiler)

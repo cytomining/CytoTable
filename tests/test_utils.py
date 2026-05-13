@@ -2,10 +2,23 @@
 Testing CytoTable utility functions found within util.py
 """
 
+# pylint: disable=C0301
+
+import pathlib
+from typing import List
+
+import pandas as pd
 import pyarrow as pa
 import pytest
+from botocore.exceptions import EndpointConnectionError
 
-from cytotable.utils import _generate_pagesets, _natural_sort, map_pyarrow_type
+from cytotable.utils import (
+    _generate_pagesets,
+    _natural_sort,
+    cloud_glob,
+    find_anndata_metadata_field_names,
+    map_pyarrow_type,
+)
 
 
 def test_generate_pageset():  # pylint: disable=too-many-statements
@@ -152,3 +165,217 @@ def test_map_pyarrow_type():
         map_pyarrow_type(custom_struct_type, data_type_cast_map)
         == expected_custom_struct_type
     )
+
+
+def test_find_anndata_metadata_field_names(tmp_path: pathlib.Path):
+    """
+    Testing find_anndata_metadata_field_names
+    """
+    # Test with a simple schema
+
+    # export a dataframe to parquet with numeric
+    # and non-numeric columns
+    pd.DataFrame(
+        {
+            "feature1": [1.0, 2.0, 3.0],
+            "feature2": [4.0, 5.0, 6.0],
+            "feature3": ["a", "b", "c"],
+            "obs1": ["x", "y", "z"],
+            "obs2": [True, False, True],
+        }
+    ).to_parquet((tmp_file := tmp_path / "test.parquet"))
+
+    numeric_colnames, nonnumeric_colnames = find_anndata_metadata_field_names(tmp_file)
+
+    assert numeric_colnames == ["feature1", "feature2"]
+    assert nonnumeric_colnames == ["feature3", "obs1", "obs2"]
+
+
+@pytest.mark.parametrize(
+    "root_path, max_matches, expected_result",
+    [
+        # local data
+        (
+            "tests/data/cellprofiler/ExampleHuman",
+            None,
+            [
+                "tests/data/cellprofiler/ExampleHuman/Cells.csv",
+                "tests/data/cellprofiler/ExampleHuman/Cytoplasm.csv",
+                "tests/data/cellprofiler/ExampleHuman/Experiment.csv",
+                "tests/data/cellprofiler/ExampleHuman/Image.csv",
+                "tests/data/cellprofiler/ExampleHuman/Nuclei.csv",
+                "tests/data/cellprofiler/ExampleHuman/PH3.csv",
+            ],
+        ),
+        # large directory of nested results on AWS S3
+        (
+            "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/",
+            10,
+            [
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/BR00116991_A01_1/load_data_Cells_BoundingBox_Overlap.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/BR00116991_A01_1/load_data_Nuclei_BoundingBox_Overlap.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_BoundingBox_First.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_BoundingBox_Overlap.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_Cellpose3.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_Donut_Large.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_Donut_Small.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_HighThresh.csv",
+                "s3://cellpainting-gallery/cpg0043-segmentation/broad/workspace/analysis/2025_08_21_Batch1/BR00116991/analysis/BR00116991-A01-1/Cells_LowThresh.csv",
+            ],
+        ),
+        # small directory of flat results (only the root contains csv's) on AWS S3
+        (
+            "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/",
+            None,
+            [
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Cells.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Cytoplasm.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Experiment.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Image.csv",
+                "s3://cellpainting-gallery/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116991/analysis/BR00116991-A01-1/Nuclei.csv",
+            ],
+        ),
+    ],
+)
+def test_cloud_glob(root_path: str, max_matches: int, expected_result: List[str]):
+    """
+    Testing cloud_glob utility function.
+    """
+
+    # check that our results match expected
+    try:
+        result = sorted(
+            [
+                str(p)
+                for p in cloud_glob(
+                    start=root_path, pattern="**/*.csv", max_matches=max_matches
+                )
+            ]
+        )
+    except EndpointConnectionError as exc:
+        pytest.skip(
+            f"Skipping live cloud listing test because the endpoint is unavailable: {exc}"
+        )
+
+    assert result == sorted(expected_result)
+
+
+@pytest.mark.parametrize(
+    "input_kind, pattern, filter_to_files",
+    [
+        ("path", "**/*.csv", False),
+        ("str", "**/*.csv", False),
+        # ``**/*`` also yields directories, so filter to files before comparing.
+        ("path", "**/*", True),
+        ("str", "**/*", True),
+    ],
+)
+def test_cloud_glob_follows_symlinked_directories(
+    tmp_path: pathlib.Path,
+    input_kind: str,
+    pattern: str,
+    filter_to_files: bool,
+):
+    """
+    Regression test for https://github.com/cytomining/CytoTable/issues/440.
+
+    Per-site CSVs live in a real directory and are exposed under a separate
+    parent through a symlinked subdirectory. cloud_glob must discover the
+    CSVs via the symlinked path for both ``Path`` and ``str`` inputs and
+    for both extension-anchored and unrestricted glob patterns.
+    """
+    real = tmp_path / "real" / "analysis"
+    real.mkdir(parents=True)
+    expected_names = ["Cells.csv", "Cytoplasm.csv", "Image.csv", "Nuclei.csv"]
+    for name in expected_names:
+        (real / name).write_text("ImageNumber,ObjectNumber\n1,1\n")
+
+    staged = tmp_path / "staged" / "1"
+    staged.mkdir(parents=True)
+    (staged / "analysis").symlink_to(real, target_is_directory=True)
+
+    staged_root = tmp_path / "staged"
+    start = staged_root if input_kind == "path" else str(staged_root)
+
+    results = cloud_glob(start=start, pattern=pattern)
+    if filter_to_files:
+        results = (p for p in results if pathlib.Path(p).is_file())
+    names = sorted(pathlib.Path(p).name for p in results)
+    assert names == sorted(expected_names)
+
+
+@pytest.mark.parametrize(
+    "pattern, expected",
+    [
+        # Anchored, no '**' anywhere -- only the top-level CSV under analysis/.
+        ("analysis/*.csv", ["analysis/Cells.csv"]),
+        # '**' in the middle of the pattern.
+        (
+            "analysis/**/*.csv",
+            ["analysis/Cells.csv", "analysis/nested/Cells.csv"],
+        ),
+    ],
+)
+def test_cloud_glob_supports_non_double_star_prefixed_patterns(
+    tmp_path: pathlib.Path,
+    pattern: str,
+    expected: List[str],
+):
+    """
+    cloud_glob must honour pathlib-glob semantics for patterns that do not
+    start with ``**/`` even on Python versions that lack
+    ``Path.glob(recurse_symlinks=True)``.
+    """
+    real = tmp_path / "real" / "analysis"
+    real.mkdir(parents=True)
+    (real / "Cells.csv").write_text("a,b\n1,2\n")
+    (real / "notes.txt").write_text("ignore me")
+    nested = real / "nested"
+    nested.mkdir()
+    (nested / "Cells.csv").write_text("a,b\n3,4\n")
+
+    staged = tmp_path / "staged"
+    staged.mkdir()
+    (staged / "analysis").symlink_to(real, target_is_directory=True)
+
+    results = sorted(
+        str(p.relative_to(staged)) for p in cloud_glob(start=staged, pattern=pattern)
+    )
+    assert results == expected
+
+
+def test_cloud_glob_deduplicates_paths_with_same_real_target(
+    tmp_path: pathlib.Path,
+):
+    """
+    When the same file is reachable through both a real path and a symlink
+    inside the search tree, cloud_glob must yield it only once.
+    """
+    real = tmp_path / "real"
+    real.mkdir()
+    (real / "Cells.csv").write_text("a,b\n1,2\n")
+
+    # 'mirror' points back at the real directory inside the same search tree,
+    # so a naive walk would yield 'real/Cells.csv' and 'mirror/Cells.csv'.
+    (tmp_path / "mirror").symlink_to(real, target_is_directory=True)
+
+    results = list(cloud_glob(start=tmp_path, pattern="**/*.csv"))
+    assert len(results) == 1
+    assert pathlib.Path(results[0]).name == "Cells.csv"
+
+
+def test_cloud_glob_terminates_on_cyclic_symlinks(tmp_path: pathlib.Path):
+    """
+    A symlink cycle inside the search tree must not cause cloud_glob to hang
+    or recurse without bound.
+    """
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (sub / "Cells.csv").write_text("a,b\n1,2\n")
+    # 'loop' under sub points back at the search root, creating a cycle:
+    # tmp_path -> sub -> loop -> tmp_path -> sub -> ...
+    (sub / "loop").symlink_to(tmp_path, target_is_directory=True)
+
+    results = list(cloud_glob(start=tmp_path, pattern="**/*.csv"))
+    assert [pathlib.Path(p).name for p in results] == ["Cells.csv"]

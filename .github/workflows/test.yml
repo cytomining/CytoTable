@@ -15,16 +15,16 @@ jobs:
     strategy:
       matrix:
         # matrixed execution for parallel gh-action performance increases
-        python_version: ["3.9", "3.10", "3.11", "3.12"]
+        python_version: ["3.10", "3.11", "3.12", "3.13"]
         os: [ubuntu-24.04, macos-14]
     runs-on: ${{ matrix.os }}
     env:
       OS: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Python setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
       # remove poetry.lock file for scheduled tests
@@ -36,8 +36,12 @@ jobs:
           rm poetry.lock
       - name: Setup for poetry
         uses: ./.github/actions/setup-poetry
-      - name: Install environment
-        run: poetry install --no-interaction --no-ansi
+      - name: Install environment with Iceberg support
+        if: matrix.python_version == '3.10'
+        run: poetry install --no-interaction --no-ansi --extras "iceberg"
+      - name: Install environment with Iceberg and image support
+        if: matrix.python_version != '3.10'
+        run: poetry install --no-interaction --no-ansi --extras "iceberg-images"
       - name: Run sphinx-docs build test
         run: poetry run sphinx-build docs/source doctest -W
       - name: Run pytest
@@ -50,14 +54,14 @@ jobs:
     needs: tests
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Python setup
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Setup for poetry
         uses: ./.github/actions/setup-poetry
-      - name: Install environment
-        run: poetry install --no-interaction --no-ansi
+      - name: Install environment with Iceberg and image support
+        run: poetry install --no-interaction --no-ansi --extras "iceberg-images"
       - name: Run pytest for large data tests
         run: poetry run pytest -m "large_data_tests"

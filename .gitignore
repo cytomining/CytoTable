@@ -141,3 +141,5 @@ runinfo
 
 # test data ignores
 tests/in-carta/colas-lab/data
+*.sqlite
+/docs/source/examples/examplehuman_iceberg_warehouse

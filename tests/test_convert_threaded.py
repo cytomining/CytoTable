@@ -8,11 +8,13 @@ ThreadPoolExecutor-based tests for CytoTable.convert and related.
 import pathlib
 from typing import List
 
+import anndata as ad
 import pandas as pd
 import pyarrow as pa
 import pyarrow.compute as pc
 import pycytominer
 import pytest
+from botocore.exceptions import EndpointConnectionError
 from pyarrow import parquet
 
 from cytotable.convert import convert
@@ -69,14 +71,17 @@ def test_convert_s3_path_csv(
     Tests convert with mocked csv s3 object storage endpoint
     """
 
-    s3_result = convert(
-        source_path=example_s3_path_csv_jump,
-        dest_path=f"{fx_tempdir}/s3_test",
-        dest_datatype="parquet",
-        source_datatype="csv",
-        preset="cellprofiler_csv",
-        no_sign_request=True,
-    )
+    try:
+        s3_result = convert(
+            source_path=example_s3_path_csv_jump,
+            dest_path=f"{fx_tempdir}/s3_test",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+            no_sign_request=True,
+        )
+    except EndpointConnectionError as exc:
+        pytest.skip(f"Skipping live S3 test because the endpoint is unavailable: {exc}")
 
     # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
@@ -99,21 +104,24 @@ def test_convert_s3_path_sqlite_join(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    s3_result = convert(
-        source_path=example_s3_path_sqlite_jump,
-        dest_path=f"{fx_tempdir}/s3_test",
-        dest_datatype="parquet",
-        source_datatype="sqlite",
-        # set chunk size to amount which operates within
-        # github actions runner images and related resource constraints.
-        chunk_size=30000,
-        preset="cellprofiler_sqlite_cpg0016_jump",
-        no_sign_request=True,
-        # use explicit cache to avoid temp cache removal / overlaps with
-        # sequential s3 SQLite files. See below for more information
-        # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-        local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-    )
+    try:
+        s3_result = convert(
+            source_path=example_s3_path_sqlite_jump,
+            dest_path=f"{fx_tempdir}/s3_test",
+            dest_datatype="parquet",
+            source_datatype="sqlite",
+            # set chunk size to amount which operates within
+            # github actions runner images and related resource constraints.
+            chunk_size=30000,
+            preset="cellprofiler_sqlite_cpg0016_jump",
+            no_sign_request=True,
+            # use explicit cache to avoid temp cache removal / overlaps with
+            # sequential s3 SQLite files. See below for more information
+            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
+        )
+    except EndpointConnectionError as exc:
+        pytest.skip(f"Skipping live S3 test because the endpoint is unavailable: {exc}")
 
     # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
@@ -375,3 +383,90 @@ def test_npz_deepprofiler_convert(
     assert pycytominer.cyto_utils.load.load_profiles(
         profiles=pycytominer_normalized_file
     ).shape == (10132, 6406)
+
+
+def test_convert_export_to_anndata(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+    cellprofiler_merged_examplehuman: pa.Table,
+):
+    """
+    Tests convert with anndata_h5ad and anndata_zarr
+    """
+
+    control_result = cellprofiler_merged_examplehuman
+
+    # run convert and read the anndata h5ad result
+    test_result = ad.read_h5ad(
+        filename=convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman.h5ad",
+            dest_datatype="anndata_h5ad",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+        )
+    )
+
+    # run convert and read the anndata zarr result
+    test_zarr_result = ad.read_zarr(
+        store=convert(
+            source_path=f"{data_dir_cellprofiler}/ExampleHuman",
+            dest_path=f"{fx_tempdir}/ExampleHuman.zarr",
+            dest_datatype="anndata_zarr",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+        )
+    )
+
+    # compare that the h5ad and zarr results are the same
+    assert test_result.shape == test_zarr_result.shape
+    assert test_result.var_names.tolist() == test_zarr_result.var_names.tolist()
+    assert test_result.obs_names.tolist() == test_zarr_result.obs_names.tolist()
+    assert test_result.var.to_dict() == test_zarr_result.var.to_dict()
+
+    # join the obs data with the data table
+    test_result = pa.Table.from_pandas(
+        test_result.obs.join(test_result.to_df(), how="left")
+        # drop image FileName columns which won't be present in the comparison dataset
+    ).drop(
+        [
+            "__index_level_0__",
+            "Image_FileName_DNA",
+            "Image_FileName_OrigOverlay",
+            "Image_FileName_PH3",
+            "Image_FileName_cellbody",
+        ]
+    )
+
+    # sort all values by the same columns
+    # we do this due to the potential for inconsistently ordered results
+    control_result = control_result.sort_by(
+        [(colname, "ascending") for colname in control_result.column_names]
+    )
+    test_result = test_result.sort_by(
+        [(colname, "ascending") for colname in test_result.column_names]
+        # cast the result to the control schema for comparison purposes
+    ).cast(control_result.schema)
+
+    assert test_result.column_names == control_result.column_names
+    assert test_result.shape == control_result.shape
+    assert test_result.schema == control_result.schema
+    assert test_result.equals(control_result)
+
+
+def test_convert_nested_dirs(fx_tempdir: pathlib.Path):
+    """
+    Tests convert with cpg0043 data to ensure no errors
+    occur during processing for nested data.
+    """
+
+    result = convert(
+        source_path="tests/data/cellprofiler/cpg0043-segmentation",
+        dest_path=f"{fx_tempdir}/cpg0043_segmentation.parquet",
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+    )
+
+    table = parquet.read_table(source=result)
+    assert table.shape == (397, 6049)

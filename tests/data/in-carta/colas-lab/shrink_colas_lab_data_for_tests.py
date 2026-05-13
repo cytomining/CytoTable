@@ -23,14 +23,10 @@ for data_file in pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv"):
         schema_collection.append(
             {
                 "file": data_file,
-                "schema": ddb.execute(
-                    f"""
+                "schema": ddb.execute(f"""
                     SELECT *
                     FROM read_csv_auto('{data_file}')
-                    """
-                )
-                .arrow()
-                .schema,
+                    """).fetch_arrow_table().schema,
             }
         )
 
@@ -50,28 +46,26 @@ for idx, data_file in enumerate(pathlib.Path(SOURCE_DATA_DIR).rglob("*.csv")):
         # as a pyarrow table then output to a new and
         # smaller csv for testing purposes.
 
-        OUTPUT_FILENAME = (
+        output_filename = (
             f"Test 0 Day{idx} Test Test_2024_Jan-0{idx+1}-{idx+12}-12-12_Test.csv"
         )
 
         csv.write_csv(
             # we use duckdb to filter the original dataset in SQL
-            data=ddb.execute(
-                f"""
+            data=ddb.execute(f"""
                 SELECT *
                 FROM read_csv_auto('{data_file}') as data_file
                 /* select only the first three objects to limit the dataset */
                 WHERE data_file."OBJECT ID" in (1,2,3)
                 /* select rows C and D to limit the dataset */
                 AND data_file."ROW" in ('C', 'D')
-                """
-            ).arrow(),
+                """).fetch_arrow_table(),
             # output the filtered data as a CSV to a new location
             output_file=(
-                f"{TARGET_DATA_DIR}/{OUTPUT_FILENAME}"
+                f"{TARGET_DATA_DIR}/{output_filename}"
                 # For some files lowercase the first letter of the file
                 # as a simulation of the source data.
                 if idx < 3
-                else f"{TARGET_DATA_DIR}/{OUTPUT_FILENAME[0].lower() + OUTPUT_FILENAME[1:]}"
+                else f"{TARGET_DATA_DIR}/{output_filename[0].lower() + output_filename[1:]}"
             ),
         )
