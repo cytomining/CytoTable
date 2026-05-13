@@ -141,12 +141,54 @@ mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;</
 <li><p><code class="docutils literal notranslate"><span class="pre">chunk_size</span></code>: processes data in pieces so you don’t need excessive RAM.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">no_sign_request</span></code>: needed because the sample bucket is public and unsigned.</p></li>
 </ul>
+<div class="admonition-if-expected-columns-are-missing admonition">
+<p class="admonition-title">If expected columns are missing</p>
+<p>Presets control more than file names and pagination. They also define the join
+SQL used to build the final joined table. If you expected different image-level
+or compartment columns in the output, override the preset join SQL with
+<code class="docutils literal notranslate"><span class="pre">joins=...</span></code> in <code class="docutils literal notranslate"><span class="pre">convert()</span></code>.</p>
+<p>For example, you can start from your preset and edit the <code class="docutils literal notranslate"><span class="pre">SELECT</span></code> list:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cytotable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.presets</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
+
+<span class="n">custom_joins</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="n">PRESET</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+    <span class="s2">&quot;image.Metadata_ImageNumber,&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;image.*,&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">custom_joins</span><span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">cytotable</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="n">SOURCE_PATH</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="o">=</span><span class="n">SOURCE_DATATYPE</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="n">DEST_PATH</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="n">PRESET</span><span class="p">,</span>
+    <span class="n">joins</span><span class="o">=</span><span class="n">custom_joins</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Abbreviated example output from <code class="docutils literal notranslate"><span class="pre">print(custom_joins)</span></code> (truncated for brevity):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>SELECT
+    image.*,
+    cells.*,
+    cytoplasm.*,
+    nuclei.*
+...
+</pre></div>
+</div>
+<p>This is how we recommend customizing the CellProfiler columns CytoTable returns in the joined
+output. Note that CytoTable retains all other preset parameters.</p>
+</div>
 </section>
 <section id="step-3-check-that-the-outputs-look-right">
 <h2>Step 3: check that the outputs look right<a class="headerlink" href="#step-3-check-that-the-outputs-look-right" title="Link to this heading">¶</a></h2>
 <p>You should see Parquet files in the destination directory.
 If you set <code class="docutils literal notranslate"><span class="pre">join=True</span></code> (handy for the SQLite example), you get a single <code class="docutils literal notranslate"><span class="pre">.</span> <span class="pre">parquet</span></code> file containing all compartments.
 If you set <code class="docutils literal notranslate"><span class="pre">join=False</span></code> (handy for CSV folders), you get separate Parquet files for each compartment.</p>
+<p>If the file exists but the columns are not what you expected, go back and adjust
+the preset-driven join SQL by passing a custom <code class="docutils literal notranslate"><span class="pre">joins=</span></code> string to
+<code class="docutils literal notranslate"><span class="pre">cytotable.convert(...)</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ls<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$DEST_PATH</span><span class="s2">&quot;</span>
 <span class="c1"># SQLite example: br00126114.parquet</span>
 <span class="c1"># CSV example: examplehuman.parquet</span>
