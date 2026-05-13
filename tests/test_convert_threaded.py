@@ -14,6 +14,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pycytominer
 import pytest
+from botocore.exceptions import EndpointConnectionError
 from pyarrow import parquet
 
 from cytotable.convert import convert
@@ -70,14 +71,17 @@ def test_convert_s3_path_csv(
     Tests convert with mocked csv s3 object storage endpoint
     """
 
-    s3_result = convert(
-        source_path=example_s3_path_csv_jump,
-        dest_path=f"{fx_tempdir}/s3_test",
-        dest_datatype="parquet",
-        source_datatype="csv",
-        preset="cellprofiler_csv",
-        no_sign_request=True,
-    )
+    try:
+        s3_result = convert(
+            source_path=example_s3_path_csv_jump,
+            dest_path=f"{fx_tempdir}/s3_test",
+            dest_datatype="parquet",
+            source_datatype="csv",
+            preset="cellprofiler_csv",
+            no_sign_request=True,
+        )
+    except EndpointConnectionError as exc:
+        pytest.skip(f"Skipping live S3 test because the endpoint is unavailable: {exc}")
 
     # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
@@ -100,21 +104,24 @@ def test_convert_s3_path_sqlite_join(
     race conditions with nested pytest fixture post-yield deletions.
     """
 
-    s3_result = convert(
-        source_path=example_s3_path_sqlite_jump,
-        dest_path=f"{fx_tempdir}/s3_test",
-        dest_datatype="parquet",
-        source_datatype="sqlite",
-        # set chunk size to amount which operates within
-        # github actions runner images and related resource constraints.
-        chunk_size=30000,
-        preset="cellprofiler_sqlite_cpg0016_jump",
-        no_sign_request=True,
-        # use explicit cache to avoid temp cache removal / overlaps with
-        # sequential s3 SQLite files. See below for more information
-        # https://cloudpathlib.drivendata.org/stable/caching/#automatically
-        local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
-    )
+    try:
+        s3_result = convert(
+            source_path=example_s3_path_sqlite_jump,
+            dest_path=f"{fx_tempdir}/s3_test",
+            dest_datatype="parquet",
+            source_datatype="sqlite",
+            # set chunk size to amount which operates within
+            # github actions runner images and related resource constraints.
+            chunk_size=30000,
+            preset="cellprofiler_sqlite_cpg0016_jump",
+            no_sign_request=True,
+            # use explicit cache to avoid temp cache removal / overlaps with
+            # sequential s3 SQLite files. See below for more information
+            # https://cloudpathlib.drivendata.org/stable/caching/#automatically
+            local_cache_dir=f"{fx_tempdir}/sqlite_s3_cache/2",
+        )
+    except EndpointConnectionError as exc:
+        pytest.skip(f"Skipping live S3 test because the endpoint is unavailable: {exc}")
 
     # read only the metadata from parquet file
     parquet_file_meta = parquet.ParquetFile(s3_result).metadata
