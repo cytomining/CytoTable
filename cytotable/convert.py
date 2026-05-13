@@ -1,5 +1,5 @@
 """
-CytoTable: convert - transforming data for use with pyctyominer.
+CytoTable: convert - transforming data for use with pycytominer.
 """
 
 import itertools
