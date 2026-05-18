@@ -172,7 +172,7 @@ Documentation is automatically published to a docsite via [GitHub Actions](https
 
 ## Attribution
 
-Portions of this contribution guide were sourced from [pyctyominer](https://github.com/cytomining/pycytominer/blob/master/CONTRIBUTING.md).
+Portions of this contribution guide were sourced from [Pycytominer](https://github.com/cytomining/pycytominer/blob/master/CONTRIBUTING.md).
 Many thanks go to the developers and contributors of that repository.
 
 ## Publishing Releases

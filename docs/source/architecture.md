@@ -1,6 +1,6 @@
 # Architecture
 
-Documentation covering various architectural details for pyctyominer-transform.
+Documentation covering various architectural details for CytoTable.
 
 ```{toctree}
 ---
