@@ -362,13 +362,3 @@ We provide preset configurations for these parameters through the ``preset`` par
 Customizing the ``chunk_size`` or ``page_keys`` parameters allows you to tune the process to the size of your data and the resources available on your system.
 For large datasets, smaller chunk sizes or specific pagination columns can help manage the workload by enabling smaller, more manageable data extraction at a time.
 ```
-
-## Presets and Manual Overrides
-
-```{eval-rst}
-Various preset configurations are available for use within CytoTable which affect how data are read and produced under :data:`presets.config <cytotable.presets.config>`.
-These presets are intended to assist with common data source expectations.
-By default, CytoTable will use the "cellprofiler_csv" preset.
-Please note that these presets may not capture all possible outcomes.
-Use manual overrides within :mod:`convert() <cytotable.convert.convert>` as needed.
-```
