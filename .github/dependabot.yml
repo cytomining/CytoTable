@@ -27,3 +27,16 @@ updates:
       python-packages:
         patterns:
           - "*"
+  
+  # pre-commit updates
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      # Check for updates to pre-commit hooks every month
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"

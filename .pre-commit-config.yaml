@@ -106,9 +106,3 @@ repos:
         -   "parsl>=2023.4.24"
         -   "pycytominer>=1.2.4"
         -   "anndata"
--   repo: https://gitlab.com/vojko.pribudic.foss/pre-commit-update
-    rev: v0.6.0
-    hooks:
-    -   id: pre-commit-update
-        args: ["--keep", "mdformat", "--keep", "pre-commit-update", "--keep", "cffconvert",
-          "--keep", "pyproject-fmt"]
