@@ -27,7 +27,7 @@ updates:
       python-packages:
         patterns:
           - "*"
-  
+
   # pre-commit updates
   - package-ecosystem: "pre-commit"
     directory: "/"
