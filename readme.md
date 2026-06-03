@@ -4,7 +4,7 @@
 
 ![PyPI - Version](https://img.shields.io/pypi/v/cytotable)
 [![Build Status](https://github.com/cytomining/cytotable/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/cytomining/cytotable/actions/workflows/test.yml?query=branch%3Amain)
-[![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
+[![uv](https://img.shields.io/badge/uv-package%20manager-654FF0)](https://docs.astral.sh/uv/)
 [![Manuscript DOI badge](https://img.shields.io/badge/Manuscript_DOI-10.1016%2Fj.patter.2026.101514-blue)](https://doi.org/10.1016/j.patter.2026.101514)
 [![Software DOI badge](https://img.shields.io/badge/Software_DOI-10.5281/zenodo.14888111-blue)](https://doi.org/10.5281/zenodo.14888111)
 

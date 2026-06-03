@@ -2,8 +2,12 @@
 __init__.py for cytotable
 """
 
-# note: version data is maintained by poetry-dynamic-versioning (do not edit)
-__version__ = "0.0.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("CytoTable")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 # filter warnings about pkg_resources deprecation
 # note: these stem from cloudpathlib google cloud
