@@ -29,7 +29,7 @@ repos:
         additional_dependencies:
         -   tomli
 -   repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.18
+    rev: 1.0.0
     hooks:
     -   id: mdformat
         additional_dependencies:
@@ -73,7 +73,7 @@ repos:
               cytotable_from_the_cloud\.py$
           )
 -   repo: https://github.com/citation-file-format/cffconvert
-    rev: 5295f87c0e261da61a7b919fc754e3a77edd98a7
+    rev: b6045d78aac9e02b039703b030588d54d53262ac
     hooks:
     -   id: validate-cff
 -   repo: https://github.com/software-gardening/almanack
@@ -98,11 +98,11 @@ repos:
         # pylint due to it's dynamic analysis capabilities
         # and the way pre-commit references virtual environments.
         additional_dependencies:
-        -   "cloudpathlib[all]>=0.13.0"
-        -   "pyarrow>=13.0.0"
-        -   "pytest>=7.2.0"
-        -   "moto[server,s3]>=4.0.0,<5.0.0"
-        -   "duckdb>=0.8.0"
-        -   "parsl>=2023.4.24"
-        -   "pycytominer>=1.2.4"
+        -   "cloudpathlib[all]>=0.24.0"
+        -   "pyarrow>=24.0.0"
+        -   "pytest>=9.0.3"
+        -   "moto[server,s3]>=5.2.1,<6.0.0"
+        -   "duckdb>=1.5.3"
+        -   "parsl>=2026.5.18"
+        -   "pycytominer>=1.5.0"
         -   "anndata"
