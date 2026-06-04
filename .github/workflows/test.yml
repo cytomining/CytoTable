@@ -36,7 +36,10 @@ jobs:
       - name: Install frozen environment
         run: uv sync --frozen --all-extras --group docs --group dev
       - name: Run sphinx-docs build test
-        run: uv run --frozen --group docs --group dev sphinx-build -b doctest docs/source doctest -W
+        run: |
+          uv run --frozen --group docs --group dev \
+            sphinx-build -b doctest \
+            docs/source doctest -W
       - name: Run pytest
         run: uv run --frozen --group dev pytest -m "not large_data_tests"
   # run large data tests as a separate job to help
