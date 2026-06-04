@@ -34,11 +34,11 @@ jobs:
       - name: Check lockfile
         run: uv lock --check
       - name: Install frozen environment
-        run: uv sync --frozen --all-extras --group docs
+        run: uv sync --frozen --all-extras --group docs --group dev
       - name: Run sphinx-docs build test
-        run: uv run --frozen sphinx-build docs/source doctest -W
+        run: uv run --frozen --group docs --group dev sphinx-build -b doctest docs/source doctest -W
       - name: Run pytest
-        run: uv run --frozen pytest -m "not large_data_tests"
+        run: uv run --frozen --group dev pytest -m "not large_data_tests"
   # run large data tests as a separate job to help
   # conserve resources by detecting failure with
   # smaller tests first.
@@ -59,6 +59,6 @@ jobs:
       - name: Check lockfile
         run: uv lock --check
       - name: Install frozen environment
-        run: uv sync --frozen --all-extras
+        run: uv sync --frozen --all-extras --group dev
       - name: Run pytest for large data tests
-        run: uv run --frozen pytest -m "large_data_tests"
+        run: uv run --frozen --group dev pytest -m "large_data_tests"

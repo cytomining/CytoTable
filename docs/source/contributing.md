@@ -162,7 +162,7 @@ Documentation content is tested using the `sphinx-build ... -W` command to avoid
 To check your documentation updates before pushing, use the following to trigger a related `sphinx-build` (content made available at `./docs/build/index.html`):
 
 ```sh
-% uv run sphinx-build docs/source doctest -W
+% uv run sphinx-build -b doctest docs/source doctest -W
 ```
 
 ### Documentation Builds
