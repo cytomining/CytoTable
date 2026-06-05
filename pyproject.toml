@@ -6,7 +6,7 @@ requires = [ "setuptools>=77", "setuptools-scm>=8" ]
 name = "cytotable"
 description = "Transform CellProfiler and DeepProfiler data for processing image-based profiling readouts with Pycytominer and other Cytomining tools."
 readme = "readme.md"
-keywords = [ "cellprofiler", "python", "single-cell-analysis", "way-lab" ]
+keywords = [ "cellprofiler", "image-based-profiling", "python", "single-cell-analysis" ]
 license = "BSD-3-Clause"
 authors = [
   { name = "Cytomining Community" },
