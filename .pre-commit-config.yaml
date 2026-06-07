@@ -100,5 +100,5 @@ repos:
         -   "moto[server,s3]>=5.2.1,<6.0.0"
         -   "duckdb>=1.5.3"
         -   "parsl>=2026.5.25"
-        -   "pycytominer>=1.5.0"
+        -   "pycytominer>=1.5.1"
         -   "anndata"
