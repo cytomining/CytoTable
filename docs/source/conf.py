@@ -36,6 +36,7 @@ extensions = [
     "myst_nb",
     "sphinxcontrib.mermaid",
     "sphinx.ext.autodoc",
+    "sphinx.ext.doctest",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
 ]

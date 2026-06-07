@@ -27,25 +27,21 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python_version }}
-      # remove poetry.lock file for scheduled tests
-      # to help simulate possible upstream issues
-      - name: Remove poetry.lock for scheduled tests
-        # runs every Wednesday at 7 AM UTC
-        if: github.event.schedule == '0 7 * * 3'
-        run: |
-          rm poetry.lock
-      - name: Setup for poetry
-        uses: ./.github/actions/setup-poetry
-      - name: Install environment with Iceberg support
-        if: matrix.python_version == '3.10'
-        run: poetry install --no-interaction --no-ansi --extras "iceberg"
-      - name: Install environment with Iceberg and image support
-        if: matrix.python_version != '3.10'
-        run: poetry install --no-interaction --no-ansi --extras "iceberg-images"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install frozen environment
+        run: uv sync --frozen --all-extras --group docs --group dev
       - name: Run sphinx-docs build test
-        run: poetry run sphinx-build docs/source doctest -W
+        run: |
+          uv run --frozen --group docs --group dev \
+            sphinx-build -b doctest \
+            docs/source doctest -W
       - name: Run pytest
-        run: poetry run pytest -m "not large_data_tests"
+        run: uv run --frozen --group dev pytest -m "not large_data_tests"
   # run large data tests as a separate job to help
   # conserve resources by detecting failure with
   # smaller tests first.
@@ -59,9 +55,13 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - name: Setup for poetry
-        uses: ./.github/actions/setup-poetry
-      - name: Install environment with Iceberg and image support
-        run: poetry install --no-interaction --no-ansi --extras "iceberg-images"
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install frozen environment
+        run: uv sync --frozen --all-extras --group dev
       - name: Run pytest for large data tests
-        run: poetry run pytest -m "large_data_tests"
+        run: uv run --frozen --group dev pytest -m "large_data_tests"

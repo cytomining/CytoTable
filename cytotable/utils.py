@@ -443,26 +443,16 @@ def _expand_path(
 
 def _get_cytotable_version() -> str:
     """
-    Seeks the current version of CytoTable using either pkg_resources
-    or dunamai to determine the current version being used.
+    Seeks the current version of CytoTable from package metadata.
 
     Returns:
         str:
             A string representing the version of CytoTable currently being used.
     """
 
-    try:
-        # attempt to gather the development version from dunamai
-        # for scenarios where cytotable from source is used.
-        import dunamai
+    import cytotable
 
-        return dunamai.Version.from_any_vcs().serialize()
-    except (RuntimeError, ModuleNotFoundError):
-        # else grab a static version from __init__.py
-        # for scenarios where the built/packaged cytotable is used.
-        import cytotable
-
-        return cytotable.__version__
+    return cytotable.__version__
 
 
 def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:

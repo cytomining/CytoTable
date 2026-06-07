@@ -1,6 +1,4 @@
 ---
-# referenced from Tomás Farías Santana via
-# https://tomasfarias.dev/posts/sphinx-docs-with-poetry-and-github-pages/
 name: publish docs
 
 on:
@@ -19,16 +17,20 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.10"
-      - name: Setup for poetry
-        uses: ./.github/actions/setup-poetry
-      - name: poetry deps
-        run: poetry install
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install frozen environment
+        run: uv sync --frozen --all-extras --group docs
       - name: Build documentation
         run: |
           mkdir pages
           touch pages/.nojekyll
           cd docs
-          poetry run sphinx-build -b html source _build
+          uv run --frozen sphinx-build -b html source _build
           cp -r _build/* ../pages/
       - name: Deploy documentation
         uses: JamesIves/github-pages-deploy-action@v4
