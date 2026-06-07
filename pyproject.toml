@@ -49,7 +49,6 @@ urls.Repository = "https://github.com/cytomining/CytoTable"
 
 [dependency-groups]
 dev = [
-  "cytominer-database>=0.3.4,<0.4",
   "pillow>=11.3,<13",
   "pycytominer>=1.1,<2",
   "pytest>=7.4,<10",
@@ -90,7 +89,6 @@ ignore-words = ".codespell-ignore"
 [tool.pytest.ini_options]
 filterwarnings = [
   "ignore::DeprecationWarning:pkg_resources",
-  "ignore::DeprecationWarning:cytominer_database",
 ]
 markers = [
   "large_data_tests: tests which involve the use of large data.",
