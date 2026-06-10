@@ -754,7 +754,9 @@ def image_crop_table_from_joined_chunk(
                 "label_source_kind": (
                     "outline"
                     if outline_path is not None
-                    else "mask" if mask_path is not None else None
+                    else "mask"
+                    if mask_path is not None
+                    else None
                 ),
             }
             rows.append(record)
@@ -949,7 +951,9 @@ def source_image_table_from_joined_chunk(
                 "label_source_kind": (
                     "outline"
                     if outline_path is not None
-                    else "mask" if mask_path is not None else None
+                    else "mask"
+                    if mask_path is not None
+                    else None
                 ),
             }
 
@@ -1050,18 +1054,17 @@ def add_object_id_to_profiles_frame(
     )
     frame = joined_frame.copy()
     if "Metadata_ObjectID" not in frame.columns:
-        object_ids: list[Optional[str]] = []
-        for _, row in joined_frame.iterrows():
-            key_fields = _extract_key_fields(row)
-            bbox_values = (
-                _validated_bbox_values(row, bbox_columns)
-                if bbox_columns is not None
-                else None
-            )
-            object_ids.append(
-                _build_stable_object_id(key_fields=key_fields, bbox=bbox_values)
-            )
-
+        object_ids = frame.apply(
+            lambda row: _build_stable_object_id(
+                key_fields=_extract_key_fields(row),
+                bbox=(
+                    _validated_bbox_values(row, bbox_columns)
+                    if bbox_columns is not None
+                    else None
+                ),
+            ),
+            axis=1,
+        ).tolist()
         metadata_columns = [
             column
             for column in frame.columns
@@ -1098,36 +1101,52 @@ def profile_with_images_frame(
     if bbox_columns is None or not image_columns:
         return joined_frame.copy()
 
-    expanded_rows: list[dict[str, Any]] = []
-    for _, row in joined_frame.iterrows():
-        bbox = _validated_bbox_values(row, bbox_columns)
-        if bbox is None:
-            continue
-        key_fields = _extract_key_fields(row)
-        row_dict = row.to_dict()
-        stable_object_id = (
-            str(row["Metadata_ObjectID"])
-            if "Metadata_ObjectID" in row.index
-            and not pd.isna(row["Metadata_ObjectID"])
-            else _build_stable_object_id(key_fields=key_fields, bbox=bbox)
-        )
-        for image_column in image_columns:
-            image_name = _normalize_file_value(row.get(image_column))
-            if image_name is None:
-                continue
-            expanded_rows.append(
-                {
-                    **row_dict,
-                    "Metadata_ObjectID": stable_object_id,
-                    "source_image_column": image_column,
-                    "source_image_file": image_name,
-                }
-            )
-
-    if not expanded_rows:
+    # Vectorized bbox filter — coerce all four coordinates at once and keep
+    # only rows where both axes have a positive non-null span.
+    x_min = pd.to_numeric(joined_frame[bbox_columns.x_min], errors="coerce")
+    x_max = pd.to_numeric(joined_frame[bbox_columns.x_max], errors="coerce")
+    y_min = pd.to_numeric(joined_frame[bbox_columns.y_min], errors="coerce")
+    y_max = pd.to_numeric(joined_frame[bbox_columns.y_max], errors="coerce")
+    valid_bbox = (
+        x_min.notna()
+        & x_max.notna()
+        & y_min.notna()
+        & y_max.notna()
+        & (x_min < x_max)
+        & (y_min < y_max)
+    )
+    valid = joined_frame[valid_bbox].copy()
+    if valid.empty:
         return joined_frame.copy()
 
-    expanded = pd.DataFrame(expanded_rows)
+    # Stamp object IDs with apply — still per-row but avoids constructing a
+    # growing Python list and is tighter in the CPython call overhead.
+    if "Metadata_ObjectID" not in valid.columns:
+        valid["Metadata_ObjectID"] = valid.apply(
+            lambda row: _build_stable_object_id(
+                key_fields=_extract_key_fields(row),
+                bbox=_validated_bbox_values(row, bbox_columns),
+            ),
+            axis=1,
+        )
+
+    # Expand one row per image column with melt instead of accumulating a
+    # dict-per-row list — pandas handles the reshape in C without building
+    # intermediate Python objects for every cell.
+    non_image_cols = [c for c in valid.columns if c not in image_columns]
+    melted = valid.melt(
+        id_vars=non_image_cols,
+        value_vars=image_columns,
+        var_name="source_image_column",
+        value_name="source_image_file",
+    )
+    melted["source_image_file"] = melted["source_image_file"].apply(
+        _normalize_file_value
+    )
+    melted = melted[melted["source_image_file"].notna()].reset_index(drop=True)
+    if melted.empty:
+        return joined_frame.copy()
+
     merge_columns = [
         column
         for column in (
@@ -1142,7 +1161,7 @@ def profile_with_images_frame(
         for column in image_frame.columns
         if column not in joined_frame.columns or column in merge_columns
     ]
-    return expanded.merge(
+    return melted.merge(
         image_frame[image_columns_to_add],
         on=merge_columns,
         how="left",

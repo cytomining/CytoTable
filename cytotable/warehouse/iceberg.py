@@ -14,6 +14,7 @@ from typing import Any, Dict, Optional, Tuple, Union, cast
 import pandas as pd
 import parsl
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as parquet
 
 from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
@@ -37,6 +38,10 @@ logger = logging.getLogger(__name__)
 DEFAULT_NAMESPACE = "profiles"
 DEFAULT_IMAGES_NAMESPACE = "images"
 DEFAULT_REGISTRY_FILE = "catalog.json"
+# Row groups in the export parquet are sized by chunk_size (default 1000).
+# Aggregating them here keeps the number of Iceberg append transactions low
+# while still bounding peak memory per batch.
+_PROFILE_WRITE_BATCH_ROWS = 100_000
 DEFAULT_WAREHOUSE_DIR = "warehouse"
 DEFAULT_PROFILES_TABLE = "joined_profiles"
 DEFAULT_PROFILE_WITH_IMAGES_VIEW = "profile_with_images"
@@ -414,9 +419,9 @@ if _PYICEBERG_IMPORT_ERROR is None:
             )
             self._write_metadata(staged.metadata, staged.io, staged.metadata_location)
             registry = self._read_registry()
-            cast(dict[str, str], registry["tables"])[
-                ".".join(identifier)
-            ] = staged.metadata_location
+            cast(dict[str, str], registry["tables"])[".".join(identifier)] = (
+                staged.metadata_location
+            )
             self._write_registry(registry)
             return CommitTableResponse(
                 metadata=staged.metadata, metadata_location=staged.metadata_location
@@ -527,6 +532,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     registry_file: str = DEFAULT_REGISTRY_FILE,
     profiles_table_name: str = DEFAULT_PROFILES_TABLE,
     profile_with_images_view_name: Optional[str] = DEFAULT_PROFILE_WITH_IMAGES_VIEW,
+    drop_null: bool = False,
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
 ) -> str:
@@ -596,6 +602,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         profile_with_images_view_name (Optional[str]):
             Optional view name registered when image export is enabled, joining
             profile rows with their corresponding image rows.
+        drop_null (bool):
+            See :func:`cytotable.convert.convert`.
         parsl_config (Optional[parsl.Config]):
             See :func:`cytotable.convert.convert`.
         **kwargs:
@@ -690,7 +698,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 joins=cast(str, resolved["joins"]),
                 chunk_size=cast(Optional[int], resolved["chunk_size"]),
                 infer_common_schema=infer_common_schema,
-                drop_null=False,
+                drop_null=drop_null,
                 sort_output=sort_output,
                 page_keys=cast(Dict[str, str], resolved["page_keys"]),
                 dest_datatype="parquet",
@@ -711,25 +719,33 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
         profiles_table_exists = False
         if profiles_path and Path(profiles_path).exists():
-            # Stamp stable object identifiers onto the materialized profile
-            # rows before persisting them as the warehouse's primary table.
-            profiles_arrow_table = pa.Table.from_pandas(
-                add_object_id_to_profiles_frame(
-                    parquet.read_table(Path(profiles_path)).to_pandas(),
-                    bbox_column_map=bbox_column_map,
-                ),
-                preserve_index=False,
-            )
-            if bundle.table_exists((default_namespace, profiles_table_name)):
-                table = bundle.load_table((default_namespace, profiles_table_name))
-            else:
-                table = bundle.create_table(
-                    (default_namespace, profiles_table_name),
-                    profiles_arrow_table.schema,
-                    properties=_cytotable_iceberg_properties(),
+            # Stream the profiles parquet in row-group batches so we never
+            # hold the full dataset in memory. The Iceberg table is created
+            # from the schema of the first processed batch, then each batch
+            # is appended and released before the next one is read.
+            pq_file = parquet.ParquetFile(profiles_path)
+            profiles_iceberg_table = None
+            for batch in pq_file.iter_batches(batch_size=_PROFILE_WRITE_BATCH_ROWS):
+                processed = pa.Table.from_pandas(
+                    add_object_id_to_profiles_frame(
+                        batch.to_pandas(),
+                        bbox_column_map=bbox_column_map,
+                    ),
+                    preserve_index=False,
                 )
-            table.append(profiles_arrow_table)
-            profiles_table_exists = True
+                if profiles_iceberg_table is None:
+                    if bundle.table_exists((default_namespace, profiles_table_name)):
+                        profiles_iceberg_table = bundle.load_table(
+                            (default_namespace, profiles_table_name)
+                        )
+                    else:
+                        profiles_iceberg_table = bundle.create_table(
+                            (default_namespace, profiles_table_name),
+                            processed.schema,
+                            properties=_cytotable_iceberg_properties(),
+                        )
+                profiles_iceberg_table.append(processed)
+            profiles_table_exists = profiles_iceberg_table is not None
 
         if image_export_enabled:
             # Run the same join in chunked mode for image work so crops and
@@ -750,7 +766,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     joins=cast(str, resolved["joins"]),
                     chunk_size=cast(Optional[int], resolved["chunk_size"]),
                     infer_common_schema=infer_common_schema,
-                    drop_null=False,
+                    drop_null=drop_null,
                     sort_output=sort_output,
                     page_keys=cast(Dict[str, str], resolved["page_keys"]),
                     data_type_cast_map=data_type_cast_map,
@@ -762,19 +778,17 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             source_images_table: Optional[Table] = None
             seen_source_image_ids: set[str] = set()
             if bundle.table_exists((images_namespace, SOURCE_IMAGE_TABLE_NAME)):
-                # Source images are image-level assets, so deduplicate them
-                # across joined chunks by the stable image identifier.
-                existing_source_images = (
+                # Project only the ID column — avoids loading image pixels
+                # into memory just to build the dedup set.
+                existing_ids = (
                     bundle.load_table((images_namespace, SOURCE_IMAGE_TABLE_NAME))
-                    .scan()
+                    .scan(selected_fields=("Metadata_ImageID",))
                     .to_arrow()
                 )
-                if "Metadata_ImageID" in existing_source_images.column_names:
+                if "Metadata_ImageID" in existing_ids.column_names:
                     seen_source_image_ids.update(
                         image_id
-                        for image_id in existing_source_images[
-                            "Metadata_ImageID"
-                        ].to_pylist()
+                        for image_id in existing_ids["Metadata_ImageID"].to_pylist()
                         if image_id is not None
                     )
             for chunk_path in joined_chunk_paths:
@@ -811,19 +825,15 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         path_kwargs=kwargs,
                     )
                     if source_image_table.num_rows != 0:
-                        source_image_frame = source_image_table.to_pandas()
-                        source_image_frame = source_image_frame[
-                            ~source_image_frame["Metadata_ImageID"].isin(
-                                seen_source_image_ids
-                            )
-                        ]
-                        if source_image_frame.empty:
-                            continue
-                        filtered_source_image_table = pa.Table.from_pandas(
-                            source_image_frame,
-                            schema=source_image_table.schema,
-                            preserve_index=False,
+                        ids_col = source_image_table["Metadata_ImageID"]
+                        id_set = pa.array(
+                            list(seen_source_image_ids), type=ids_col.type
                         )
+                        filtered_source_image_table = source_image_table.filter(
+                            pc.invert(pc.is_in(ids_col, value_set=id_set))
+                        )
+                        if filtered_source_image_table.num_rows == 0:
+                            continue
                         if source_images_table is None:
                             source_images_table = (
                                 bundle.load_table(
@@ -841,9 +851,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         source_images_table.append(filtered_source_image_table)
                         seen_source_image_ids.update(
                             image_id
-                            for image_id in source_image_frame[
+                            for image_id in filtered_source_image_table[
                                 "Metadata_ImageID"
-                            ].tolist()
+                            ].to_pylist()
                             if image_id is not None
                         )
 
@@ -1040,7 +1050,9 @@ def describe_iceberg_warehouse(
                 rows.append(
                     {
                         "table": view_name,
-                        "rows": len(_read_registered_view(bundle, view_name)),
+                        # View row counts require a full join — omit to avoid
+                        # materialising the entire view just for describe().
+                        "rows": None,
                         "data_files": 0,
                         "snapshot_id": None,
                         "kind": "view",

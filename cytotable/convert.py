@@ -246,12 +246,10 @@ def _set_tablenumber(
     # determine if we need to add tablenumber data
     if (
         # case for detecting multiple image tables which need to be differentiated
-        add_tablenumber is None
-        and (len(image_table_groups) <= 1)
+        add_tablenumber is None and (len(image_table_groups) <= 1)
     ) or (
         # case for explicitly set no tablenumbers
-        add_tablenumber
-        is False
+        add_tablenumber is False
     ):
         return {
             source_group_name: [
@@ -484,16 +482,14 @@ def _source_pageset_to_parquet(
     # add source table columns
     casted_source_cols = [
         # here we cast the column to the specified type ensure the colname remains the same
-        f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
+        f'CAST("{column["column_name"]}" AS {column["column_dtype"]}) AS "{column["column_name"]}"'
         for column in source["columns"]
     ]
 
     # create selection statement from tablenumber_sql + lists above
     select_columns = tablenumber_sql + ",".join(
         # if we should sort the output, add the metadata_cols
-        casted_source_cols
-        if sort_output
-        else casted_source_cols
+        casted_source_cols if sort_output else casted_source_cols
     )
 
     # build output query and filepath base
@@ -519,9 +515,9 @@ def _source_pageset_to_parquet(
             _write_parquet_table_with_metadata(
                 table=ddb_reader.execute(f"""
                     {base_query}
-                    WHERE {source['page_key']} BETWEEN {pageset[0]} AND {pageset[1]}
+                    WHERE {source["page_key"]} BETWEEN {pageset[0]} AND {pageset[1]}
                     /* optional ordering per pageset */
-                    {"ORDER BY " + source['page_key'] if sort_output else ""};
+                    {"ORDER BY " + source["page_key"] if sort_output else ""};
                     """).fetch_arrow_table(),
                 where=result_filepath,
             )
@@ -967,9 +963,11 @@ def _join_source_pageset(
 
     result_file_path = (
         # store the result in the parent of the dest_path
-        f"{str(pathlib.Path(dest_path).parent)}/" +
+        f"{str(pathlib.Path(dest_path).parent)}/"
+        +
         # use the dest_path stem in the name
-        f"{str(pathlib.Path(dest_path).stem)}-" +
+        f"{str(pathlib.Path(dest_path).stem)}-"
+        +
         # add the pageset indication to the filename
         f"{pageset[0]}-{pageset[1]}.parquet"
         if pageset is not None
@@ -1734,7 +1732,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     )
 
     if dest_backend == "iceberg":
-
         from cytotable.warehouse.iceberg import write_iceberg_warehouse
 
         return write_iceberg_warehouse(
@@ -1758,6 +1755,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             bbox_column_map=bbox_column_map,
             sort_output=sort_output,
             preset=preset,
+            drop_null=drop_null,
             parsl_config=parsl_config,
             **kwargs,
         )
