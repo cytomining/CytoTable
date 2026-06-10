@@ -754,9 +754,7 @@ def image_crop_table_from_joined_chunk(
                 "label_source_kind": (
                     "outline"
                     if outline_path is not None
-                    else "mask"
-                    if mask_path is not None
-                    else None
+                    else "mask" if mask_path is not None else None
                 ),
             }
             rows.append(record)
@@ -951,9 +949,7 @@ def source_image_table_from_joined_chunk(
                 "label_source_kind": (
                     "outline"
                     if outline_path is not None
-                    else "mask"
-                    if mask_path is not None
-                    else None
+                    else "mask" if mask_path is not None else None
                 ),
             }
 
@@ -1053,18 +1049,19 @@ def add_object_id_to_profiles_frame(
         joined_frame.columns.tolist(), bbox_column_map=bbox_column_map
     )
     frame = joined_frame.copy()
-    if "Metadata_ObjectID" not in frame.columns:
-        object_ids = frame.apply(
-            lambda row: _build_stable_object_id(
-                key_fields=_extract_key_fields(row),
-                bbox=(
-                    _validated_bbox_values(row, bbox_columns)
-                    if bbox_columns is not None
-                    else None
-                ),
+
+    def _generate_id(row: pd.Series) -> str:
+        return _build_stable_object_id(
+            key_fields=_extract_key_fields(row),
+            bbox=(
+                _validated_bbox_values(row, bbox_columns)
+                if bbox_columns is not None
+                else None
             ),
-            axis=1,
-        ).tolist()
+        )
+
+    if "Metadata_ObjectID" not in frame.columns:
+        object_ids = frame.apply(_generate_id, axis=1).tolist()
         metadata_columns = [
             column
             for column in frame.columns
@@ -1072,6 +1069,12 @@ def add_object_id_to_profiles_frame(
         ]
         insert_at = len(metadata_columns)
         frame.insert(insert_at, "Metadata_ObjectID", object_ids)
+    else:
+        null_mask = frame["Metadata_ObjectID"].isna()
+        if null_mask.any():
+            frame.loc[null_mask, "Metadata_ObjectID"] = frame.loc[null_mask].apply(
+                _generate_id, axis=1
+            )
 
     if bbox_columns is not None:
         rename_map = {
@@ -1121,14 +1124,20 @@ def profile_with_images_frame(
 
     # Stamp object IDs with apply — still per-row but avoids constructing a
     # growing Python list and is tighter in the CPython call overhead.
-    if "Metadata_ObjectID" not in valid.columns:
-        valid["Metadata_ObjectID"] = valid.apply(
-            lambda row: _build_stable_object_id(
-                key_fields=_extract_key_fields(row),
-                bbox=_validated_bbox_values(row, bbox_columns),
-            ),
-            axis=1,
+    def _generate_valid_id(row: pd.Series) -> str:
+        return _build_stable_object_id(
+            key_fields=_extract_key_fields(row),
+            bbox=_validated_bbox_values(row, bbox_columns),
         )
+
+    if "Metadata_ObjectID" not in valid.columns:
+        valid["Metadata_ObjectID"] = valid.apply(_generate_valid_id, axis=1)
+    else:
+        null_mask = valid["Metadata_ObjectID"].isna()
+        if null_mask.any():
+            valid.loc[null_mask, "Metadata_ObjectID"] = valid.loc[null_mask].apply(
+                _generate_valid_id, axis=1
+            )
 
     # Expand one row per image column with melt instead of accumulating a
     # dict-per-row list — pandas handles the reshape in C without building

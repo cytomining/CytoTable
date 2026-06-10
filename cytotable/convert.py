@@ -246,10 +246,12 @@ def _set_tablenumber(
     # determine if we need to add tablenumber data
     if (
         # case for detecting multiple image tables which need to be differentiated
-        add_tablenumber is None and (len(image_table_groups) <= 1)
+        add_tablenumber is None
+        and (len(image_table_groups) <= 1)
     ) or (
         # case for explicitly set no tablenumbers
-        add_tablenumber is False
+        add_tablenumber
+        is False
     ):
         return {
             source_group_name: [
@@ -489,7 +491,9 @@ def _source_pageset_to_parquet(
     # create selection statement from tablenumber_sql + lists above
     select_columns = tablenumber_sql + ",".join(
         # if we should sort the output, add the metadata_cols
-        casted_source_cols if sort_output else casted_source_cols
+        casted_source_cols
+        if sort_output
+        else casted_source_cols
     )
 
     # build output query and filepath base
@@ -963,11 +967,9 @@ def _join_source_pageset(
 
     result_file_path = (
         # store the result in the parent of the dest_path
-        f"{str(pathlib.Path(dest_path).parent)}/"
-        +
+        f"{str(pathlib.Path(dest_path).parent)}/" +
         # use the dest_path stem in the name
-        f"{str(pathlib.Path(dest_path).stem)}-"
-        +
+        f"{str(pathlib.Path(dest_path).stem)}-" +
         # add the pageset indication to the filename
         f"{pageset[0]}-{pageset[1]}.parquet"
         if pageset is not None

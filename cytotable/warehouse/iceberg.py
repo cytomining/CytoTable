@@ -16,13 +16,20 @@ import parsl
 import pyarrow as pa
 import pyarrow.compute as pc
 import pyarrow.parquet as parquet
+from parsl.app.app import python_app
 
 from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
 from cytotable.sources import _build_path
-from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
+from cytotable.utils import (
+    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+    _default_parsl_config,
+    _ensure_thread_executor,
+    _expand_path,
+    _parsl_loaded,
+)
 
 from .images import (
     IMAGE_TABLE_NAME,
@@ -34,6 +41,53 @@ from .images import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@python_app(executors=[CYTOTABLE_THREAD_EXECUTOR_LABEL])
+def _image_crop_table_app(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: "Optional[str]" = None,
+    outline_dir: "Optional[str]" = None,
+    bbox_column_map: "Optional[Dict[str, str]]" = None,
+    segmentation_file_regex: "Optional[Dict[str, str]]" = None,
+    path_kwargs: "Optional[Dict[str, Any]]" = None,
+) -> "pa.Table":
+    """Parsl thread-pool wrapper for image_crop_table_from_joined_chunk."""
+    from cytotable.warehouse.images import image_crop_table_from_joined_chunk
+
+    return image_crop_table_from_joined_chunk(
+        chunk_path=chunk_path,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        bbox_column_map=bbox_column_map,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+
+
+@python_app(executors=[CYTOTABLE_THREAD_EXECUTOR_LABEL])
+def _source_image_table_app(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: "Optional[str]" = None,
+    outline_dir: "Optional[str]" = None,
+    segmentation_file_regex: "Optional[Dict[str, str]]" = None,
+    path_kwargs: "Optional[Dict[str, Any]]" = None,
+) -> "pa.Table":
+    """Parsl thread-pool wrapper for source_image_table_from_joined_chunk."""
+    from cytotable.warehouse.images import source_image_table_from_joined_chunk
+
+    return source_image_table_from_joined_chunk(
+        chunk_path=chunk_path,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+
 
 DEFAULT_NAMESPACE = "profiles"
 DEFAULT_IMAGES_NAMESPACE = "images"
@@ -419,9 +473,9 @@ if _PYICEBERG_IMPORT_ERROR is None:
             )
             self._write_metadata(staged.metadata, staged.io, staged.metadata_location)
             registry = self._read_registry()
-            cast(dict[str, str], registry["tables"])[".".join(identifier)] = (
-                staged.metadata_location
-            )
+            cast(dict[str, str], registry["tables"])[
+                ".".join(identifier)
+            ] = staged.metadata_location
             self._write_registry(registry)
             return CommitTableResponse(
                 metadata=staged.metadata, metadata_location=staged.metadata_location
@@ -672,13 +726,25 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
     try:
         if not parsl_was_loaded:
-            parsl.load(parsl_config or _default_parsl_config())
+            effective_config = _ensure_thread_executor(
+                parsl_config or _default_parsl_config()
+            )
+            parsl.load(effective_config)
             parsl_loaded_here = True
         else:
             logger.info(
                 "Reusing the already loaded Parsl configuration; "
                 "write_iceberg_warehouse will not replace it with a new one."
             )
+            if CYTOTABLE_THREAD_EXECUTOR_LABEL not in parsl.dfk().executors:
+                logger.warning(
+                    "The active Parsl configuration has no '%s' executor. "
+                    "Image crop processing will run sequentially. "
+                    "Add a ThreadPoolExecutor with label '%s' to your parsl_config "
+                    "to enable parallel image processing.",
+                    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                )
 
         # First materialize the analysis-ready joined profiles output as a
         # single parquet artifact, then import that artifact into Iceberg.
@@ -745,6 +811,21 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                             properties=_cytotable_iceberg_properties(),
                         )
                 profiles_iceberg_table.append(processed)
+            if profiles_iceberg_table is None:
+                # Zero-row parquet: build the augmented schema from an empty
+                # frame so the Iceberg table is registered even for empty exports.
+                augmented_schema = pa.Table.from_pandas(
+                    add_object_id_to_profiles_frame(
+                        pq_file.schema_arrow.empty_table().to_pandas(),
+                        bbox_column_map=bbox_column_map,
+                    ),
+                    preserve_index=False,
+                ).schema
+                profiles_iceberg_table = bundle.create_table(
+                    (default_namespace, profiles_table_name),
+                    augmented_schema,
+                    properties=_cytotable_iceberg_properties(),
+                )
             profiles_table_exists = profiles_iceberg_table is not None
 
         if image_export_enabled:
@@ -791,15 +872,58 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         for image_id in existing_ids["Metadata_ImageID"].to_pylist()
                         if image_id is not None
                     )
-            for chunk_path in joined_chunk_paths:
-                crop_table = image_crop_table_from_joined_chunk(
-                    chunk_path=chunk_path,
-                    image_dir=cast(str, image_dir),
-                    mask_dir=mask_dir,
-                    outline_dir=outline_dir,
-                    bbox_column_map=bbox_column_map,
-                    segmentation_file_regex=segmentation_file_regex,
-                    path_kwargs=kwargs,
+            # Determine whether parallel image processing is available.
+            use_threads = CYTOTABLE_THREAD_EXECUTOR_LABEL in parsl.dfk().executors
+            _image_dir = cast(str, image_dir)
+
+            # Submit all crop (and optionally source-image) futures upfront so
+            # the thread pool can overlap image I/O across chunks. Iceberg
+            # appends are done sequentially as each future resolves.
+            if use_threads:
+                crop_futures = [
+                    _image_crop_table_app(
+                        chunk_path=chunk_path,
+                        image_dir=_image_dir,
+                        mask_dir=mask_dir,
+                        outline_dir=outline_dir,
+                        bbox_column_map=bbox_column_map,
+                        segmentation_file_regex=segmentation_file_regex,
+                        path_kwargs=kwargs,
+                    )
+                    for chunk_path in joined_chunk_paths
+                ]
+                source_futures = (
+                    [
+                        _source_image_table_app(
+                            chunk_path=chunk_path,
+                            image_dir=_image_dir,
+                            mask_dir=mask_dir,
+                            outline_dir=outline_dir,
+                            segmentation_file_regex=segmentation_file_regex,
+                            path_kwargs=kwargs,
+                        )
+                        for chunk_path in joined_chunk_paths
+                    ]
+                    if include_source_images
+                    else []
+                )
+            else:
+                crop_futures = []
+                source_futures = []
+
+            for i, chunk_path in enumerate(joined_chunk_paths):
+                crop_table = (
+                    crop_futures[i].result()
+                    if use_threads
+                    else image_crop_table_from_joined_chunk(
+                        chunk_path=chunk_path,
+                        image_dir=_image_dir,
+                        mask_dir=mask_dir,
+                        outline_dir=outline_dir,
+                        bbox_column_map=bbox_column_map,
+                        segmentation_file_regex=segmentation_file_regex,
+                        path_kwargs=kwargs,
+                    )
                 )
                 if crop_table.num_rows == 0:
                     continue
@@ -816,13 +940,17 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 image_table.append(crop_table)
 
                 if include_source_images:
-                    source_image_table = source_image_table_from_joined_chunk(
-                        chunk_path=chunk_path,
-                        image_dir=cast(str, image_dir),
-                        mask_dir=mask_dir,
-                        outline_dir=outline_dir,
-                        segmentation_file_regex=segmentation_file_regex,
-                        path_kwargs=kwargs,
+                    source_image_table = (
+                        source_futures[i].result()
+                        if use_threads
+                        else source_image_table_from_joined_chunk(
+                            chunk_path=chunk_path,
+                            image_dir=_image_dir,
+                            mask_dir=mask_dir,
+                            outline_dir=outline_dir,
+                            segmentation_file_regex=segmentation_file_regex,
+                            path_kwargs=kwargs,
+                        )
                     )
                     if source_image_table.num_rows != 0:
                         ids_col = source_image_table["Metadata_ImageID"]

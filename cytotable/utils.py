@@ -21,9 +21,37 @@ from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
 from parsl.config import Config
 from parsl.errors import NoDataFlowKernelError
-from parsl.executors import HighThroughputExecutor
+from parsl.executors import (
+    HighThroughputExecutor,
+)
+from parsl.executors import ThreadPoolExecutor as ParslThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+CYTOTABLE_THREAD_EXECUTOR_LABEL = "cytotable_threads"
+
+
+def _ensure_thread_executor(config: Config) -> Config:
+    """
+    Add CytoTable's ThreadPoolExecutor to a Parsl Config if not already present.
+
+    The thread executor is used for I/O-bound image processing tasks so they
+    run in-process (no Arrow serialization cost) alongside the HighThroughputExecutor
+    that handles the data-preparation pipeline.
+    """
+    labels = {e.label for e in config.executors}
+    if CYTOTABLE_THREAD_EXECUTOR_LABEL not in labels:
+        return Config(
+            executors=list(config.executors)
+            + [
+                ParslThreadPoolExecutor(
+                    label=CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                    max_threads=4,
+                )
+            ]
+        )
+    return config
+
 
 # reference the original init
 original_init = AppBase.__init__
@@ -70,7 +98,11 @@ def _default_parsl_config():
         executors=[
             HighThroughputExecutor(
                 label="htex_default_for_cytotable",
-            )
+            ),
+            ParslThreadPoolExecutor(
+                label=CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                max_threads=4,
+            ),
         ]
     )
 
@@ -275,11 +307,11 @@ def _sqlite_mixed_type_query_to_parquet(
         query_parts = tablenumber_sql + ", ".join([f"""
             CASE
                 /* when the storage class type doesn't match the column, return nulltype */
-                WHEN typeof({col['column_name']}) !=
-                '{_sqlite_affinity_data_type_lookup(col['column_type'].lower())}' THEN NULL
+                WHEN typeof({col["column_name"]}) !=
+                '{_sqlite_affinity_data_type_lookup(col["column_type"].lower())}' THEN NULL
                 /* else, return the normal value */
-                ELSE {col['column_name']}
-            END AS {col['column_name']}
+                ELSE {col["column_name"]}
+            END AS {col["column_name"]}
             """ for col in column_info])
 
         # perform the select using the cases built above and using chunksize + offset
