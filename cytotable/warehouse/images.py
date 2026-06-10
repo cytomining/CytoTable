@@ -754,9 +754,7 @@ def image_crop_table_from_joined_chunk(
                 "label_source_kind": (
                     "outline"
                     if outline_path is not None
-                    else "mask"
-                    if mask_path is not None
-                    else None
+                    else "mask" if mask_path is not None else None
                 ),
             }
             rows.append(record)
@@ -951,9 +949,7 @@ def source_image_table_from_joined_chunk(
                 "label_source_kind": (
                     "outline"
                     if outline_path is not None
-                    else "mask"
-                    if mask_path is not None
-                    else None
+                    else "mask" if mask_path is not None else None
                 ),
             }
 

@@ -419,9 +419,9 @@ if _PYICEBERG_IMPORT_ERROR is None:
             )
             self._write_metadata(staged.metadata, staged.io, staged.metadata_location)
             registry = self._read_registry()
-            cast(dict[str, str], registry["tables"])[".".join(identifier)] = (
-                staged.metadata_location
-            )
+            cast(dict[str, str], registry["tables"])[
+                ".".join(identifier)
+            ] = staged.metadata_location
             self._write_registry(registry)
             return CommitTableResponse(
                 metadata=staged.metadata, metadata_location=staged.metadata_location
