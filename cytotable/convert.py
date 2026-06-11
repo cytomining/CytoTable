@@ -484,7 +484,7 @@ def _source_pageset_to_parquet(
     # add source table columns
     casted_source_cols = [
         # here we cast the column to the specified type ensure the colname remains the same
-        f"CAST(\"{column['column_name']}\" AS {column['column_dtype']}) AS \"{column['column_name']}\""
+        f'CAST("{column["column_name"]}" AS {column["column_dtype"]}) AS "{column["column_name"]}"'
         for column in source["columns"]
     ]
 
@@ -519,9 +519,9 @@ def _source_pageset_to_parquet(
             _write_parquet_table_with_metadata(
                 table=ddb_reader.execute(f"""
                     {base_query}
-                    WHERE {source['page_key']} BETWEEN {pageset[0]} AND {pageset[1]}
+                    WHERE {source["page_key"]} BETWEEN {pageset[0]} AND {pageset[1]}
                     /* optional ordering per pageset */
-                    {"ORDER BY " + source['page_key'] if sort_output else ""};
+                    {"ORDER BY " + source["page_key"] if sort_output else ""};
                     """).fetch_arrow_table(),
                 where=result_filepath,
             )
@@ -1734,7 +1734,6 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     )
 
     if dest_backend == "iceberg":
-
         from cytotable.warehouse.iceberg import write_iceberg_warehouse
 
         return write_iceberg_warehouse(
@@ -1758,6 +1757,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             bbox_column_map=bbox_column_map,
             sort_output=sort_output,
             preset=preset,
+            drop_null=drop_null,
             parsl_config=parsl_config,
             **kwargs,
         )

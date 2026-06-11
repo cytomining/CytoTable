@@ -14,14 +14,22 @@ from typing import Any, Dict, Optional, Tuple, Union, cast
 import pandas as pd
 import parsl
 import pyarrow as pa
+import pyarrow.compute as pc
 import pyarrow.parquet as parquet
+from parsl.app.app import python_app
 
 from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
 from cytotable.sources import _build_path
-from cytotable.utils import _default_parsl_config, _expand_path, _parsl_loaded
+from cytotable.utils import (
+    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+    _default_parsl_config,
+    _ensure_thread_executor,
+    _expand_path,
+    _parsl_loaded,
+)
 
 from .images import (
     IMAGE_TABLE_NAME,
@@ -34,9 +42,60 @@ from .images import (
 
 logger = logging.getLogger(__name__)
 
+
+@python_app(executors=[CYTOTABLE_THREAD_EXECUTOR_LABEL])
+def _image_crop_table_app(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: "Optional[str]" = None,
+    outline_dir: "Optional[str]" = None,
+    bbox_column_map: "Optional[Dict[str, str]]" = None,
+    segmentation_file_regex: "Optional[Dict[str, str]]" = None,
+    path_kwargs: "Optional[Dict[str, Any]]" = None,
+) -> "pa.Table":
+    """Parsl thread-pool wrapper for image_crop_table_from_joined_chunk."""
+    from cytotable.warehouse.images import image_crop_table_from_joined_chunk
+
+    return image_crop_table_from_joined_chunk(
+        chunk_path=chunk_path,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        bbox_column_map=bbox_column_map,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+
+
+@python_app(executors=[CYTOTABLE_THREAD_EXECUTOR_LABEL])
+def _source_image_table_app(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: "Optional[str]" = None,
+    outline_dir: "Optional[str]" = None,
+    segmentation_file_regex: "Optional[Dict[str, str]]" = None,
+    path_kwargs: "Optional[Dict[str, Any]]" = None,
+) -> "pa.Table":
+    """Parsl thread-pool wrapper for source_image_table_from_joined_chunk."""
+    from cytotable.warehouse.images import source_image_table_from_joined_chunk
+
+    return source_image_table_from_joined_chunk(
+        chunk_path=chunk_path,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+
+
 DEFAULT_NAMESPACE = "profiles"
 DEFAULT_IMAGES_NAMESPACE = "images"
 DEFAULT_REGISTRY_FILE = "catalog.json"
+# Row groups in the export parquet are sized by chunk_size (default 1000).
+# Aggregating them here keeps the number of Iceberg append transactions low
+# while still bounding peak memory per batch.
+_PROFILE_WRITE_BATCH_ROWS = 100_000
 DEFAULT_WAREHOUSE_DIR = "warehouse"
 DEFAULT_PROFILES_TABLE = "joined_profiles"
 DEFAULT_PROFILE_WITH_IMAGES_VIEW = "profile_with_images"
@@ -527,6 +586,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     registry_file: str = DEFAULT_REGISTRY_FILE,
     profiles_table_name: str = DEFAULT_PROFILES_TABLE,
     profile_with_images_view_name: Optional[str] = DEFAULT_PROFILE_WITH_IMAGES_VIEW,
+    drop_null: bool = False,
     parsl_config: Optional[parsl.Config] = None,
     **kwargs,
 ) -> str:
@@ -596,6 +656,8 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         profile_with_images_view_name (Optional[str]):
             Optional view name registered when image export is enabled, joining
             profile rows with their corresponding image rows.
+        drop_null (bool):
+            See :func:`cytotable.convert.convert`.
         parsl_config (Optional[parsl.Config]):
             See :func:`cytotable.convert.convert`.
         **kwargs:
@@ -664,13 +726,25 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
     try:
         if not parsl_was_loaded:
-            parsl.load(parsl_config or _default_parsl_config())
+            effective_config = _ensure_thread_executor(
+                parsl_config or _default_parsl_config()
+            )
+            parsl.load(effective_config)
             parsl_loaded_here = True
         else:
             logger.info(
                 "Reusing the already loaded Parsl configuration; "
                 "write_iceberg_warehouse will not replace it with a new one."
             )
+            if CYTOTABLE_THREAD_EXECUTOR_LABEL not in parsl.dfk().executors:
+                logger.warning(
+                    "The active Parsl configuration has no '%s' executor. "
+                    "Image crop processing will run sequentially. "
+                    "Add a ThreadPoolExecutor with label '%s' to your parsl_config "
+                    "to enable parallel image processing.",
+                    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                )
 
         # First materialize the analysis-ready joined profiles output as a
         # single parquet artifact, then import that artifact into Iceberg.
@@ -690,7 +764,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 joins=cast(str, resolved["joins"]),
                 chunk_size=cast(Optional[int], resolved["chunk_size"]),
                 infer_common_schema=infer_common_schema,
-                drop_null=False,
+                drop_null=drop_null,
                 sort_output=sort_output,
                 page_keys=cast(Dict[str, str], resolved["page_keys"]),
                 dest_datatype="parquet",
@@ -711,25 +785,48 @@ def write_iceberg_warehouse(  # noqa: PLR0913
 
         profiles_table_exists = False
         if profiles_path and Path(profiles_path).exists():
-            # Stamp stable object identifiers onto the materialized profile
-            # rows before persisting them as the warehouse's primary table.
-            profiles_arrow_table = pa.Table.from_pandas(
-                add_object_id_to_profiles_frame(
-                    parquet.read_table(Path(profiles_path)).to_pandas(),
-                    bbox_column_map=bbox_column_map,
-                ),
-                preserve_index=False,
-            )
-            if bundle.table_exists((default_namespace, profiles_table_name)):
-                table = bundle.load_table((default_namespace, profiles_table_name))
-            else:
-                table = bundle.create_table(
+            # Stream the profiles parquet in row-group batches so we never
+            # hold the full dataset in memory. The Iceberg table is created
+            # from the schema of the first processed batch, then each batch
+            # is appended and released before the next one is read.
+            pq_file = parquet.ParquetFile(profiles_path)
+            profiles_iceberg_table = None
+            for batch in pq_file.iter_batches(batch_size=_PROFILE_WRITE_BATCH_ROWS):
+                processed = pa.Table.from_pandas(
+                    add_object_id_to_profiles_frame(
+                        batch.to_pandas(),
+                        bbox_column_map=bbox_column_map,
+                    ),
+                    preserve_index=False,
+                )
+                if profiles_iceberg_table is None:
+                    if bundle.table_exists((default_namespace, profiles_table_name)):
+                        profiles_iceberg_table = bundle.load_table(
+                            (default_namespace, profiles_table_name)
+                        )
+                    else:
+                        profiles_iceberg_table = bundle.create_table(
+                            (default_namespace, profiles_table_name),
+                            processed.schema,
+                            properties=_cytotable_iceberg_properties(),
+                        )
+                profiles_iceberg_table.append(processed)
+            if profiles_iceberg_table is None:
+                # Zero-row parquet: build the augmented schema from an empty
+                # frame so the Iceberg table is registered even for empty exports.
+                augmented_schema = pa.Table.from_pandas(
+                    add_object_id_to_profiles_frame(
+                        pq_file.schema_arrow.empty_table().to_pandas(),
+                        bbox_column_map=bbox_column_map,
+                    ),
+                    preserve_index=False,
+                ).schema
+                profiles_iceberg_table = bundle.create_table(
                     (default_namespace, profiles_table_name),
-                    profiles_arrow_table.schema,
+                    augmented_schema,
                     properties=_cytotable_iceberg_properties(),
                 )
-            table.append(profiles_arrow_table)
-            profiles_table_exists = True
+            profiles_table_exists = profiles_iceberg_table is not None
 
         if image_export_enabled:
             # Run the same join in chunked mode for image work so crops and
@@ -750,7 +847,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                     joins=cast(str, resolved["joins"]),
                     chunk_size=cast(Optional[int], resolved["chunk_size"]),
                     infer_common_schema=infer_common_schema,
-                    drop_null=False,
+                    drop_null=drop_null,
                     sort_output=sort_output,
                     page_keys=cast(Dict[str, str], resolved["page_keys"]),
                     data_type_cast_map=data_type_cast_map,
@@ -762,30 +859,71 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             source_images_table: Optional[Table] = None
             seen_source_image_ids: set[str] = set()
             if bundle.table_exists((images_namespace, SOURCE_IMAGE_TABLE_NAME)):
-                # Source images are image-level assets, so deduplicate them
-                # across joined chunks by the stable image identifier.
-                existing_source_images = (
+                # Project only the ID column — avoids loading image pixels
+                # into memory just to build the dedup set.
+                existing_ids = (
                     bundle.load_table((images_namespace, SOURCE_IMAGE_TABLE_NAME))
-                    .scan()
+                    .scan(selected_fields=("Metadata_ImageID",))
                     .to_arrow()
                 )
-                if "Metadata_ImageID" in existing_source_images.column_names:
+                if "Metadata_ImageID" in existing_ids.column_names:
                     seen_source_image_ids.update(
                         image_id
-                        for image_id in existing_source_images[
-                            "Metadata_ImageID"
-                        ].to_pylist()
+                        for image_id in existing_ids["Metadata_ImageID"].to_pylist()
                         if image_id is not None
                     )
-            for chunk_path in joined_chunk_paths:
-                crop_table = image_crop_table_from_joined_chunk(
-                    chunk_path=chunk_path,
-                    image_dir=cast(str, image_dir),
-                    mask_dir=mask_dir,
-                    outline_dir=outline_dir,
-                    bbox_column_map=bbox_column_map,
-                    segmentation_file_regex=segmentation_file_regex,
-                    path_kwargs=kwargs,
+            # Determine whether parallel image processing is available.
+            use_threads = CYTOTABLE_THREAD_EXECUTOR_LABEL in parsl.dfk().executors
+            _image_dir = cast(str, image_dir)
+
+            # Submit all crop (and optionally source-image) futures upfront so
+            # the thread pool can overlap image I/O across chunks. Iceberg
+            # appends are done sequentially as each future resolves.
+            if use_threads:
+                crop_futures = [
+                    _image_crop_table_app(
+                        chunk_path=chunk_path,
+                        image_dir=_image_dir,
+                        mask_dir=mask_dir,
+                        outline_dir=outline_dir,
+                        bbox_column_map=bbox_column_map,
+                        segmentation_file_regex=segmentation_file_regex,
+                        path_kwargs=kwargs,
+                    )
+                    for chunk_path in joined_chunk_paths
+                ]
+                source_futures = (
+                    [
+                        _source_image_table_app(
+                            chunk_path=chunk_path,
+                            image_dir=_image_dir,
+                            mask_dir=mask_dir,
+                            outline_dir=outline_dir,
+                            segmentation_file_regex=segmentation_file_regex,
+                            path_kwargs=kwargs,
+                        )
+                        for chunk_path in joined_chunk_paths
+                    ]
+                    if include_source_images
+                    else []
+                )
+            else:
+                crop_futures = []
+                source_futures = []
+
+            for i, chunk_path in enumerate(joined_chunk_paths):
+                crop_table = (
+                    crop_futures[i].result()
+                    if use_threads
+                    else image_crop_table_from_joined_chunk(
+                        chunk_path=chunk_path,
+                        image_dir=_image_dir,
+                        mask_dir=mask_dir,
+                        outline_dir=outline_dir,
+                        bbox_column_map=bbox_column_map,
+                        segmentation_file_regex=segmentation_file_regex,
+                        path_kwargs=kwargs,
+                    )
                 )
                 if crop_table.num_rows == 0:
                     continue
@@ -802,28 +940,28 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                 image_table.append(crop_table)
 
                 if include_source_images:
-                    source_image_table = source_image_table_from_joined_chunk(
-                        chunk_path=chunk_path,
-                        image_dir=cast(str, image_dir),
-                        mask_dir=mask_dir,
-                        outline_dir=outline_dir,
-                        segmentation_file_regex=segmentation_file_regex,
-                        path_kwargs=kwargs,
+                    source_image_table = (
+                        source_futures[i].result()
+                        if use_threads
+                        else source_image_table_from_joined_chunk(
+                            chunk_path=chunk_path,
+                            image_dir=_image_dir,
+                            mask_dir=mask_dir,
+                            outline_dir=outline_dir,
+                            segmentation_file_regex=segmentation_file_regex,
+                            path_kwargs=kwargs,
+                        )
                     )
                     if source_image_table.num_rows != 0:
-                        source_image_frame = source_image_table.to_pandas()
-                        source_image_frame = source_image_frame[
-                            ~source_image_frame["Metadata_ImageID"].isin(
-                                seen_source_image_ids
-                            )
-                        ]
-                        if source_image_frame.empty:
-                            continue
-                        filtered_source_image_table = pa.Table.from_pandas(
-                            source_image_frame,
-                            schema=source_image_table.schema,
-                            preserve_index=False,
+                        ids_col = source_image_table["Metadata_ImageID"]
+                        id_set = pa.array(
+                            list(seen_source_image_ids), type=ids_col.type
                         )
+                        filtered_source_image_table = source_image_table.filter(
+                            pc.invert(pc.is_in(ids_col, value_set=id_set))
+                        )
+                        if filtered_source_image_table.num_rows == 0:
+                            continue
                         if source_images_table is None:
                             source_images_table = (
                                 bundle.load_table(
@@ -841,9 +979,9 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         source_images_table.append(filtered_source_image_table)
                         seen_source_image_ids.update(
                             image_id
-                            for image_id in source_image_frame[
+                            for image_id in filtered_source_image_table[
                                 "Metadata_ImageID"
-                            ].tolist()
+                            ].to_pylist()
                             if image_id is not None
                         )
 
@@ -1040,7 +1178,9 @@ def describe_iceberg_warehouse(
                 rows.append(
                     {
                         "table": view_name,
-                        "rows": len(_read_registered_view(bundle, view_name)),
+                        # View row counts require a full join — omit to avoid
+                        # materialising the entire view just for describe().
+                        "rows": None,
                         "data_files": 0,
                         "snapshot_id": None,
                         "kind": "view",

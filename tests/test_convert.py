@@ -229,6 +229,7 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         bbox_column_map=None,
         sort_output=True,
         preset=None,
+        drop_null=False,
         parsl_config=None,
     )
 
