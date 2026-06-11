@@ -1,6 +1,3 @@
 # Exclude large test data and other non-essential files from the source distribution
-prune tests/data
+prune tests
 prune docs
-prune example
-exclude *.parquet
-prune examplehuman_warehouse_with_images
