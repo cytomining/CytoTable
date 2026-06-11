@@ -1,0 +1,3 @@
+# Exclude large test data and other non-essential files from the source distribution
+prune tests
+prune docs
