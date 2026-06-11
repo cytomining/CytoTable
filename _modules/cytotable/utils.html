@@ -492,9 +492,40 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsl.app.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppBase</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsl.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsl.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoDataFlowKernelError</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">parsl.executors</span><span class="w"> </span><span class="kn">import</span> <span class="n">HighThroughputExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsl.executors</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">HighThroughputExecutor</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsl.executors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span> <span class="k">as</span> <span class="n">ParslThreadPoolExecutor</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="o">=</span> <span class="s2">&quot;cytotable_threads&quot;</span>
+
+
+<div class="viewcode-block" id="_ensure_thread_executor">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._ensure_thread_executor">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_thread_executor</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Config</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add CytoTable&#39;s ThreadPoolExecutor to a Parsl Config if not already present.</span>
+
+<span class="sd">    The thread executor is used for I/O-bound image processing tasks so they</span>
+<span class="sd">    run in-process (no Arrow serialization cost) alongside the HighThroughputExecutor</span>
+<span class="sd">    that handles the data-preparation pipeline.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">executors</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Config</span><span class="p">(</span>
+            <span class="n">executors</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">executors</span><span class="p">)</span>
+            <span class="o">+</span> <span class="p">[</span>
+                <span class="n">ParslThreadPoolExecutor</span><span class="p">(</span>
+                    <span class="n">label</span><span class="o">=</span><span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">,</span>
+                    <span class="n">max_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">config</span></div>
+
+
 
 <span class="c1"># reference the original init</span>
 <span class="n">original_init</span> <span class="o">=</span> <span class="n">AppBase</span><span class="o">.</span><span class="fm">__init__</span>
@@ -549,7 +580,11 @@ window.runMermaid = runMermaid;</script>
         <span class="n">executors</span><span class="o">=</span><span class="p">[</span>
             <span class="n">HighThroughputExecutor</span><span class="p">(</span>
                 <span class="n">label</span><span class="o">=</span><span class="s2">&quot;htex_default_for_cytotable&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="p">),</span>
+            <span class="n">ParslThreadPoolExecutor</span><span class="p">(</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">,</span>
+                <span class="n">max_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+            <span class="p">),</span>
         <span class="p">]</span>
     <span class="p">)</span></div>
 
@@ -763,11 +798,11 @@ window.runMermaid = runMermaid;</script>
         <span class="n">query_parts</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            CASE</span>
 <span class="s2">                /* when the storage class type doesn&#39;t match the column, return nulltype */</span>
-<span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">) !=</span>
-<span class="s2">                &#39;</span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">&#39; THEN NULL</span>
+<span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s2">) !=</span>
+<span class="s2">                &#39;</span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">&#39; THEN NULL</span>
 <span class="s2">                /* else, return the normal value */</span>
-<span class="s2">                ELSE </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span>
-<span class="s2">            END AS </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s1">&#39;column_name&#39;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                ELSE </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">            END AS </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span>
 <span class="s2">            &quot;&quot;&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_info</span><span class="p">])</span>
 
         <span class="c1"># perform the select using the cases built above and using chunksize + offset</span>

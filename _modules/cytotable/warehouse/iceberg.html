@@ -485,14 +485,22 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">parsl</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.compute</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">parsl.app.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">python_app</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.convert</span><span class="w"> </span><span class="kn">import</span> <span class="n">_run_export_workflow</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CytoTableException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.presets</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_default_parsl_config</span><span class="p">,</span> <span class="n">_expand_path</span><span class="p">,</span> <span class="n">_parsl_loaded</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">,</span>
+    <span class="n">_default_parsl_config</span><span class="p">,</span>
+    <span class="n">_ensure_thread_executor</span><span class="p">,</span>
+    <span class="n">_expand_path</span><span class="p">,</span>
+    <span class="n">_parsl_loaded</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">.images</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">IMAGE_TABLE_NAME</span><span class="p">,</span>
@@ -505,9 +513,60 @@ window.runMermaid = runMermaid;</script>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
+
+<span class="nd">@python_app</span><span class="p">(</span><span class="n">executors</span><span class="o">=</span><span class="p">[</span><span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_image_crop_table_app</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="s2">&quot;Optional[str]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="s2">&quot;Optional[str]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, str]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, str]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, Any]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pa.Table&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parsl thread-pool wrapper for image_crop_table_from_joined_chunk.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.warehouse.images</span><span class="w"> </span><span class="kn">import</span> <span class="n">image_crop_table_from_joined_chunk</span>
+
+    <span class="k">return</span> <span class="n">image_crop_table_from_joined_chunk</span><span class="p">(</span>
+        <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+        <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
+        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
+<span class="nd">@python_app</span><span class="p">(</span><span class="n">executors</span><span class="o">=</span><span class="p">[</span><span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_image_table_app</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="s2">&quot;Optional[str]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="s2">&quot;Optional[str]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, str]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, Any]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pa.Table&quot;</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parsl thread-pool wrapper for source_image_table_from_joined_chunk.&quot;&quot;&quot;</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.warehouse.images</span><span class="w"> </span><span class="kn">import</span> <span class="n">source_image_table_from_joined_chunk</span>
+
+    <span class="k">return</span> <span class="n">source_image_table_from_joined_chunk</span><span class="p">(</span>
+        <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+
 <span class="n">DEFAULT_NAMESPACE</span> <span class="o">=</span> <span class="s2">&quot;profiles&quot;</span>
 <span class="n">DEFAULT_IMAGES_NAMESPACE</span> <span class="o">=</span> <span class="s2">&quot;images&quot;</span>
 <span class="n">DEFAULT_REGISTRY_FILE</span> <span class="o">=</span> <span class="s2">&quot;catalog.json&quot;</span>
+<span class="c1"># Row groups in the export parquet are sized by chunk_size (default 1000).</span>
+<span class="c1"># Aggregating them here keeps the number of Iceberg append transactions low</span>
+<span class="c1"># while still bounding peak memory per batch.</span>
+<span class="n">_PROFILE_WRITE_BATCH_ROWS</span> <span class="o">=</span> <span class="mi">100_000</span>
 <span class="n">DEFAULT_WAREHOUSE_DIR</span> <span class="o">=</span> <span class="s2">&quot;warehouse&quot;</span>
 <span class="n">DEFAULT_PROFILES_TABLE</span> <span class="o">=</span> <span class="s2">&quot;joined_profiles&quot;</span>
 <span class="n">DEFAULT_PROFILE_WITH_IMAGES_VIEW</span> <span class="o">=</span> <span class="s2">&quot;profile_with_images&quot;</span>
@@ -1060,6 +1119,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">registry_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_REGISTRY_FILE</span><span class="p">,</span>
     <span class="n">profiles_table_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_PROFILES_TABLE</span><span class="p">,</span>
     <span class="n">profile_with_images_view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">DEFAULT_PROFILE_WITH_IMAGES_VIEW</span><span class="p">,</span>
+    <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -1129,6 +1189,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        profile_with_images_view_name (Optional[str]):</span>
 <span class="sd">            Optional view name registered when image export is enabled, joining</span>
 <span class="sd">            profile rows with their corresponding image rows.</span>
+<span class="sd">        drop_null (bool):</span>
+<span class="sd">            See :func:`cytotable.convert.convert`.</span>
 <span class="sd">        parsl_config (Optional[parsl.Config]):</span>
 <span class="sd">            See :func:`cytotable.convert.convert`.</span>
 <span class="sd">        **kwargs:</span>
@@ -1197,13 +1259,25 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">parsl_was_loaded</span><span class="p">:</span>
-            <span class="n">parsl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">parsl_config</span> <span class="ow">or</span> <span class="n">_default_parsl_config</span><span class="p">())</span>
+            <span class="n">effective_config</span> <span class="o">=</span> <span class="n">_ensure_thread_executor</span><span class="p">(</span>
+                <span class="n">parsl_config</span> <span class="ow">or</span> <span class="n">_default_parsl_config</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">parsl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">effective_config</span><span class="p">)</span>
             <span class="n">parsl_loaded_here</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;Reusing the already loaded Parsl configuration; &quot;</span>
                 <span class="s2">&quot;write_iceberg_warehouse will not replace it with a new one.&quot;</span>
             <span class="p">)</span>
+            <span class="k">if</span> <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">parsl</span><span class="o">.</span><span class="n">dfk</span><span class="p">()</span><span class="o">.</span><span class="n">executors</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;The active Parsl configuration has no &#39;</span><span class="si">%s</span><span class="s2">&#39; executor. &quot;</span>
+                    <span class="s2">&quot;Image crop processing will run sequentially. &quot;</span>
+                    <span class="s2">&quot;Add a ThreadPoolExecutor with label &#39;</span><span class="si">%s</span><span class="s2">&#39; to your parsl_config &quot;</span>
+                    <span class="s2">&quot;to enable parallel image processing.&quot;</span><span class="p">,</span>
+                    <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">,</span>
+                    <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">,</span>
+                <span class="p">)</span>
 
         <span class="c1"># First materialize the analysis-ready joined profiles output as a</span>
         <span class="c1"># single parquet artifact, then import that artifact into Iceberg.</span>
@@ -1223,7 +1297,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">joins</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">&quot;joins&quot;</span><span class="p">]),</span>
                 <span class="n">chunk_size</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">&quot;chunk_size&quot;</span><span class="p">]),</span>
                 <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
-                <span class="n">drop_null</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
                 <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                 <span class="n">page_keys</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">&quot;page_keys&quot;</span><span class="p">]),</span>
                 <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
@@ -1244,25 +1318,48 @@ window.runMermaid = runMermaid;</script>
 
         <span class="n">profiles_table_exists</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">profiles_path</span> <span class="ow">and</span> <span class="n">Path</span><span class="p">(</span><span class="n">profiles_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="c1"># Stamp stable object identifiers onto the materialized profile</span>
-            <span class="c1"># rows before persisting them as the warehouse&#39;s primary table.</span>
-            <span class="n">profiles_arrow_table</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span>
-                <span class="n">add_object_id_to_profiles_frame</span><span class="p">(</span>
-                    <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">profiles_path</span><span class="p">))</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(),</span>
-                    <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
-                <span class="p">),</span>
-                <span class="n">preserve_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">bundle</span><span class="o">.</span><span class="n">table_exists</span><span class="p">((</span><span class="n">default_namespace</span><span class="p">,</span> <span class="n">profiles_table_name</span><span class="p">)):</span>
-                <span class="n">table</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">load_table</span><span class="p">((</span><span class="n">default_namespace</span><span class="p">,</span> <span class="n">profiles_table_name</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">table</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span>
+            <span class="c1"># Stream the profiles parquet in row-group batches so we never</span>
+            <span class="c1"># hold the full dataset in memory. The Iceberg table is created</span>
+            <span class="c1"># from the schema of the first processed batch, then each batch</span>
+            <span class="c1"># is appended and released before the next one is read.</span>
+            <span class="n">pq_file</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetFile</span><span class="p">(</span><span class="n">profiles_path</span><span class="p">)</span>
+            <span class="n">profiles_iceberg_table</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">pq_file</span><span class="o">.</span><span class="n">iter_batches</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">_PROFILE_WRITE_BATCH_ROWS</span><span class="p">):</span>
+                <span class="n">processed</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span>
+                    <span class="n">add_object_id_to_profiles_frame</span><span class="p">(</span>
+                        <span class="n">batch</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(),</span>
+                        <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">preserve_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">profiles_iceberg_table</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">bundle</span><span class="o">.</span><span class="n">table_exists</span><span class="p">((</span><span class="n">default_namespace</span><span class="p">,</span> <span class="n">profiles_table_name</span><span class="p">)):</span>
+                        <span class="n">profiles_iceberg_table</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">load_table</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">default_namespace</span><span class="p">,</span> <span class="n">profiles_table_name</span><span class="p">)</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">profiles_iceberg_table</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span>
+                            <span class="p">(</span><span class="n">default_namespace</span><span class="p">,</span> <span class="n">profiles_table_name</span><span class="p">),</span>
+                            <span class="n">processed</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+                            <span class="n">properties</span><span class="o">=</span><span class="n">_cytotable_iceberg_properties</span><span class="p">(),</span>
+                        <span class="p">)</span>
+                <span class="n">profiles_iceberg_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">processed</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">profiles_iceberg_table</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Zero-row parquet: build the augmented schema from an empty</span>
+                <span class="c1"># frame so the Iceberg table is registered even for empty exports.</span>
+                <span class="n">augmented_schema</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span>
+                    <span class="n">add_object_id_to_profiles_frame</span><span class="p">(</span>
+                        <span class="n">pq_file</span><span class="o">.</span><span class="n">schema_arrow</span><span class="o">.</span><span class="n">empty_table</span><span class="p">()</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">(),</span>
+                        <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
+                    <span class="p">),</span>
+                    <span class="n">preserve_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">schema</span>
+                <span class="n">profiles_iceberg_table</span> <span class="o">=</span> <span class="n">bundle</span><span class="o">.</span><span class="n">create_table</span><span class="p">(</span>
                     <span class="p">(</span><span class="n">default_namespace</span><span class="p">,</span> <span class="n">profiles_table_name</span><span class="p">),</span>
-                    <span class="n">profiles_arrow_table</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+                    <span class="n">augmented_schema</span><span class="p">,</span>
                     <span class="n">properties</span><span class="o">=</span><span class="n">_cytotable_iceberg_properties</span><span class="p">(),</span>
                 <span class="p">)</span>
-            <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">profiles_arrow_table</span><span class="p">)</span>
-            <span class="n">profiles_table_exists</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">profiles_table_exists</span> <span class="o">=</span> <span class="n">profiles_iceberg_table</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="n">image_export_enabled</span><span class="p">:</span>
             <span class="c1"># Run the same join in chunked mode for image work so crops and</span>
@@ -1283,7 +1380,7 @@ window.runMermaid = runMermaid;</script>
                     <span class="n">joins</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">&quot;joins&quot;</span><span class="p">]),</span>
                     <span class="n">chunk_size</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">&quot;chunk_size&quot;</span><span class="p">]),</span>
                     <span class="n">infer_common_schema</span><span class="o">=</span><span class="n">infer_common_schema</span><span class="p">,</span>
-                    <span class="n">drop_null</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
                     <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
                     <span class="n">page_keys</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">&quot;page_keys&quot;</span><span class="p">]),</span>
                     <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
@@ -1295,30 +1392,71 @@ window.runMermaid = runMermaid;</script>
             <span class="n">source_images_table</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Table</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">seen_source_image_ids</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">bundle</span><span class="o">.</span><span class="n">table_exists</span><span class="p">((</span><span class="n">images_namespace</span><span class="p">,</span> <span class="n">SOURCE_IMAGE_TABLE_NAME</span><span class="p">)):</span>
-                <span class="c1"># Source images are image-level assets, so deduplicate them</span>
-                <span class="c1"># across joined chunks by the stable image identifier.</span>
-                <span class="n">existing_source_images</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="c1"># Project only the ID column — avoids loading image pixels</span>
+                <span class="c1"># into memory just to build the dedup set.</span>
+                <span class="n">existing_ids</span> <span class="o">=</span> <span class="p">(</span>
                     <span class="n">bundle</span><span class="o">.</span><span class="n">load_table</span><span class="p">((</span><span class="n">images_namespace</span><span class="p">,</span> <span class="n">SOURCE_IMAGE_TABLE_NAME</span><span class="p">))</span>
-                    <span class="o">.</span><span class="n">scan</span><span class="p">()</span>
+                    <span class="o">.</span><span class="n">scan</span><span class="p">(</span><span class="n">selected_fields</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">,))</span>
                     <span class="o">.</span><span class="n">to_arrow</span><span class="p">()</span>
                 <span class="p">)</span>
-                <span class="k">if</span> <span class="s2">&quot;Metadata_ImageID&quot;</span> <span class="ow">in</span> <span class="n">existing_source_images</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s2">&quot;Metadata_ImageID&quot;</span> <span class="ow">in</span> <span class="n">existing_ids</span><span class="o">.</span><span class="n">column_names</span><span class="p">:</span>
                     <span class="n">seen_source_image_ids</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                         <span class="n">image_id</span>
-                        <span class="k">for</span> <span class="n">image_id</span> <span class="ow">in</span> <span class="n">existing_source_images</span><span class="p">[</span>
-                            <span class="s2">&quot;Metadata_ImageID&quot;</span>
-                        <span class="p">]</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">image_id</span> <span class="ow">in</span> <span class="n">existing_ids</span><span class="p">[</span><span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
                         <span class="k">if</span> <span class="n">image_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                     <span class="p">)</span>
-            <span class="k">for</span> <span class="n">chunk_path</span> <span class="ow">in</span> <span class="n">joined_chunk_paths</span><span class="p">:</span>
-                <span class="n">crop_table</span> <span class="o">=</span> <span class="n">image_crop_table_from_joined_chunk</span><span class="p">(</span>
-                    <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
-                    <span class="n">image_dir</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">),</span>
-                    <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
-                    <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
-                    <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
-                    <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
-                    <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="c1"># Determine whether parallel image processing is available.</span>
+            <span class="n">use_threads</span> <span class="o">=</span> <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="ow">in</span> <span class="n">parsl</span><span class="o">.</span><span class="n">dfk</span><span class="p">()</span><span class="o">.</span><span class="n">executors</span>
+            <span class="n">_image_dir</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">)</span>
+
+            <span class="c1"># Submit all crop (and optionally source-image) futures upfront so</span>
+            <span class="c1"># the thread pool can overlap image I/O across chunks. Iceberg</span>
+            <span class="c1"># appends are done sequentially as each future resolves.</span>
+            <span class="k">if</span> <span class="n">use_threads</span><span class="p">:</span>
+                <span class="n">crop_futures</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">_image_crop_table_app</span><span class="p">(</span>
+                        <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
+                        <span class="n">image_dir</span><span class="o">=</span><span class="n">_image_dir</span><span class="p">,</span>
+                        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+                        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+                        <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
+                        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">chunk_path</span> <span class="ow">in</span> <span class="n">joined_chunk_paths</span>
+                <span class="p">]</span>
+                <span class="n">source_futures</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">_source_image_table_app</span><span class="p">(</span>
+                            <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
+                            <span class="n">image_dir</span><span class="o">=</span><span class="n">_image_dir</span><span class="p">,</span>
+                            <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+                            <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+                            <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                            <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="k">for</span> <span class="n">chunk_path</span> <span class="ow">in</span> <span class="n">joined_chunk_paths</span>
+                    <span class="p">]</span>
+                    <span class="k">if</span> <span class="n">include_source_images</span>
+                    <span class="k">else</span> <span class="p">[]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">crop_futures</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">source_futures</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">chunk_path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">joined_chunk_paths</span><span class="p">):</span>
+                <span class="n">crop_table</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">crop_futures</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">use_threads</span>
+                    <span class="k">else</span> <span class="n">image_crop_table_from_joined_chunk</span><span class="p">(</span>
+                        <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
+                        <span class="n">image_dir</span><span class="o">=</span><span class="n">_image_dir</span><span class="p">,</span>
+                        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+                        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+                        <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
+                        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                    <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">crop_table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">continue</span>
@@ -1335,28 +1473,28 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">image_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">crop_table</span><span class="p">)</span>
 
                 <span class="k">if</span> <span class="n">include_source_images</span><span class="p">:</span>
-                    <span class="n">source_image_table</span> <span class="o">=</span> <span class="n">source_image_table_from_joined_chunk</span><span class="p">(</span>
-                        <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
-                        <span class="n">image_dir</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">image_dir</span><span class="p">),</span>
-                        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
-                        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
-                        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
-                        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                    <span class="n">source_image_table</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">source_futures</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">use_threads</span>
+                        <span class="k">else</span> <span class="n">source_image_table_from_joined_chunk</span><span class="p">(</span>
+                            <span class="n">chunk_path</span><span class="o">=</span><span class="n">chunk_path</span><span class="p">,</span>
+                            <span class="n">image_dir</span><span class="o">=</span><span class="n">_image_dir</span><span class="p">,</span>
+                            <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+                            <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+                            <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+                            <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                        <span class="p">)</span>
                     <span class="p">)</span>
                     <span class="k">if</span> <span class="n">source_image_table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">source_image_frame</span> <span class="o">=</span> <span class="n">source_image_table</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
-                        <span class="n">source_image_frame</span> <span class="o">=</span> <span class="n">source_image_frame</span><span class="p">[</span>
-                            <span class="o">~</span><span class="n">source_image_frame</span><span class="p">[</span><span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span>
-                                <span class="n">seen_source_image_ids</span>
-                            <span class="p">)</span>
-                        <span class="p">]</span>
-                        <span class="k">if</span> <span class="n">source_image_frame</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
-                            <span class="k">continue</span>
-                        <span class="n">filtered_source_image_table</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="o">.</span><span class="n">from_pandas</span><span class="p">(</span>
-                            <span class="n">source_image_frame</span><span class="p">,</span>
-                            <span class="n">schema</span><span class="o">=</span><span class="n">source_image_table</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
-                            <span class="n">preserve_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">ids_col</span> <span class="o">=</span> <span class="n">source_image_table</span><span class="p">[</span><span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">]</span>
+                        <span class="n">id_set</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                            <span class="nb">list</span><span class="p">(</span><span class="n">seen_source_image_ids</span><span class="p">),</span> <span class="nb">type</span><span class="o">=</span><span class="n">ids_col</span><span class="o">.</span><span class="n">type</span>
                         <span class="p">)</span>
+                        <span class="n">filtered_source_image_table</span> <span class="o">=</span> <span class="n">source_image_table</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                            <span class="n">pc</span><span class="o">.</span><span class="n">invert</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">is_in</span><span class="p">(</span><span class="n">ids_col</span><span class="p">,</span> <span class="n">value_set</span><span class="o">=</span><span class="n">id_set</span><span class="p">))</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">filtered_source_image_table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="k">continue</span>
                         <span class="k">if</span> <span class="n">source_images_table</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="n">source_images_table</span> <span class="o">=</span> <span class="p">(</span>
                                 <span class="n">bundle</span><span class="o">.</span><span class="n">load_table</span><span class="p">(</span>
@@ -1374,9 +1512,9 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">source_images_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filtered_source_image_table</span><span class="p">)</span>
                         <span class="n">seen_source_image_ids</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                             <span class="n">image_id</span>
-                            <span class="k">for</span> <span class="n">image_id</span> <span class="ow">in</span> <span class="n">source_image_frame</span><span class="p">[</span>
+                            <span class="k">for</span> <span class="n">image_id</span> <span class="ow">in</span> <span class="n">filtered_source_image_table</span><span class="p">[</span>
                                 <span class="s2">&quot;Metadata_ImageID&quot;</span>
-                            <span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+                            <span class="p">]</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
                             <span class="k">if</span> <span class="n">image_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                         <span class="p">)</span>
 
@@ -1582,7 +1720,9 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="p">{</span>
                         <span class="s2">&quot;table&quot;</span><span class="p">:</span> <span class="n">view_name</span><span class="p">,</span>
-                        <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">_read_registered_view</span><span class="p">(</span><span class="n">bundle</span><span class="p">,</span> <span class="n">view_name</span><span class="p">)),</span>
+                        <span class="c1"># View row counts require a full join — omit to avoid</span>
+                        <span class="c1"># materialising the entire view just for describe().</span>
+                        <span class="s2">&quot;rows&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                         <span class="s2">&quot;data_files&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
                         <span class="s2">&quot;snapshot_id&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                         <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;view&quot;</span><span class="p">,</span>
