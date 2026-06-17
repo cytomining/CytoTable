@@ -2,11 +2,13 @@
 Utility functions for CytoTable
 """
 
+import fnmatch
 import logging
 import os
 import pathlib
+import sys
 from pathlib import Path, PurePosixPath
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple, Union, cast
 
 import boto3
 import duckdb
@@ -19,9 +21,37 @@ from cloudpathlib.exceptions import InvalidPrefixError
 from parsl.app.app import AppBase
 from parsl.config import Config
 from parsl.errors import NoDataFlowKernelError
-from parsl.executors import HighThroughputExecutor
+from parsl.executors import (
+    HighThroughputExecutor,
+)
+from parsl.executors import ThreadPoolExecutor as ParslThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+
+CYTOTABLE_THREAD_EXECUTOR_LABEL = "cytotable_threads"
+
+
+def _ensure_thread_executor(config: Config) -> Config:
+    """
+    Add CytoTable's ThreadPoolExecutor to a Parsl Config if not already present.
+
+    The thread executor is used for I/O-bound image processing tasks so they
+    run in-process (no Arrow serialization cost) alongside the HighThroughputExecutor
+    that handles the data-preparation pipeline.
+    """
+    labels = {e.label for e in config.executors}
+    if CYTOTABLE_THREAD_EXECUTOR_LABEL not in labels:
+        return Config(
+            executors=list(config.executors)
+            + [
+                ParslThreadPoolExecutor(
+                    label=CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                    max_threads=4,
+                )
+            ]
+        )
+    return config
+
 
 # reference the original init
 original_init = AppBase.__init__
@@ -68,7 +98,11 @@ def _default_parsl_config():
         executors=[
             HighThroughputExecutor(
                 label="htex_default_for_cytotable",
-            )
+            ),
+            ParslThreadPoolExecutor(
+                label=CYTOTABLE_THREAD_EXECUTOR_LABEL,
+                max_threads=4,
+            ),
         ]
     )
 
@@ -138,7 +172,9 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     for ex., using: `with _duckdb_reader() as ddb_reader:`
 
     Returns:
-        duckdb.DuckDBPyConnection
+        duckdb.DuckDBPyConnection:
+            A configured DuckDB connection with the sqlite_scanner and
+            httpfs extensions installed and loaded.
     """
 
     import duckdb
@@ -181,32 +217,32 @@ def _sqlite_mixed_type_query_to_parquet(
     pageset: Tuple[Union[int, float], Union[int, float]],
     sort_output: bool,
     tablenumber: Optional[int] = None,
-) -> str:
+) -> pa.Table:
     """
     Performs SQLite table data extraction where one or many
     columns include data values of potentially mismatched type
     such that the data may be exported to Arrow for later use.
 
     Args:
-        source_path: str:
+        source_path (str):
             A str which is a path to a SQLite database file.
-        table_name: str:
+        table_name (str):
             The name of the table being queried.
-        page_key: str:
+        page_key (str):
             The column name to be used to identify pagination chunks.
-        pageset: Tuple[Union[int, float], Union[int, float]]:
+        pageset (Tuple[Union[int, float], Union[int, float]]):
             The range for values used for paginating data from source.
-        sort_output: bool
+        sort_output (bool):
             Specifies whether to sort cytotable output or not.
-        add_cytotable_meta: bool, default=False:
-            Whether to add CytoTable metadata fields or not
-        tablenumber: Optional[int], default=None:
+        tablenumber (Optional[int]):
             An optional table number to append to the results.
             Defaults to None.
 
     Returns:
-        pyarrow.Table:
-           The resulting arrow table for the data
+        pa.Table:
+            A PyArrow table containing the extracted rows, with mixed-type
+            cells coerced to nulls where storage class disagrees with column
+            type.
     """
     import sqlite3
 
@@ -271,11 +307,11 @@ def _sqlite_mixed_type_query_to_parquet(
         query_parts = tablenumber_sql + ", ".join([f"""
             CASE
                 /* when the storage class type doesn't match the column, return nulltype */
-                WHEN typeof({col['column_name']}) !=
-                '{_sqlite_affinity_data_type_lookup(col['column_type'].lower())}' THEN NULL
+                WHEN typeof({col["column_name"]}) !=
+                '{_sqlite_affinity_data_type_lookup(col["column_type"].lower())}' THEN NULL
                 /* else, return the normal value */
-                ELSE {col['column_name']}
-            END AS {col['column_name']}
+                ELSE {col["column_name"]}
+            END AS {col["column_name"]}
             """ for col in column_info])
 
         # perform the select using the cases built above and using chunksize + offset
@@ -314,12 +350,12 @@ def _cache_cloudpath_to_local(path: AnyPath) -> pathlib.Path:
     for use in scenarios where remote work is not possible (sqlite).
 
     Args:
-        path: Union[str, AnyPath]
+        path (AnyPath):
             A filepath which will be checked and potentially
             converted to a local filepath.
 
     Returns:
-        pathlib.Path
+        pathlib.Path:
             A local pathlib.Path to cached version of cloudpath file.
     """
 
@@ -351,16 +387,16 @@ def _arrow_type_cast_if_specified(
     Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.
 
     Args:
-        column: Dict[str, str]:
+        column (Dict[str, str]):
             Dictionary which includes a column idx, name, and dtype
-        data_type_cast_map: Dict[str, str]
+        data_type_cast_map (Dict[str, str]):
             A dictionary mapping data type groups to specific types.
             Roughly includes Arrow data types language from:
             https://arrow.apache.org/docs/python/api/datatypes.html
             Example: {"float": "float32"}
 
     Returns:
-        Dict[str, str]
+        Dict[str, str]:
             A potentially data type updated dictionary of column information
     """
 
@@ -414,11 +450,11 @@ def _expand_path(
     Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.
 
     Args:
-        path: Union[str, pathlib.Path, CloudPath]:
+        path (Union[str, pathlib.Path, AnyPath]):
             Path to expand.
 
     Returns:
-        Union[pathlib.Path, Any]
+        Union[pathlib.Path, AnyPath]:
             A local pathlib.Path or Cloudpathlib.AnyPath type path.
     """
 
@@ -439,26 +475,16 @@ def _expand_path(
 
 def _get_cytotable_version() -> str:
     """
-    Seeks the current version of CytoTable using either pkg_resources
-    or dunamai to determine the current version being used.
+    Seeks the current version of CytoTable from package metadata.
 
     Returns:
-        str
+        str:
             A string representing the version of CytoTable currently being used.
     """
 
-    try:
-        # attempt to gather the development version from dunamai
-        # for scenarios where cytotable from source is used.
-        import dunamai
+    import cytotable
 
-        return dunamai.Version.from_any_vcs().serialize()
-    except (RuntimeError, ModuleNotFoundError):
-        # else grab a static version from __init__.py
-        # for scenarios where the built/packaged cytotable is used.
-        import cytotable
-
-        return cytotable.__version__
+    return cytotable.__version__
 
 
 def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
@@ -468,9 +494,9 @@ def _write_parquet_table_with_metadata(table: pa.Table, **kwargs) -> None:
     https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html
 
     Args:
-        table: pa.Table:
+        table (pa.Table):
             Pyarrow table to be serialized as parquet table.
-        **kwargs: Any:
+        **kwargs:
             kwargs provided to this function roughly align with
             pyarrow.parquet.write_table. The following might be
             examples of what to expect here:
@@ -497,13 +523,13 @@ def _gather_tablenumber_checksum(pathname: str, buffer_size: int = 1048576) -> i
     https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129
 
     Args:
-        pathname: str:
+        pathname (str):
             A path to a file with which to generate the checksum on.
-        buffer_size: int:
+        buffer_size (int):
             Buffer size to use for reading data.
 
     Returns:
-        int
+        int:
             an integer representing the checksum of the pathname file.
     """
 
@@ -537,12 +563,12 @@ def _unwrap_value(val: Union[parsl.dataflow.futures.AppFuture, Any]) -> Any:
     where there are no futures.
 
     Args:
-        val: Union[parsl.dataflow.futures.AppFuture, Any]
+        val (Union[parsl.dataflow.futures.AppFuture, Any]):
             A value which may or may not be a Parsl future which
             needs to be evaluated.
 
     Returns:
-        Any
+        Any:
             Returns the value as-is if there's no future, the future
             result if Parsl futures are encountered.
     """
@@ -568,14 +594,14 @@ def _unwrap_source(
     Helper function to unwrap futures from sources.
 
     Args:
-        source: Union[
-            Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]],
-            Union[parsl.dataflow.futures.AppFuture, Any],
-        ]
+        source (Union[Dict[str, Union[parsl.dataflow.futures.AppFuture, Any]], Union[parsl.dataflow.futures.AppFuture, Any]]):
             A source is a portion of an internal data structure used by
-            CytoTable for processing and organizing data results.
+            CytoTable for processing and organizing data results. May be a
+            dictionary of values (some of which may be Parsl futures) or
+            a single value or future.
+
     Returns:
-        Union[Dict[str, Any], Any]
+        Union[Dict[str, Any], Any]:
             An evaluated dictionary or other value type.
     """
     # if we have a dictionary, unwrap any values which may be futures
@@ -595,14 +621,14 @@ def evaluate_futures(
     future result evaluation for concurrency.
 
     Args:
-        sources: Union[Dict[str, List[Dict[str, Any]]], List[Any], str]
+        sources (Union[Dict[str, List[Dict[str, Any]]], List[Any], str]):
             Sources are an internal data structure used by CytoTable for
             processing and organizing data results. They may include futures
             which require asynchronous processing through Parsl, so we
             process them through this function.
 
     Returns:
-        Union[Dict[str, List[Dict[str, Any]]], str]
+        Any:
             A data structure which includes evaluated futures where they were found.
     """
 
@@ -633,10 +659,10 @@ def _generate_pagesets(
     """
     Generate a pageset (keyset pagination) from a list of keys.
 
-    Parameters:
-        keys List[Union[int, float]]:
+    Args:
+        keys (List[Union[int, float]]):
             List of keys to paginate.
-        chunk_size int:
+        chunk_size (int):
             Size of each chunk/page.
 
     Returns:
@@ -674,18 +700,19 @@ def _generate_pagesets(
     return chunks
 
 
-def _natural_sort(list_to_sort):
+def _natural_sort(list_to_sort: List[Any]) -> List[Any]:
     """
     Sorts the given iterable using natural sort adapted from approach
     provided by the following link:
     https://stackoverflow.com/a/4836734
 
     Args:
-      list_to_sort: List:
-        The list to sort.
+        list_to_sort (List[Any]):
+            The list to sort.
 
     Returns:
-      List: The sorted list.
+        List[Any]:
+            The sorted list.
     """
     import re
 
@@ -744,15 +771,15 @@ def _extract_npz_to_parquet(
     }
 
     Args:
-        source_path: str
+        source_path (str):
             Path to the .npz file.
-        dest_path: str
+        dest_path (str):
             Destination path for the parquet file.
-        tablenumber: Optional[int]
+        tablenumber (Optional[int]):
             Optional tablenumber to be added to the data.
 
     Returns:
-        str
+        str:
             Path to the exported parquet file.
     """
 
@@ -814,11 +841,11 @@ def map_pyarrow_type(
     `data_type_cast_map` parameter.
 
     Args:
-        field_type: pa.DataType
+        field_type (pa.DataType):
             The PyArrow data type to be mapped.
             This can include simple types (e.g., int, float, string)
             or nested types (e.g., list, struct).
-        data_type_cast_map: Optional[Dict[str, str]], default None
+        data_type_cast_map (Optional[Dict[str, str]]):
             A dictionary mapping data type groups to specific types.
             This allows for custom type casting.
             For example:
@@ -830,7 +857,7 @@ def map_pyarrow_type(
             None, default PyArrow types are used.
 
     Returns:
-        pa.DataType
+        pa.DataType:
             The mapped PyArrow data type.
             If no mapping is needed, the original
             `field_type` is returned.
@@ -892,13 +919,13 @@ def find_anndata_metadata_field_names(
     numeric-ness for downstream processing.
 
     Args:
-        source:
+        source (Union[str, pathlib.Path]):
             Path to a Parquet file to inspect.
 
     Returns:
-        A 2-tuple ``(numeric_fields, non_numeric_fields)``,
-        where each element is
-        a list of column names.
+        tuple[list[str], list[str]]:
+            A 2-tuple ``(numeric_fields, non_numeric_fields)``, where each
+            element is a list of column names.
     """
 
     import pyarrow.parquet as parquet
@@ -923,12 +950,133 @@ def find_anndata_metadata_field_names(
     return numeric_fields, non_numeric_fields
 
 
+def _glob_pattern_matches(rel_parts: Tuple[str, ...], pat_parts: List[str]) -> bool:
+    """
+    Match path components against pattern components using pathlib-glob
+    semantics: ``**`` matches zero or more components, ``*`` and ``?`` are
+    fnmatch wildcards within a single component, and matching is anchored at
+    the left of ``rel_parts``.
+
+    Args:
+        rel_parts (Tuple[str, ...]):
+            Path components of the candidate, relative to the search root
+            (e.g. ``("analysis", "Cells.csv")``).
+        pat_parts (List[str]):
+            Pattern components produced by splitting the glob on ``"/"``
+            (e.g. ``["**", "*.csv"]``).
+
+    Returns:
+        bool:
+            ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics
+            described above, else ``False``.
+    """
+    if not pat_parts:
+        return not rel_parts
+    head, *rest = pat_parts
+    if head == "**":
+        for i in range(len(rel_parts) + 1):
+            if _glob_pattern_matches(rel_parts[i:], rest):
+                return True
+        return False
+    if not rel_parts:
+        return False
+    if fnmatch.fnmatchcase(rel_parts[0], head):
+        return _glob_pattern_matches(rel_parts[1:], rest)
+    return False
+
+
+def _glob_follow_symlinks(start: Path, pattern: str) -> Iterator[Path]:
+    """
+    Like ``Path.glob(pattern)``, but follows symlinked directories on every
+    Python version CytoTable supports. Intended for local and network
+    filesystems only - cloud object stores have no filesystem symlinks and
+    must use the ``CloudPath`` branches in :func:`cloud_glob`. ``Path.glob``
+    only gained ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the
+    tree with ``os.walk(followlinks=True)`` and match each entry's relative
+    path against the full pattern, so any pattern accepted by ``Path.glob``
+    works across versions.
+
+    Args:
+        start (Path):
+            Root directory to glob under. Must reference a local or network
+            filesystem path.
+        pattern (str):
+            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
+
+    Yields:
+        Path:
+            ``pathlib.Path`` entries matching ``pattern``, deduplicated so
+            that two paths resolving to the same real file are only yielded
+            once.
+    """
+    if sys.version_info >= (3, 13):
+        # ``Path.glob(recurse_symlinks=True)`` yields each reachable path,
+        # so two symlinks pointing at the same target produce duplicate
+        # entries. Deduplicate by real path. The 3.10-3.12 walker prunes
+        # alias directories before descent and so already yields unique
+        # paths.
+        seen: Set[str] = set()
+        for path in start.glob(pattern, recurse_symlinks=True):
+            real = os.path.realpath(path)
+            if real in seen:
+                continue
+            seen.add(real)
+            yield path
+        return
+
+    yield from _walk_and_match(start, pattern)
+
+
+def _walk_and_match(start: Path, pattern: str) -> Iterator[Path]:
+    """
+    Walk ``start`` with ``os.walk(followlinks=True)`` and yield entries
+    whose path (relative to ``start``) matches ``pattern`` under
+    pathlib-glob semantics. Implements the 3.10-3.12 fallback used by
+    :func:`_glob_follow_symlinks`. Subdirectories whose real path has
+    already been entered are pruned before descent so that cyclic or
+    aliasing symlinks neither hang the walk nor produce duplicate yields.
+
+    Args:
+        start (Path):
+            Root directory of the walk. Must reference a local or network
+            filesystem path.
+        pattern (str):
+            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).
+
+    Yields:
+        Path:
+            ``pathlib.Path`` entries (files or directories) matching
+            ``pattern``.
+    """
+    pat_parts = pattern.split("/")
+    visited_dirs: Set[str] = {os.path.realpath(start)}
+    for root, dirs, files in os.walk(start, followlinks=True):
+        # Prune subdirectories whose real path we've already entered, so that
+        # cyclic symlinks (e.g. ``start/foo -> start/``) cannot trap os.walk
+        # in an infinite descent.
+        kept = []
+        for d in dirs:
+            d_real = os.path.realpath(os.path.join(root, d))
+            if d_real in visited_dirs:
+                continue
+            visited_dirs.add(d_real)
+            kept.append(d)
+        dirs[:] = kept
+
+        root_path = Path(root)
+        for name in (*dirs, *files):
+            full = root_path / name
+            rel_parts = full.relative_to(start).parts
+            if _glob_pattern_matches(rel_parts, pat_parts):
+                yield full
+
+
 def cloud_glob(
     start: Union[str, CloudPath, Path],
     pattern: str,
     max_matches: Optional[int] = None,
     cp_client: Optional[S3Client] = None,
-    boto_s3_client=None,
+    boto_s3_client: Optional[Any] = None,
 ) -> Iterator[Union[CloudPath, Path]]:
     """
     Globs under `start` and yields matching paths.
@@ -940,25 +1088,34 @@ def cloud_glob(
           Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.
       - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):
           Fallback to CloudPath.glob(pattern), yielding CloudPath.
-      - Local filesystem (pathlib.Path or non-s3 string):
-          Fallback to Path.glob(pattern), yielding pathlib.Path.
+      - Local or network filesystem (pathlib.Path or non-s3 string):
+          Walk with symlinked subdirectories followed, yielding pathlib.Path.
+
+    Symlink-following is only applied to the local-/network-filesystem
+    branch. Object stores (S3, GCS, Azure) do not have filesystem-level
+    symlinks, so the CloudPath branches are unaffected.
 
     Args:
-        start:
+        start (Union[str, CloudPath, Path]):
             CloudPath, pathlib.Path, or URI string.
-        pattern:
+        pattern (str):
             Glob pattern *relative to* `start` (supports ** for S3 branch).
-        max_matches:
+        max_matches (Optional[int]):
             Optional cap on yielded results.
-        cp_client:
+        cp_client (Optional[S3Client]):
             cloudpathlib S3Client (unsigned recommended).
-        boto_s3_client:
+        boto_s3_client (Optional[Any]):
             boto3 S3 client (unsigned recommended).
 
     Yields:
-        cloudpathlib.S3Path for S3;
-        CloudPath for other cloud providers;
-        pathlib.Path for local.
+        Union[CloudPath, Path]:
+            cloudpathlib.S3Path for S3, CloudPath for other cloud providers,
+            or pathlib.Path for local filesystem entries.
+
+    Raises:
+        TypeError:
+            Raised when ``start`` is not a ``CloudPath``, ``pathlib.Path``,
+            or string URI.
     """
 
     def _ensure_trailing_slash(s: str) -> str:
@@ -1018,7 +1175,7 @@ def cloud_glob(
     # ---- Branch 2: local Path ----
     if isinstance(start, Path):
         yielded = 0
-        for child in start.glob(pattern):
+        for child in _glob_follow_symlinks(start, pattern):
             yield child
             yielded += 1
             if max_matches is not None and yielded >= max_matches:
@@ -1042,7 +1199,7 @@ def cloud_glob(
         else:
             base = Path(start)
             yielded = 0
-            for child in base.glob(pattern):
+            for child in _glob_follow_symlinks(base, pattern):
                 yield child
                 yielded += 1
                 if max_matches is not None and yielded >= max_matches:

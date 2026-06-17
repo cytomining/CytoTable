@@ -20,7 +20,7 @@ Please see our [SECURITY.md](https://github.com/cytomining/CytoTable/blob/main/S
 
 - Documentation: <https://cytomining.github.io/CytoTable/>
 - Issue tracker: <https://github.com/cytomining/CytoTable/issues>
-- Package Dependencies (via [Poetry configuration](https://python-poetry.org/docs/pyproject/)): <https://github.com/cytomining/CytoTable/blob/main/pyproject.toml>
+- Package Dependencies (via [uv project configuration](https://docs.astral.sh/uv/concepts/projects/dependencies/)): <https://github.com/cytomining/CytoTable/blob/main/pyproject.toml>
 
 ## Process
 
@@ -99,7 +99,7 @@ When appropriate, reference issues (via `#` plus number) .
 
 ### Overview
 
-CytoTable is primarily written in Python with related environments managed by Python [Poetry](https://python-poetry.org/).
+CytoTable is primarily written in Python with related environments managed by [uv](https://docs.astral.sh/uv/).
 We use [pytest](https://docs.pytest.org/) for local testing and [GitHub actions](https://docs.github.com/en/actions) for automated tests via containers.
 
 ### Getting started
@@ -107,8 +107,8 @@ We use [pytest](https://docs.pytest.org/) for local testing and [GitHub actions]
 To enable local development, perform the following steps.
 
 1. [Install Python](https://www.python.org/downloads/)
-1. [Install Poetry](https://python-poetry.org/docs/#installation)
-1. [Install Poetry Environment](https://python-poetry.org/docs/basic-usage/#installing-dependencies): `poetry install`
+1. [Install uv](https://docs.astral.sh/uv/getting-started/installation/)
+1. [Install the uv environment](https://docs.astral.sh/uv/concepts/projects/sync/): `uv sync --all-extras --group docs`
 
 ### Code style
 
@@ -134,9 +134,9 @@ Manual testing for this project may be performed using the following tools.
 Automated testing is performed using [GitHub Actions](https://docs.github.com/en/actions) and follows the same checks.
 
 1. [pytest](https://pytest.org/en/latest/contents.html) provides unit, functional, or integration testing.
-   Example test command: `% poetry run pytest`
+   Example test command: `% uv run pytest`
 1. [sphinx-build](https://www.sphinx-doc.org/en/master/man/sphinx-build.html) provides documentation website build checks via [`-W`](https://www.sphinx-doc.org/en/master/man/sphinx-build.html#cmdoption-sphinx-build-W) (which turns warnings into errors).
-   Example command: `% poetry run sphinx-build docs/source docs/build -W`
+   Example command: `% uv run sphinx-build docs/source docs/build -W`
 1. [pre-commit](https://pre-commit.com/) provides various checks which are treated as failures in automated testing.
    Example command `% pre-commit run -all-files`
 
@@ -146,7 +146,7 @@ Test coverage is provided via [coverage](https://github.com/nedbat/coveragepy) a
 Use the following command to generate HTML coverage reports (reports made available at `./htmlcov/index.html`):
 
 ```sh
-% poetry run pytest --cov=cytotable tests/
+% uv run pytest --cov=cytotable tests/
 ```
 
 ## Documentation
@@ -162,7 +162,7 @@ Documentation content is tested using the `sphinx-build ... -W` command to avoid
 To check your documentation updates before pushing, use the following to trigger a related `sphinx-build` (content made available at `./docs/build/index.html`):
 
 ```sh
-% poetry run sphinx-build docs/source doctest -W
+% uv run sphinx-build -b doctest docs/source doctest -W
 ```
 
 ### Documentation Builds
@@ -172,7 +172,7 @@ Documentation is automatically published to a docsite via [GitHub Actions](https
 
 ## Attribution
 
-Portions of this contribution guide were sourced from [pyctyominer](https://github.com/cytomining/pycytominer/blob/master/CONTRIBUTING.md).
+Portions of this contribution guide were sourced from [Pycytominer](https://github.com/cytomining/pycytominer/blob/master/CONTRIBUTING.md).
 Many thanks go to the developers and contributors of that repository.
 
 ## Publishing Releases
@@ -189,7 +189,7 @@ There are several manual and automated steps involved with publishing CytoTable 
 See below for an overview of how this works.
 
 Notes about [semantic version](https://en.wikipedia.org/wiki/Software_versioning#Semantic_versioning) (semver) specifications:
-CytoTable semvers are controlled through [`poetry-dynamic-versioning`](https://github.com/mtkennerly/poetry-dynamic-versioning) which leverages [`dunamai`](https://github.com/mtkennerly/dunamai) to create version data based on [git tags](https://git-scm.com/book/en/v2/Git-Basics-Tagging) and and commits.
+CytoTable semvers are controlled through [`setuptools-scm`](https://setuptools-scm.readthedocs.io/) which creates version data based on [git tags](https://git-scm.com/book/en/v2/Git-Basics-Tagging) and commits.
 CytoTable release git tags are automatically applied through [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) and related inferred changes from [`release-drafter`](https://github.com/release-drafter/release-drafter).
 
 1. Open a pull request and use a repository label for `release-<semver release type>` to label the pull request for visibility with [`release-drafter`](https://github.com/release-drafter/release-drafter) (for example, see [CytoTable#108](https://github.com/cytomining/CytoTable/pull/108) as a reference of a semver patch update).
@@ -197,4 +197,4 @@ CytoTable release git tags are automatically applied through [GitHub Releases](h
    The draft GitHub release will include a version tag based on the GitHub PR label applied and `release-drafter`.
    The draft release does not normally need additional modifications but may be changed as needed.
 1. Make modifications as necessary to the draft GitHub release, then publish the release.
-1. On publishing the release, another GitHub Actions workflow defined in `publish-pypi.yml` will run to build and deploy the Python package to PyPI (utilizing the earlier modified `pyproject.toml` semantic version reference for labeling the release).
+1. On publishing the release, another GitHub Actions workflow defined in `publish-pypi.yml` will run to build and deploy the Python package to PyPI using the dynamic version resolved from git tags.

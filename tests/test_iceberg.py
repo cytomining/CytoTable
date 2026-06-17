@@ -23,6 +23,11 @@ from pyarrow import parquet
 
 from cytotable.exceptions import CytoTableException
 from cytotable.presets import config
+from cytotable.utils import (
+    CYTOTABLE_THREAD_EXECUTOR_LABEL,
+    _default_parsl_config,
+    _ensure_thread_executor,
+)
 from cytotable.warehouse.iceberg import (
     _rewrite_join_sql_for_warehouse,
     _validate_iceberg_join_prerequisites,
@@ -49,6 +54,37 @@ from cytotable.warehouse.images import (
     resolve_bbox_columns,
     source_image_table_from_joined_chunk,
 )
+
+
+def test_ensure_thread_executor_adds_when_absent():
+    """
+    _ensure_thread_executor adds cytotable_threads when the config lacks it.
+    """
+    cfg = Config(executors=[])
+    result = _ensure_thread_executor(cfg)
+    labels = {e.label for e in result.executors}
+    assert CYTOTABLE_THREAD_EXECUTOR_LABEL in labels
+
+
+def test_ensure_thread_executor_does_not_duplicate():
+    """
+    _ensure_thread_executor leaves the config unchanged when the executor already exists.
+    """
+    cfg = Config(executors=[ThreadPoolExecutor(label=CYTOTABLE_THREAD_EXECUTOR_LABEL)])
+    result = _ensure_thread_executor(cfg)
+    matching = [
+        e for e in result.executors if e.label == CYTOTABLE_THREAD_EXECUTOR_LABEL
+    ]
+    assert len(matching) == 1
+
+
+def test_default_parsl_config_includes_thread_executor():
+    """
+    _default_parsl_config always includes the cytotable thread executor.
+    """
+    cfg = _default_parsl_config()
+    labels = {e.label for e in cfg.executors}
+    assert CYTOTABLE_THREAD_EXECUTOR_LABEL in labels
 
 
 def test_rewrite_join_sql_for_warehouse():
@@ -545,6 +581,29 @@ def test_describe_iceberg_warehouse_handles_missing_snapshot(
     assert described.loc[0, "table"] == "profiles.joined_profiles"
     assert described.loc[0, "rows"] == 5
     assert pd.isna(described.loc[0, "snapshot_id"])
+
+
+def test_describe_iceberg_warehouse_view_rows_are_none(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """
+    Views in describe() return None for row count to avoid full materialisation.
+    """
+
+    bundle = MagicMock()
+    bundle.list_namespaces.return_value = [("profiles",)]
+    bundle.list_tables.return_value = []
+    bundle.list_views.return_value = [("profiles", "profile_with_images")]
+
+    monkeypatch.setattr(
+        "cytotable.warehouse.iceberg.catalog", lambda *args, **kwargs: bundle
+    )
+
+    described = describe_iceberg_warehouse("example_warehouse", include_views=True)
+
+    assert len(described) == 1
+    assert described.loc[0, "kind"] == "view"
+    assert described.loc[0, "rows"] is None
 
 
 def test_resolve_bbox_columns_prefers_cellprofiler_names():
@@ -1399,6 +1458,49 @@ def test_profile_with_images_frame_skips_invalid_bbox_rows():
 
     assert len(manifested) == 1
     assert manifested["Metadata_ImageNumber"].to_list() == [1]
+
+
+def test_profile_with_images_frame_multi_row_multi_channel():
+    """
+    Melt-based expansion produces one row per (object, image channel) pair across
+    multiple rows and multiple image columns.
+    """
+
+    joined = pd.DataFrame(
+        {
+            "Metadata_ImageNumber": [1, 2],
+            "Image_FileName_DNA": ["dna1.tiff", "dna2.tiff"],
+            "Image_FileName_AGP": ["agp1.tiff", "agp2.tiff"],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_X": [0, 0],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_X": [10, 10],
+            "Cytoplasm_AreaShape_BoundingBoxMinimum_Y": [0, 0],
+            "Cytoplasm_AreaShape_BoundingBoxMaximum_Y": [10, 10],
+        }
+    )
+    image_frame = pd.DataFrame(
+        {
+            "Metadata_ObjectID": [],
+            "source_image_column": [],
+            "source_image_file": [],
+        }
+    )
+
+    result = profile_with_images_frame(joined_frame=joined, image_frame=image_frame)
+
+    # 2 rows × 2 channels = 4 expanded rows
+    assert len(result) == 4
+    assert set(result["source_image_column"]) == {
+        "Image_FileName_DNA",
+        "Image_FileName_AGP",
+    }
+    assert set(result["source_image_file"]) == {
+        "dna1.tiff",
+        "dna2.tiff",
+        "agp1.tiff",
+        "agp2.tiff",
+    }
+    # Each object gets a stable unique ID
+    assert result["Metadata_ObjectID"].nunique() == 2
 
 
 @pytest.mark.skipif(

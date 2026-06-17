@@ -1,8 +1,8 @@
 """
 Shrink datasets from Colas Lab from IN Carta provided as collection of CSV's.
 
-Note: built to be run from CytoTable poetry dev environment from project base, e.g.:
-`poetry run python tests/data/in-carta/colas-lab/shrink_colas_lab_data_for_tests.py`
+Note: built to be run from CytoTable uv dev environment from project base, e.g.:
+`uv run python tests/data/in-carta/colas-lab/shrink_colas_lab_data_for_tests.py`
 """
 
 import pathlib
