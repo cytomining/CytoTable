@@ -499,6 +499,7 @@ def test_convert_multi_source_colliding_parent_dir_names(
         dest_path=f"{fx_tempdir}/multi_site.parquet",
         dest_datatype="parquet",
         preset="cellprofiler_csv",
+        concat=False,
         join=False,
     )
     assert isinstance(result, dict)
@@ -509,6 +510,11 @@ def test_convert_multi_source_colliding_parent_dir_names(
         "Nuclei.csv",
         "Image.csv",
     }
+    for source_results in result.values():
+        for source_result in source_results:
+            result_path = pathlib.Path(source_result["table"][0])
+            assert result_path.parent.name == "analysis"
+            assert result_path.parent.parent.name in {"1", "2", "3"}
 
     single_site_result = convert(
         source_path=f"{data_dir_cellprofiler}/ExampleHuman",
@@ -516,17 +522,22 @@ def test_convert_multi_source_colliding_parent_dir_names(
         dest_datatype="parquet",
         source_datatype="csv",
         preset="cellprofiler_csv",
+        concat=False,
         join=False,
     )
     assert isinstance(single_site_result, dict)
 
     for compartment in ("Cells.csv", "Cytoplasm.csv", "Nuclei.csv"):
-        multi_rows = parquet.read_table(
-            source=result[compartment][0]["table"][0]
-        ).num_rows
-        single_rows = parquet.read_table(
-            source=single_site_result[compartment][0]["table"][0]
-        ).num_rows
+        multi_rows = sum(
+            parquet.read_table(source=table_path).num_rows
+            for source_result in result[compartment]
+            for table_path in source_result["table"]
+        )
+        single_rows = sum(
+            parquet.read_table(source=table_path).num_rows
+            for source_result in single_site_result[compartment]
+            for table_path in source_result["table"]
+        )
         assert multi_rows == 3 * single_rows, (
             f"{compartment}: expected 3x single-site rows ({3 * single_rows}),"
             f" got {multi_rows}"
