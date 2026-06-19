@@ -426,6 +426,7 @@ def _source_pageset_to_parquet(
             than a mixed-type sqlite error.
     """
 
+    import hashlib
     import pathlib
 
     import duckdb
@@ -440,10 +441,16 @@ def _source_pageset_to_parquet(
 
     source_type = str(source["source_path"].suffix).lower()
 
-    # attempt to build dest_path
+    # hash of parent path discriminates sources whose parent dirs share a name
+    # (e.g. analyses/{1,2}/analysis) — see cytomining/CytoTable#442
+    source_parent_hash = hashlib.sha1(
+        str(source["source_path"].parent).encode("utf-8"),
+        usedforsecurity=False,
+    ).hexdigest()[:12]
     source_dest_path = (
         f"{dest_path}/{str(AnyPath(source_group_name).stem).lower()}/"
-        f"{str(source['source_path'].parent.name).lower()}"
+        f"{str(source['source_path'].parent.name).lower()}/"
+        f"{source_parent_hash}"
     )
     pathlib.Path(source_dest_path).mkdir(parents=True, exist_ok=True)
 
@@ -554,6 +561,82 @@ def _source_pageset_to_parquet(
 
     # return the filepath for the chunked output file
     return result_filepath
+
+
+@python_app
+def _expose_source_pageset_path(
+    table_path: str,
+    source_group_name: str,
+    source: Dict[str, Any],
+    source_root_path: str,
+    dest_path: str,
+) -> str:
+    """
+    Move internal chunk output to a source-aligned user-facing path.
+
+    Args:
+        table_path (str):
+            Path to the internal parquet chunk.
+        source_group_name (str):
+            Name of the source group.
+        source (Dict[str, Any]):
+            Source metadata for the chunk.
+        source_root_path (str):
+            Original source path provided to the workflow.
+        dest_path (str):
+            Path to store the output data.
+
+    Returns:
+        str:
+            User-facing output filepath.
+
+    Raises:
+        OSError:
+            If cleanup fails for a reason other than a non-empty directory.
+    """
+
+    import errno
+    import pathlib
+    import shutil
+
+    from cloudpathlib import AnyPath
+
+    internal_path = pathlib.Path(table_path)
+    source_parent = pathlib.Path(source["source_path"].parent).resolve()
+    source_root = pathlib.Path(source_root_path).resolve()
+    source_root_base = source_root.parent if source_root.is_file() else source_root
+
+    try:
+        clean_parent_parts = source_parent.relative_to(source_root_base).parts
+    except ValueError:
+        clean_parent_parts = (source_parent.name,)
+
+    if clean_parent_parts in ((), (".",)):
+        clean_parent_parts = (source_parent.name,)
+
+    clean_parent_path = pathlib.Path(
+        *[str(parent_part).lower() for parent_part in clean_parent_parts]
+    )
+    exposed_path = (
+        pathlib.Path(dest_path)
+        / str(AnyPath(source_group_name).stem).lower()
+        / clean_parent_path
+        / internal_path.name
+    )
+
+    exposed_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.move(str(internal_path), str(exposed_path))
+
+    # clean up the per-source hash dir and its parent if empty
+    for cleanup_dir in (internal_path.parent, internal_path.parent.parent):
+        try:
+            cleanup_dir.rmdir()
+        except OSError as os_err:
+            if os_err.errno != errno.ENOTEMPTY:
+                raise
+            break
+
+    return str(exposed_path)
 
 
 @python_app
@@ -847,13 +930,15 @@ def _concat_source_group(
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
 
-            # attempt to clean up dir containing original table(s) only if it's empty
-            try:
-                pathlib.Path(pathlib.Path(source["table"][0]).parent).rmdir()
-            except OSError as os_err:
-                # raise only if we don't have a dir not empty errno
-                if os_err.errno != errno.ENOTEMPTY:
-                    raise
+            # clean up the per-source hash dir and its parent if empty
+            chunk_parent = pathlib.Path(source["table"][0]).parent
+            for cleanup_dir in (chunk_parent, chunk_parent.parent):
+                try:
+                    cleanup_dir.rmdir()
+                except OSError as os_err:
+                    if os_err.errno != errno.ENOTEMPTY:
+                        raise
+                    break
 
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]
@@ -1433,6 +1518,29 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             tablenumber_prepared
         ).items()
     }
+
+    if not concat and not join:
+        results = {
+            source_group_name: [
+                dict(
+                    source,
+                    **{
+                        "table": [
+                            _expose_source_pageset_path(
+                                table_path=table_path,
+                                source_group_name=source_group_name,
+                                source=source,
+                                source_root_path=source_path,
+                                dest_path=expanded_dest_path,
+                            )
+                            for table_path in source["table"]
+                        ]
+                    },
+                )
+                for source in source_group_vals
+            ]
+            for source_group_name, source_group_vals in results.items()
+        }
 
     # if we're concatting or joining and need to infer the common schema
     if (concat or join) and infer_common_schema:
