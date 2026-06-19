@@ -897,6 +897,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            than a mixed-type sqlite error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
+    <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
@@ -911,10 +912,16 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
-    <span class="c1"># attempt to build dest_path</span>
+    <span class="c1"># hash of parent path discriminates sources whose parent dirs share a name</span>
+    <span class="c1"># (e.g. analyses/{1,2}/analysis) — see cytomining/CytoTable#442</span>
+    <span class="n">source_parent_hash</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>
+        <span class="n">usedforsecurity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">12</span><span class="p">]</span>
     <span class="n">source_dest_path</span> <span class="o">=</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_parent_hash</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="p">)</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
@@ -1025,6 +1032,82 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># return the filepath for the chunked output file</span>
     <span class="k">return</span> <span class="n">result_filepath</span>
+
+
+<span class="nd">@python_app</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_expose_source_pageset_path</span><span class="p">(</span>
+    <span class="n">table_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">source_group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">source_root_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Move internal chunk output to a source-aligned user-facing path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        table_path (str):</span>
+<span class="sd">            Path to the internal parquet chunk.</span>
+<span class="sd">        source_group_name (str):</span>
+<span class="sd">            Name of the source group.</span>
+<span class="sd">        source (Dict[str, Any]):</span>
+<span class="sd">            Source metadata for the chunk.</span>
+<span class="sd">        source_root_path (str):</span>
+<span class="sd">            Original source path provided to the workflow.</span>
+<span class="sd">        dest_path (str):</span>
+<span class="sd">            Path to store the output data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str:</span>
+<span class="sd">            User-facing output filepath.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        OSError:</span>
+<span class="sd">            If cleanup fails for a reason other than a non-empty directory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span>
+
+    <span class="n">internal_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span>
+    <span class="n">source_parent</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">source_root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_root_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">source_root_base</span> <span class="o">=</span> <span class="n">source_root</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">source_root</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="n">source_root</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">clean_parent_parts</span> <span class="o">=</span> <span class="n">source_parent</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="n">source_root_base</span><span class="p">)</span><span class="o">.</span><span class="n">parts</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">clean_parent_parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_parent</span><span class="o">.</span><span class="n">name</span><span class="p">,)</span>
+
+    <span class="k">if</span> <span class="n">clean_parent_parts</span> <span class="ow">in</span> <span class="p">((),</span> <span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,)):</span>
+        <span class="n">clean_parent_parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_parent</span><span class="o">.</span><span class="n">name</span><span class="p">,)</span>
+
+    <span class="n">clean_parent_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+        <span class="o">*</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">parent_part</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">parent_part</span> <span class="ow">in</span> <span class="n">clean_parent_parts</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="n">exposed_path</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span>
+        <span class="o">/</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="o">/</span> <span class="n">clean_parent_path</span>
+        <span class="o">/</span> <span class="n">internal_path</span><span class="o">.</span><span class="n">name</span>
+    <span class="p">)</span>
+
+    <span class="n">exposed_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">internal_path</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">exposed_path</span><span class="p">))</span>
+
+    <span class="c1"># clean up the per-source hash dir and its parent if empty</span>
+    <span class="k">for</span> <span class="n">cleanup_dir</span> <span class="ow">in</span> <span class="p">(</span><span class="n">internal_path</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">internal_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cleanup_dir</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">os_err</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTEMPTY</span><span class="p">:</span>
+                <span class="k">raise</span>
+            <span class="k">break</span>
+
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">exposed_path</span><span class="p">)</span>
 
 
 <span class="nd">@python_app</span>
@@ -1318,13 +1401,15 @@ window.runMermaid = runMermaid;</script>
                 <span class="c1"># remove the file which was written in the concatted parquet file (we no longer need it)</span>
                 <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
-            <span class="c1"># attempt to clean up dir containing original table(s) only if it&#39;s empty</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
-            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">os_err</span><span class="p">:</span>
-                <span class="c1"># raise only if we don&#39;t have a dir not empty errno</span>
-                <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTEMPTY</span><span class="p">:</span>
-                    <span class="k">raise</span>
+            <span class="c1"># clean up the per-source hash dir and its parent if empty</span>
+            <span class="n">chunk_parent</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span>
+            <span class="k">for</span> <span class="n">cleanup_dir</span> <span class="ow">in</span> <span class="p">(</span><span class="n">chunk_parent</span><span class="p">,</span> <span class="n">chunk_parent</span><span class="o">.</span><span class="n">parent</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">cleanup_dir</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">os_err</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTEMPTY</span><span class="p">:</span>
+                        <span class="k">raise</span>
+                    <span class="k">break</span>
 
     <span class="c1"># return the concatted parquet filename</span>
     <span class="n">concatted</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">destination_path</span><span class="p">]</span>
@@ -1906,6 +1991,29 @@ window.runMermaid = runMermaid;</script>
             <span class="n">tablenumber_prepared</span>
         <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">concat</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">join</span><span class="p">:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
+                <span class="nb">dict</span><span class="p">(</span>
+                    <span class="n">source</span><span class="p">,</span>
+                    <span class="o">**</span><span class="p">{</span>
+                        <span class="s2">&quot;table&quot;</span><span class="p">:</span> <span class="p">[</span>
+                            <span class="n">_expose_source_pageset_path</span><span class="p">(</span>
+                                <span class="n">table_path</span><span class="o">=</span><span class="n">table_path</span><span class="p">,</span>
+                                <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
+                                <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+                                <span class="n">source_root_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
+                                <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span>
+                        <span class="p">]</span>
+                    <span class="p">},</span>
+                <span class="p">)</span>
+                <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
+            <span class="p">]</span>
+            <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">}</span>
 
     <span class="c1"># if we&#39;re concatting or joining and need to infer the common schema</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">concat</span> <span class="ow">or</span> <span class="n">join</span><span class="p">)</span> <span class="ow">and</span> <span class="n">infer_common_schema</span><span class="p">:</span>
