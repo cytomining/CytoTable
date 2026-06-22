@@ -12,8 +12,14 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      # Check for updates to GitHub Actions every week
-      interval: "weekly"
+      # Check for updates to GitHub Actions every month
+      interval: "monthly"
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions:
+        patterns:
+          - "*"
 
   # Perform checks and updates for the uv-managed Python environment.
   # See here for more information:
