@@ -313,12 +313,8 @@ which may have slightly different but compatible schema.</p></li>
 <dd class="field-odd"><p>List[Dict[str, Any]]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><a class="reference internal" href="#cytotable.exceptions.SchemaException" title="cytotable.exceptions.SchemaException"><strong>SchemaException</strong></a> – Raised when source files cannot be unified under a common schema
-    during concatenation.</p></li>
-<li><p><strong>OSError</strong> – Re-raised when cleaning up the source-group directory fails
-    with an errno other than <code class="docutils literal notranslate"><span class="pre">ENOTEMPTY</span></code>.</p></li>
-</ul>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.SchemaException" title="cytotable.exceptions.SchemaException"><strong>SchemaException</strong></a> – Raised when source files cannot be unified under a common schema
+    during concatenation.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1711,6 +1707,26 @@ provided by the following link:
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._remove_empty_dirs">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_remove_empty_dirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_remove_empty_dirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._remove_empty_dirs" title="Link to this definition">¶</a></dt>
+<dd><p>Recursively remove empty directories beneath <code class="docutils literal notranslate"><span class="pre">path</span></code> (bottom-up).</p>
+<p>Used to clean up intermediate staging directories left behind after chunked
+parquet output has been moved or concatenated to its final location. Only
+empty directories are removed, so output files (and any directory that still
+contains them) are preserved. <code class="docutils literal notranslate"><span class="pre">path</span></code> itself is always left in place, and
+a non-existent or non-directory <code class="docutils literal notranslate"><span class="pre">path</span></code> is a no-op.</p>
+<p>Performing this cleanup once, after all Parsl tasks have completed, avoids
+races between concurrent per-chunk tasks which previously removed shared
+staging directories while sibling tasks were still writing into them
+(see cytomining/CytoTable#442).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>path</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>pathlib.Path</em><em>]</em>) – Root directory to sweep for empty subdirectories.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._sqlite_mixed_type_query_to_parquet">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_sqlite_mixed_type_query_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pageset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tablenumber</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_sqlite_mixed_type_query_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet" title="Link to this definition">¶</a></dt>
 <dd><p>Performs SQLite table data extraction where one or many
@@ -2138,6 +2154,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._glob_pattern_matches"><code class="docutils literal notranslate"><span class="pre">_glob_pattern_matches()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._natural_sort"><code class="docutils literal notranslate"><span class="pre">_natural_sort()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._remove_empty_dirs"><code class="docutils literal notranslate"><span class="pre">_remove_empty_dirs()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>

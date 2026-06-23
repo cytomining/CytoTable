@@ -1172,6 +1172,47 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="_remove_empty_dirs">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._remove_empty_dirs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_remove_empty_dirs</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Recursively remove empty directories beneath ``path`` (bottom-up).</span>
+
+<span class="sd">    Used to clean up intermediate staging directories left behind after chunked</span>
+<span class="sd">    parquet output has been moved or concatenated to its final location. Only</span>
+<span class="sd">    empty directories are removed, so output files (and any directory that still</span>
+<span class="sd">    contains them) are preserved. ``path`` itself is always left in place, and</span>
+<span class="sd">    a non-existent or non-directory ``path`` is a no-op.</span>
+
+<span class="sd">    Performing this cleanup once, after all Parsl tasks have completed, avoids</span>
+<span class="sd">    races between concurrent per-chunk tasks which previously removed shared</span>
+<span class="sd">    staging directories while sibling tasks were still writing into them</span>
+<span class="sd">    (see cytomining/CytoTable#442).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (Union[str, pathlib.Path]):</span>
+<span class="sd">            Root directory to sweep for empty subdirectories.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">root</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+        <span class="k">return</span>
+
+    <span class="c1"># Walk bottom-up so child directories are removed before their parents,</span>
+    <span class="c1"># letting a parent become empty and be removed within the same pass.</span>
+    <span class="k">for</span> <span class="n">current_dir</span><span class="p">,</span> <span class="n">_dirs</span><span class="p">,</span> <span class="n">_files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">topdown</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">current_dir</span><span class="p">)</span>
+        <span class="c1"># never remove the provided root itself, only its empty descendants</span>
+        <span class="k">if</span> <span class="n">directory</span> <span class="o">==</span> <span class="n">root</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">directory</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+            <span class="c1"># directory still holds output (or was already removed); leave it</span>
+            <span class="k">pass</span></div>
+
+
+
 <div class="viewcode-block" id="_generate_pagesets">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._generate_pagesets">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_generate_pagesets</span><span class="p">(</span>

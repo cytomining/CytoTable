@@ -490,6 +490,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">_default_parsl_config</span><span class="p">,</span>
     <span class="n">_expand_path</span><span class="p">,</span>
     <span class="n">_parsl_loaded</span><span class="p">,</span>
+    <span class="n">_remove_empty_dirs</span><span class="p">,</span>
     <span class="n">evaluate_futures</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_convert_backend_options</span>
@@ -1061,12 +1062,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        str:</span>
 <span class="sd">            User-facing output filepath.</span>
 
-<span class="sd">    Raises:</span>
-<span class="sd">        OSError:</span>
-<span class="sd">            If cleanup fails for a reason other than a non-empty directory.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
 
@@ -1098,15 +1095,10 @@ window.runMermaid = runMermaid;</script>
     <span class="n">exposed_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">shutil</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">internal_path</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">exposed_path</span><span class="p">))</span>
 
-    <span class="c1"># clean up the per-source hash dir and its parent if empty</span>
-    <span class="k">for</span> <span class="n">cleanup_dir</span> <span class="ow">in</span> <span class="p">(</span><span class="n">internal_path</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">internal_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">cleanup_dir</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
-        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">os_err</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTEMPTY</span><span class="p">:</span>
-                <span class="k">raise</span>
-            <span class="k">break</span>
-
+    <span class="c1"># Intermediate staging dirs (the per-source hash dir and its parent) are</span>
+    <span class="c1"># removed in a single pass once all moves complete; see _remove_empty_dirs</span>
+    <span class="c1"># called from _run_export_workflow. Cleaning up there (single-threaded)</span>
+    <span class="c1"># avoids races between concurrent per-chunk tasks. See cytomining/CytoTable#442.</span>
     <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">exposed_path</span><span class="p">)</span>
 
 
@@ -1317,12 +1309,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        SchemaException:</span>
 <span class="sd">            Raised when source files cannot be unified under a common schema</span>
 <span class="sd">            during concatenation.</span>
-<span class="sd">        OSError:</span>
-<span class="sd">            Re-raised when cleaning up the source-group directory fails</span>
-<span class="sd">            with an errno other than ``ENOTEMPTY``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="kn">import</span><span class="w"> </span><span class="nn">errno</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
@@ -1401,16 +1389,10 @@ window.runMermaid = runMermaid;</script>
                 <span class="c1"># remove the file which was written in the concatted parquet file (we no longer need it)</span>
                 <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 
-            <span class="c1"># clean up the per-source hash dir and its parent if empty</span>
-            <span class="n">chunk_parent</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span>
-            <span class="k">for</span> <span class="n">cleanup_dir</span> <span class="ow">in</span> <span class="p">(</span><span class="n">chunk_parent</span><span class="p">,</span> <span class="n">chunk_parent</span><span class="o">.</span><span class="n">parent</span><span class="p">):</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">cleanup_dir</span><span class="o">.</span><span class="n">rmdir</span><span class="p">()</span>
-                <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">os_err</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">os_err</span><span class="o">.</span><span class="n">errno</span> <span class="o">!=</span> <span class="n">errno</span><span class="o">.</span><span class="n">ENOTEMPTY</span><span class="p">:</span>
-                        <span class="k">raise</span>
-                    <span class="k">break</span>
-
+    <span class="c1"># Intermediate staging dirs (per-source hash dirs and their parents) left</span>
+    <span class="c1"># behind after the chunk files above are unlinked are removed in a single</span>
+    <span class="c1"># pass after all work completes; see _remove_empty_dirs in</span>
+    <span class="c1"># _run_export_workflow. See cytomining/CytoTable#442.</span>
     <span class="c1"># return the concatted parquet filename</span>
     <span class="n">concatted</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">destination_path</span><span class="p">]</span>
 
@@ -2103,10 +2085,21 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># else we leave the joined chunks as-is and return them</span>
-            <span class="k">return</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">join_sources_result</span><span class="p">)</span>
+            <span class="n">joined_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">join_sources_result</span><span class="p">)</span>
+            <span class="c1"># clean up empty intermediate staging dirs (single-threaded here)</span>
+            <span class="n">_remove_empty_dirs</span><span class="p">(</span><span class="n">expanded_dest_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">joined_results</span>
 
-    <span class="c1"># wrap the final result as a future and return</span>
-    <span class="k">return</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span></div>
+    <span class="c1"># evaluate remaining futures so all intermediate file moves complete</span>
+    <span class="n">final_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+    <span class="c1"># Remove empty intermediate staging dirs left behind once chunked output has</span>
+    <span class="c1"># been moved/concatenated to its final location. Done here in a single pass</span>
+    <span class="c1"># (single-threaded) to avoid races between concurrent per-chunk cleanup</span>
+    <span class="c1"># tasks. See cytomining/CytoTable#442.</span>
+    <span class="n">_remove_empty_dirs</span><span class="p">(</span><span class="n">expanded_dest_path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">final_results</span></div>
 
 
 
