@@ -22,6 +22,22 @@ from cytotable.convert import convert
 from cytotable.sources import _get_source_filepaths
 
 
+def _find_empty_directory_paths(root: pathlib.Path) -> List[str]:
+    """Find empty directories for staging-cleanup test assertions.
+
+    Args:
+        root (pathlib.Path): Root directory to search recursively.
+
+    Returns:
+        List[str]: String paths for every empty directory below ``root``.
+    """
+    return [
+        str(path)
+        for path in root.rglob("*")
+        if path.is_dir() and not any(path.iterdir())
+    ]
+
+
 def test_convert_tpe_cellprofiler_csv(
     load_parsl_threaded: None,
     fx_tempdir: str,
@@ -542,3 +558,93 @@ def test_convert_multi_source_colliding_parent_dir_names(
             f"{compartment}: expected 3x single-site rows ({3 * single_rows}),"
             f" got {multi_rows}"
         )
+
+
+def test_convert_multi_pageset_staging_cleanup(
+    load_parsl_threaded: None,
+    fx_tempdir: str,
+    data_dir_cellprofiler: str,
+):
+    """
+    Regression test for the staging-dir cleanup race (cytomining/CytoTable#442).
+
+    Sources split into multiple pagesets share an intermediate staging dir, and
+    per-chunk cleanup used to run concurrently -- racing both other cleanups and
+    sibling writers. Cleanup now happens once, after all moves complete, via
+    _remove_empty_dirs. This converts a multi-source, multi-pageset dataset and
+    asserts it succeeds, that chunking actually occurred, and that no empty
+    staging directories are left behind under the destination.
+    """
+
+    src_root = pathlib.Path(fx_tempdir) / "analyses"
+    for site in ("1", "2", "3"):
+        site_dir = src_root / site / "analysis"
+        site_dir.mkdir(parents=True, exist_ok=True)
+        for table_name in ("Cells.csv", "Cytoplasm.csv", "Nuclei.csv", "Image.csv"):
+            shutil.copy(
+                f"{data_dir_cellprofiler}/ExampleHuman/{table_name}",
+                site_dir / table_name,
+            )
+
+    dest_path = pathlib.Path(fx_tempdir) / "multi_pageset.parquet"
+    result = convert(
+        source_path=str(src_root),
+        dest_path=str(dest_path),
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+        # small chunk size forces multiple pagesets per source, so multiple
+        # chunks share a single staging dir (exercising the cleanup path)
+        chunk_size=100,
+        concat=False,
+        join=False,
+    )
+    assert isinstance(result, dict)
+    assert set(result.keys()) == {
+        "Cells.csv",
+        "Cytoplasm.csv",
+        "Nuclei.csv",
+        "Image.csv",
+    }
+
+    # every returned chunk is a real parquet file under the source-aligned layout
+    for source_results in result.values():
+        for source_result in source_results:
+            for table_path in source_result["table"]:
+                chunk_path = pathlib.Path(table_path)
+                assert chunk_path.is_file()
+                assert chunk_path.parent.name == "analysis"
+                assert chunk_path.parent.parent.name in {"1", "2", "3"}
+
+    # chunking actually happened: the larger compartments split into multiple
+    # pagesets per source, and each chunk respects the requested chunk size
+    for source_result in result["Cells.csv"]:
+        chunk_rows = [
+            parquet.read_table(source=table_path).num_rows
+            for table_path in source_result["table"]
+        ]
+        assert len(chunk_rows) > 1, "expected Cells.csv to split into multiple pagesets"
+        assert all(0 < num_rows <= 100 for num_rows in chunk_rows)
+
+    # the end-of-run cleanup sweep should leave no empty directories behind
+    assert (
+        _find_empty_directory_paths(dest_path) == []
+    ), f"unexpected empty staging dirs (concat=False): {_find_empty_directory_paths(dest_path)}"
+
+    # cleanup timing also changed for the concat path (_concat_source_group no
+    # longer cleans up per-chunk), so verify the same multi-source, multi-pageset
+    # input leaves no empty staging dirs there either. (concat=True with join=True
+    # is not checked here: _concat_join_sources rmtree's the whole intermediate
+    # tree and writes a single file, so the sweep is a no-op for that combo.)
+    concat_dest_path = pathlib.Path(fx_tempdir) / "multi_pageset_concat.parquet"
+    convert(
+        source_path=str(src_root),
+        dest_path=str(concat_dest_path),
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+        chunk_size=100,
+        concat=True,
+        join=False,
+    )
+    assert (
+        _find_empty_directory_paths(concat_dest_path) == []
+    ), f"unexpected empty staging dirs (concat=True): {_find_empty_directory_paths(concat_dest_path)}"

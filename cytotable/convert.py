@@ -19,6 +19,7 @@ from cytotable.utils import (
     _default_parsl_config,
     _expand_path,
     _parsl_loaded,
+    _remove_empty_dirs,
     evaluate_futures,
 )
 from cytotable.validation import validate_convert_backend_options
@@ -590,12 +591,8 @@ def _expose_source_pageset_path(
         str:
             User-facing output filepath.
 
-    Raises:
-        OSError:
-            If cleanup fails for a reason other than a non-empty directory.
     """
 
-    import errno
     import pathlib
     import shutil
 
@@ -627,15 +624,10 @@ def _expose_source_pageset_path(
     exposed_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(internal_path), str(exposed_path))
 
-    # clean up the per-source hash dir and its parent if empty
-    for cleanup_dir in (internal_path.parent, internal_path.parent.parent):
-        try:
-            cleanup_dir.rmdir()
-        except OSError as os_err:
-            if os_err.errno != errno.ENOTEMPTY:
-                raise
-            break
-
+    # Intermediate staging dirs (the per-source hash dir and its parent) are
+    # removed in a single pass once all moves complete; see _remove_empty_dirs
+    # called from _run_export_workflow. Cleaning up there (single-threaded)
+    # avoids races between concurrent per-chunk tasks. See cytomining/CytoTable#442.
     return str(exposed_path)
 
 
@@ -846,12 +838,8 @@ def _concat_source_group(
         SchemaException:
             Raised when source files cannot be unified under a common schema
             during concatenation.
-        OSError:
-            Re-raised when cleaning up the source-group directory fails
-            with an errno other than ``ENOTEMPTY``.
     """
 
-    import errno
     import pathlib
 
     import pyarrow as pa
@@ -930,16 +918,10 @@ def _concat_source_group(
                 # remove the file which was written in the concatted parquet file (we no longer need it)
                 pathlib.Path(table).unlink()
 
-            # clean up the per-source hash dir and its parent if empty
-            chunk_parent = pathlib.Path(source["table"][0]).parent
-            for cleanup_dir in (chunk_parent, chunk_parent.parent):
-                try:
-                    cleanup_dir.rmdir()
-                except OSError as os_err:
-                    if os_err.errno != errno.ENOTEMPTY:
-                        raise
-                    break
-
+    # Intermediate staging dirs (per-source hash dirs and their parents) left
+    # behind after the chunk files above are unlinked are removed in a single
+    # pass after all work completes; see _remove_empty_dirs in
+    # _run_export_workflow. See cytomining/CytoTable#442.
     # return the concatted parquet filename
     concatted[0]["table"] = [destination_path]
 
@@ -1630,10 +1612,21 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             )
         else:
             # else we leave the joined chunks as-is and return them
-            return evaluate_futures(join_sources_result)
+            joined_results = evaluate_futures(join_sources_result)
+            # clean up empty intermediate staging dirs (single-threaded here)
+            _remove_empty_dirs(expanded_dest_path)
+            return joined_results
 
-    # wrap the final result as a future and return
-    return evaluate_futures(results)
+    # evaluate remaining futures so all intermediate file moves complete
+    final_results = evaluate_futures(results)
+
+    # Remove empty intermediate staging dirs left behind once chunked output has
+    # been moved/concatenated to its final location. Done here in a single pass
+    # (single-threaded) to avoid races between concurrent per-chunk cleanup
+    # tasks. See cytomining/CytoTable#442.
+    _remove_empty_dirs(expanded_dest_path)
+
+    return final_results
 
 
 def convert(  # pylint: disable=too-many-arguments,too-many-locals

@@ -15,10 +15,58 @@ from botocore.exceptions import EndpointConnectionError
 from cytotable.utils import (
     _generate_pagesets,
     _natural_sort,
+    _remove_empty_dirs,
     cloud_glob,
     find_anndata_metadata_field_names,
     map_pyarrow_type,
 )
+
+
+def test_remove_empty_dirs(tmp_path: pathlib.Path):
+    """
+    Test that _remove_empty_dirs removes empty subdirectories bottom-up while
+    preserving the root and any directory that still contains files.
+    """
+
+    # nested empty dirs which should be fully removed
+    (tmp_path / "a" / "b" / "c").mkdir(parents=True)
+    # a sibling empty dir which should be removed
+    (tmp_path / "empty").mkdir()
+    # a dir directly containing a file which should be preserved
+    (tmp_path / "keep").mkdir()
+    kept_file = tmp_path / "keep" / "data.txt"
+    kept_file.write_text("x")
+    # a dir whose only content is a nested file: both levels preserved
+    (tmp_path / "outer" / "inner").mkdir(parents=True)
+    nested_file = tmp_path / "outer" / "inner" / "data.txt"
+    nested_file.write_text("y")
+
+    _remove_empty_dirs(tmp_path)
+
+    # the root itself is always preserved
+    assert tmp_path.is_dir()
+    # empty trees are removed entirely
+    assert not (tmp_path / "a").exists()
+    assert not (tmp_path / "empty").exists()
+    # dirs holding files (directly or nested) are preserved
+    assert kept_file.is_file()
+    assert nested_file.is_file()
+    assert (tmp_path / "outer" / "inner").is_dir()
+
+
+def test_remove_empty_dirs_noop_for_missing_or_file(tmp_path: pathlib.Path):
+    """
+    Test that _remove_empty_dirs is a no-op for non-existent paths and files.
+    """
+
+    # a non-existent path does not raise
+    _remove_empty_dirs(tmp_path / "does-not-exist")
+
+    # a file path does not raise and the file is left intact
+    a_file = tmp_path / "a_file.txt"
+    a_file.write_text("x")
+    _remove_empty_dirs(a_file)
+    assert a_file.is_file()
 
 
 def test_generate_pageset():  # pylint: disable=too-many-statements

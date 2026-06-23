@@ -653,6 +653,44 @@ def evaluate_futures(
     )
 
 
+def _remove_empty_dirs(path: Union[str, pathlib.Path]) -> None:
+    """
+    Recursively remove empty directories beneath ``path`` (bottom-up).
+
+    Used to clean up intermediate staging directories left behind after chunked
+    parquet output has been moved or concatenated to its final location. Only
+    empty directories are removed, so output files (and any directory that still
+    contains them) are preserved. ``path`` itself is always left in place, and
+    a non-existent or non-directory ``path`` is a no-op.
+
+    Performing this cleanup once, after all Parsl tasks have completed, avoids
+    races between concurrent per-chunk tasks which previously removed shared
+    staging directories while sibling tasks were still writing into them
+    (see cytomining/CytoTable#442).
+
+    Args:
+        path (Union[str, pathlib.Path]):
+            Root directory to sweep for empty subdirectories.
+    """
+
+    root = pathlib.Path(path)
+    if not root.is_dir():
+        return
+
+    # Walk bottom-up so child directories are removed before their parents,
+    # letting a parent become empty and be removed within the same pass.
+    for current_dir, _dirs, _files in os.walk(root, topdown=False):
+        directory = pathlib.Path(current_dir)
+        # never remove the provided root itself, only its empty descendants
+        if directory == root:
+            continue
+        try:
+            directory.rmdir()
+        except OSError:
+            # directory still holds output (or was already removed); leave it
+            pass
+
+
 def _generate_pagesets(
     keys: List[Union[int, float]], chunk_size: int
 ) -> List[Tuple[Union[int, float], Union[int, float]]]:
