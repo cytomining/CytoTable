@@ -22,8 +22,15 @@ from cytotable.convert import convert
 from cytotable.sources import _get_source_filepaths
 
 
-def _empty_dirs(root: pathlib.Path) -> List[str]:
-    # return string paths of empty directories anywhere under root
+def _find_empty_directory_paths(root: pathlib.Path) -> List[str]:
+    """Find empty directories for staging-cleanup test assertions.
+
+    Args:
+        root (pathlib.Path): Root directory to search recursively.
+
+    Returns:
+        List[str]: String paths for every empty directory below ``root``.
+    """
     return [
         str(path)
         for path in root.rglob("*")
@@ -620,8 +627,8 @@ def test_convert_multi_pageset_staging_cleanup(
 
     # the end-of-run cleanup sweep should leave no empty directories behind
     assert (
-        _empty_dirs(dest_path) == []
-    ), f"unexpected empty staging dirs (concat=False): {_empty_dirs(dest_path)}"
+        _find_empty_directory_paths(dest_path) == []
+    ), f"unexpected empty staging dirs (concat=False): {_find_empty_directory_paths(dest_path)}"
 
     # cleanup timing also changed for the concat path (_concat_source_group no
     # longer cleans up per-chunk), so verify the same multi-source, multi-pageset
@@ -639,5 +646,5 @@ def test_convert_multi_pageset_staging_cleanup(
         join=False,
     )
     assert (
-        _empty_dirs(concat_dest_path) == []
-    ), f"unexpected empty staging dirs (concat=True): {_empty_dirs(concat_dest_path)}"
+        _find_empty_directory_paths(concat_dest_path) == []
+    ), f"unexpected empty staging dirs (concat=True): {_find_empty_directory_paths(concat_dest_path)}"
