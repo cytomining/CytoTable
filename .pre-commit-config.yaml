@@ -15,7 +15,7 @@ repos:
     hooks:
     -   id: pyproject-fmt
 -   repo: https://github.com/codespell-project/codespell
-    rev: v2.4.2
+    rev: v2.4.3
     hooks:
     -   id: codespell
         exclude: >
@@ -59,7 +59,7 @@ repos:
     hooks:
     -   id: vulture
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.1.0
+    rev: v2.3.0
     hooks:
     -   id: mypy
         exclude: >
@@ -77,7 +77,7 @@ repos:
     hooks:
     -   id: almanack-check
 -   repo: https://github.com/jsh9/pydoclint
-    rev: 0.8.7
+    rev: 0.9.1
     hooks:
     -   id: pydoclint
         args:
@@ -95,10 +95,10 @@ repos:
         # and the way pre-commit references virtual environments.
         additional_dependencies:
         -   "cloudpathlib[all]>=0.24.0"
-        -   "pyarrow>=24.0.0"
+        -   "pyarrow>=25.0.0"
         -   "pytest>=9.1.1"
         -   "moto[server,s3]>=5.2.2,<6.0.0"
-        -   "duckdb>=1.5.4"
-        -   "parsl>=2026.6.1"
+        -   "duckdb>=1.5.5"
+        -   "parsl>=2026.7.20"
         -   "pycytominer>=1.6.1"
         -   "anndata"
