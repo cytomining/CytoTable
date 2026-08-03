@@ -63,7 +63,7 @@ docs = [
   "myst-nb>=1.2,<2",
   "myst-parser>=2,<5",
   "sphinx>=6,<9",
-  "sphinxcontrib-mermaid>=0.9,<2.1",
+  "sphinxcontrib-mermaid>=0.9,<2.2",
   "typing-extensions>=4.14",
 ]
 
