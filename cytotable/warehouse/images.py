@@ -737,12 +737,24 @@ def _resolve_image_worker_count(crop_workers: Optional[int]) -> int:
     """
     Resolve the number of worker processes for per-chunk image cropping.
 
-    ``None`` selects an automatic count (capped at 8); ``0`` or ``1`` forces the
-    serial path. Negative values are clamped to 1.
+    Selection policy:
+
+    - ``None`` (the default): pick an automatic count -- the number of logical
+      CPUs, falling back to 4 when :func:`os.cpu_count` cannot report it, and
+      capped at 8. The cap is the sweet spot for the GIL-bound crop slice work;
+      more processes just oversubscribe cores without speeding up the slice.
+    - An explicit integer: clamp it to at least 1. Values of ``0`` or less
+      resolve to ``1``, which keeps the serial path -- the caller only spawns a
+      process pool when this returns a value greater than 1 (see
+      ``_CROP_PARALLEL_MIN``), so ``0`` and ``1`` both mean "serial".
+
+    Returns the resolved worker count; the caller decides whether that is
+    enough to actually parallelize.
     """
 
     if crop_workers is None:
-        return min(os.cpu_count() or 4, 8)
+        cpu_count = os.cpu_count() or 4
+        return min(cpu_count, 8)
     return max(1, int(crop_workers))
 
 
