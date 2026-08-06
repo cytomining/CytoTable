@@ -654,10 +654,13 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             automatic count (capped at 8); ``0`` or ``1`` keeps the serial
             path. Parallelism uses a process pool because the crop work
             (``slice_ome_arrow`` over a pyarrow struct) holds the GIL, so
-            threads do not help. Small chunks stay serial automatically. For
-            multi-chunk plates, lower this value to avoid oversubscribing
-            cores (each chunk's task spawns its own pool). The parallel path
-            uses the ``spawn`` start method, which re-imports the caller's
+            threads do not help. Small chunks stay serial automatically. This
+            is *per chunk*: CytoTable also runs chunks concurrently through a
+            Parsl thread pool (default 4 threads), so a multi-chunk plate can
+            run up to ``4 x image_crop_workers`` crop processes at once (up to
+            32 with the defaults) — lower this value for multi-chunk plates to
+            avoid oversubscribing cores. The parallel path uses the ``spawn``
+            start method, which re-imports the caller's
             top-level script as ``__main__`` in each worker: callers that invoke
             ``convert(...)`` from a plain script must guard that call with
             ``if __name__ == "__main__":`` (notebooks and REPLs are unaffected),

@@ -163,9 +163,14 @@ convert(
 which is around the sweet spot on a typical multi-core machine. Set it to `0` or
 `1` to force the serial path. Small chunks stay serial automatically, so the
 process pool is only spawned when there is enough work to amortize the startup
-cost. For multi-chunk plates (thousands of images) where CytoTable already
-parallelizes across chunks, lower `image_crop_workers` to avoid oversubscribing
-cores, since each chunk spawns its own worker pool.
+cost.
+
+Note that `image_crop_workers` is *per chunk*. CytoTable also runs chunks
+concurrently through a Parsl thread pool (default 4 threads), so a multi-chunk
+plate can run up to `4 × image_crop_workers` crop processes at once — up to
+`4 × 8 = 32` with the defaults. That oversubscribes a typical 8-core machine, so
+for multi-chunk plates (thousands of images) lower `image_crop_workers` (for
+example `1` or `2`) to keep the total process count near your core count.
 
 ### Calling from a plain script: the `if __name__ == "__main__":` guard
 
