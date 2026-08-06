@@ -52,6 +52,7 @@ def _image_crop_table_app(
     bbox_column_map: "Optional[Dict[str, str]]" = None,
     segmentation_file_regex: "Optional[Dict[str, str]]" = None,
     path_kwargs: "Optional[Dict[str, Any]]" = None,
+    image_crop_workers: "Optional[int]" = None,
 ) -> "pa.Table":
     """Parsl thread-pool wrapper for image_crop_table_from_joined_chunk."""
     from cytotable.warehouse.images import image_crop_table_from_joined_chunk
@@ -64,6 +65,7 @@ def _image_crop_table_app(
         bbox_column_map=bbox_column_map,
         segmentation_file_regex=segmentation_file_regex,
         path_kwargs=path_kwargs,
+        crop_workers=image_crop_workers,
     )
 
 
@@ -75,6 +77,7 @@ def _source_image_table_app(
     outline_dir: "Optional[str]" = None,
     segmentation_file_regex: "Optional[Dict[str, str]]" = None,
     path_kwargs: "Optional[Dict[str, Any]]" = None,
+    image_crop_workers: "Optional[int]" = None,
 ) -> "pa.Table":
     """Parsl thread-pool wrapper for source_image_table_from_joined_chunk."""
     from cytotable.warehouse.images import source_image_table_from_joined_chunk
@@ -86,6 +89,7 @@ def _source_image_table_app(
         outline_dir=outline_dir,
         segmentation_file_regex=segmentation_file_regex,
         path_kwargs=path_kwargs,
+        crop_workers=image_crop_workers,
     )
 
 
@@ -581,6 +585,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
     bbox_column_map: Optional[Dict[str, str]] = None,
     segmentation_file_regex: Optional[Dict[str, str]] = None,
     include_source_images: bool = False,
+    image_crop_workers: Optional[int] = None,
     default_namespace: str = DEFAULT_NAMESPACE,
     images_namespace: str = DEFAULT_IMAGES_NAMESPACE,
     registry_file: str = DEFAULT_REGISTRY_FILE,
@@ -643,6 +648,15 @@ def write_iceberg_warehouse(  # noqa: PLR0913
             See :func:`cytotable.convert.convert`.
         include_source_images (bool):
             See :func:`cytotable.convert.convert`.
+        image_crop_workers (Optional[int]):
+            Number of worker processes used to parallelize the per-row image
+            crop work *within* each chunk. ``None`` (default) selects an
+            automatic count (capped at 8); ``0`` or ``1`` keeps the serial
+            path. Parallelism uses a process pool because the crop work
+            (``slice_ome_arrow`` over a pyarrow struct) holds the GIL, so
+            threads do not help. Small chunks stay serial automatically. For
+            multi-chunk plates, lower this value to avoid oversubscribing
+            cores (each chunk's task spawns its own pool).
         default_namespace (str):
             Iceberg namespace under which the profiles table is registered.
         images_namespace (str):
@@ -889,6 +903,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         bbox_column_map=bbox_column_map,
                         segmentation_file_regex=segmentation_file_regex,
                         path_kwargs=kwargs,
+                        image_crop_workers=image_crop_workers,
                     )
                     for chunk_path in joined_chunk_paths
                 ]
@@ -901,6 +916,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                             outline_dir=outline_dir,
                             segmentation_file_regex=segmentation_file_regex,
                             path_kwargs=kwargs,
+                            image_crop_workers=image_crop_workers,
                         )
                         for chunk_path in joined_chunk_paths
                     ]
@@ -923,6 +939,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                         bbox_column_map=bbox_column_map,
                         segmentation_file_regex=segmentation_file_regex,
                         path_kwargs=kwargs,
+                        crop_workers=image_crop_workers,
                     )
                 )
                 if crop_table.num_rows == 0:
@@ -950,6 +967,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
                             outline_dir=outline_dir,
                             segmentation_file_regex=segmentation_file_regex,
                             path_kwargs=kwargs,
+                            crop_workers=image_crop_workers,
                         )
                     )
                     if source_image_table.num_rows != 0:

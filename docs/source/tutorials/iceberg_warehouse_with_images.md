@@ -137,6 +137,36 @@ The same pattern also works with cloud image paths, for example
 `image_dir="s3://example-bucket/images"` plus any needed authentication or
 client configuration arguments passed through `convert(..., **kwargs)`.
 
+## Performance of image export
+
+Cropping one image per measurement row is the dominant cost of image export
+(the per-crop slicing work, not the TIFF read). CytoTable parallelizes this
+work across worker processes automatically — within each chunk, because the
+slice work holds the Python GIL and therefore does not benefit from threads.
+
+Tune the worker count with `image_crop_workers`:
+
+```python
+convert(
+    source_path="./tests/data/cellprofiler/ExampleHuman",
+    source_datatype="csv",
+    dest_path="./example_warehouse_perf",
+    dest_backend="iceberg",
+    dest_datatype="parquet",
+    preset="cellprofiler_csv",
+    image_dir="./images",
+    image_crop_workers=8,  # default: automatic (capped at 8); 0 or 1 = serial
+)
+```
+
+`image_crop_workers=None` (the default) selects an automatic count capped at 8,
+which is around the sweet spot on a typical multi-core machine. Set it to `0` or
+`1` to force the serial path. Small chunks stay serial automatically, so the
+process pool is only spawned when there is enough work to amortize the startup
+cost. For multi-chunk plates (thousands of images) where CytoTable already
+parallelizes across chunks, lower `image_crop_workers` to avoid oversubscribing
+cores, since each chunk spawns its own worker pool.
+
 ## Bounding boxes
 
 CytoTable uses bounding box columns from the joined measurement rows to dynamically crop each image.
