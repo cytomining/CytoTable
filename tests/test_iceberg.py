@@ -1259,6 +1259,65 @@ def test_source_image_parallel_dedup_matches_serial(fx_tempdir: str):
         _table_to_normalized_pydict(parallel, "Metadata_ImageID")
     )
 
+    # Empty-shard coverage: a shard whose rows are all-unresolvable yields no
+    # rows, and crop_workers exceeding the row count produces empty trailing
+    # shards. Both cases must still emit the full schema so concat across
+    # shards succeeds and the parallel output matches serial.
+    empty_chunk = Path(fx_tempdir) / "joined_source_empty_shards.parquet"
+    empty_rows = []
+    # rows 0-1 reference a resolvable image in both columns; rows 2-3 reference
+    # only an unresolvable image, so their shard contributes zero rows.
+    for i in range(2):
+        empty_rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 1,
+                "Image_FileName_DNA": "a.tiff",
+                "Image_FileName_AGP": "a.tiff",
+                "Cells_AreaShape_BoundingBoxMinimum_X": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_X": 4,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": 4,
+            }
+        )
+    for i in range(2):
+        empty_rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 3,
+                "Image_FileName_DNA": "missing.tiff",
+                "Image_FileName_AGP": "missing.tiff",
+                "Cells_AreaShape_BoundingBoxMinimum_X": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_X": 4,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": 4,
+            }
+        )
+    parquet.write_table(
+        pa.Table.from_pandas(pd.DataFrame(empty_rows), preserve_index=False),
+        empty_chunk,
+    )
+
+    with patch.object(images_module, "_SOURCE_PARALLEL_MIN", 1):
+        serial_empty = source_image_table_from_joined_chunk(
+            chunk_path=str(empty_chunk), image_dir=str(image_dir), crop_workers=1
+        )
+        # crop_workers=8 >> 4 rows -> empty trailing shards; rows 2-3 form a
+        # 0-output shard.
+        parallel_empty = source_image_table_from_joined_chunk(
+            chunk_path=str(empty_chunk), image_dir=str(image_dir), crop_workers=8
+        )
+
+    assert serial_empty.schema == parallel_empty.schema
+    assert serial_empty.num_rows == parallel_empty.num_rows
+    empty_parallel_ids = parallel_empty["Metadata_ImageID"].to_pylist()
+    assert len(empty_parallel_ids) == len(set(empty_parallel_ids))
+    assert _table_to_normalized_pydict(serial_empty, "Metadata_ImageID") == (
+        _table_to_normalized_pydict(parallel_empty, "Metadata_ImageID")
+    )
+    # Only the resolvable image contributes rows (one per image column).
+    assert serial_empty.num_rows == 2
+
 
 @pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")
 def test_write_iceberg_warehouse_writes_source_images_when_requested(

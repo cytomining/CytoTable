@@ -5,6 +5,7 @@ Helpers for exporting image crops alongside CytoTable measurement data.
 from __future__ import annotations
 
 import logging
+import multiprocessing
 import os
 import pathlib
 import re
@@ -516,6 +517,30 @@ def _extract_image_key_fields(row: pd.Series) -> dict[str, Any]:
     }
 
 
+def _extract_image_key_field_names(data: pd.DataFrame) -> list[str]:
+    """
+    Return the sorted image-level key field names present in a chunk.
+
+    Computed from the full chunk so every shard -- including ones that emit no
+    rows -- assembles a table with the same key columns, which is required for
+    ``pa.concat_tables`` to succeed across shards.
+    """
+
+    preferred_columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Image_Metadata_Well",
+        "Image_Metadata_Plate",
+        "Metadata_Well",
+        "Metadata_Plate",
+    ]
+    return sorted(
+        column
+        for column in preferred_columns
+        if column in data.columns and not data[column].isna().all()
+    )
+
+
 def _build_stable_object_id(
     key_fields: dict[str, Any],
     bbox: Optional[dict[str, int]] = None,
@@ -778,29 +803,15 @@ def _collect_crop_rows(
 def _rows_to_crop_table(
     rows: list[dict[str, Any]],
     ome_arrow_struct: pa.DataType,
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
     Assemble crop-row records into an Arrow table.
-    """
 
-    key_field_names = sorted(
-        {key for row in rows for key in row.keys()}
-        - {
-            "source_image_column",
-            "source_image_file",
-            "label_source_kind",
-            "Metadata_ObjectID",
-            "Metadata_ImageCropID",
-            "source_bbox_x_min",
-            "source_bbox_x_max",
-            "source_bbox_y_min",
-            "source_bbox_y_max",
-            "ome_arrow_image",
-            "ome_arrow_outline",
-            "ome_arrow_mask",
-            "ome_arrow_label",
-        }
-    )
+    ``key_field_names`` is the full chunk's key field set (see
+    :func:`_extract_image_key_field_names`) so empty shard outputs carry the
+    same schema as non-empty siblings and concatenate cleanly.
+    """
 
     if not rows:
         return pa.table(
@@ -900,13 +911,16 @@ def _crop_shard_worker(
     bbox_columns: BBoxColumns,
     segmentation_file_regex: Optional[Dict[str, str]],
     path_kwargs: Optional[Dict[str, Any]],
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
     Process one row-shard of a joined chunk in a worker process.
 
     Module-level so it is importable under multiprocessing spawn. Rebuilds the
     file indexes locally (a few cheap dir walks) to avoid serializing
-    ``CloudPath`` objects across the process boundary.
+    ``CloudPath`` objects across the process boundary. ``key_field_names`` is
+    the full chunk's key field set, passed in so empty shards still emit the
+    complete schema.
     """
 
     _, ome_arrow_struct = _require_ome_arrow()
@@ -928,7 +942,7 @@ def _crop_shard_worker(
         segmentation_file_regex=segmentation_file_regex,
         path_kwargs=path_kwargs,
     )
-    return _rows_to_crop_table(rows, ome_arrow_struct)
+    return _rows_to_crop_table(rows, ome_arrow_struct, key_field_names)
 
 
 def _write_row_shards(table: pa.Table, n_shards: int, tmpdir: str) -> list[str]:
@@ -944,7 +958,7 @@ def _write_row_shards(table: pa.Table, n_shards: int, tmpdir: str) -> list[str]:
     shard_paths: list[str] = []
     for i in range(n_shards):
         start = i * shard_size
-        end = (i + 1) * shard_size if i < n_shards - 1 else n
+        end = min((i + 1) * shard_size, n) if i < n_shards - 1 else n
         if start >= end:
             break
         shard_path = os.path.join(tmpdir, f"shard_{i}.parquet")
@@ -963,6 +977,7 @@ def _image_crop_table_parallel(
     segmentation_file_regex: Optional[Dict[str, str]],
     path_kwargs: Optional[Dict[str, Any]],
     workers: int,
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
     Run the per-row crop work across ``workers`` processes and merge results.
@@ -979,8 +994,12 @@ def _image_crop_table_parallel(
             bbox_columns=bbox_columns,
             segmentation_file_regex=segmentation_file_regex,
             path_kwargs=path_kwargs,
+            key_field_names=list(key_field_names),
         )
-        with ProcessPoolExecutor(max_workers=min(workers, len(shard_paths))) as ex:
+        with ProcessPoolExecutor(
+            max_workers=min(workers, len(shard_paths)),
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as ex:
             shard_tables = list(ex.map(worker, shard_paths))
     return pa.concat_tables(shard_tables)
 
@@ -1022,6 +1041,7 @@ def image_crop_table_from_joined_chunk(
 
     workers = _resolve_image_worker_count(crop_workers)
     estimated_crops = len(data) * max(1, len(image_columns))
+    key_field_names = _extract_image_key_field_names(data)
     if workers > 1 and estimated_crops >= _CROP_PARALLEL_MIN:
         return _image_crop_table_parallel(
             table=table,
@@ -1033,6 +1053,7 @@ def image_crop_table_from_joined_chunk(
             segmentation_file_regex=segmentation_file_regex,
             path_kwargs=path_kwargs,
             workers=workers,
+            key_field_names=key_field_names,
         )
 
     image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
@@ -1051,7 +1072,7 @@ def image_crop_table_from_joined_chunk(
         segmentation_file_regex=segmentation_file_regex,
         path_kwargs=path_kwargs,
     )
-    return _rows_to_crop_table(rows, ome_arrow_struct)
+    return _rows_to_crop_table(rows, ome_arrow_struct, key_field_names)
 
 
 # Minimum number of *unique* source images before the source-image ProcessPool
@@ -1176,24 +1197,15 @@ def _collect_source_rows(
 def _rows_to_source_table(
     rows: list[dict[str, Any]],
     ome_arrow_struct: pa.DataType,
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
     Assemble source-image rows into an Arrow table.
-    """
 
-    key_field_names = sorted(
-        {key for row in rows for key in row.keys()}
-        - {
-            "Metadata_ImageID",
-            "source_image_column",
-            "source_image_file",
-            "label_source_kind",
-            "ome_arrow_image",
-            "ome_arrow_outline",
-            "ome_arrow_mask",
-            "ome_arrow_label",
-        }
-    )
+    ``key_field_names`` is the full chunk's key field set (see
+    :func:`_extract_image_key_field_names`) so empty shard outputs carry the
+    same schema as non-empty siblings and concatenate cleanly.
+    """
 
     if not rows:
         return pa.table(
@@ -1272,13 +1284,15 @@ def _source_shard_worker(
     image_columns: Sequence[str],
     segmentation_file_regex: Optional[Dict[str, str]],
     path_kwargs: Optional[Dict[str, Any]],
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
     Process one row-shard of a joined chunk for source-image export.
 
     Module-level so it is importable under multiprocessing spawn. Rebuilds the
     file indexes locally to avoid serializing ``CloudPath`` across the process
-    boundary.
+    boundary. ``key_field_names`` is the full chunk's key field set, passed in
+    so empty shards still emit the complete schema.
     """
 
     _, ome_arrow_struct = _require_ome_arrow()
@@ -1299,7 +1313,7 @@ def _source_shard_worker(
         segmentation_file_regex=segmentation_file_regex,
         path_kwargs=path_kwargs,
     )
-    return _rows_to_source_table(rows, ome_arrow_struct)
+    return _rows_to_source_table(rows, ome_arrow_struct, key_field_names)
 
 
 def _source_image_table_parallel(
@@ -1311,13 +1325,16 @@ def _source_image_table_parallel(
     segmentation_file_regex: Optional[Dict[str, str]],
     path_kwargs: Optional[Dict[str, Any]],
     workers: int,
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
     Run source-image export across ``workers`` processes and merge results.
 
     Each shard deduplicates internally by ``Metadata_ImageID``; the merged table
     is deduplicated again across shards (first occurrence wins) so an image that
-    appears in more than one shard is exported exactly once.
+    appears in more than one shard is exported exactly once. ``key_field_names``
+    is the full chunk's key field set, passed to shards so empty shards still
+    emit the complete schema.
     """
 
     with tempfile.TemporaryDirectory(prefix="cytotable_source_shards_") as tmpdir:
@@ -1330,8 +1347,12 @@ def _source_image_table_parallel(
             image_columns=list(image_columns),
             segmentation_file_regex=segmentation_file_regex,
             path_kwargs=path_kwargs,
+            key_field_names=list(key_field_names),
         )
-        with ProcessPoolExecutor(max_workers=min(workers, len(shard_paths))) as ex:
+        with ProcessPoolExecutor(
+            max_workers=min(workers, len(shard_paths)),
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as ex:
             shard_tables = list(ex.map(worker, shard_paths))
     merged = pa.concat_tables(shard_tables)
     return _dedup_table_by_first_occurrence(merged, "Metadata_ImageID")
@@ -1380,6 +1401,7 @@ def source_image_table_from_joined_chunk(
 
     workers = _resolve_image_worker_count(crop_workers)
     unique_image_count = _count_unique_source_image_names(data, image_columns)
+    key_field_names = _extract_image_key_field_names(data)
     if workers > 1 and unique_image_count >= _SOURCE_PARALLEL_MIN:
         return _source_image_table_parallel(
             table=table,
@@ -1390,6 +1412,7 @@ def source_image_table_from_joined_chunk(
             segmentation_file_regex=segmentation_file_regex,
             path_kwargs=path_kwargs,
             workers=workers,
+            key_field_names=key_field_names,
         )
 
     image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
@@ -1407,7 +1430,7 @@ def source_image_table_from_joined_chunk(
         segmentation_file_regex=segmentation_file_regex,
         path_kwargs=path_kwargs,
     )
-    return _rows_to_source_table(rows, ome_arrow_struct)
+    return _rows_to_source_table(rows, ome_arrow_struct, key_field_names)
 
 
 def add_object_id_to_profiles_frame(
