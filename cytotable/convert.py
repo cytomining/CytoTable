@@ -1775,7 +1775,12 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             keeps the serial path. The crop work holds the GIL, so this uses
             processes rather than threads; small chunks stay serial
             automatically. Lower this for multi-chunk plates to avoid
-            oversubscribing cores.
+            oversubscribing cores. The parallel path uses the ``spawn`` start
+            method, which re-imports the caller's top-level script as
+            ``__main__`` in each worker: when calling ``convert(...)`` from a
+            plain script, guard that call with ``if __name__ == "__main__":`` so
+            workers do not re-run your whole pipeline (notebooks and REPLs are
+            unaffected), or set ``image_crop_workers=1`` to use the serial path.
         **kwargs:
             Additional keyword args forwarded to source-gathering and
             backend-specific writers (for example, Cloudpathlib client

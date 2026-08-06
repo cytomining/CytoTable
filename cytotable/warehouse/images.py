@@ -11,6 +11,7 @@ import pathlib
 import re
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
 from functools import partial
 from json import dumps
@@ -22,6 +23,7 @@ import pyarrow as pa
 import pyarrow.parquet as parquet
 from cloudpathlib import AnyPath, CloudPath
 
+from cytotable.exceptions import CytoTableException
 from cytotable.sources import _build_path
 from cytotable.utils import cloud_glob
 
@@ -523,7 +525,9 @@ def _extract_image_key_field_names(data: pd.DataFrame) -> list[str]:
 
     Computed from the full chunk so every shard -- including ones that emit no
     rows -- assembles a table with the same key columns, which is required for
-    ``pa.concat_tables`` to succeed across shards.
+    ``pa.concat_tables`` to succeed across shards. Used for the per-image
+    ``images.source_images`` table, whose rows are keyed per image rather than
+    per object, so object-identity columns are intentionally excluded.
     """
 
     preferred_columns = [
@@ -539,6 +543,53 @@ def _extract_image_key_field_names(data: pd.DataFrame) -> list[str]:
         for column in preferred_columns
         if column in data.columns and not data[column].isna().all()
     )
+
+
+def _extract_crop_key_field_names(data: pd.DataFrame) -> list[str]:
+    """
+    Return the sorted key field names to carry on ``images.image_crops`` rows.
+
+    Mirrors the per-row discovery in :func:`_extract_key_fields`: the preferred
+    image/object-level columns plus any CellProfiler-native object-identity and
+    parent-linkage columns (names ending in ``_Object_Number``,
+    ``_Parent_Cells``, or ``_Parent_Nuclei``) that occur in the chunk. The
+    suffix match is needed because these names are compartment-prefixed (e.g.
+    ``Cells_Number_Object_Number``, ``Cytoplasm_Parent_Nuclei``) and so cannot
+    be enumerated up front; without it they were silently dropped from
+    ``images.image_crops`` for ``cellprofiler_sqlite``-preset data.
+
+    A column is included when at least one row in the chunk carries a non-null
+    value, matching :func:`_extract_key_fields`' row-by-row null omission (and
+    the serial path's previous ``sorted({keys} - {fixed})`` behavior), so the
+    column set matches what the serial path produced.
+
+    Computed from the full chunk so every shard -- including ones that emit no
+    rows -- assembles a table with the same key columns, which is required for
+    ``pa.concat_tables`` to succeed across shards.
+    """
+
+    preferred_columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Image_Metadata_Well",
+        "Image_Metadata_Plate",
+        "Metadata_Well",
+        "Metadata_Plate",
+    ]
+    names = {
+        column
+        for column in preferred_columns
+        if column in data.columns and not data[column].isna().all()
+    }
+    suffixes = ("_Object_Number", "_Parent_Cells", "_Parent_Nuclei")
+    for column in data.columns:
+        column_str = str(column)
+        if column_str in names:
+            continue
+        if column_str.endswith(suffixes) and not data[column].isna().all():
+            names.add(column_str)
+    return sorted(names)
 
 
 def _build_stable_object_id(
@@ -1000,7 +1051,19 @@ def _image_crop_table_parallel(
             max_workers=min(workers, len(shard_paths)),
             mp_context=multiprocessing.get_context("spawn"),
         ) as ex:
-            shard_tables = list(ex.map(worker, shard_paths))
+            try:
+                shard_tables = list(ex.map(worker, shard_paths))
+            except BrokenProcessPool as exc:  # pragma: no cover - spawn guard
+                raise CytoTableException(
+                    "Image-crop worker pool died before completing. The crop "
+                    "workers use the 'spawn' start method, which re-imports the "
+                    "caller's top-level script as __main__ in each worker. If "
+                    "you call convert(...) from a plain script, guard that call "
+                    "with `if __name__ == '__main__':` so workers do not re-run "
+                    "your whole pipeline (notebooks and REPLs are unaffected). "
+                    "As a workaround, set image_crop_workers=1 to use the serial "
+                    "path."
+                ) from exc
     return pa.concat_tables(shard_tables)
 
 
@@ -1023,6 +1086,15 @@ def image_crop_table_from_joined_chunk(
     (``slice_ome_arrow`` over a pyarrow struct) holds the GIL, so threads do not
     help. A threshold (``_CROP_PARALLEL_MIN``) keeps small chunks serial so the
     process-spawn overhead never dominates.
+
+    The parallel path uses the ``spawn`` start method, which re-imports the
+    caller's top-level script as ``__main__`` in each worker. Callers that invoke
+    ``convert(...)`` (or this function) from a plain script must guard that call
+    with ``if __name__ == "__main__":`` so workers do not re-run the whole
+    pipeline; without the guard the pool dies with a ``BrokenProcessPool`` (re
+    -raised here as a :class:`~cytotable.exceptions.CytoTableException` with
+    guidance). Notebooks and REPLs are unaffected. Set ``crop_workers=1`` to
+    bypass the process pool entirely.
     """
 
     _, ome_arrow_struct = _require_ome_arrow()
@@ -1041,7 +1113,7 @@ def image_crop_table_from_joined_chunk(
 
     workers = _resolve_image_worker_count(crop_workers)
     estimated_crops = len(data) * max(1, len(image_columns))
-    key_field_names = _extract_image_key_field_names(data)
+    key_field_names = _extract_crop_key_field_names(data)
     if workers > 1 and estimated_crops >= _CROP_PARALLEL_MIN:
         return _image_crop_table_parallel(
             table=table,
@@ -1353,7 +1425,18 @@ def _source_image_table_parallel(
             max_workers=min(workers, len(shard_paths)),
             mp_context=multiprocessing.get_context("spawn"),
         ) as ex:
-            shard_tables = list(ex.map(worker, shard_paths))
+            try:
+                shard_tables = list(ex.map(worker, shard_paths))
+            except BrokenProcessPool as exc:  # pragma: no cover - spawn guard
+                raise CytoTableException(
+                    "Source-image worker pool died before completing. The image "
+                    "workers use the 'spawn' start method, which re-imports the "
+                    "caller's top-level script as __main__ in each worker. If you "
+                    "call convert(...) from a plain script, guard that call with "
+                    "`if __name__ == '__main__':` so workers do not re-run your "
+                    "whole pipeline (notebooks and REPLs are unaffected). As a "
+                    "workaround, set image_crop_workers=1 to use the serial path."
+                ) from exc
     merged = pa.concat_tables(shard_tables)
     return _dedup_table_by_first_occurrence(merged, "Metadata_ImageID")
 

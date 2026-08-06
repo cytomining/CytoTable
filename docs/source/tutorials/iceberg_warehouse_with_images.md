@@ -167,6 +167,39 @@ cost. For multi-chunk plates (thousands of images) where CytoTable already
 parallelizes across chunks, lower `image_crop_workers` to avoid oversubscribing
 cores, since each chunk spawns its own worker pool.
 
+### Calling from a plain script: the `if __name__ == "__main__":` guard
+
+The parallel path starts workers with the `spawn` start method. `spawn` launches
+a fresh Python interpreter for each worker and re-imports the caller's
+top-level script as `__main__` in that worker. If your script calls `convert(...)`
+at module level (outside any guard), every worker re-runs your entire pipeline
+instead of just its crop shard, and the pool dies with a `BrokenProcessPool`
+(CytoTable re-raises this as a `CytoTableException` that points back here).
+
+This only affects plain `.py` scripts. Notebooks and the interactive REPL have
+no `__main__` file to re-import, so they are unaffected.
+
+Guard the call when running from a script:
+
+```python
+from cytotable import convert
+
+if __name__ == "__main__":
+    convert(
+        source_path="./tests/data/cellprofiler/ExampleHuman",
+        source_datatype="csv",
+        dest_path="./example_warehouse_perf",
+        dest_backend="iceberg",
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+        image_dir="./images",
+        image_crop_workers=8,
+    )
+```
+
+If you cannot add the guard (or want to sidestep the process pool entirely), set
+`image_crop_workers=1` to use the serial path.
+
 ## Bounding boxes
 
 CytoTable uses bounding box columns from the joined measurement rows to dynamically crop each image.

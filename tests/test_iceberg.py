@@ -46,6 +46,8 @@ from cytotable.warehouse.images import (
     _build_file_index,
     _crop_ome_arrow,
     _dedup_table_by_first_occurrence,
+    _extract_crop_key_field_names,
+    _extract_image_key_field_names,
     _find_matching_segmentation_path,
     _require_ome_arrow,
     _strip_null_fields_from_type,
@@ -1135,6 +1137,135 @@ def test_image_crop_parallel_matches_serial(fx_tempdir: str):
     assert _table_to_normalized_pydict(serial, "Metadata_ImageCropID") == (
         _table_to_normalized_pydict(parallel, "Metadata_ImageCropID")
     )
+
+    # Explicitly assert the cropped image payloads themselves are equivalent
+    # between the two paths. The full-table comparison above already includes
+    # ome_arrow_image, but this makes the image-crop equivalence obvious and
+    # pinpoints pixel drift on failure (instead of a whole-table diff). Every
+    # row references a resolvable image with an in-bounds bbox, so no crops are
+    # null; acquisition_datetime is read-time-stamped by ome_arrow, so strip
+    # that non-deterministic field before comparing the struct payloads.
+    serial_sorted = serial.sort_by([("Metadata_ImageCropID", "ascending")])
+    parallel_sorted = parallel.sort_by([("Metadata_ImageCropID", "ascending")])
+    assert serial_sorted["ome_arrow_image"].null_count == 0
+    assert parallel_sorted["ome_arrow_image"].null_count == 0
+    assert _strip_acquisition_datetime(
+        serial_sorted["ome_arrow_image"].to_pylist()
+    ) == _strip_acquisition_datetime(parallel_sorted["ome_arrow_image"].to_pylist())
+
+
+def test_extract_crop_key_field_names_includes_object_columns():
+    """
+    _extract_crop_key_field_names discovers CellProfiler object-identity and
+    parent-linkage columns (suffixes _Object_Number / _Parent_Cells /
+    _Parent_Nuclei) plus Metadata_ObjectNumber, while all-NaN columns are
+    excluded. _extract_image_key_field_names (the source-image path) excludes
+    object-level columns because source images are keyed per image.
+    """
+
+    data = pd.DataFrame(
+        {
+            "Metadata_ImageNumber": [1, 2],
+            "Metadata_ObjectNumber": [1, 2],
+            "Cells_Number_Object_Number": [1, 2],
+            "Cytoplasm_Parent_Nuclei": [1, 2],
+            "Cells_Parent_Nuclei": [1, None],  # not all-null -> included
+            "Nuclei_Number_Object_Number": [None, None],  # all-null -> excluded
+            "Some_Other_Column": [1, 2],
+        }
+    )
+
+    assert set(_extract_crop_key_field_names(data)) == {
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Cells_Number_Object_Number",
+        "Cytoplasm_Parent_Nuclei",
+        "Cells_Parent_Nuclei",
+    }
+
+    image_names = set(_extract_image_key_field_names(data))
+    assert image_names == {"Metadata_ImageNumber"}
+    assert not image_names & {
+        "Metadata_ObjectNumber",
+        "Cells_Number_Object_Number",
+        "Cytoplasm_Parent_Nuclei",
+        "Cells_Parent_Nuclei",
+    }
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_preserves_object_key_columns(fx_tempdir: str):
+    """
+    Object-identity and parent-linkage columns survive on images.image_crops.
+
+    Regression: the parallel path's key-field allowlist silently dropped
+    CellProfiler-native columns (names ending in _Object_Number, _Parent_Cells,
+    or _Parent_Nuclei) such as Cells_Number_Object_Number and
+    Cytoplasm_Parent_Nuclei. Both the serial and parallel paths must carry them,
+    with matching schemas.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+    tifffile.imwrite(
+        image_dir / "cell.tiff", np.arange(100, dtype=np.uint16).reshape(10, 10)
+    )
+
+    # 40 rows x 2 image columns = 80 crops >= _CROP_PARALLEL_MIN (64).
+    n_rows = 40
+    rows = []
+    for i in range(n_rows):
+        rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 1,
+                "Image_FileName_DNA": "cell.tiff",
+                "Image_FileName_AGP": "cell.tiff",
+                "Cells_AreaShape_BoundingBoxMinimum_X": 1,
+                "Cells_AreaShape_BoundingBoxMaximum_X": 5,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": 1,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": 5,
+                "Cells_Number_Object_Number": i + 1,
+                "Nuclei_Number_Object_Number": i + 1,
+                "Cytoplasm_Number_Object_Number": i + 1,
+                "Cytoplasm_Parent_Cells": i + 1,
+                "Cytoplasm_Parent_Nuclei": i + 1,
+                "Cells_Parent_Nuclei": i + 1,
+            }
+        )
+    chunk_path = Path(fx_tempdir) / "joined_object_keys.parquet"
+    parquet.write_table(
+        pa.Table.from_pandas(pd.DataFrame(rows), preserve_index=False), chunk_path
+    )
+
+    expected_key_columns = {
+        "Metadata_ObjectNumber",
+        "Cells_Number_Object_Number",
+        "Nuclei_Number_Object_Number",
+        "Cytoplasm_Number_Object_Number",
+        "Cytoplasm_Parent_Cells",
+        "Cytoplasm_Parent_Nuclei",
+        "Cells_Parent_Nuclei",
+    }
+
+    serial = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=1
+    )
+    parallel = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=4
+    )
+
+    for table in (serial, parallel):
+        assert expected_key_columns.issubset(set(table.column_names))
+        for col in expected_key_columns:
+            # Carried through as non-null strings (see _rows_to_crop_table).
+            assert table[col].null_count == 0, col
+
+    # Serial and parallel paths produce the same schema and row count.
+    assert set(serial.column_names) == set(parallel.column_names)
+    assert serial.num_rows == parallel.num_rows == n_rows * 2
 
 
 @pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
