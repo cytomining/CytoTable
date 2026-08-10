@@ -396,9 +396,15 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">multiprocessing</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures.process</span><span class="w"> </span><span class="kn">import</span> <span class="n">BrokenProcessPool</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">json</span><span class="w"> </span><span class="kn">import</span> <span class="n">dumps</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">uuid</span><span class="w"> </span><span class="kn">import</span> <span class="n">NAMESPACE_URL</span><span class="p">,</span> <span class="n">UUID</span><span class="p">,</span> <span class="n">uuid4</span><span class="p">,</span> <span class="n">uuid5</span>
@@ -408,6 +414,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CytoTableException</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cloud_glob</span>
 
@@ -951,6 +958,85 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="_extract_image_key_field_names">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._extract_image_key_field_names">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_image_key_field_names</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the sorted image-level key field names present in a chunk.</span>
+
+<span class="sd">    Computed from the full chunk so every shard -- including ones that emit no</span>
+<span class="sd">    rows -- assembles a table with the same key columns, which is required for</span>
+<span class="sd">    ``pa.concat_tables`` to succeed across shards. Used for the per-image</span>
+<span class="sd">    ``images.source_images`` table, whose rows are keyed per image rather than</span>
+<span class="sd">    per object, so object-identity columns are intentionally excluded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">preferred_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Metadata_TableNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_ImageNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Plate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Plate&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">column</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">preferred_columns</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_extract_crop_key_field_names">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._extract_crop_key_field_names">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_extract_crop_key_field_names</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the sorted key field names to carry on ``images.image_crops`` rows.</span>
+
+<span class="sd">    Mirrors the per-row discovery in :func:`_extract_key_fields`: the preferred</span>
+<span class="sd">    image/object-level columns plus any CellProfiler-native object-identity and</span>
+<span class="sd">    parent-linkage columns (names ending in ``_Object_Number``,</span>
+<span class="sd">    ``_Parent_Cells``, or ``_Parent_Nuclei``) that occur in the chunk. The</span>
+<span class="sd">    suffix match is needed because these names are compartment-prefixed (e.g.</span>
+<span class="sd">    ``Cells_Number_Object_Number``, ``Cytoplasm_Parent_Nuclei``) and so cannot</span>
+<span class="sd">    be enumerated up front; without it they were silently dropped from</span>
+<span class="sd">    ``images.image_crops`` for ``cellprofiler_sqlite``-preset data.</span>
+
+<span class="sd">    A column is included when at least one row in the chunk carries a non-null</span>
+<span class="sd">    value, matching :func:`_extract_key_fields`&#39; row-by-row null omission (and</span>
+<span class="sd">    the serial path&#39;s previous ``sorted({keys} - {fixed})`` behavior), so the</span>
+<span class="sd">    column set matches what the serial path produced.</span>
+
+<span class="sd">    Computed from the full chunk so every shard -- including ones that emit no</span>
+<span class="sd">    rows -- assembles a table with the same key columns, which is required for</span>
+<span class="sd">    ``pa.concat_tables`` to succeed across shards.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">preferred_columns</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;Metadata_TableNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_ImageNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_ObjectNumber&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Image_Metadata_Plate&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Well&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;Metadata_Plate&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">column</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">preferred_columns</span>
+        <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="p">}</span>
+    <span class="n">suffixes</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_Object_Number&quot;</span><span class="p">,</span> <span class="s2">&quot;_Parent_Cells&quot;</span><span class="p">,</span> <span class="s2">&quot;_Parent_Nuclei&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">column_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">column_str</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">column_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">suffixes</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">column_str</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">names</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="_build_stable_object_id">
 <a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._build_stable_object_id">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_stable_object_id</span><span class="p">(</span>
@@ -1104,39 +1190,63 @@ window.runMermaid = runMermaid;</script>
 
 
 
-<div class="viewcode-block" id="image_crop_table_from_joined_chunk">
-<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.image_crop_table_from_joined_chunk">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">image_crop_table_from_joined_chunk</span><span class="p">(</span>
-    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="c1"># Minimum estimated crop count before the per-chunk ProcessPool path is used.</span>
+<span class="c1"># Below this the spawn overhead dominates, so the serial path is kept (this also</span>
+<span class="c1"># keeps the existing small-chunk tests ProcessPool-free and deterministic).</span>
+<span class="n">_CROP_PARALLEL_MIN</span> <span class="o">=</span> <span class="mi">64</span>
+
+
+<div class="viewcode-block" id="_resolve_image_worker_count">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._resolve_image_worker_count">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_resolve_image_worker_count</span><span class="p">(</span><span class="n">crop_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build an Arrow table of OME-Arrow image crops from one joined parquet chunk.</span>
+<span class="sd">    Resolve the number of worker processes for per-chunk image cropping.</span>
+
+<span class="sd">    Selection policy:</span>
+
+<span class="sd">    - ``None`` (the default): pick an automatic count -- the number of logical</span>
+<span class="sd">      CPUs, falling back to 4 when :func:`os.cpu_count` cannot report it, and</span>
+<span class="sd">      capped at 8. The cap is the sweet spot for the GIL-bound crop slice work;</span>
+<span class="sd">      more processes just oversubscribe cores without speeding up the slice.</span>
+<span class="sd">    - An explicit integer: clamp it to at least 1. Values of ``0`` or less</span>
+<span class="sd">      resolve to ``1``, which keeps the serial path -- the caller only spawns a</span>
+<span class="sd">      process pool when this returns a value greater than 1 (see</span>
+<span class="sd">      ``_CROP_PARALLEL_MIN``), so ``0`` and ``1`` both mean &quot;serial&quot;.</span>
+
+<span class="sd">    Returns the resolved worker count; the caller decides whether that is</span>
+<span class="sd">    enough to actually parallelize.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
-    <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
-    <span class="n">image_columns</span> <span class="o">=</span> <span class="n">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-    <span class="n">bbox_columns</span> <span class="o">=</span> <span class="n">resolve_bbox_columns</span><span class="p">(</span>
-        <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">crop_workers</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cpu_count</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="ow">or</span> <span class="mi">4</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">cpu_count</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">crop_workers</span><span class="p">))</span></div>
 
-    <span class="k">if</span> <span class="n">bbox_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Unable to identify bounding box coordinate columns for image export.&quot;</span>
-        <span class="p">)</span>
 
-    <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
-    <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
-    <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="_collect_crop_rows">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._collect_crop_rows">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_collect_crop_rows</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">bbox_columns</span><span class="p">:</span> <span class="n">BBoxColumns</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+    <span class="n">mask_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+    <span class="n">outline_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the list of crop-row records for one joined chunk.</span>
+
+<span class="sd">    Pure with respect to ``data`` and the provided indexes, so it may run inside</span>
+<span class="sd">    a worker process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">segmentation_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-
     <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iterrows</span><span class="p">():</span>
         <span class="n">bbox_values</span> <span class="o">=</span> <span class="n">_validated_bbox_values</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">bbox_columns</span><span class="p">)</span>
@@ -1218,24 +1328,24 @@ window.runMermaid = runMermaid;</script>
             <span class="p">}</span>
             <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 
-    <span class="n">key_field_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="p">{</span><span class="n">key</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
-        <span class="o">-</span> <span class="p">{</span>
-            <span class="s2">&quot;source_image_column&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_image_file&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;label_source_kind&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Metadata_ObjectID&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Metadata_ImageCropID&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_bbox_x_min&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_bbox_x_max&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_bbox_y_min&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_bbox_y_max&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">,</span>
-        <span class="p">}</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">rows</span></div>
+
+
+
+<div class="viewcode-block" id="_rows_to_crop_table">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._rows_to_crop_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_rows_to_crop_table</span><span class="p">(</span>
+    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">ome_arrow_struct</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">,</span>
+    <span class="n">key_field_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assemble crop-row records into an Arrow table.</span>
+
+<span class="sd">    ``key_field_names`` is the full chunk&#39;s key field set (see</span>
+<span class="sd">    :func:`_extract_image_key_field_names`) so empty shard outputs carry the</span>
+<span class="sd">    same schema as non-empty siblings and concatenate cleanly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">rows</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">(</span>
@@ -1327,28 +1437,267 @@ window.runMermaid = runMermaid;</script>
 
 
 
-<div class="viewcode-block" id="source_image_table_from_joined_chunk">
-<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">source_image_table_from_joined_chunk</span><span class="p">(</span>
+<div class="viewcode-block" id="_crop_shard_worker">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._crop_shard_worker">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_crop_shard_worker</span><span class="p">(</span>
     <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">bbox_columns</span><span class="p">:</span> <span class="n">BBoxColumns</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">key_field_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build an Arrow table of full OME-Arrow source images from one joined chunk.</span>
+<span class="sd">    Process one row-shard of a joined chunk in a worker process.</span>
+
+<span class="sd">    Module-level so it is importable under multiprocessing spawn. Rebuilds the</span>
+<span class="sd">    file indexes locally (a few cheap dir walks) to avoid serializing</span>
+<span class="sd">    ``CloudPath`` objects across the process boundary. ``key_field_names`` is</span>
+<span class="sd">    the full chunk&#39;s key field set, passed in so empty shards still emit the</span>
+<span class="sd">    complete schema.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
     <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">_collect_crop_rows</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">image_columns</span><span class="o">=</span><span class="n">image_columns</span><span class="p">,</span>
+        <span class="n">bbox_columns</span><span class="o">=</span><span class="n">bbox_columns</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+        <span class="n">image_index</span><span class="o">=</span><span class="n">image_index</span><span class="p">,</span>
+        <span class="n">mask_index</span><span class="o">=</span><span class="n">mask_index</span><span class="p">,</span>
+        <span class="n">outline_index</span><span class="o">=</span><span class="n">outline_index</span><span class="p">,</span>
+        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_rows_to_crop_table</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">ome_arrow_struct</span><span class="p">,</span> <span class="n">key_field_names</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_write_row_shards">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._write_row_shards">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_write_row_shards</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span> <span class="n">n_shards</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tmpdir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Split an Arrow table into ``n_shards`` contiguous row-shard parquet files.</span>
+
+<span class="sd">    Shard boundaries are contiguous and ordered so concatenating the per-shard</span>
+<span class="sd">    results reproduces the serial row order.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">num_rows</span>
+    <span class="n">shard_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">//</span> <span class="n">n_shards</span><span class="p">)</span>
+    <span class="n">shard_paths</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_shards</span><span class="p">):</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">shard_size</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">shard_size</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">n_shards</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">n</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="n">end</span><span class="p">:</span>
+            <span class="k">break</span>
+        <span class="n">shard_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tmpdir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;shard_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">.parquet&quot;</span><span class="p">)</span>
+        <span class="n">parquet</span><span class="o">.</span><span class="n">write_table</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span><span class="p">),</span> <span class="n">shard_path</span><span class="p">)</span>
+        <span class="n">shard_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shard_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">shard_paths</span></div>
+
+
+
+<div class="viewcode-block" id="_image_crop_table_parallel">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._image_crop_table_parallel">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_image_crop_table_parallel</span><span class="p">(</span>
+    <span class="n">table</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">bbox_columns</span><span class="p">:</span> <span class="n">BBoxColumns</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_field_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the per-row crop work across ``workers`` processes and merge results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;cytotable_crop_shards_&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+        <span class="n">shard_paths</span> <span class="o">=</span> <span class="n">_write_row_shards</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">workers</span><span class="p">,</span> <span class="n">tmpdir</span><span class="p">)</span>
+        <span class="n">worker</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">_crop_shard_worker</span><span class="p">,</span>
+            <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+            <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+            <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+            <span class="n">image_columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">image_columns</span><span class="p">),</span>
+            <span class="n">bbox_columns</span><span class="o">=</span><span class="n">bbox_columns</span><span class="p">,</span>
+            <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+            <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="n">key_field_names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">key_field_names</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span>
+            <span class="n">max_workers</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">shard_paths</span><span class="p">)),</span>
+            <span class="n">mp_context</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s2">&quot;spawn&quot;</span><span class="p">),</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">shard_tables</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="n">shard_paths</span><span class="p">))</span>
+            <span class="k">except</span> <span class="n">BrokenProcessPool</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover - spawn guard</span>
+                <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                    <span class="s2">&quot;Image-crop worker pool died before completing. The crop &quot;</span>
+                    <span class="s2">&quot;workers use the &#39;spawn&#39; start method, which re-imports the &quot;</span>
+                    <span class="s2">&quot;caller&#39;s top-level script as __main__ in each worker. If &quot;</span>
+                    <span class="s2">&quot;you call convert(...) from a plain script, guard that call &quot;</span>
+                    <span class="s2">&quot;with `if __name__ == &#39;__main__&#39;:` so workers do not re-run &quot;</span>
+                    <span class="s2">&quot;your whole pipeline (notebooks and REPLs are unaffected). &quot;</span>
+                    <span class="s2">&quot;As a workaround, set image_crop_workers=1 to use the serial &quot;</span>
+                    <span class="s2">&quot;path.&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">concat_tables</span><span class="p">(</span><span class="n">shard_tables</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="image_crop_table_from_joined_chunk">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.image_crop_table_from_joined_chunk">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">image_crop_table_from_joined_chunk</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">crop_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build an Arrow table of OME-Arrow image crops from one joined parquet chunk.</span>
+
+<span class="sd">    ``crop_workers`` controls per-chunk parallelism over the per-row crop loop:</span>
+<span class="sd">    ``None`` selects an automatic count (capped at 8), while ``0``/``1`` keeps</span>
+<span class="sd">    the serial path. Parallelism uses a process pool because the crop work</span>
+<span class="sd">    (``slice_ome_arrow`` over a pyarrow struct) holds the GIL, so threads do not</span>
+<span class="sd">    help. A threshold (``_CROP_PARALLEL_MIN``) keeps small chunks serial so the</span>
+<span class="sd">    process-spawn overhead never dominates.</span>
+
+<span class="sd">    The parallel path uses the ``spawn`` start method, which re-imports the</span>
+<span class="sd">    caller&#39;s top-level script as ``__main__`` in each worker. Callers that invoke</span>
+<span class="sd">    ``convert(...)`` (or this function) from a plain script must guard that call</span>
+<span class="sd">    with ``if __name__ == &quot;__main__&quot;:`` so workers do not re-run the whole</span>
+<span class="sd">    pipeline; without the guard the pool dies with a ``BrokenProcessPool`` (re</span>
+<span class="sd">    -raised here as a :class:`~cytotable.exceptions.CytoTableException` with</span>
+<span class="sd">    guidance). Notebooks and REPLs are unaffected. Set ``crop_workers=1`` to</span>
+<span class="sd">    bypass the process pool entirely.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
     <span class="n">image_columns</span> <span class="o">=</span> <span class="n">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">bbox_columns</span> <span class="o">=</span> <span class="n">resolve_bbox_columns</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">bbox_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Unable to identify bounding box coordinate columns for image export.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">workers</span> <span class="o">=</span> <span class="n">_resolve_image_worker_count</span><span class="p">(</span><span class="n">crop_workers</span><span class="p">)</span>
+    <span class="n">estimated_crops</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_columns</span><span class="p">))</span>
+    <span class="n">key_field_names</span> <span class="o">=</span> <span class="n">_extract_crop_key_field_names</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">workers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">estimated_crops</span> <span class="o">&gt;=</span> <span class="n">_CROP_PARALLEL_MIN</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_image_crop_table_parallel</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="p">,</span>
+            <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+            <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+            <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+            <span class="n">image_columns</span><span class="o">=</span><span class="n">image_columns</span><span class="p">,</span>
+            <span class="n">bbox_columns</span><span class="o">=</span><span class="n">bbox_columns</span><span class="p">,</span>
+            <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+            <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="n">workers</span><span class="o">=</span><span class="n">workers</span><span class="p">,</span>
+            <span class="n">key_field_names</span><span class="o">=</span><span class="n">key_field_names</span><span class="p">,</span>
+        <span class="p">)</span>
 
     <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
     <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
     <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">_collect_crop_rows</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">image_columns</span><span class="o">=</span><span class="n">image_columns</span><span class="p">,</span>
+        <span class="n">bbox_columns</span><span class="o">=</span><span class="n">bbox_columns</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+        <span class="n">image_index</span><span class="o">=</span><span class="n">image_index</span><span class="p">,</span>
+        <span class="n">mask_index</span><span class="o">=</span><span class="n">mask_index</span><span class="p">,</span>
+        <span class="n">outline_index</span><span class="o">=</span><span class="n">outline_index</span><span class="p">,</span>
+        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_rows_to_crop_table</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">ome_arrow_struct</span><span class="p">,</span> <span class="n">key_field_names</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Minimum number of *unique* source images before the source-image ProcessPool</span>
+<span class="c1"># path is used. Source-image work is dominated by one full read per unique image</span>
+<span class="c1"># (rows are deduplicated by Metadata_ImageID), so the threshold is on unique</span>
+<span class="c1"># images rather than row count.</span>
+<span class="n">_SOURCE_PARALLEL_MIN</span> <span class="o">=</span> <span class="mi">16</span>
+
+
+<div class="viewcode-block" id="_dedup_table_by_first_occurrence">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._dedup_table_by_first_occurrence">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_dedup_table_by_first_occurrence</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span> <span class="n">key_column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Drop rows with a repeated ``key_column`` value, keeping the first occurrence.</span>
+
+<span class="sd">    Preserves row order and the table schema (including nested struct columns).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">table</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">column</span><span class="p">(</span><span class="n">key_column</span><span class="p">)</span><span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+    <span class="n">seen</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="n">indices</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">seen</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">==</span> <span class="n">table</span><span class="o">.</span><span class="n">num_rows</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">table</span>
+    <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_collect_source_rows">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._collect_source_rows">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_collect_source_rows</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+    <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+    <span class="n">mask_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+    <span class="n">outline_index</span><span class="p">:</span> <span class="n">FileIndex</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the deduplicated list of source-image rows for one joined chunk.</span>
+
+<span class="sd">    Rows are deduplicated by ``Metadata_ImageID`` (first occurrence wins), so a</span>
+<span class="sd">    shard returns at most one row per source image it touches. Pure with respect</span>
+<span class="sd">    to ``data`` and the provided indexes, so it may run in a worker process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">segmentation_cache</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ImagePath</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">rows_by_id</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -1415,20 +1764,24 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">),</span>
             <span class="p">}</span>
 
-    <span class="n">rows</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">rows_by_id</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-    <span class="n">key_field_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="p">{</span><span class="n">key</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
-        <span class="o">-</span> <span class="p">{</span>
-            <span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_image_column&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;source_image_file&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;label_source_kind&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_image&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_outline&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_mask&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ome_arrow_label&quot;</span><span class="p">,</span>
-        <span class="p">}</span>
-    <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">rows_by_id</span><span class="o">.</span><span class="n">values</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="_rows_to_source_table">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._rows_to_source_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_rows_to_source_table</span><span class="p">(</span>
+    <span class="n">rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">ome_arrow_struct</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">,</span>
+    <span class="n">key_field_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assemble source-image rows into an Arrow table.</span>
+
+<span class="sd">    ``key_field_names`` is the full chunk&#39;s key field set (see</span>
+<span class="sd">    :func:`_extract_image_key_field_names`) so empty shard outputs carry the</span>
+<span class="sd">    same schema as non-empty siblings and concatenate cleanly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">rows</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">(</span>
@@ -1497,6 +1850,186 @@ window.runMermaid = runMermaid;</script>
         <span class="p">),</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">table</span><span class="p">({</span><span class="o">**</span><span class="n">key_columns</span><span class="p">,</span> <span class="o">**</span><span class="n">fixed_columns</span><span class="p">})</span></div>
+
+
+
+<div class="viewcode-block" id="_source_shard_worker">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._source_shard_worker">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_shard_worker</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">key_field_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process one row-shard of a joined chunk for source-image export.</span>
+
+<span class="sd">    Module-level so it is importable under multiprocessing spawn. Rebuilds the</span>
+<span class="sd">    file indexes locally to avoid serializing ``CloudPath`` across the process</span>
+<span class="sd">    boundary. ``key_field_names`` is the full chunk&#39;s key field set, passed in</span>
+<span class="sd">    so empty shards still emit the complete schema.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">_collect_source_rows</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">image_columns</span><span class="o">=</span><span class="n">image_columns</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+        <span class="n">image_index</span><span class="o">=</span><span class="n">image_index</span><span class="p">,</span>
+        <span class="n">mask_index</span><span class="o">=</span><span class="n">mask_index</span><span class="p">,</span>
+        <span class="n">outline_index</span><span class="o">=</span><span class="n">outline_index</span><span class="p">,</span>
+        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_rows_to_source_table</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">ome_arrow_struct</span><span class="p">,</span> <span class="n">key_field_names</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_source_image_table_parallel">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._source_image_table_parallel">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_source_image_table_parallel</span><span class="p">(</span>
+    <span class="n">table</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">key_field_names</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run source-image export across ``workers`` processes and merge results.</span>
+
+<span class="sd">    Each shard deduplicates internally by ``Metadata_ImageID``; the merged table</span>
+<span class="sd">    is deduplicated again across shards (first occurrence wins) so an image that</span>
+<span class="sd">    appears in more than one shard is exported exactly once. ``key_field_names``</span>
+<span class="sd">    is the full chunk&#39;s key field set, passed to shards so empty shards still</span>
+<span class="sd">    emit the complete schema.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;cytotable_source_shards_&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmpdir</span><span class="p">:</span>
+        <span class="n">shard_paths</span> <span class="o">=</span> <span class="n">_write_row_shards</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">workers</span><span class="p">,</span> <span class="n">tmpdir</span><span class="p">)</span>
+        <span class="n">worker</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span>
+            <span class="n">_source_shard_worker</span><span class="p">,</span>
+            <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+            <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+            <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+            <span class="n">image_columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">image_columns</span><span class="p">),</span>
+            <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+            <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="n">key_field_names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">key_field_names</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span>
+            <span class="n">max_workers</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">workers</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">shard_paths</span><span class="p">)),</span>
+            <span class="n">mp_context</span><span class="o">=</span><span class="n">multiprocessing</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s2">&quot;spawn&quot;</span><span class="p">),</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">shard_tables</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">worker</span><span class="p">,</span> <span class="n">shard_paths</span><span class="p">))</span>
+            <span class="k">except</span> <span class="n">BrokenProcessPool</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover - spawn guard</span>
+                <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                    <span class="s2">&quot;Source-image worker pool died before completing. The image &quot;</span>
+                    <span class="s2">&quot;workers use the &#39;spawn&#39; start method, which re-imports the &quot;</span>
+                    <span class="s2">&quot;caller&#39;s top-level script as __main__ in each worker. If you &quot;</span>
+                    <span class="s2">&quot;call convert(...) from a plain script, guard that call with &quot;</span>
+                    <span class="s2">&quot;`if __name__ == &#39;__main__&#39;:` so workers do not re-run your &quot;</span>
+                    <span class="s2">&quot;whole pipeline (notebooks and REPLs are unaffected). As a &quot;</span>
+                    <span class="s2">&quot;workaround, set image_crop_workers=1 to use the serial path.&quot;</span>
+                <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span>
+    <span class="n">merged</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">concat_tables</span><span class="p">(</span><span class="n">shard_tables</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_dedup_table_by_first_occurrence</span><span class="p">(</span><span class="n">merged</span><span class="p">,</span> <span class="s2">&quot;Metadata_ImageID&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_count_unique_source_image_names">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images._count_unique_source_image_names">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_count_unique_source_image_names</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">image_columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Estimate the number of distinct source images referenced by a chunk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">names</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">image_columns</span><span class="p">:</span>
+        <span class="n">column_values</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span> <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">data</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">column_values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_values</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">column_values</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="source_image_table_from_joined_chunk">
+<a class="viewcode-back" href="../../../python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">source_image_table_from_joined_chunk</span><span class="p">(</span>
+    <span class="n">chunk_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">outline_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">path_kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">crop_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build an Arrow table of full OME-Arrow source images from one joined chunk.</span>
+
+<span class="sd">    ``crop_workers`` controls per-chunk parallelism over the per-image reads,</span>
+<span class="sd">    mirroring ``image_crop_table_from_joined_chunk``: ``None`` selects an</span>
+<span class="sd">    automatic count (capped at 8), ``0``/``1`` keeps the serial path. Because</span>
+<span class="sd">    source-image rows are deduplicated by ``Metadata_ImageID``, parallelism is</span>
+<span class="sd">    only used when the chunk references at least ``_SOURCE_PARALLEL_MIN``</span>
+<span class="sd">    distinct images.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_require_ome_arrow</span><span class="p">()</span>
+    <span class="n">ome_arrow_struct</span> <span class="o">=</span> <span class="n">_strip_null_fields_from_type</span><span class="p">(</span><span class="n">ome_arrow_struct</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_table</span><span class="p">(</span><span class="n">chunk_path</span><span class="p">)</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">to_pandas</span><span class="p">()</span>
+    <span class="n">image_columns</span> <span class="o">=</span> <span class="n">_resolve_image_columns</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="n">workers</span> <span class="o">=</span> <span class="n">_resolve_image_worker_count</span><span class="p">(</span><span class="n">crop_workers</span><span class="p">)</span>
+    <span class="n">unique_image_count</span> <span class="o">=</span> <span class="n">_count_unique_source_image_names</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">image_columns</span><span class="p">)</span>
+    <span class="n">key_field_names</span> <span class="o">=</span> <span class="n">_extract_image_key_field_names</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">workers</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">unique_image_count</span> <span class="o">&gt;=</span> <span class="n">_SOURCE_PARALLEL_MIN</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_source_image_table_parallel</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="p">,</span>
+            <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+            <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+            <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+            <span class="n">image_columns</span><span class="o">=</span><span class="n">image_columns</span><span class="p">,</span>
+            <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+            <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+            <span class="n">workers</span><span class="o">=</span><span class="n">workers</span><span class="p">,</span>
+            <span class="n">key_field_names</span><span class="o">=</span><span class="n">key_field_names</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">image_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">mask_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">mask_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">outline_index</span> <span class="o">=</span> <span class="n">_build_file_index</span><span class="p">(</span><span class="n">outline_dir</span><span class="p">,</span> <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">_collect_source_rows</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span>
+        <span class="n">image_columns</span><span class="o">=</span><span class="n">image_columns</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="n">image_dir</span><span class="p">,</span>
+        <span class="n">mask_dir</span><span class="o">=</span><span class="n">mask_dir</span><span class="p">,</span>
+        <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
+        <span class="n">image_index</span><span class="o">=</span><span class="n">image_index</span><span class="p">,</span>
+        <span class="n">mask_index</span><span class="o">=</span><span class="n">mask_index</span><span class="p">,</span>
+        <span class="n">outline_index</span><span class="o">=</span><span class="n">outline_index</span><span class="p">,</span>
+        <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
+        <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">_rows_to_source_table</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">ome_arrow_struct</span><span class="p">,</span> <span class="n">key_field_names</span><span class="p">)</span></div>
 
 
 

@@ -169,6 +169,66 @@ generated <code class="docutils literal notranslate"><span class="pre">ome_arrow
 <code class="docutils literal notranslate"><span class="pre">image_dir=&quot;s3://example-bucket/images&quot;</span></code> plus any needed authentication or
 client configuration arguments passed through <code class="docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">**kwargs)</span></code>.</p>
 </section>
+<section id="performance-of-image-export">
+<h2>Performance of image export<a class="headerlink" href="#performance-of-image-export" title="Link to this heading">¶</a></h2>
+<p>Cropping one image per measurement row is the dominant cost of image export
+(the per-crop slicing work, not the TIFF read). CytoTable parallelizes this
+work across worker processes automatically — within each chunk, because the
+slice work holds the Python GIL and therefore does not benefit from threads.</p>
+<p>Tune the worker count with <code class="docutils literal notranslate"><span class="pre">image_crop_workers</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/ExampleHuman&quot;</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;./example_warehouse_perf&quot;</span><span class="p">,</span>
+    <span class="n">dest_backend</span><span class="o">=</span><span class="s2">&quot;iceberg&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
+    <span class="n">image_dir</span><span class="o">=</span><span class="s2">&quot;./images&quot;</span><span class="p">,</span>
+    <span class="n">image_crop_workers</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>  <span class="c1"># default: automatic (capped at 8); 0 or 1 = serial</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">image_crop_workers=None</span></code> (the default) selects an automatic count capped at 8,
+which is around the sweet spot on a typical multi-core machine. Set it to <code class="docutils literal notranslate"><span class="pre">0</span></code> or
+<code class="docutils literal notranslate"><span class="pre">1</span></code> to force the serial path. Small chunks stay serial automatically, so the
+process pool is only spawned when there is enough work to amortize the startup
+cost.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">image_crop_workers</span></code> is <em>per chunk</em>. CytoTable also runs chunks
+concurrently through a Parsl thread pool (default 4 threads), so a multi-chunk
+plate can run up to <code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">×</span> <span class="pre">image_crop_workers</span></code> crop processes at once — up to
+<code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">×</span> <span class="pre">8</span> <span class="pre">=</span> <span class="pre">32</span></code> with the defaults. That oversubscribes a typical 8-core machine, so
+for multi-chunk plates (thousands of images) lower <code class="docutils literal notranslate"><span class="pre">image_crop_workers</span></code> (for
+example <code class="docutils literal notranslate"><span class="pre">1</span></code> or <code class="docutils literal notranslate"><span class="pre">2</span></code>) to keep the total process count near your core count.</p>
+<section id="calling-from-a-plain-script-the-if-name-main-guard">
+<h3>Calling from a plain script: the <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;:</span></code> guard<a class="headerlink" href="#calling-from-a-plain-script-the-if-name-main-guard" title="Link to this heading">¶</a></h3>
+<p>The parallel path starts workers with the <code class="docutils literal notranslate"><span class="pre">spawn</span></code> start method. <code class="docutils literal notranslate"><span class="pre">spawn</span></code> launches
+a fresh Python interpreter for each worker and re-imports the caller’s
+top-level script as <code class="docutils literal notranslate"><span class="pre">__main__</span></code> in that worker. If your script calls <code class="docutils literal notranslate"><span class="pre">convert(...)</span></code>
+at module level (outside any guard), every worker re-runs your entire pipeline
+instead of just its crop shard, and the pool dies with a <code class="docutils literal notranslate"><span class="pre">BrokenProcessPool</span></code>
+(CytoTable re-raises this as a <code class="docutils literal notranslate"><span class="pre">CytoTableException</span></code> that points back here).</p>
+<p>This only affects plain <code class="docutils literal notranslate"><span class="pre">.py</span></code> scripts. Notebooks and the interactive REPL have
+no <code class="docutils literal notranslate"><span class="pre">__main__</span></code> file to re-import, so they are unaffected.</p>
+<p>Guard the call when running from a script:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cytotable</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">convert</span><span class="p">(</span>
+        <span class="n">source_path</span><span class="o">=</span><span class="s2">&quot;./tests/data/cellprofiler/ExampleHuman&quot;</span><span class="p">,</span>
+        <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+        <span class="n">dest_path</span><span class="o">=</span><span class="s2">&quot;./example_warehouse_perf&quot;</span><span class="p">,</span>
+        <span class="n">dest_backend</span><span class="o">=</span><span class="s2">&quot;iceberg&quot;</span><span class="p">,</span>
+        <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+        <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
+        <span class="n">image_dir</span><span class="o">=</span><span class="s2">&quot;./images&quot;</span><span class="p">,</span>
+        <span class="n">image_crop_workers</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>If you cannot add the guard (or want to sidestep the process pool entirely), set
+<code class="docutils literal notranslate"><span class="pre">image_crop_workers=1</span></code> to use the serial path.</p>
+</section>
+</section>
 <section id="bounding-boxes">
 <h2>Bounding boxes<a class="headerlink" href="#bounding-boxes" title="Link to this heading">¶</a></h2>
 <p>CytoTable uses bounding box columns from the joined measurement rows to dynamically crop each image.
@@ -335,6 +395,7 @@ derived from image-level keys and the source image reference</p></li>
 <li class="toctree-l3"><a class="reference internal" href="#inputs-and-outputs">Inputs and outputs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#basic-warehouse-export">Basic warehouse export</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#add-image-crops-with-ome-arrow">Add image crops with OME-Arrow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#performance-of-image-export">Performance of image export</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#bounding-boxes">Bounding boxes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#segmentation-matching">Segmentation matching</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#reading-the-warehouse">Reading the warehouse</a></li>

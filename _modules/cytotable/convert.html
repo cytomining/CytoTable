@@ -2052,6 +2052,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_crop_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -2162,6 +2163,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Optional Parsl configuration to use for running CytoTable operations.</span>
 <span class="sd">            Note: when using CytoTable multiple times in the same process,</span>
 <span class="sd">            CytoTable will use the first provided configuration for all runs.</span>
+<span class="sd">        image_crop_workers (Optional[int]):</span>
+<span class="sd">            Number of worker processes used to parallelize the per-row image</span>
+<span class="sd">            crop work within each chunk when exporting to an Iceberg warehouse</span>
+<span class="sd">            (requires ``dest_backend=&quot;iceberg&quot;`` and ``image_dir``). ``None``</span>
+<span class="sd">            (default) selects an automatic count (capped at 8); ``0`` or ``1``</span>
+<span class="sd">            keeps the serial path. The crop work holds the GIL, so this uses</span>
+<span class="sd">            processes rather than threads; small chunks stay serial</span>
+<span class="sd">            automatically. This is *per chunk*: CytoTable also runs chunks</span>
+<span class="sd">            concurrently through a Parsl thread pool (default 4 threads), so a</span>
+<span class="sd">            multi-chunk plate can run up to ``4 x image_crop_workers`` crop</span>
+<span class="sd">            processes at once (up to 32 with the defaults) — lower this for</span>
+<span class="sd">            multi-chunk plates to avoid oversubscribing cores. The parallel path</span>
+<span class="sd">            uses the ``spawn`` start</span>
+<span class="sd">            method, which re-imports the caller&#39;s top-level script as</span>
+<span class="sd">            ``__main__`` in each worker: when calling ``convert(...)`` from a</span>
+<span class="sd">            plain script, guard that call with ``if __name__ == &quot;__main__&quot;:`` so</span>
+<span class="sd">            workers do not re-run your whole pipeline (notebooks and REPLs are</span>
+<span class="sd">            unaffected), or set ``image_crop_workers=1`` to use the serial path.</span>
 <span class="sd">        **kwargs:</span>
 <span class="sd">            Additional keyword args forwarded to source-gathering and</span>
 <span class="sd">            backend-specific writers (for example, Cloudpathlib client</span>
@@ -2256,6 +2275,7 @@ window.runMermaid = runMermaid;</script>
             <span class="n">preset</span><span class="o">=</span><span class="n">preset</span><span class="p">,</span>
             <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
             <span class="n">parsl_config</span><span class="o">=</span><span class="n">parsl_config</span><span class="p">,</span>
+            <span class="n">image_crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
 

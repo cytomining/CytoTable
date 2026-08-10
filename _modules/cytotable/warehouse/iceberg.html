@@ -443,6 +443,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">bbox_column_map</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, str]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, str]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">path_kwargs</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, Any]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_crop_workers</span><span class="p">:</span> <span class="s2">&quot;Optional[int]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pa.Table&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parsl thread-pool wrapper for image_crop_table_from_joined_chunk.&quot;&quot;&quot;</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.warehouse.images</span><span class="w"> </span><span class="kn">import</span> <span class="n">image_crop_table_from_joined_chunk</span>
@@ -455,6 +456,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
         <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
         <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+        <span class="n">crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -466,6 +468,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">outline_dir</span><span class="p">:</span> <span class="s2">&quot;Optional[str]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, str]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">path_kwargs</span><span class="p">:</span> <span class="s2">&quot;Optional[Dict[str, Any]]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">image_crop_workers</span><span class="p">:</span> <span class="s2">&quot;Optional[int]&quot;</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;pa.Table&quot;</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Parsl thread-pool wrapper for source_image_table_from_joined_chunk.&quot;&quot;&quot;</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.warehouse.images</span><span class="w"> </span><span class="kn">import</span> <span class="n">source_image_table_from_joined_chunk</span>
@@ -477,6 +480,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
         <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
         <span class="n">path_kwargs</span><span class="o">=</span><span class="n">path_kwargs</span><span class="p">,</span>
+        <span class="n">crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
     <span class="p">)</span>
 
 
@@ -1034,6 +1038,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">segmentation_file_regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_source_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">image_crop_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">default_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_NAMESPACE</span><span class="p">,</span>
     <span class="n">images_namespace</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_IMAGES_NAMESPACE</span><span class="p">,</span>
     <span class="n">registry_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_REGISTRY_FILE</span><span class="p">,</span>
@@ -1096,6 +1101,23 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            See :func:`cytotable.convert.convert`.</span>
 <span class="sd">        include_source_images (bool):</span>
 <span class="sd">            See :func:`cytotable.convert.convert`.</span>
+<span class="sd">        image_crop_workers (Optional[int]):</span>
+<span class="sd">            Number of worker processes used to parallelize the per-row image</span>
+<span class="sd">            crop work *within* each chunk. ``None`` (default) selects an</span>
+<span class="sd">            automatic count (capped at 8); ``0`` or ``1`` keeps the serial</span>
+<span class="sd">            path. Parallelism uses a process pool because the crop work</span>
+<span class="sd">            (``slice_ome_arrow`` over a pyarrow struct) holds the GIL, so</span>
+<span class="sd">            threads do not help. Small chunks stay serial automatically. This</span>
+<span class="sd">            is *per chunk*: CytoTable also runs chunks concurrently through a</span>
+<span class="sd">            Parsl thread pool (default 4 threads), so a multi-chunk plate can</span>
+<span class="sd">            run up to ``4 x image_crop_workers`` crop processes at once (up to</span>
+<span class="sd">            32 with the defaults) — lower this value for multi-chunk plates to</span>
+<span class="sd">            avoid oversubscribing cores. The parallel path uses the ``spawn``</span>
+<span class="sd">            start method, which re-imports the caller&#39;s</span>
+<span class="sd">            top-level script as ``__main__`` in each worker: callers that invoke</span>
+<span class="sd">            ``convert(...)`` from a plain script must guard that call with</span>
+<span class="sd">            ``if __name__ == &quot;__main__&quot;:`` (notebooks and REPLs are unaffected),</span>
+<span class="sd">            or set ``image_crop_workers=1`` to use the serial path.</span>
 <span class="sd">        default_namespace (str):</span>
 <span class="sd">            Iceberg namespace under which the profiles table is registered.</span>
 <span class="sd">        images_namespace (str):</span>
@@ -1342,6 +1364,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
                         <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
                         <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                        <span class="n">image_crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
                     <span class="p">)</span>
                     <span class="k">for</span> <span class="n">chunk_path</span> <span class="ow">in</span> <span class="n">joined_chunk_paths</span>
                 <span class="p">]</span>
@@ -1354,6 +1377,7 @@ window.runMermaid = runMermaid;</script>
                             <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
                             <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
                             <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                            <span class="n">image_crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
                         <span class="p">)</span>
                         <span class="k">for</span> <span class="n">chunk_path</span> <span class="ow">in</span> <span class="n">joined_chunk_paths</span>
                     <span class="p">]</span>
@@ -1376,6 +1400,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">bbox_column_map</span><span class="o">=</span><span class="n">bbox_column_map</span><span class="p">,</span>
                         <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
                         <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                        <span class="n">crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="n">crop_table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -1403,6 +1428,7 @@ window.runMermaid = runMermaid;</script>
                             <span class="n">outline_dir</span><span class="o">=</span><span class="n">outline_dir</span><span class="p">,</span>
                             <span class="n">segmentation_file_regex</span><span class="o">=</span><span class="n">segmentation_file_regex</span><span class="p">,</span>
                             <span class="n">path_kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">,</span>
+                            <span class="n">crop_workers</span><span class="o">=</span><span class="n">image_crop_workers</span><span class="p">,</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
                     <span class="k">if</span> <span class="n">source_image_table</span><span class="o">.</span><span class="n">num_rows</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>

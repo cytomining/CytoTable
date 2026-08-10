@@ -137,6 +137,74 @@ The same pattern also works with cloud image paths, for example
 `image_dir="s3://example-bucket/images"` plus any needed authentication or
 client configuration arguments passed through `convert(..., **kwargs)`.
 
+## Performance of image export
+
+Cropping one image per measurement row is the dominant cost of image export
+(the per-crop slicing work, not the TIFF read). CytoTable parallelizes this
+work across worker processes automatically — within each chunk, because the
+slice work holds the Python GIL and therefore does not benefit from threads.
+
+Tune the worker count with `image_crop_workers`:
+
+```python
+convert(
+    source_path="./tests/data/cellprofiler/ExampleHuman",
+    source_datatype="csv",
+    dest_path="./example_warehouse_perf",
+    dest_backend="iceberg",
+    dest_datatype="parquet",
+    preset="cellprofiler_csv",
+    image_dir="./images",
+    image_crop_workers=8,  # default: automatic (capped at 8); 0 or 1 = serial
+)
+```
+
+`image_crop_workers=None` (the default) selects an automatic count capped at 8,
+which is around the sweet spot on a typical multi-core machine. Set it to `0` or
+`1` to force the serial path. Small chunks stay serial automatically, so the
+process pool is only spawned when there is enough work to amortize the startup
+cost.
+
+Note that `image_crop_workers` is *per chunk*. CytoTable also runs chunks
+concurrently through a Parsl thread pool (default 4 threads), so a multi-chunk
+plate can run up to `4 × image_crop_workers` crop processes at once — up to
+`4 × 8 = 32` with the defaults. That oversubscribes a typical 8-core machine, so
+for multi-chunk plates (thousands of images) lower `image_crop_workers` (for
+example `1` or `2`) to keep the total process count near your core count.
+
+### Calling from a plain script: the `if __name__ == "__main__":` guard
+
+The parallel path starts workers with the `spawn` start method. `spawn` launches
+a fresh Python interpreter for each worker and re-imports the caller's
+top-level script as `__main__` in that worker. If your script calls `convert(...)`
+at module level (outside any guard), every worker re-runs your entire pipeline
+instead of just its crop shard, and the pool dies with a `BrokenProcessPool`
+(CytoTable re-raises this as a `CytoTableException` that points back here).
+
+This only affects plain `.py` scripts. Notebooks and the interactive REPL have
+no `__main__` file to re-import, so they are unaffected.
+
+Guard the call when running from a script:
+
+```python
+from cytotable import convert
+
+if __name__ == "__main__":
+    convert(
+        source_path="./tests/data/cellprofiler/ExampleHuman",
+        source_datatype="csv",
+        dest_path="./example_warehouse_perf",
+        dest_backend="iceberg",
+        dest_datatype="parquet",
+        preset="cellprofiler_csv",
+        image_dir="./images",
+        image_crop_workers=8,
+    )
+```
+
+If you cannot add the guard (or want to sidestep the process pool entirely), set
+`image_crop_workers=1` to use the serial path.
+
 ## Bounding boxes
 
 CytoTable uses bounding box columns from the joined measurement rows to dynamically crop each image.
