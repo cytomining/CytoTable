@@ -9,7 +9,7 @@ import re
 from importlib.util import find_spec
 from json import dumps, loads
 from pathlib import Path
-from typing import Optional, cast
+from typing import Any, Optional, cast
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -28,6 +28,7 @@ from cytotable.utils import (
     _default_parsl_config,
     _ensure_thread_executor,
 )
+from cytotable.warehouse import images as images_module
 from cytotable.warehouse.iceberg import (
     _rewrite_join_sql_for_warehouse,
     _validate_iceberg_join_prerequisites,
@@ -44,6 +45,9 @@ from cytotable.warehouse.images import (
     FileIndex,
     _build_file_index,
     _crop_ome_arrow,
+    _dedup_table_by_first_occurrence,
+    _extract_crop_key_field_names,
+    _extract_image_key_field_names,
     _find_matching_segmentation_path,
     _require_ome_arrow,
     _strip_null_fields_from_type,
@@ -1036,6 +1040,414 @@ def test_image_crop_table_skips_invalid_bbox_rows(fx_tempdir: str):
     assert crop_table["source_bbox_x_max"].to_pylist() == [7]
     assert crop_table["source_bbox_y_min"].to_pylist() == [2]
     assert crop_table["source_bbox_y_max"].to_pylist() == [8]
+
+
+def _write_image_crop_chunk(
+    chunk_path: Path, image_names: list[str], n_rows: int
+) -> None:
+    """
+    Write a joined chunk with ``n_rows`` rows referencing ``image_names``.
+
+    Each row has two image columns (DNA, AGP) and CellProfiler-style bbox
+    columns kept inside a 10x10 image. Used to exceed ``_CROP_PARALLEL_MIN``.
+    """
+
+    rows = []
+    for i in range(n_rows):
+        name = image_names[i % len(image_names)]
+        x0 = i % 6
+        y0 = (i * 3) % 6
+        rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 1,
+                "Image_FileName_DNA": name,
+                "Image_FileName_AGP": image_names[(i + 1) % len(image_names)],
+                "Cells_AreaShape_BoundingBoxMinimum_X": x0,
+                "Cells_AreaShape_BoundingBoxMaximum_X": x0 + 4,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": y0,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": y0 + 4,
+            }
+        )
+    parquet.write_table(
+        pa.Table.from_pandas(pd.DataFrame(rows), preserve_index=False), chunk_path
+    )
+
+
+def _strip_acquisition_datetime(obj: Any) -> Any:
+    """
+    Recursively drop ``acquisition_datetime`` from OME-Arrow struct payloads.
+
+    ome_arrow stamps this field with the read time on every ``from_tiff`` call,
+    so it is non-deterministic across reads (and across processes). The pixel
+    data and all other fields are deterministic, so removing this field yields a
+    stable value for equality comparisons.
+    """
+
+    if isinstance(obj, dict):
+        return {
+            k: _strip_acquisition_datetime(v)
+            for k, v in obj.items()
+            if k != "acquisition_datetime"
+        }
+    if isinstance(obj, list):
+        return [_strip_acquisition_datetime(v) for v in obj]
+    return obj
+
+
+def _table_to_normalized_pydict(table: pa.Table, sort_key: str) -> dict:
+    """Sort a table by ``sort_key`` and return a deterministic pydict."""
+
+    return _strip_acquisition_datetime(
+        table.sort_by([(sort_key, "ascending")]).to_pydict()
+    )
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_parallel_matches_serial(fx_tempdir: str):
+    """
+    The ProcessPool row-shard path produces identical output to the serial path.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+    tifffile.imwrite(
+        image_dir / "cell.tiff", np.arange(100, dtype=np.uint16).reshape(10, 10)
+    )
+
+    # 40 rows x 2 image columns = 80 crops >= _CROP_PARALLEL_MIN (64).
+    chunk_path = Path(fx_tempdir) / "joined_parallel.parquet"
+    _write_image_crop_chunk(chunk_path, ["cell.tiff"], 40)
+
+    serial = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=1
+    )
+    parallel = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=4
+    )
+
+    assert serial.num_rows == 80
+    assert parallel.num_rows == 80
+    # Same columns/schema.
+    assert serial.column_names == parallel.column_names
+    # Same content, compared in a stable order (acquisition_datetime excluded
+    # because ome_arrow stamps it with the read time).
+    assert _table_to_normalized_pydict(serial, "Metadata_ImageCropID") == (
+        _table_to_normalized_pydict(parallel, "Metadata_ImageCropID")
+    )
+
+    # Explicitly assert the cropped image payloads themselves are equivalent
+    # between the two paths. The full-table comparison above already includes
+    # ome_arrow_image, but this makes the image-crop equivalence obvious and
+    # pinpoints pixel drift on failure (instead of a whole-table diff). Every
+    # row references a resolvable image with an in-bounds bbox, so no crops are
+    # null; acquisition_datetime is read-time-stamped by ome_arrow, so strip
+    # that non-deterministic field before comparing the struct payloads.
+    serial_sorted = serial.sort_by([("Metadata_ImageCropID", "ascending")])
+    parallel_sorted = parallel.sort_by([("Metadata_ImageCropID", "ascending")])
+    assert serial_sorted["ome_arrow_image"].null_count == 0
+    assert parallel_sorted["ome_arrow_image"].null_count == 0
+    assert _strip_acquisition_datetime(
+        serial_sorted["ome_arrow_image"].to_pylist()
+    ) == _strip_acquisition_datetime(parallel_sorted["ome_arrow_image"].to_pylist())
+
+
+def test_extract_crop_key_field_names_includes_object_columns():
+    """
+    _extract_crop_key_field_names discovers CellProfiler object-identity and
+    parent-linkage columns (suffixes _Object_Number / _Parent_Cells /
+    _Parent_Nuclei) plus Metadata_ObjectNumber, while all-NaN columns are
+    excluded. _extract_image_key_field_names (the source-image path) excludes
+    object-level columns because source images are keyed per image.
+    """
+
+    data = pd.DataFrame(
+        {
+            "Metadata_ImageNumber": [1, 2],
+            "Metadata_ObjectNumber": [1, 2],
+            "Cells_Number_Object_Number": [1, 2],
+            "Cytoplasm_Parent_Nuclei": [1, 2],
+            "Cells_Parent_Nuclei": [1, None],  # not all-null -> included
+            "Nuclei_Number_Object_Number": [None, None],  # all-null -> excluded
+            "Some_Other_Column": [1, 2],
+        }
+    )
+
+    assert set(_extract_crop_key_field_names(data)) == {
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Cells_Number_Object_Number",
+        "Cytoplasm_Parent_Nuclei",
+        "Cells_Parent_Nuclei",
+    }
+
+    image_names = set(_extract_image_key_field_names(data))
+    assert image_names == {"Metadata_ImageNumber"}
+    assert not image_names & {
+        "Metadata_ObjectNumber",
+        "Cells_Number_Object_Number",
+        "Cytoplasm_Parent_Nuclei",
+        "Cells_Parent_Nuclei",
+    }
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_preserves_object_key_columns(fx_tempdir: str):
+    """
+    Object-identity and parent-linkage columns survive on images.image_crops.
+
+    Regression: the parallel path's key-field allowlist silently dropped
+    CellProfiler-native columns (names ending in _Object_Number, _Parent_Cells,
+    or _Parent_Nuclei) such as Cells_Number_Object_Number and
+    Cytoplasm_Parent_Nuclei. Both the serial and parallel paths must carry them,
+    with matching schemas.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+    tifffile.imwrite(
+        image_dir / "cell.tiff", np.arange(100, dtype=np.uint16).reshape(10, 10)
+    )
+
+    # 40 rows x 2 image columns = 80 crops >= _CROP_PARALLEL_MIN (64).
+    n_rows = 40
+    rows = []
+    for i in range(n_rows):
+        rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 1,
+                "Image_FileName_DNA": "cell.tiff",
+                "Image_FileName_AGP": "cell.tiff",
+                "Cells_AreaShape_BoundingBoxMinimum_X": 1,
+                "Cells_AreaShape_BoundingBoxMaximum_X": 5,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": 1,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": 5,
+                "Cells_Number_Object_Number": i + 1,
+                "Nuclei_Number_Object_Number": i + 1,
+                "Cytoplasm_Number_Object_Number": i + 1,
+                "Cytoplasm_Parent_Cells": i + 1,
+                "Cytoplasm_Parent_Nuclei": i + 1,
+                "Cells_Parent_Nuclei": i + 1,
+            }
+        )
+    chunk_path = Path(fx_tempdir) / "joined_object_keys.parquet"
+    parquet.write_table(
+        pa.Table.from_pandas(pd.DataFrame(rows), preserve_index=False), chunk_path
+    )
+
+    expected_key_columns = {
+        "Metadata_ObjectNumber",
+        "Cells_Number_Object_Number",
+        "Nuclei_Number_Object_Number",
+        "Cytoplasm_Number_Object_Number",
+        "Cytoplasm_Parent_Cells",
+        "Cytoplasm_Parent_Nuclei",
+        "Cells_Parent_Nuclei",
+    }
+
+    serial = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=1
+    )
+    parallel = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=4
+    )
+
+    for table in (serial, parallel):
+        assert expected_key_columns.issubset(set(table.column_names))
+        for col in expected_key_columns:
+            # Carried through as non-null strings (see _rows_to_crop_table).
+            assert table[col].null_count == 0, col
+
+    # Serial and parallel paths produce the same schema and row count.
+    assert set(serial.column_names) == set(parallel.column_names)
+    assert serial.num_rows == parallel.num_rows == n_rows * 2
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_parallel_is_deterministic(fx_tempdir: str):
+    """
+    Repeated parallel runs produce identical output.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+    tifffile.imwrite(
+        image_dir / "cell.tiff", np.arange(100, dtype=np.uint16).reshape(10, 10)
+    )
+
+    chunk_path = Path(fx_tempdir) / "joined_deterministic.parquet"
+    _write_image_crop_chunk(chunk_path, ["cell.tiff"], 40)
+
+    first = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=4
+    )
+    second = image_crop_table_from_joined_chunk(
+        chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=4
+    )
+    assert _table_to_normalized_pydict(first, "Metadata_ImageCropID") == (
+        _table_to_normalized_pydict(second, "Metadata_ImageCropID")
+    )
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_image_crop_below_threshold_stays_serial(fx_tempdir: str):
+    """
+    Small chunks (below _CROP_PARALLEL_MIN) do not spawn a process pool.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+    tifffile.imwrite(
+        image_dir / "cell.tiff", np.arange(100, dtype=np.uint16).reshape(10, 10)
+    )
+
+    # 1 row x 2 image columns = 2 crops, below the threshold.
+    chunk_path = Path(fx_tempdir) / "joined_small.parquet"
+    _write_image_crop_chunk(chunk_path, ["cell.tiff"], 1)
+
+    with patch.object(images_module, "ProcessPoolExecutor") as mock_pool:
+        crop_table = image_crop_table_from_joined_chunk(
+            chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=4
+        )
+    mock_pool.assert_not_called()
+    assert crop_table.num_rows == 2
+
+
+def test_dedup_table_by_first_occurrence():
+    """
+    _dedup_table_by_first_occurrence keeps the first row per key and preserves order.
+    """
+
+    table = pa.table(
+        {
+            "Metadata_ImageID": ["a", "b", "a", "c", "b", None],
+            "payload": pa.array(
+                [
+                    {"x": 1},
+                    {"x": 2},
+                    {"x": 3},
+                    {"x": 4},
+                    {"x": 5},
+                    {"x": 6},
+                ],
+                type=pa.struct([pa.field("x", pa.int64())]),
+            ),
+        }
+    )
+
+    deduped = _dedup_table_by_first_occurrence(table, "Metadata_ImageID")
+    assert deduped.column("Metadata_ImageID").to_pylist() == ["a", "b", "c", None]
+    assert deduped.column("payload").to_pylist() == [
+        {"x": 1},
+        {"x": 2},
+        {"x": 4},
+        {"x": 6},
+    ]
+
+
+@pytest.mark.skipif(find_spec("ome_arrow") is None, reason="ome-arrow not installed")
+def test_source_image_parallel_dedup_matches_serial(fx_tempdir: str):
+    """
+    The source-image parallel path deduplicates across shards and matches serial.
+    """
+
+    tifffile = pytest.importorskip("tifffile")
+
+    image_dir = Path(fx_tempdir) / "images"
+    image_dir.mkdir()
+    for name in ("a.tiff", "b.tiff"):
+        tifffile.imwrite(
+            image_dir / name, np.arange(100, dtype=np.uint16).reshape(10, 10)
+        )
+
+    chunk_path = Path(fx_tempdir) / "joined_source_parallel.parquet"
+    _write_image_crop_chunk(chunk_path, ["a.tiff", "b.tiff"], 30)
+
+    # Lower the unique-image threshold so the 2-image chunk takes the parallel path.
+    with patch.object(images_module, "_SOURCE_PARALLEL_MIN", 1):
+        serial = source_image_table_from_joined_chunk(
+            chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=1
+        )
+        parallel = source_image_table_from_joined_chunk(
+            chunk_path=str(chunk_path), image_dir=str(image_dir), crop_workers=2
+        )
+
+    serial_ids = serial["Metadata_ImageID"].to_pylist()
+    parallel_ids = parallel["Metadata_ImageID"].to_pylist()
+    assert len(serial_ids) == len(set(serial_ids))
+    assert len(parallel_ids) == len(set(parallel_ids))
+    assert serial.num_rows == parallel.num_rows
+    assert _table_to_normalized_pydict(serial, "Metadata_ImageID") == (
+        _table_to_normalized_pydict(parallel, "Metadata_ImageID")
+    )
+
+    # Empty-shard coverage: a shard whose rows are all-unresolvable yields no
+    # rows, and crop_workers exceeding the row count produces empty trailing
+    # shards. Both cases must still emit the full schema so concat across
+    # shards succeeds and the parallel output matches serial.
+    empty_chunk = Path(fx_tempdir) / "joined_source_empty_shards.parquet"
+    empty_rows = []
+    # rows 0-1 reference a resolvable image in both columns; rows 2-3 reference
+    # only an unresolvable image, so their shard contributes zero rows.
+    for i in range(2):
+        empty_rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 1,
+                "Image_FileName_DNA": "a.tiff",
+                "Image_FileName_AGP": "a.tiff",
+                "Cells_AreaShape_BoundingBoxMinimum_X": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_X": 4,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": 4,
+            }
+        )
+    for i in range(2):
+        empty_rows.append(
+            {
+                "Metadata_ImageNumber": 1,
+                "Metadata_ObjectNumber": i + 3,
+                "Image_FileName_DNA": "missing.tiff",
+                "Image_FileName_AGP": "missing.tiff",
+                "Cells_AreaShape_BoundingBoxMinimum_X": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_X": 4,
+                "Cells_AreaShape_BoundingBoxMinimum_Y": 0,
+                "Cells_AreaShape_BoundingBoxMaximum_Y": 4,
+            }
+        )
+    parquet.write_table(
+        pa.Table.from_pandas(pd.DataFrame(empty_rows), preserve_index=False),
+        empty_chunk,
+    )
+
+    with patch.object(images_module, "_SOURCE_PARALLEL_MIN", 1):
+        serial_empty = source_image_table_from_joined_chunk(
+            chunk_path=str(empty_chunk), image_dir=str(image_dir), crop_workers=1
+        )
+        # crop_workers=8 >> 4 rows -> empty trailing shards; rows 2-3 form a
+        # 0-output shard.
+        parallel_empty = source_image_table_from_joined_chunk(
+            chunk_path=str(empty_chunk), image_dir=str(image_dir), crop_workers=8
+        )
+
+    assert serial_empty.schema == parallel_empty.schema
+    assert serial_empty.num_rows == parallel_empty.num_rows
+    empty_parallel_ids = parallel_empty["Metadata_ImageID"].to_pylist()
+    assert len(empty_parallel_ids) == len(set(empty_parallel_ids))
+    assert _table_to_normalized_pydict(serial_empty, "Metadata_ImageID") == (
+        _table_to_normalized_pydict(parallel_empty, "Metadata_ImageID")
+    )
+    # Only the resolvable image contributes rows (one per image column).
+    assert serial_empty.num_rows == 2
 
 
 @pytest.mark.skipif(find_spec("pyiceberg") is None, reason="pyiceberg not installed")

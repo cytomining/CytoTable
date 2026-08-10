@@ -5,9 +5,15 @@ Helpers for exporting image crops alongside CytoTable measurement data.
 from __future__ import annotations
 
 import logging
+import multiprocessing
+import os
 import pathlib
 import re
+import tempfile
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass
+from functools import partial
 from json import dumps
 from typing import Any, Dict, Optional, Sequence, Union
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
@@ -17,6 +23,7 @@ import pyarrow as pa
 import pyarrow.parquet as parquet
 from cloudpathlib import AnyPath, CloudPath
 
+from cytotable.exceptions import CytoTableException
 from cytotable.sources import _build_path
 from cytotable.utils import cloud_glob
 
@@ -512,6 +519,79 @@ def _extract_image_key_fields(row: pd.Series) -> dict[str, Any]:
     }
 
 
+def _extract_image_key_field_names(data: pd.DataFrame) -> list[str]:
+    """
+    Return the sorted image-level key field names present in a chunk.
+
+    Computed from the full chunk so every shard -- including ones that emit no
+    rows -- assembles a table with the same key columns, which is required for
+    ``pa.concat_tables`` to succeed across shards. Used for the per-image
+    ``images.source_images`` table, whose rows are keyed per image rather than
+    per object, so object-identity columns are intentionally excluded.
+    """
+
+    preferred_columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Image_Metadata_Well",
+        "Image_Metadata_Plate",
+        "Metadata_Well",
+        "Metadata_Plate",
+    ]
+    return sorted(
+        column
+        for column in preferred_columns
+        if column in data.columns and not data[column].isna().all()
+    )
+
+
+def _extract_crop_key_field_names(data: pd.DataFrame) -> list[str]:
+    """
+    Return the sorted key field names to carry on ``images.image_crops`` rows.
+
+    Mirrors the per-row discovery in :func:`_extract_key_fields`: the preferred
+    image/object-level columns plus any CellProfiler-native object-identity and
+    parent-linkage columns (names ending in ``_Object_Number``,
+    ``_Parent_Cells``, or ``_Parent_Nuclei``) that occur in the chunk. The
+    suffix match is needed because these names are compartment-prefixed (e.g.
+    ``Cells_Number_Object_Number``, ``Cytoplasm_Parent_Nuclei``) and so cannot
+    be enumerated up front; without it they were silently dropped from
+    ``images.image_crops`` for ``cellprofiler_sqlite``-preset data.
+
+    A column is included when at least one row in the chunk carries a non-null
+    value, matching :func:`_extract_key_fields`' row-by-row null omission (and
+    the serial path's previous ``sorted({keys} - {fixed})`` behavior), so the
+    column set matches what the serial path produced.
+
+    Computed from the full chunk so every shard -- including ones that emit no
+    rows -- assembles a table with the same key columns, which is required for
+    ``pa.concat_tables`` to succeed across shards.
+    """
+
+    preferred_columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Image_Metadata_Well",
+        "Image_Metadata_Plate",
+        "Metadata_Well",
+        "Metadata_Plate",
+    ]
+    names = {
+        column
+        for column in preferred_columns
+        if column in data.columns and not data[column].isna().all()
+    }
+    suffixes = ("_Object_Number", "_Parent_Cells", "_Parent_Nuclei")
+    for column in data.columns:
+        column_str = str(column)
+        if column_str in names:
+            continue
+        if column_str.endswith(suffixes) and not data[column].isna().all():
+            names.add(column_str)
+    return sorted(names)
+
+
 def _build_stable_object_id(
     key_fields: dict[str, Any],
     bbox: Optional[dict[str, int]] = None,
@@ -647,37 +727,58 @@ def _validated_bbox_values(
     }
 
 
-def image_crop_table_from_joined_chunk(
-    chunk_path: str,
-    image_dir: str,
-    mask_dir: Optional[str] = None,
-    outline_dir: Optional[str] = None,
-    bbox_column_map: Optional[Dict[str, str]] = None,
-    segmentation_file_regex: Optional[Dict[str, str]] = None,
-    path_kwargs: Optional[Dict[str, Any]] = None,
-) -> pa.Table:
+# Minimum estimated crop count before the per-chunk ProcessPool path is used.
+# Below this the spawn overhead dominates, so the serial path is kept (this also
+# keeps the existing small-chunk tests ProcessPool-free and deterministic).
+_CROP_PARALLEL_MIN = 64
+
+
+def _resolve_image_worker_count(crop_workers: Optional[int]) -> int:
     """
-    Build an Arrow table of OME-Arrow image crops from one joined parquet chunk.
+    Resolve the number of worker processes for per-chunk image cropping.
+
+    Selection policy:
+
+    - ``None`` (the default): pick an automatic count -- the number of logical
+      CPUs, falling back to 4 when :func:`os.cpu_count` cannot report it, and
+      capped at 8. The cap is the sweet spot for the GIL-bound crop slice work;
+      more processes just oversubscribe cores without speeding up the slice.
+    - An explicit integer: clamp it to at least 1. Values of ``0`` or less
+      resolve to ``1``, which keeps the serial path -- the caller only spawns a
+      process pool when this returns a value greater than 1 (see
+      ``_CROP_PARALLEL_MIN``), so ``0`` and ``1`` both mean "serial".
+
+    Returns the resolved worker count; the caller decides whether that is
+    enough to actually parallelize.
     """
 
-    _, ome_arrow_struct = _require_ome_arrow()
-    ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
-    data = parquet.read_table(chunk_path).to_pandas()
-    image_columns = _resolve_image_columns(data)
-    bbox_columns = resolve_bbox_columns(
-        data.columns.tolist(), bbox_column_map=bbox_column_map
-    )
+    if crop_workers is None:
+        cpu_count = os.cpu_count() or 4
+        return min(cpu_count, 8)
+    return max(1, int(crop_workers))
 
-    if bbox_columns is None:
-        raise ValueError(
-            "Unable to identify bounding box coordinate columns for image export."
-        )
 
-    image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
-    mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
-    outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+def _collect_crop_rows(
+    data: pd.DataFrame,
+    image_columns: Sequence[str],
+    bbox_columns: BBoxColumns,
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    image_index: FileIndex,
+    mask_index: FileIndex,
+    outline_index: FileIndex,
+    segmentation_file_regex: Optional[Dict[str, str]],
+    path_kwargs: Optional[Dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """
+    Build the list of crop-row records for one joined chunk.
+
+    Pure with respect to ``data`` and the provided indexes, so it may run inside
+    a worker process.
+    """
+
     segmentation_cache: dict[str, Optional[ImagePath]] = {}
-
     rows: list[dict[str, Any]] = []
     for _, row in data.iterrows():
         bbox_values = _validated_bbox_values(row, bbox_columns)
@@ -759,24 +860,21 @@ def image_crop_table_from_joined_chunk(
             }
             rows.append(record)
 
-    key_field_names = sorted(
-        {key for row in rows for key in row.keys()}
-        - {
-            "source_image_column",
-            "source_image_file",
-            "label_source_kind",
-            "Metadata_ObjectID",
-            "Metadata_ImageCropID",
-            "source_bbox_x_min",
-            "source_bbox_x_max",
-            "source_bbox_y_min",
-            "source_bbox_y_max",
-            "ome_arrow_image",
-            "ome_arrow_outline",
-            "ome_arrow_mask",
-            "ome_arrow_label",
-        }
-    )
+    return rows
+
+
+def _rows_to_crop_table(
+    rows: list[dict[str, Any]],
+    ome_arrow_struct: pa.DataType,
+    key_field_names: Sequence[str],
+) -> pa.Table:
+    """
+    Assemble crop-row records into an Arrow table.
+
+    ``key_field_names`` is the full chunk's key field set (see
+    :func:`_extract_image_key_field_names`) so empty shard outputs carry the
+    same schema as non-empty siblings and concatenate cleanly.
+    """
 
     if not rows:
         return pa.table(
@@ -867,26 +965,250 @@ def image_crop_table_from_joined_chunk(
     return pa.table({**key_columns, **fixed_columns})
 
 
-def source_image_table_from_joined_chunk(
+def _crop_shard_worker(
     chunk_path: str,
-    image_dir: str,
-    mask_dir: Optional[str] = None,
-    outline_dir: Optional[str] = None,
-    segmentation_file_regex: Optional[Dict[str, str]] = None,
-    path_kwargs: Optional[Dict[str, Any]] = None,
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    image_columns: Sequence[str],
+    bbox_columns: BBoxColumns,
+    segmentation_file_regex: Optional[Dict[str, str]],
+    path_kwargs: Optional[Dict[str, Any]],
+    key_field_names: Sequence[str],
 ) -> pa.Table:
     """
-    Build an Arrow table of full OME-Arrow source images from one joined chunk.
+    Process one row-shard of a joined chunk in a worker process.
+
+    Module-level so it is importable under multiprocessing spawn. Rebuilds the
+    file indexes locally (a few cheap dir walks) to avoid serializing
+    ``CloudPath`` objects across the process boundary. ``key_field_names`` is
+    the full chunk's key field set, passed in so empty shards still emit the
+    complete schema.
     """
 
     _, ome_arrow_struct = _require_ome_arrow()
     ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
     data = parquet.read_table(chunk_path).to_pandas()
+    image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
+    mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
+    outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+    rows = _collect_crop_rows(
+        data=data,
+        image_columns=image_columns,
+        bbox_columns=bbox_columns,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        image_index=image_index,
+        mask_index=mask_index,
+        outline_index=outline_index,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+    return _rows_to_crop_table(rows, ome_arrow_struct, key_field_names)
+
+
+def _write_row_shards(table: pa.Table, n_shards: int, tmpdir: str) -> list[str]:
+    """
+    Split an Arrow table into ``n_shards`` contiguous row-shard parquet files.
+
+    Shard boundaries are contiguous and ordered so concatenating the per-shard
+    results reproduces the serial row order.
+    """
+
+    n = table.num_rows
+    shard_size = max(1, n // n_shards)
+    shard_paths: list[str] = []
+    for i in range(n_shards):
+        start = i * shard_size
+        end = min((i + 1) * shard_size, n) if i < n_shards - 1 else n
+        if start >= end:
+            break
+        shard_path = os.path.join(tmpdir, f"shard_{i}.parquet")
+        parquet.write_table(table.slice(start, end - start), shard_path)
+        shard_paths.append(shard_path)
+    return shard_paths
+
+
+def _image_crop_table_parallel(
+    table: pa.Table,
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    image_columns: Sequence[str],
+    bbox_columns: BBoxColumns,
+    segmentation_file_regex: Optional[Dict[str, str]],
+    path_kwargs: Optional[Dict[str, Any]],
+    workers: int,
+    key_field_names: Sequence[str],
+) -> pa.Table:
+    """
+    Run the per-row crop work across ``workers`` processes and merge results.
+    """
+
+    with tempfile.TemporaryDirectory(prefix="cytotable_crop_shards_") as tmpdir:
+        shard_paths = _write_row_shards(table, workers, tmpdir)
+        worker = partial(
+            _crop_shard_worker,
+            image_dir=image_dir,
+            mask_dir=mask_dir,
+            outline_dir=outline_dir,
+            image_columns=list(image_columns),
+            bbox_columns=bbox_columns,
+            segmentation_file_regex=segmentation_file_regex,
+            path_kwargs=path_kwargs,
+            key_field_names=list(key_field_names),
+        )
+        with ProcessPoolExecutor(
+            max_workers=min(workers, len(shard_paths)),
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as ex:
+            try:
+                shard_tables = list(ex.map(worker, shard_paths))
+            except BrokenProcessPool as exc:  # pragma: no cover - spawn guard
+                raise CytoTableException(
+                    "Image-crop worker pool died before completing. The crop "
+                    "workers use the 'spawn' start method, which re-imports the "
+                    "caller's top-level script as __main__ in each worker. If "
+                    "you call convert(...) from a plain script, guard that call "
+                    "with `if __name__ == '__main__':` so workers do not re-run "
+                    "your whole pipeline (notebooks and REPLs are unaffected). "
+                    "As a workaround, set image_crop_workers=1 to use the serial "
+                    "path."
+                ) from exc
+    return pa.concat_tables(shard_tables)
+
+
+def image_crop_table_from_joined_chunk(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: Optional[str] = None,
+    outline_dir: Optional[str] = None,
+    bbox_column_map: Optional[Dict[str, str]] = None,
+    segmentation_file_regex: Optional[Dict[str, str]] = None,
+    path_kwargs: Optional[Dict[str, Any]] = None,
+    crop_workers: Optional[int] = None,
+) -> pa.Table:
+    """
+    Build an Arrow table of OME-Arrow image crops from one joined parquet chunk.
+
+    ``crop_workers`` controls per-chunk parallelism over the per-row crop loop:
+    ``None`` selects an automatic count (capped at 8), while ``0``/``1`` keeps
+    the serial path. Parallelism uses a process pool because the crop work
+    (``slice_ome_arrow`` over a pyarrow struct) holds the GIL, so threads do not
+    help. A threshold (``_CROP_PARALLEL_MIN``) keeps small chunks serial so the
+    process-spawn overhead never dominates.
+
+    The parallel path uses the ``spawn`` start method, which re-imports the
+    caller's top-level script as ``__main__`` in each worker. Callers that invoke
+    ``convert(...)`` (or this function) from a plain script must guard that call
+    with ``if __name__ == "__main__":`` so workers do not re-run the whole
+    pipeline; without the guard the pool dies with a ``BrokenProcessPool`` (re
+    -raised here as a :class:`~cytotable.exceptions.CytoTableException` with
+    guidance). Notebooks and REPLs are unaffected. Set ``crop_workers=1`` to
+    bypass the process pool entirely.
+    """
+
+    _, ome_arrow_struct = _require_ome_arrow()
+    ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
+    table = parquet.read_table(chunk_path)
+    data = table.to_pandas()
     image_columns = _resolve_image_columns(data)
+    bbox_columns = resolve_bbox_columns(
+        data.columns.tolist(), bbox_column_map=bbox_column_map
+    )
+
+    if bbox_columns is None:
+        raise ValueError(
+            "Unable to identify bounding box coordinate columns for image export."
+        )
+
+    workers = _resolve_image_worker_count(crop_workers)
+    estimated_crops = len(data) * max(1, len(image_columns))
+    key_field_names = _extract_crop_key_field_names(data)
+    if workers > 1 and estimated_crops >= _CROP_PARALLEL_MIN:
+        return _image_crop_table_parallel(
+            table=table,
+            image_dir=image_dir,
+            mask_dir=mask_dir,
+            outline_dir=outline_dir,
+            image_columns=image_columns,
+            bbox_columns=bbox_columns,
+            segmentation_file_regex=segmentation_file_regex,
+            path_kwargs=path_kwargs,
+            workers=workers,
+            key_field_names=key_field_names,
+        )
 
     image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
     mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
     outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+    rows = _collect_crop_rows(
+        data=data,
+        image_columns=image_columns,
+        bbox_columns=bbox_columns,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        image_index=image_index,
+        mask_index=mask_index,
+        outline_index=outline_index,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+    return _rows_to_crop_table(rows, ome_arrow_struct, key_field_names)
+
+
+# Minimum number of *unique* source images before the source-image ProcessPool
+# path is used. Source-image work is dominated by one full read per unique image
+# (rows are deduplicated by Metadata_ImageID), so the threshold is on unique
+# images rather than row count.
+_SOURCE_PARALLEL_MIN = 16
+
+
+def _dedup_table_by_first_occurrence(table: pa.Table, key_column: str) -> pa.Table:
+    """
+    Drop rows with a repeated ``key_column`` value, keeping the first occurrence.
+
+    Preserves row order and the table schema (including nested struct columns).
+    """
+
+    if table.num_rows == 0:
+        return table
+    keys = table.column(key_column).to_pylist()
+    seen: set[Any] = set()
+    indices: list[int] = []
+    for i, key in enumerate(keys):
+        if key is not None:
+            if key in seen:
+                continue
+            seen.add(key)
+        indices.append(i)
+    if len(indices) == table.num_rows:
+        return table
+    return table.take(indices)
+
+
+def _collect_source_rows(
+    data: pd.DataFrame,
+    image_columns: Sequence[str],
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    image_index: FileIndex,
+    mask_index: FileIndex,
+    outline_index: FileIndex,
+    segmentation_file_regex: Optional[Dict[str, str]],
+    path_kwargs: Optional[Dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """
+    Build the deduplicated list of source-image rows for one joined chunk.
+
+    Rows are deduplicated by ``Metadata_ImageID`` (first occurrence wins), so a
+    shard returns at most one row per source image it touches. Pure with respect
+    to ``data`` and the provided indexes, so it may run in a worker process.
+    """
+
     segmentation_cache: dict[str, Optional[ImagePath]] = {}
     rows_by_id: dict[str, dict[str, Any]] = {}
 
@@ -953,20 +1275,21 @@ def source_image_table_from_joined_chunk(
                 ),
             }
 
-    rows = list(rows_by_id.values())
-    key_field_names = sorted(
-        {key for row in rows for key in row.keys()}
-        - {
-            "Metadata_ImageID",
-            "source_image_column",
-            "source_image_file",
-            "label_source_kind",
-            "ome_arrow_image",
-            "ome_arrow_outline",
-            "ome_arrow_mask",
-            "ome_arrow_label",
-        }
-    )
+    return list(rows_by_id.values())
+
+
+def _rows_to_source_table(
+    rows: list[dict[str, Any]],
+    ome_arrow_struct: pa.DataType,
+    key_field_names: Sequence[str],
+) -> pa.Table:
+    """
+    Assemble source-image rows into an Arrow table.
+
+    ``key_field_names`` is the full chunk's key field set (see
+    :func:`_extract_image_key_field_names`) so empty shard outputs carry the
+    same schema as non-empty siblings and concatenate cleanly.
+    """
 
     if not rows:
         return pa.table(
@@ -1035,6 +1358,174 @@ def source_image_table_from_joined_chunk(
         ),
     }
     return pa.table({**key_columns, **fixed_columns})
+
+
+def _source_shard_worker(
+    chunk_path: str,
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    image_columns: Sequence[str],
+    segmentation_file_regex: Optional[Dict[str, str]],
+    path_kwargs: Optional[Dict[str, Any]],
+    key_field_names: Sequence[str],
+) -> pa.Table:
+    """
+    Process one row-shard of a joined chunk for source-image export.
+
+    Module-level so it is importable under multiprocessing spawn. Rebuilds the
+    file indexes locally to avoid serializing ``CloudPath`` across the process
+    boundary. ``key_field_names`` is the full chunk's key field set, passed in
+    so empty shards still emit the complete schema.
+    """
+
+    _, ome_arrow_struct = _require_ome_arrow()
+    ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
+    data = parquet.read_table(chunk_path).to_pandas()
+    image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
+    mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
+    outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+    rows = _collect_source_rows(
+        data=data,
+        image_columns=image_columns,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        image_index=image_index,
+        mask_index=mask_index,
+        outline_index=outline_index,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+    return _rows_to_source_table(rows, ome_arrow_struct, key_field_names)
+
+
+def _source_image_table_parallel(
+    table: pa.Table,
+    image_dir: Optional[str],
+    mask_dir: Optional[str],
+    outline_dir: Optional[str],
+    image_columns: Sequence[str],
+    segmentation_file_regex: Optional[Dict[str, str]],
+    path_kwargs: Optional[Dict[str, Any]],
+    workers: int,
+    key_field_names: Sequence[str],
+) -> pa.Table:
+    """
+    Run source-image export across ``workers`` processes and merge results.
+
+    Each shard deduplicates internally by ``Metadata_ImageID``; the merged table
+    is deduplicated again across shards (first occurrence wins) so an image that
+    appears in more than one shard is exported exactly once. ``key_field_names``
+    is the full chunk's key field set, passed to shards so empty shards still
+    emit the complete schema.
+    """
+
+    with tempfile.TemporaryDirectory(prefix="cytotable_source_shards_") as tmpdir:
+        shard_paths = _write_row_shards(table, workers, tmpdir)
+        worker = partial(
+            _source_shard_worker,
+            image_dir=image_dir,
+            mask_dir=mask_dir,
+            outline_dir=outline_dir,
+            image_columns=list(image_columns),
+            segmentation_file_regex=segmentation_file_regex,
+            path_kwargs=path_kwargs,
+            key_field_names=list(key_field_names),
+        )
+        with ProcessPoolExecutor(
+            max_workers=min(workers, len(shard_paths)),
+            mp_context=multiprocessing.get_context("spawn"),
+        ) as ex:
+            try:
+                shard_tables = list(ex.map(worker, shard_paths))
+            except BrokenProcessPool as exc:  # pragma: no cover - spawn guard
+                raise CytoTableException(
+                    "Source-image worker pool died before completing. The image "
+                    "workers use the 'spawn' start method, which re-imports the "
+                    "caller's top-level script as __main__ in each worker. If you "
+                    "call convert(...) from a plain script, guard that call with "
+                    "`if __name__ == '__main__':` so workers do not re-run your "
+                    "whole pipeline (notebooks and REPLs are unaffected). As a "
+                    "workaround, set image_crop_workers=1 to use the serial path."
+                ) from exc
+    merged = pa.concat_tables(shard_tables)
+    return _dedup_table_by_first_occurrence(merged, "Metadata_ImageID")
+
+
+def _count_unique_source_image_names(
+    data: pd.DataFrame, image_columns: Sequence[str]
+) -> int:
+    """
+    Estimate the number of distinct source images referenced by a chunk.
+    """
+
+    names: set[str] = set()
+    for column in image_columns:
+        column_values = data[column].dropna().astype(str) if column in data else None
+        if column_values is not None and not column_values.empty:
+            names.update(column_values.unique().tolist())
+    return len(names)
+
+
+def source_image_table_from_joined_chunk(
+    chunk_path: str,
+    image_dir: str,
+    mask_dir: Optional[str] = None,
+    outline_dir: Optional[str] = None,
+    segmentation_file_regex: Optional[Dict[str, str]] = None,
+    path_kwargs: Optional[Dict[str, Any]] = None,
+    crop_workers: Optional[int] = None,
+) -> pa.Table:
+    """
+    Build an Arrow table of full OME-Arrow source images from one joined chunk.
+
+    ``crop_workers`` controls per-chunk parallelism over the per-image reads,
+    mirroring ``image_crop_table_from_joined_chunk``: ``None`` selects an
+    automatic count (capped at 8), ``0``/``1`` keeps the serial path. Because
+    source-image rows are deduplicated by ``Metadata_ImageID``, parallelism is
+    only used when the chunk references at least ``_SOURCE_PARALLEL_MIN``
+    distinct images.
+    """
+
+    _, ome_arrow_struct = _require_ome_arrow()
+    ome_arrow_struct = _strip_null_fields_from_type(ome_arrow_struct)
+    table = parquet.read_table(chunk_path)
+    data = table.to_pandas()
+    image_columns = _resolve_image_columns(data)
+
+    workers = _resolve_image_worker_count(crop_workers)
+    unique_image_count = _count_unique_source_image_names(data, image_columns)
+    key_field_names = _extract_image_key_field_names(data)
+    if workers > 1 and unique_image_count >= _SOURCE_PARALLEL_MIN:
+        return _source_image_table_parallel(
+            table=table,
+            image_dir=image_dir,
+            mask_dir=mask_dir,
+            outline_dir=outline_dir,
+            image_columns=image_columns,
+            segmentation_file_regex=segmentation_file_regex,
+            path_kwargs=path_kwargs,
+            workers=workers,
+            key_field_names=key_field_names,
+        )
+
+    image_index = _build_file_index(image_dir, path_kwargs=path_kwargs)
+    mask_index = _build_file_index(mask_dir, path_kwargs=path_kwargs)
+    outline_index = _build_file_index(outline_dir, path_kwargs=path_kwargs)
+    rows = _collect_source_rows(
+        data=data,
+        image_columns=image_columns,
+        image_dir=image_dir,
+        mask_dir=mask_dir,
+        outline_dir=outline_dir,
+        image_index=image_index,
+        mask_index=mask_index,
+        outline_index=outline_index,
+        segmentation_file_regex=segmentation_file_regex,
+        path_kwargs=path_kwargs,
+    )
+    return _rows_to_source_table(rows, ome_arrow_struct, key_field_names)
 
 
 def add_object_id_to_profiles_frame(

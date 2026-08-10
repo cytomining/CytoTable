@@ -1656,6 +1656,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
     sort_output: bool = True,
     preset: Optional[str] = "cellprofiler_csv",
     parsl_config: Optional[parsl.Config] = None,
+    image_crop_workers: Optional[int] = None,
     **kwargs,
 ) -> Union[Dict[str, List[Dict[str, Any]]], List[Any], str]:
     """
@@ -1766,6 +1767,24 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Optional Parsl configuration to use for running CytoTable operations.
             Note: when using CytoTable multiple times in the same process,
             CytoTable will use the first provided configuration for all runs.
+        image_crop_workers (Optional[int]):
+            Number of worker processes used to parallelize the per-row image
+            crop work within each chunk when exporting to an Iceberg warehouse
+            (requires ``dest_backend="iceberg"`` and ``image_dir``). ``None``
+            (default) selects an automatic count (capped at 8); ``0`` or ``1``
+            keeps the serial path. The crop work holds the GIL, so this uses
+            processes rather than threads; small chunks stay serial
+            automatically. This is *per chunk*: CytoTable also runs chunks
+            concurrently through a Parsl thread pool (default 4 threads), so a
+            multi-chunk plate can run up to ``4 x image_crop_workers`` crop
+            processes at once (up to 32 with the defaults) — lower this for
+            multi-chunk plates to avoid oversubscribing cores. The parallel path
+            uses the ``spawn`` start
+            method, which re-imports the caller's top-level script as
+            ``__main__`` in each worker: when calling ``convert(...)`` from a
+            plain script, guard that call with ``if __name__ == "__main__":`` so
+            workers do not re-run your whole pipeline (notebooks and REPLs are
+            unaffected), or set ``image_crop_workers=1`` to use the serial path.
         **kwargs:
             Additional keyword args forwarded to source-gathering and
             backend-specific writers (for example, Cloudpathlib client
@@ -1860,6 +1879,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             preset=preset,
             drop_null=drop_null,
             parsl_config=parsl_config,
+            image_crop_workers=image_crop_workers,
             **kwargs,
         )
 

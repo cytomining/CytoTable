@@ -231,6 +231,7 @@ def test_convert_routes_to_iceberg(monkeypatch: pytest.MonkeyPatch):
         preset=None,
         drop_null=False,
         parsl_config=None,
+        image_crop_workers=None,
     )
 
 
