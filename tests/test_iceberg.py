@@ -18,7 +18,7 @@ import pyarrow as pa
 import pytest
 from duckdb import IOException as DuckDBIOException
 from parsl.config import Config
-from parsl.executors import ThreadPoolExecutor
+from parsl.executors import HighThroughputExecutor, ThreadPoolExecutor
 from pyarrow import parquet
 
 from cytotable.exceptions import CytoTableException
@@ -84,15 +84,21 @@ def test_ensure_thread_executor_does_not_duplicate():
 
 def test_default_parsl_config_has_single_executor():
     """
-    _default_parsl_config only includes a single executor by default;
-    the cytotable thread executor is added on-demand via
+    _default_parsl_config only includes a single HighThroughputExecutor by
+    default; the cytotable thread executor is added on-demand via
     _ensure_thread_executor for workflows that need it (e.g. Iceberg
     image-crop export).
     """
     cfg = _default_parsl_config()
-    labels = {e.label for e in cfg.executors}
     assert len(cfg.executors) == 1
-    assert CYTOTABLE_THREAD_EXECUTOR_LABEL not in labels
+    default_executor = cfg.executors[0]
+    assert isinstance(default_executor, HighThroughputExecutor)
+    assert default_executor.label == "htex_default_for_cytotable"
+
+    result = _ensure_thread_executor(cfg)
+    assert len(result.executors) == 2
+    assert result.executors[0] is default_executor
+    assert result.executors[1].label == CYTOTABLE_THREAD_EXECUTOR_LABEL
 
 
 def test_rewrite_join_sql_for_warehouse():
