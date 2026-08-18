@@ -93,15 +93,17 @@ def _parsl_loaded() -> bool:
 def _default_parsl_config():
     """
     Return a default Parsl configuration for use with CytoTable.
+
+    Only a single executor (HighThroughputExecutor) is included by default.
+    Use of Parsl's ThreadPoolExecutor may result in unfreed memory within
+    certain systems because of Apache Arrow's memory allocators, so it is
+    added on-demand (see _ensure_thread_executor) only for workflows -- such
+    as Iceberg image-crop export -- that specifically require it.
     """
     return Config(
         executors=[
             HighThroughputExecutor(
                 label="htex_default_for_cytotable",
-            ),
-            ParslThreadPoolExecutor(
-                label=CYTOTABLE_THREAD_EXECUTOR_LABEL,
-                max_threads=4,
             ),
         ]
     )
