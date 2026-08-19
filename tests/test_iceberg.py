@@ -85,9 +85,8 @@ def test_ensure_thread_executor_does_not_duplicate():
 def test_default_parsl_config_has_single_executor():
     """
     _default_parsl_config only includes a single HighThroughputExecutor by
-    default; the cytotable thread executor is added on-demand via
-    _ensure_thread_executor for workflows that need it (e.g. Iceberg
-    image-crop export).
+    default; _ensure_thread_executor adds the cytotable thread executor
+    only for workflows that need it (e.g. Iceberg image-crop export).
     """
     cfg = _default_parsl_config()
     assert len(cfg.executors) == 1
