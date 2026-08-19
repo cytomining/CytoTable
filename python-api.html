@@ -1671,6 +1671,11 @@ To be used with sorted and Pyarrow tables.</p>
 <dt class="sig sig-object py" id="cytotable.utils._default_parsl_config">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_default_parsl_config</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/utils.html#_default_parsl_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._default_parsl_config" title="Link to this definition">¶</a></dt>
 <dd><p>Return a default Parsl configuration for use with CytoTable.</p>
+<p>Only a single executor (HighThroughputExecutor) is included by default.
+Use of Parsl’s ThreadPoolExecutor may result in unfreed memory within
+certain systems because of Apache Arrow’s memory allocators, so
+_ensure_thread_executor adds it only for workflows – such as Iceberg
+image-crop export – that specifically require it.</p>
 </dd></dl>
 
 <dl class="py function">

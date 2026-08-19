@@ -495,15 +495,17 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_default_parsl_config</span><span class="p">():</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a default Parsl configuration for use with CytoTable.</span>
+
+<span class="sd">    Only a single executor (HighThroughputExecutor) is included by default.</span>
+<span class="sd">    Use of Parsl&#39;s ThreadPoolExecutor may result in unfreed memory within</span>
+<span class="sd">    certain systems because of Apache Arrow&#39;s memory allocators, so</span>
+<span class="sd">    _ensure_thread_executor adds it only for workflows -- such as Iceberg</span>
+<span class="sd">    image-crop export -- that specifically require it.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">Config</span><span class="p">(</span>
         <span class="n">executors</span><span class="o">=</span><span class="p">[</span>
             <span class="n">HighThroughputExecutor</span><span class="p">(</span>
                 <span class="n">label</span><span class="o">=</span><span class="s2">&quot;htex_default_for_cytotable&quot;</span><span class="p">,</span>
-            <span class="p">),</span>
-            <span class="n">ParslThreadPoolExecutor</span><span class="p">(</span>
-                <span class="n">label</span><span class="o">=</span><span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span><span class="p">,</span>
-                <span class="n">max_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">]</span>
     <span class="p">)</span></div>
