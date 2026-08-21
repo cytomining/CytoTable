@@ -75,10 +75,15 @@ def _get_source_filepaths(
     import os
     import pathlib
 
+    import duckdb
     from cloudpathlib import AnyPath, CloudPath
 
     from cytotable.exceptions import DatatypeException, NoInputDataException
-    from cytotable.utils import _cache_cloudpath_to_local, _duckdb_reader
+    from cytotable.utils import (
+        _cache_cloudpath_to_local,
+        _duckdb_reader,
+        _raise_if_sqlite_readonly_error,
+    )
 
     if (targets is None or targets == []) and source_datatype is None:
         raise DatatypeException(
@@ -136,6 +141,27 @@ def _get_source_filepaths(
         for element in sources:
             # check that the path is of sqlite type
             if element["source_path"].suffix.lower() == ".sqlite":
+                # perform a query to find the table names from the sqlite file
+                try:
+                    table_names = (
+                        ddb_reader.execute(
+                            """
+                            /* perform query on sqlite_master table for metadata on tables */
+                            SELECT name as table_name
+                            FROM sqlite_scan(?, 'sqlite_master')
+                            WHERE type='table'
+                            """,
+                            parameters=[str(element["source_path"])],
+                        )
+                        .fetch_arrow_table()["table_name"]
+                        .to_pylist()
+                    )
+                except duckdb.Error as e:
+                    _raise_if_sqlite_readonly_error(
+                        e, source_path=element["source_path"]
+                    )
+                    raise
+
                 # creates individual entries for each table
                 expanded_sources += [
                     {
@@ -144,18 +170,7 @@ def _get_source_filepaths(
                         ),
                         "table_name": table_name,
                     }
-                    # perform a query to find the table names from the sqlite file
-                    for table_name in ddb_reader.execute(
-                        """
-                        /* perform query on sqlite_master table for metadata on tables */
-                        SELECT name as table_name
-                        FROM sqlite_scan(?, 'sqlite_master')
-                        WHERE type='table'
-                        """,
-                        parameters=[str(element["source_path"])],
-                    )
-                    .fetch_arrow_table()["table_name"]
-                    .to_pylist()
+                    for table_name in table_names
                     # make sure the table names match with compartment + metadata names
                     if targets is not None
                     and any(target.lower() in table_name.lower() for target in targets)

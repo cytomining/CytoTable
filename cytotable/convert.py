@@ -53,7 +53,11 @@ def _get_table_columns_and_types(
 
     import duckdb
 
-    from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
+    from cytotable.utils import (
+        _duckdb_reader,
+        _raise_if_sqlite_readonly_error,
+        _sqlite_mixed_type_query_to_parquet,
+    )
 
     source_path = source["source_path"]
     source_type = str(source_path.suffix).lower()
@@ -113,6 +117,8 @@ def _get_table_columns_and_types(
             )
 
     except duckdb.Error as e:
+        _raise_if_sqlite_readonly_error(e, source_path=source_path)
+
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
         # to handle the mixed types
@@ -329,7 +335,11 @@ def _get_table_keyset_pagination_sets(
     import duckdb
 
     from cytotable.exceptions import NoInputDataException
-    from cytotable.utils import _duckdb_reader, _generate_pagesets
+    from cytotable.utils import (
+        _duckdb_reader,
+        _generate_pagesets,
+        _raise_if_sqlite_readonly_error,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -378,6 +388,10 @@ def _get_table_keyset_pagination_sets(
             )
 
             return None
+
+        except duckdb.Error as e:
+            _raise_if_sqlite_readonly_error(e, source_path=source_path)
+            raise
 
     elif sql_stmt is not None:
         with _duckdb_reader() as ddb_reader:
@@ -436,6 +450,7 @@ def _source_pageset_to_parquet(
     from cytotable.utils import (
         _duckdb_reader,
         _extract_npz_to_parquet,
+        _raise_if_sqlite_readonly_error,
         _sqlite_mixed_type_query_to_parquet,
         _write_parquet_table_with_metadata,
     )
@@ -536,6 +551,8 @@ def _source_pageset_to_parquet(
     # Include exception handling to read mixed-type data
     # using sqlite3 and special utility function.
     except duckdb.Error as e:
+        _raise_if_sqlite_readonly_error(e, source_path=source["source_path"])
+
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
         # to handle the mixed types

@@ -2,9 +2,15 @@
 Testing for cytotable/sources.py
 """
 
+import os
 import pathlib
+import shutil
+import sqlite3
 import tempfile
 
+import pytest
+
+from cytotable.exceptions import SQLiteReadOnlyException
 from cytotable.sources import _file_is_more_than_one_line, _get_source_filepaths
 
 
@@ -67,3 +73,48 @@ def test_get_source_filepaths_with_npz():
             "test_file.npz" in str(file["source_path"])
             for file in result[next(iter(result))]
         )
+
+
+def test_get_source_filepaths_with_wal_mode_readonly_sqlite():
+    """
+    Tests that _get_source_filepaths raises a helpful SQLiteReadOnlyException
+    (instead of an opaque duckdb.Error) when a source .sqlite file is left in
+    WAL journal mode and is missing its '-wal'/'-shm' companion files while
+    the file and its directory are read-only. This reproduces the "attempt to
+    write a readonly database" error which SQLite raises even for read-only
+    queries against such a file.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_dir_path = pathlib.Path(tmp_dir)
+
+        # create a WAL-mode sqlite source with a single table
+        source_dir = tmp_dir_path / "source"
+        source_dir.mkdir()
+        source_path = source_dir / "example.sqlite"
+        with sqlite3.connect(source_path) as conn:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("CREATE TABLE Image (ImageNumber INTEGER);")
+            conn.execute("INSERT INTO Image VALUES (1);")
+            conn.commit()
+
+        # copy only the main db file (omitting -wal/-shm companions),
+        # simulating a copy/sync which dropped the companion files
+        readonly_dir = tmp_dir_path / "readonly"
+        readonly_dir.mkdir()
+        readonly_path = readonly_dir / "example.sqlite"
+        shutil.copy(source_path, readonly_path)
+
+        # make the file and its directory read-only
+        os.chmod(readonly_path, 0o444)
+        os.chmod(readonly_dir, 0o555)
+
+        try:
+            with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
+                _get_source_filepaths(
+                    path=readonly_dir,
+                    targets=["image"],
+                )
+        finally:
+            # restore write permissions so TemporaryDirectory cleanup succeeds
+            os.chmod(readonly_dir, 0o755)
+            os.chmod(readonly_path, 0o644)
