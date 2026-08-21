@@ -70,6 +70,10 @@ def _get_source_filepaths(
             since at least one is required to identify source files.
         NoInputDataException:
             Raised when no input files are found at ``path``.
+        duckdb.Error:
+            Re-raised (or converted to SQLiteReadOnlyException) when querying
+            a sqlite source's table list fails for a reason other than the
+            known WAL/readonly failure mode.
     """
 
     import os

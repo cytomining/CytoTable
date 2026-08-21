@@ -326,6 +326,12 @@ def _get_table_keyset_pagination_sets(
     Returns:
         Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None]:
             List of keys to use for reading the data later on.
+
+    Raises:
+        duckdb.Error:
+            Re-raised (or converted to SQLiteReadOnlyException) when the
+            underlying duckdb query fails for a reason other than mixed-type
+            or invalid-input errors on a sqlite source.
     """
 
     import logging
