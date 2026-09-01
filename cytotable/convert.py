@@ -389,6 +389,11 @@ def _get_table_keyset_pagination_sets(
             duckdb.InvalidInputException,
             NoInputDataException,
         ) as invalid_input_exc:
+            if isinstance(invalid_input_exc, duckdb.InvalidInputException):
+                _raise_if_sqlite_readonly_error(
+                    invalid_input_exc, source_path=source_path
+                )
+
             logger.warning(
                 msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
             )

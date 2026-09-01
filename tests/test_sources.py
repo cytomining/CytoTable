@@ -7,6 +7,7 @@ import pathlib
 import shutil
 import sqlite3
 import tempfile
+from contextlib import closing
 
 import pytest
 
@@ -91,11 +92,12 @@ def test_get_source_filepaths_with_wal_mode_readonly_sqlite():
         source_dir = tmp_dir_path / "source"
         source_dir.mkdir()
         source_path = source_dir / "example.sqlite"
-        with sqlite3.connect(source_path) as conn:
-            conn.execute("PRAGMA journal_mode=WAL;")
-            conn.execute("CREATE TABLE Image (ImageNumber INTEGER);")
-            conn.execute("INSERT INTO Image VALUES (1);")
-            conn.commit()
+        with closing(sqlite3.connect(source_path)) as conn:
+            with conn:
+                conn.execute("PRAGMA journal_mode=WAL;")
+                conn.execute("CREATE TABLE Image (ImageNumber INTEGER);")
+                conn.execute("INSERT INTO Image VALUES (1);")
+                conn.commit()
 
         # copy only the main db file (omitting -wal/-shm companions),
         # simulating a copy/sync which dropped the companion files

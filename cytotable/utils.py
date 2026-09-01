@@ -238,10 +238,14 @@ def _raise_if_sqlite_readonly_error(
             failure mode.
     """
 
+    import shlex
+
     from cytotable.exceptions import SQLiteReadOnlyException
 
     if "attempt to write a readonly database" not in str(duckdb_exc).lower():
         return
+
+    source_path_arg = shlex.quote(str(source_path))
 
     raise SQLiteReadOnlyException(
         f"Unable to read SQLite source '{source_path}' because it appears to be in "
@@ -253,7 +257,7 @@ def _raise_if_sqlite_readonly_error(
         "from read-only storage.\n\n"
         "To fix this, run the following once on a system where you have write "
         "access to the file, then retry:\n\n"
-        f"    sqlite3 \"{source_path}\" 'PRAGMA journal_mode=DELETE;'\n\n"
+        f"    sqlite3 {source_path_arg} 'PRAGMA journal_mode=DELETE;'\n\n"
         "This checkpoints the database out of WAL mode permanently."
     ) from duckdb_exc
 
