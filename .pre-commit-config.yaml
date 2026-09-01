@@ -59,7 +59,7 @@ repos:
     hooks:
     -   id: vulture
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.0
+    rev: v2.3.1
     hooks:
     -   id: mypy
         exclude: >
@@ -73,7 +73,7 @@ repos:
     hooks:
     -   id: validate-cff
 -   repo: https://github.com/software-gardening/almanack
-    rev: v0.1.16
+    rev: v0.1.17
     hooks:
     -   id: almanack-check
 -   repo: https://github.com/jsh9/pydoclint
@@ -83,7 +83,7 @@ repos:
         args:
         -   --style=google
 -   repo: https://github.com/PyCQA/pylint
-    rev: v4.0.6
+    rev: v4.0.7
     hooks:
     -   id: pylint
         name: pylint
@@ -94,11 +94,11 @@ repos:
         # pylint due to it's dynamic analysis capabilities
         # and the way pre-commit references virtual environments.
         additional_dependencies:
-        -   "cloudpathlib[all]>=0.24.0"
-        -   "pyarrow>=25.0.0"
+        -   "cloudpathlib[all]>=0.25.0"
+        -   "pyarrow>=25.0.1"
         -   "pytest>=9.1.1"
-        -   "moto[server,s3]>=5.2.2,<6.0.0"
+        -   "moto[server,s3]>=5.2.3,<6.0.0"
         -   "duckdb>=1.5.5"
-        -   "parsl>=2026.7.20"
-        -   "pycytominer>=1.6.1"
+        -   "parsl>=2026.8.10"
+        -   "pycytominer>=1.7.1"
         -   "anndata"
