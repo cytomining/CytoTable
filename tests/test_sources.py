@@ -84,7 +84,24 @@ def test_get_source_filepaths_with_wal_mode_readonly_sqlite():
     the file and its directory are read-only. This reproduces the "attempt to
     write a readonly database" error which SQLite raises even for read-only
     queries against such a file.
+
+    This is a meaningful regression check, not a vacuous one: without the
+    os.chmod calls below to make the file/directory read-only, no exception
+    is raised at all (SQLite is able to create the missing '-wal'/'-shm'
+    files on the fly), and if _raise_if_sqlite_readonly_error stops
+    converting the underlying duckdb.Error, this test fails because a plain
+    duckdb.Error (not a SQLiteReadOnlyException) propagates instead.
+
+    Note this test is skipped when running as root, since root can bypass
+    the read-only file permission bits set below, which would prevent the
+    "attempt to write a readonly database" error from being reproduced.
     """
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip(
+            "root bypasses file permission bits, so read-only setup below"
+            " would not reproduce the target error."
+        )
+
     with tempfile.TemporaryDirectory() as tmp_dir:
         tmp_dir_path = pathlib.Path(tmp_dir)
 
