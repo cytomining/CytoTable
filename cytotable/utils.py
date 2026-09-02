@@ -258,7 +258,14 @@ def _raise_if_sqlite_readonly_error(
         "To fix this, run the following once on a system where you have write "
         "access to the file, then retry:\n\n"
         f"    sqlite3 {source_path_arg} 'PRAGMA journal_mode=DELETE;'\n\n"
-        "This checkpoints the database out of WAL mode permanently."
+        "This checkpoints the database out of WAL mode permanently. This is a safe "
+        "change to make: DELETE is SQLite's original and still most widely used "
+        "journal mode, it does not alter or remove any data in the database, and it "
+        "does not require the database to be closed or otherwise unavailable "
+        "beforehand. The only trade-off is that DELETE mode does not allow readers "
+        "and writers to access the database simultaneously (unlike WAL mode), which "
+        "is not a concern for a database that is being read from as a static "
+        "source, as is the case here."
     ) from duckdb_exc
 
 
