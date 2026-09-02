@@ -53,7 +53,11 @@ def _get_table_columns_and_types(
 
     import duckdb
 
-    from cytotable.utils import _duckdb_reader, _sqlite_mixed_type_query_to_parquet
+    from cytotable.utils import (
+        _duckdb_reader,
+        _raise_if_sqlite_readonly_error,
+        _sqlite_mixed_type_query_to_parquet,
+    )
 
     source_path = source["source_path"]
     source_type = str(source_path.suffix).lower()
@@ -113,6 +117,8 @@ def _get_table_columns_and_types(
             )
 
     except duckdb.Error as e:
+        _raise_if_sqlite_readonly_error(e, source_path=source_path)
+
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
         # to handle the mixed types
@@ -320,6 +326,12 @@ def _get_table_keyset_pagination_sets(
     Returns:
         Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None]:
             List of keys to use for reading the data later on.
+
+    Raises:
+        duckdb.Error:
+            Re-raised (or converted to SQLiteReadOnlyException) when the
+            underlying duckdb query fails for a reason other than mixed-type
+            or invalid-input errors on a sqlite source.
     """
 
     import logging
@@ -329,7 +341,11 @@ def _get_table_keyset_pagination_sets(
     import duckdb
 
     from cytotable.exceptions import NoInputDataException
-    from cytotable.utils import _duckdb_reader, _generate_pagesets
+    from cytotable.utils import (
+        _duckdb_reader,
+        _generate_pagesets,
+        _raise_if_sqlite_readonly_error,
+    )
 
     logger = logging.getLogger(__name__)
 
@@ -373,11 +389,20 @@ def _get_table_keyset_pagination_sets(
             duckdb.InvalidInputException,
             NoInputDataException,
         ) as invalid_input_exc:
+            if isinstance(invalid_input_exc, duckdb.InvalidInputException):
+                _raise_if_sqlite_readonly_error(
+                    invalid_input_exc, source_path=source_path
+                )
+
             logger.warning(
                 msg=f"Skipping file due to input file errors: {str(invalid_input_exc)}"
             )
 
             return None
+
+        except duckdb.Error as e:
+            _raise_if_sqlite_readonly_error(e, source_path=source_path)
+            raise
 
     elif sql_stmt is not None:
         with _duckdb_reader() as ddb_reader:
@@ -436,6 +461,7 @@ def _source_pageset_to_parquet(
     from cytotable.utils import (
         _duckdb_reader,
         _extract_npz_to_parquet,
+        _raise_if_sqlite_readonly_error,
         _sqlite_mixed_type_query_to_parquet,
         _write_parquet_table_with_metadata,
     )
@@ -536,6 +562,8 @@ def _source_pageset_to_parquet(
     # Include exception handling to read mixed-type data
     # using sqlite3 and special utility function.
     except duckdb.Error as e:
+        _raise_if_sqlite_readonly_error(e, source_path=source["source_path"])
+
         # if we see a mismatched type error
         # run a more nuanced query through sqlite
         # to handle the mixed types

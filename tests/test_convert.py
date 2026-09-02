@@ -10,6 +10,9 @@ import importlib
 import itertools
 import os
 import pathlib
+import shutil
+import sqlite3
+from contextlib import closing
 from importlib.util import find_spec
 from shutil import copy
 from typing import Any, Dict, List, Tuple, cast
@@ -28,6 +31,7 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
+    _get_table_keyset_pagination_sets,
     _infer_source_group_common_schema,
     _join_source_pageset,
     _prepare_join_sql,
@@ -35,7 +39,7 @@ from cytotable.convert import (
     _run_export_workflow,
     convert,
 )
-from cytotable.exceptions import CytoTableException
+from cytotable.exceptions import CytoTableException, SQLiteReadOnlyException
 from cytotable.presets import config
 from cytotable.sources import _infer_source_datatype
 from cytotable.utils import (
@@ -860,6 +864,46 @@ def test_infer_source_datatype(
     assert _infer_source_datatype(sources=data, source_datatype="parquet") == "parquet"
     with pytest.raises(Exception):
         _infer_source_datatype(sources=data)
+
+
+def test_get_table_keyset_pagination_sets_with_wal_mode_readonly_sqlite(
+    load_parsl_default: None, fx_tempdir: str
+):
+    """
+    Tests that pagination raises SQLiteReadOnlyException for a read-only
+    WAL-mode sqlite source missing its '-wal'/'-shm' companion files.
+    """
+
+    tmp_dir_path = pathlib.Path(fx_tempdir)
+
+    source_dir = tmp_dir_path / "pagination_wal_source"
+    source_dir.mkdir()
+    source_path = source_dir / "example.sqlite"
+    with closing(sqlite3.connect(source_path)) as conn:
+        with conn:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            conn.execute("CREATE TABLE Image (ImageNumber INTEGER);")
+            conn.execute("INSERT INTO Image VALUES (1);")
+            conn.commit()
+
+    readonly_dir = tmp_dir_path / "pagination_readonly"
+    readonly_dir.mkdir()
+    readonly_path = readonly_dir / "example.sqlite"
+    shutil.copy(source_path, readonly_path)
+
+    os.chmod(readonly_path, 0o444)
+    os.chmod(readonly_dir, 0o555)
+
+    try:
+        with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
+            _get_table_keyset_pagination_sets(
+                chunk_size=1000,
+                page_key="ImageNumber",
+                source={"table_name": "Image", "source_path": readonly_path},
+            ).result()
+    finally:
+        os.chmod(readonly_dir, 0o755)
+        os.chmod(readonly_path, 0o644)
 
 
 def test_run_export_workflow(

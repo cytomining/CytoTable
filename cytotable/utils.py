@@ -212,6 +212,63 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     )
 
 
+def _raise_if_sqlite_readonly_error(
+    duckdb_exc: duckdb.Error, source_path: Union[str, pathlib.Path]
+) -> None:
+    """
+    Detects the "attempt to write a readonly database" error which
+    DuckDB's sqlite_scanner raises when a SQLite source is in WAL
+    journal mode and lacks write access to its directory (SQLite
+    requires the ability to create '-wal'/'-shm' companion files even
+    for read-only queries against a WAL-mode database, so this is not
+    avoidable via read-only connection settings). When detected, this
+    raises a more actionable SQLiteReadOnlyException with a suggested
+    fix; otherwise it returns without raising, leaving the original
+    exception for the caller to handle.
+
+    Args:
+        duckdb_exc (duckdb.Error):
+            The duckdb error raised while scanning a SQLite source.
+        source_path (Union[str, pathlib.Path]):
+            Path to the SQLite source which triggered the error.
+
+    Raises:
+        SQLiteReadOnlyException:
+            When the underlying error matches the known WAL/readonly
+            failure mode.
+    """
+
+    import shlex
+
+    from cytotable.exceptions import SQLiteReadOnlyException
+
+    if "attempt to write a readonly database" not in str(duckdb_exc).lower():
+        return
+
+    source_path_arg = shlex.quote(str(source_path))
+
+    raise SQLiteReadOnlyException(
+        f"Unable to read SQLite source '{source_path}' because it appears to be in "
+        "WAL journal mode without write access to its directory. SQLite requires "
+        "the ability to create '-wal'/'-shm' companion files even for read-only "
+        "queries against a WAL-mode database, so this cannot be resolved through "
+        "read-only connection settings alone. This commonly happens when a .sqlite "
+        "file is copied without its '-wal'/'-shm' companion files, or is accessed "
+        "from read-only storage.\n\n"
+        "To fix this, run the following once on a system where you have write "
+        "access to the file, then retry:\n\n"
+        f"    sqlite3 {source_path_arg} 'PRAGMA journal_mode=DELETE;'\n\n"
+        "This checkpoints the database out of WAL mode permanently. This is a safe "
+        "change to make: DELETE is SQLite's original and still most widely used "
+        "journal mode, it does not alter or remove any data in the database, and it "
+        "does not require the database to be closed or otherwise unavailable "
+        "beforehand. The only trade-off is that DELETE mode does not allow readers "
+        "and writers to access the database simultaneously (unlike WAL mode), which "
+        "is not a concern for a database that is being read from as a static "
+        "source, as is the case here."
+    ) from duckdb_exc
+
+
 def _sqlite_mixed_type_query_to_parquet(
     source_path: str,
     table_name: str,

@@ -26,3 +26,12 @@ class SchemaException(CytoTableException):
     """
     Exception for schema challenges.
     """
+
+
+class SQLiteReadOnlyException(CytoTableException):
+    """
+    Exception for when a SQLite source cannot be opened due to it
+    being in WAL journal mode without write access to its directory
+    (SQLite requires the ability to create '-wal'/'-shm' companion
+    files even for read-only queries against a WAL-mode database).
+    """
