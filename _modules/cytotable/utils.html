@@ -621,6 +621,66 @@ window.runMermaid = runMermaid;</script>
 
 
 
+<div class="viewcode-block" id="_raise_if_sqlite_readonly_error">
+<a class="viewcode-back" href="../../python-api.html#cytotable.utils._raise_if_sqlite_readonly_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_raise_if_sqlite_readonly_error</span><span class="p">(</span>
+    <span class="n">duckdb_exc</span><span class="p">:</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="n">source_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Detects the &quot;attempt to write a readonly database&quot; error which</span>
+<span class="sd">    DuckDB&#39;s sqlite_scanner raises when a SQLite source is in WAL</span>
+<span class="sd">    journal mode and lacks write access to its directory (SQLite</span>
+<span class="sd">    requires the ability to create &#39;-wal&#39;/&#39;-shm&#39; companion files even</span>
+<span class="sd">    for read-only queries against a WAL-mode database, so this is not</span>
+<span class="sd">    avoidable via read-only connection settings). When detected, this</span>
+<span class="sd">    raises a more actionable SQLiteReadOnlyException with a suggested</span>
+<span class="sd">    fix; otherwise it returns without raising, leaving the original</span>
+<span class="sd">    exception for the caller to handle.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        duckdb_exc (duckdb.Error):</span>
+<span class="sd">            The duckdb error raised while scanning a SQLite source.</span>
+<span class="sd">        source_path (Union[str, pathlib.Path]):</span>
+<span class="sd">            Path to the SQLite source which triggered the error.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        SQLiteReadOnlyException:</span>
+<span class="sd">            When the underlying error matches the known WAL/readonly</span>
+<span class="sd">            failure mode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLiteReadOnlyException</span>
+
+    <span class="k">if</span> <span class="s2">&quot;attempt to write a readonly database&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">duckdb_exc</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">return</span>
+
+    <span class="n">source_path_arg</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="p">))</span>
+
+    <span class="k">raise</span> <span class="n">SQLiteReadOnlyException</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">&quot;Unable to read SQLite source &#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39; because it appears to be in &quot;</span>
+        <span class="s2">&quot;WAL journal mode without write access to its directory. SQLite requires &quot;</span>
+        <span class="s2">&quot;the ability to create &#39;-wal&#39;/&#39;-shm&#39; companion files even for read-only &quot;</span>
+        <span class="s2">&quot;queries against a WAL-mode database, so this cannot be resolved through &quot;</span>
+        <span class="s2">&quot;read-only connection settings alone. This commonly happens when a .sqlite &quot;</span>
+        <span class="s2">&quot;file is copied without its &#39;-wal&#39;/&#39;-shm&#39; companion files, or is accessed &quot;</span>
+        <span class="s2">&quot;from read-only storage.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;To fix this, run the following once on a system where you have write &quot;</span>
+        <span class="s2">&quot;access to the file, then retry:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;    sqlite3 </span><span class="si">{</span><span class="n">source_path_arg</span><span class="si">}</span><span class="s2"> &#39;PRAGMA journal_mode=DELETE;&#39;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;This checkpoints the database out of WAL mode permanently. This is a safe &quot;</span>
+        <span class="s2">&quot;change to make: DELETE is SQLite&#39;s original and still most widely used &quot;</span>
+        <span class="s2">&quot;journal mode, it does not alter or remove any data in the database, and it &quot;</span>
+        <span class="s2">&quot;does not require the database to be closed or otherwise unavailable &quot;</span>
+        <span class="s2">&quot;beforehand. The only trade-off is that DELETE mode does not allow readers &quot;</span>
+        <span class="s2">&quot;and writers to access the database simultaneously (unlike WAL mode), which &quot;</span>
+        <span class="s2">&quot;is not a concern for a database that is being read from as a static &quot;</span>
+        <span class="s2">&quot;source, as is the case here.&quot;</span>
+    <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">duckdb_exc</span></div>
+
+
+
 <div class="viewcode-block" id="_sqlite_mixed_type_query_to_parquet">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._sqlite_mixed_type_query_to_parquet">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>

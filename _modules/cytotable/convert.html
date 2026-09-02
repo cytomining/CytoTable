@@ -444,7 +444,11 @@ window.runMermaid = runMermaid;</script>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
 
-    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_duckdb_reader</span><span class="p">,</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">,</span>
+        <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
     <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
@@ -504,6 +508,8 @@ window.runMermaid = runMermaid;</script>
             <span class="p">)</span>
 
     <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">)</span>
+
         <span class="c1"># if we see a mismatched type error</span>
         <span class="c1"># run a more nuanced query through sqlite</span>
         <span class="c1"># to handle the mixed types</span>
@@ -711,6 +717,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None]:</span>
 <span class="sd">            List of keys to use for reading the data later on.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        duckdb.Error:</span>
+<span class="sd">            Re-raised (or converted to SQLiteReadOnlyException) when the</span>
+<span class="sd">            underlying duckdb query fails for a reason other than mixed-type</span>
+<span class="sd">            or invalid-input errors on a sqlite source.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
@@ -720,7 +732,11 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">NoInputDataException</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_generate_pagesets</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_duckdb_reader</span><span class="p">,</span>
+        <span class="n">_generate_pagesets</span><span class="p">,</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -764,11 +780,20 @@ window.runMermaid = runMermaid;</script>
             <span class="n">duckdb</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">,</span>
             <span class="n">NoInputDataException</span><span class="p">,</span>
         <span class="p">)</span> <span class="k">as</span> <span class="n">invalid_input_exc</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">invalid_input_exc</span><span class="p">,</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">InvalidInputException</span><span class="p">):</span>
+                <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span>
+                    <span class="n">invalid_input_exc</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span>
+                <span class="p">)</span>
+
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Skipping file due to input file errors: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">invalid_input_exc</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">)</span>
+            <span class="k">raise</span>
 
     <span class="k">elif</span> <span class="n">sql_stmt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
@@ -827,6 +852,7 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_duckdb_reader</span><span class="p">,</span>
         <span class="n">_extract_npz_to_parquet</span><span class="p">,</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">,</span>
         <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">,</span>
         <span class="n">_write_parquet_table_with_metadata</span><span class="p">,</span>
     <span class="p">)</span>
@@ -927,6 +953,8 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># Include exception handling to read mixed-type data</span>
     <span class="c1"># using sqlite3 and special utility function.</span>
     <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span>
+
         <span class="c1"># if we see a mismatched type error</span>
         <span class="c1"># run a more nuanced query through sqlite</span>
         <span class="c1"># to handle the mixed types</span>

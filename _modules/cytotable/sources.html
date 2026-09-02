@@ -466,15 +466,24 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            since at least one is required to identify source files.</span>
 <span class="sd">        NoInputDataException:</span>
 <span class="sd">            Raised when no input files are found at ``path``.</span>
+<span class="sd">        duckdb.Error:</span>
+<span class="sd">            Re-raised (or converted to SQLiteReadOnlyException) when querying</span>
+<span class="sd">            a sqlite source&#39;s table list fails for a reason other than the</span>
+<span class="sd">            known WAL/readonly failure mode.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
+    <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span><span class="p">,</span> <span class="n">CloudPath</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatatypeException</span><span class="p">,</span> <span class="n">NoInputDataException</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_cache_cloudpath_to_local</span><span class="p">,</span> <span class="n">_duckdb_reader</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">_cache_cloudpath_to_local</span><span class="p">,</span>
+        <span class="n">_duckdb_reader</span><span class="p">,</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">targets</span> <span class="o">==</span> <span class="p">[])</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
@@ -532,6 +541,27 @@ window.runMermaid = runMermaid;</script>
         <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
             <span class="c1"># check that the path is of sqlite type</span>
             <span class="k">if</span> <span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+                <span class="c1"># perform a query to find the table names from the sqlite file</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">table_names</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+<span class="w">                            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                            /* perform query on sqlite_master table for metadata on tables */</span>
+<span class="sd">                            SELECT name as table_name</span>
+<span class="sd">                            FROM sqlite_scan(?, &#39;sqlite_master&#39;)</span>
+<span class="sd">                            WHERE type=&#39;table&#39;</span>
+<span class="sd">                            &quot;&quot;&quot;</span><span class="p">,</span>
+                            <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])],</span>
+                        <span class="p">)</span>
+                        <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
+                        <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+                    <span class="p">)</span>
+                <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span>
+                        <span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span>
+
                 <span class="c1"># creates individual entries for each table</span>
                 <span class="n">expanded_sources</span> <span class="o">+=</span> <span class="p">[</span>
                     <span class="p">{</span>
@@ -540,18 +570,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="p">),</span>
                         <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">,</span>
                     <span class="p">}</span>
-                    <span class="c1"># perform a query to find the table names from the sqlite file</span>
-                    <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-<span class="w">                        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">                        /* perform query on sqlite_master table for metadata on tables */</span>
-<span class="sd">                        SELECT name as table_name</span>
-<span class="sd">                        FROM sqlite_scan(?, &#39;sqlite_master&#39;)</span>
-<span class="sd">                        WHERE type=&#39;table&#39;</span>
-<span class="sd">                        &quot;&quot;&quot;</span><span class="p">,</span>
-                        <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])],</span>
-                    <span class="p">)</span>
-                    <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
-                    <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">table_names</span>
                     <span class="c1"># make sure the table names match with compartment + metadata names</span>
                     <span class="k">if</span> <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                     <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">table_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">)</span>

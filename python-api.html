@@ -392,6 +392,11 @@ data source.</p></li>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Union[List[Optional[Tuple[Union[int, float], Union[int, float]]]], List[None], None]</p>
 </dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>duckdb.Error</strong> – Re-raised (or converted to SQLiteReadOnlyException) when the
+    underlying duckdb query fails for a reason other than mixed-type
+    or invalid-input errors on a sqlite source.</p>
+</dd>
 </dl>
 </dd></dl>
 
@@ -1571,6 +1576,9 @@ reading source paths from cloud object storage.</p></li>
 <li><p><a class="reference internal" href="#cytotable.exceptions.DatatypeException" title="cytotable.exceptions.DatatypeException"><strong>DatatypeException</strong></a> – Raised when both <code class="docutils literal notranslate"><span class="pre">targets</span></code> and <code class="docutils literal notranslate"><span class="pre">source_datatype</span></code> are unset,
     since at least one is required to identify source files.</p></li>
 <li><p><a class="reference internal" href="#cytotable.exceptions.NoInputDataException" title="cytotable.exceptions.NoInputDataException"><strong>NoInputDataException</strong></a> – Raised when no input files are found at <code class="docutils literal notranslate"><span class="pre">path</span></code>.</p></li>
+<li><p><strong>duckdb.Error</strong> – Re-raised (or converted to SQLiteReadOnlyException) when querying
+    a sqlite source’s table list fails for a reason other than the
+    known WAL/readonly failure mode.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1910,6 +1918,32 @@ provided by the following link:
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._raise_if_sqlite_readonly_error">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_raise_if_sqlite_readonly_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">duckdb_exc</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_raise_if_sqlite_readonly_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._raise_if_sqlite_readonly_error" title="Link to this definition">¶</a></dt>
+<dd><p>Detects the “attempt to write a readonly database” error which
+DuckDB’s sqlite_scanner raises when a SQLite source is in WAL
+journal mode and lacks write access to its directory (SQLite
+requires the ability to create ‘-wal’/’-shm’ companion files even
+for read-only queries against a WAL-mode database, so this is not
+avoidable via read-only connection settings). When detected, this
+raises a more actionable SQLiteReadOnlyException with a suggested
+fix; otherwise it returns without raising, leaving the original
+exception for the caller to handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>duckdb_exc</strong> (<em>duckdb.Error</em>) – The duckdb error raised while scanning a SQLite source.</p></li>
+<li><p><strong>source_path</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>pathlib.Path</em><em>]</em>) – Path to the SQLite source which triggered the error.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.SQLiteReadOnlyException" title="cytotable.exceptions.SQLiteReadOnlyException"><strong>SQLiteReadOnlyException</strong></a> – When the underlying error matches the known WAL/readonly
+    failure mode.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._remove_empty_dirs">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_remove_empty_dirs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_remove_empty_dirs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._remove_empty_dirs" title="Link to this definition">¶</a></dt>
 <dd><p>Recursively remove empty directories beneath <code class="docutils literal notranslate"><span class="pre">path</span></code> (bottom-up).</p>
@@ -2217,6 +2251,16 @@ with CytoTable.</p>
 </dd></dl>
 
 <dl class="py exception">
+<dt class="sig sig-object py" id="cytotable.exceptions.SQLiteReadOnlyException">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.exceptions.</span></span><span class="sig-name descname"><span class="pre">SQLiteReadOnlyException</span></span><a class="reference internal" href="_modules/cytotable/exceptions.html#SQLiteReadOnlyException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.exceptions.SQLiteReadOnlyException" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytoTableException</span></code></a></p>
+<p>Exception for when a SQLite source cannot be opened due to it
+being in WAL journal mode without write access to its directory
+(SQLite requires the ability to create ‘-wal’/’-shm’ companion
+files even for read-only queries against a WAL-mode database).</p>
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="cytotable.exceptions.SchemaException">
 <em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.exceptions.</span></span><span class="sig-name descname"><span class="pre">SchemaException</span></span><a class="reference internal" href="_modules/cytotable/exceptions.html#SchemaException"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.exceptions.SchemaException" title="Link to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><code class="xref py py-class docutils literal notranslate"><span class="pre">CytoTableException</span></code></a></p>
@@ -2371,6 +2415,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._glob_pattern_matches"><code class="docutils literal notranslate"><span class="pre">_glob_pattern_matches()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._natural_sort"><code class="docutils literal notranslate"><span class="pre">_natural_sort()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._raise_if_sqlite_readonly_error"><code class="docutils literal notranslate"><span class="pre">_raise_if_sqlite_readonly_error()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._remove_empty_dirs"><code class="docutils literal notranslate"><span class="pre">_remove_empty_dirs()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
@@ -2391,6 +2436,7 @@ with CytoTable.</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.exceptions.CytoTableException"><code class="docutils literal notranslate"><span class="pre">CytoTableException</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.exceptions.DatatypeException"><code class="docutils literal notranslate"><span class="pre">DatatypeException</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.exceptions.NoInputDataException"><code class="docutils literal notranslate"><span class="pre">NoInputDataException</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.exceptions.SQLiteReadOnlyException"><code class="docutils literal notranslate"><span class="pre">SQLiteReadOnlyException</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.exceptions.SchemaException"><code class="docutils literal notranslate"><span class="pre">SchemaException</span></code></a></li>
 </ul>
 </li>

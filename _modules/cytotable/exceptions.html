@@ -429,6 +429,18 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Exception for schema challenges.</span>
 <span class="sd">    &quot;&quot;&quot;</span></div>
 
+
+
+<div class="viewcode-block" id="SQLiteReadOnlyException">
+<a class="viewcode-back" href="../../python-api.html#cytotable.exceptions.SQLiteReadOnlyException">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SQLiteReadOnlyException</span><span class="p">(</span><span class="n">CytoTableException</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception for when a SQLite source cannot be opened due to it</span>
+<span class="sd">    being in WAL journal mode without write access to its directory</span>
+<span class="sd">    (SQLite requires the ability to create &#39;-wal&#39;/&#39;-shm&#39; companion</span>
+<span class="sd">    files even for read-only queries against a WAL-mode database).</span>
+<span class="sd">    &quot;&quot;&quot;</span></div>
+
 </pre></div>
 
           </div>
