@@ -51,7 +51,7 @@ repos:
         args: ["-c", "pyproject.toml"]
         additional_dependencies: ["bandit[toml]"]
 -   repo: https://github.com/PyCQA/isort
-    rev: 8.0.1
+    rev: 9.0.1
     hooks:
     -   id: isort
 -   repo: https://github.com/jendrikseipp/vulture
@@ -83,7 +83,7 @@ repos:
         args:
         -   --style=google
 -   repo: https://github.com/PyCQA/pylint
-    rev: v4.0.7
+    rev: v4.0.9
     hooks:
     -   id: pylint
         name: pylint
@@ -99,6 +99,6 @@ repos:
         -   "pytest>=9.1.1"
         -   "moto[server,s3]>=5.2.3,<6.0.0"
         -   "duckdb>=1.5.5"
-        -   "parsl>=2026.8.10"
+        -   "parsl>=2026.9.14"
         -   "pycytominer>=1.7.1"
         -   "anndata"
