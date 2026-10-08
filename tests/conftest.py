@@ -679,9 +679,11 @@ def fixture_cytominerdatabase_merged_cellhealth(
     control_result = control_result.cast(
         pa.schema(
             [
-                pa.field(field.name, pa.string())
-                if pa.types.is_large_string(field.type)
-                else field
+                (
+                    pa.field(field.name, pa.string())
+                    if pa.types.is_large_string(field.type)
+                    else field
+                )
                 for field in control_result.schema
             ]
         )
