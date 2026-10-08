@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cytotable.utils &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=37770e68" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=01d9ba92" />
@@ -14,6 +14,8 @@
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
 
 
 
@@ -389,9 +391,9 @@ window.runMermaid = runMermaid;</script>
           <div class="body" role="main">
             
   <h1>Source code for cytotable.utils</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">Utility functions for CytoTable</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">fnmatch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
@@ -419,19 +421,19 @@ window.runMermaid = runMermaid;</script>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
-<span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="o">=</span> <span class="s2">&quot;cytotable_threads&quot;</span>
+<span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="o">=</span> <span class="s2">"cytotable_threads"</span>
 
 
 <div class="viewcode-block" id="_ensure_thread_executor">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._ensure_thread_executor">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_thread_executor</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Config</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Add CytoTable&#39;s ThreadPoolExecutor to a Parsl Config if not already present.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Add CytoTable's ThreadPoolExecutor to a Parsl Config if not already present.</span>
 
 <span class="sd">    The thread executor is used for I/O-bound image processing tasks so they</span>
 <span class="sd">    run in-process (no Arrow serialization cost) alongside the HighThroughputExecutor</span>
 <span class="sd">    that handles the data-preparation pipeline.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">labels</span> <span class="o">=</span> <span class="p">{</span><span class="n">e</span><span class="o">.</span><span class="n">label</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">executors</span><span class="p">}</span>
     <span class="k">if</span> <span class="n">CYTOTABLE_THREAD_EXECUTOR_LABEL</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">Config</span><span class="p">(</span>
@@ -454,12 +456,12 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="Parsl_AppBase_init_for_docs">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils.Parsl_AppBase_init_for_docs">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">Parsl_AppBase_init_for_docs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A function to extend Parsl.app.app.AppBase with</span>
 <span class="sd">    docstring from decorated functions rather than</span>
 <span class="sd">    the decorators from Parsl. Used for</span>
 <span class="sd">    Sphinx documentation purposes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">original_init</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="c1"># add function doc as the app doc</span>
     <span class="bp">self</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="vm">__doc__</span></div>
@@ -473,9 +475,9 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_parsl_loaded">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._parsl_loaded">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_parsl_loaded</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Checks whether Parsl configuration has already been loaded.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># try to reference Parsl dataflowkernel</span>
@@ -493,19 +495,19 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_default_parsl_config">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._default_parsl_config">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_default_parsl_config</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Return a default Parsl configuration for use with CytoTable.</span>
 
 <span class="sd">    Only a single executor (HighThroughputExecutor) is included by default.</span>
-<span class="sd">    Use of Parsl&#39;s ThreadPoolExecutor may result in unfreed memory within</span>
-<span class="sd">    certain systems because of Apache Arrow&#39;s memory allocators, so</span>
+<span class="sd">    Use of Parsl's ThreadPoolExecutor may result in unfreed memory within</span>
+<span class="sd">    certain systems because of Apache Arrow's memory allocators, so</span>
 <span class="sd">    _ensure_thread_executor adds it only for workflows -- such as Iceberg</span>
 <span class="sd">    image-crop export -- that specifically require it.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">Config</span><span class="p">(</span>
         <span class="n">executors</span><span class="o">=</span><span class="p">[</span>
             <span class="n">HighThroughputExecutor</span><span class="p">(</span>
-                <span class="n">label</span><span class="o">=</span><span class="s2">&quot;htex_default_for_cytotable&quot;</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="s2">"htex_default_for_cytotable"</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">]</span>
     <span class="p">)</span></div>
@@ -516,10 +518,10 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_column_sort">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._column_sort">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_column_sort</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    A custom sort for column values as a list.</span>
 <span class="sd">    To be used with sorted and Pyarrow tables.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># lowercase str which will be used for comparisons</span>
     <span class="c1"># to avoid any capitalization challenges</span>
@@ -527,23 +529,23 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># first sorted values (by list index)</span>
     <span class="n">sort_first</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;tablenumber&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;metadata_tablenumber&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;imagenumber&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;metadata_imagenumber&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;objectnumber&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;object_number&quot;</span><span class="p">,</span>
+        <span class="s2">"tablenumber"</span><span class="p">,</span>
+        <span class="s2">"metadata_tablenumber"</span><span class="p">,</span>
+        <span class="s2">"imagenumber"</span><span class="p">,</span>
+        <span class="s2">"metadata_imagenumber"</span><span class="p">,</span>
+        <span class="s2">"objectnumber"</span><span class="p">,</span>
+        <span class="s2">"object_number"</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># middle sort value</span>
-    <span class="n">sort_middle</span> <span class="o">=</span> <span class="s2">&quot;metadata&quot;</span>
+    <span class="n">sort_middle</span> <span class="o">=</span> <span class="s2">"metadata"</span>
 
     <span class="c1"># sorted last (by list order enumeration)</span>
     <span class="n">sort_later</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="s2">&quot;image&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;cytoplasm&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;cells&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;nuclei&quot;</span><span class="p">,</span>
+        <span class="s2">"image"</span><span class="p">,</span>
+        <span class="s2">"cytoplasm"</span><span class="p">,</span>
+        <span class="s2">"cells"</span><span class="p">,</span>
+        <span class="s2">"nuclei"</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># if value is in the sort_first list</span>
@@ -572,7 +574,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_duckdb_reader">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._duckdb_reader">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_duckdb_reader</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Creates a DuckDB connection with the</span>
 <span class="sd">    sqlite_scanner installed and loaded.</span>
 
@@ -585,7 +587,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        duckdb.DuckDBPyConnection:</span>
 <span class="sd">            A configured DuckDB connection with the sqlite_scanner and</span>
 <span class="sd">            httpfs extensions installed and loaded.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
 
@@ -594,7 +596,7 @@ window.runMermaid = runMermaid;</script>
     <span class="k">return</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">connect</span><span class="p">()</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
         <span class="c1"># note: we use an f-string here to</span>
         <span class="c1"># dynamically configure threads as appropriate</span>
-        <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">        /* Install and load sqlite plugin for duckdb */</span>
 <span class="s2">        INSTALL sqlite_scanner;</span>
 <span class="s2">        LOAD sqlite_scanner;</span>
@@ -616,7 +618,7 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">        https://duckdb.org/docs/sql/configuration#configuration-reference</span>
 <span class="s2">        */</span>
 <span class="s2">        PRAGMA preserve_insertion_order=FALSE;</span>
-<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+<span class="s2">        """</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -626,11 +628,11 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_raise_if_sqlite_readonly_error</span><span class="p">(</span>
     <span class="n">duckdb_exc</span><span class="p">:</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span><span class="p">,</span> <span class="n">source_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Detects the &quot;attempt to write a readonly database&quot; error which</span>
-<span class="sd">    DuckDB&#39;s sqlite_scanner raises when a SQLite source is in WAL</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Detects the "attempt to write a readonly database" error which</span>
+<span class="sd">    DuckDB's sqlite_scanner raises when a SQLite source is in WAL</span>
 <span class="sd">    journal mode and lacks write access to its directory (SQLite</span>
-<span class="sd">    requires the ability to create &#39;-wal&#39;/&#39;-shm&#39; companion files even</span>
+<span class="sd">    requires the ability to create '-wal'/'-shm' companion files even</span>
 <span class="sd">    for read-only queries against a WAL-mode database, so this is not</span>
 <span class="sd">    avoidable via read-only connection settings). When detected, this</span>
 <span class="sd">    raises a more actionable SQLiteReadOnlyException with a suggested</span>
@@ -647,36 +649,36 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        SQLiteReadOnlyException:</span>
 <span class="sd">            When the underlying error matches the known WAL/readonly</span>
 <span class="sd">            failure mode.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SQLiteReadOnlyException</span>
 
-    <span class="k">if</span> <span class="s2">&quot;attempt to write a readonly database&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">duckdb_exc</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+    <span class="k">if</span> <span class="s2">"attempt to write a readonly database"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">duckdb_exc</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
         <span class="k">return</span>
 
     <span class="n">source_path_arg</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">quote</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="p">))</span>
 
     <span class="k">raise</span> <span class="n">SQLiteReadOnlyException</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;Unable to read SQLite source &#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39; because it appears to be in &quot;</span>
-        <span class="s2">&quot;WAL journal mode without write access to its directory. SQLite requires &quot;</span>
-        <span class="s2">&quot;the ability to create &#39;-wal&#39;/&#39;-shm&#39; companion files even for read-only &quot;</span>
-        <span class="s2">&quot;queries against a WAL-mode database, so this cannot be resolved through &quot;</span>
-        <span class="s2">&quot;read-only connection settings alone. This commonly happens when a .sqlite &quot;</span>
-        <span class="s2">&quot;file is copied without its &#39;-wal&#39;/&#39;-shm&#39; companion files, or is accessed &quot;</span>
-        <span class="s2">&quot;from read-only storage.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;To fix this, run the following once on a system where you have write &quot;</span>
-        <span class="s2">&quot;access to the file, then retry:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;    sqlite3 </span><span class="si">{</span><span class="n">source_path_arg</span><span class="si">}</span><span class="s2"> &#39;PRAGMA journal_mode=DELETE;&#39;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-        <span class="s2">&quot;This checkpoints the database out of WAL mode permanently. This is a safe &quot;</span>
-        <span class="s2">&quot;change to make: DELETE is SQLite&#39;s original and still most widely used &quot;</span>
-        <span class="s2">&quot;journal mode, it does not alter or remove any data in the database, and it &quot;</span>
-        <span class="s2">&quot;does not require the database to be closed or otherwise unavailable &quot;</span>
-        <span class="s2">&quot;beforehand. The only trade-off is that DELETE mode does not allow readers &quot;</span>
-        <span class="s2">&quot;and writers to access the database simultaneously (unlike WAL mode), which &quot;</span>
-        <span class="s2">&quot;is not a concern for a database that is being read from as a static &quot;</span>
-        <span class="s2">&quot;source, as is the case here.&quot;</span>
+        <span class="sa">f</span><span class="s2">"Unable to read SQLite source '</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">' because it appears to be in "</span>
+        <span class="s2">"WAL journal mode without write access to its directory. SQLite requires "</span>
+        <span class="s2">"the ability to create '-wal'/'-shm' companion files even for read-only "</span>
+        <span class="s2">"queries against a WAL-mode database, so this cannot be resolved through "</span>
+        <span class="s2">"read-only connection settings alone. This commonly happens when a .sqlite "</span>
+        <span class="s2">"file is copied without its '-wal'/'-shm' companion files, or is accessed "</span>
+        <span class="s2">"from read-only storage.</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"To fix this, run the following once on a system where you have write "</span>
+        <span class="s2">"access to the file, then retry:</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="sa">f</span><span class="s2">"    sqlite3 </span><span class="si">{</span><span class="n">source_path_arg</span><span class="si">}</span><span class="s2"> 'PRAGMA journal_mode=DELETE;'</span><span class="se">\n\n</span><span class="s2">"</span>
+        <span class="s2">"This checkpoints the database out of WAL mode permanently. This is a safe "</span>
+        <span class="s2">"change to make: DELETE is SQLite's original and still most widely used "</span>
+        <span class="s2">"journal mode, it does not alter or remove any data in the database, and it "</span>
+        <span class="s2">"does not require the database to be closed or otherwise unavailable "</span>
+        <span class="s2">"beforehand. The only trade-off is that DELETE mode does not allow readers "</span>
+        <span class="s2">"and writers to access the database simultaneously (unlike WAL mode), which "</span>
+        <span class="s2">"is not a concern for a database that is being read from as a static "</span>
+        <span class="s2">"source, as is the case here."</span>
     <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">duckdb_exc</span></div>
 
 
@@ -691,7 +693,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Performs SQLite table data extraction where one or many</span>
 <span class="sd">    columns include data values of potentially mismatched type</span>
 <span class="sd">    such that the data may be exported to Arrow for later use.</span>
@@ -716,7 +718,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            A PyArrow table containing the extracted rows, with mixed-type</span>
 <span class="sd">            cells coerced to nulls where storage class disagrees with column</span>
 <span class="sd">            type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
@@ -733,15 +735,15 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># See the following for more information:</span>
         <span class="c1"># https://sqlite.org/pragma.html#pragma_table_info</span>
         <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">"""</span>
 <span class="sd">            SELECT :table_name as table_name,</span>
 <span class="sd">                    name as column_name,</span>
 <span class="sd">                    type as column_type</span>
 <span class="sd">            FROM pragma_table_info(:table_name)</span>
-<span class="sd">            /* explicit column ordering by &#39;cid&#39; */</span>
+<span class="sd">            /* explicit column ordering by 'cid' */</span>
 <span class="sd">            ORDER BY cid ASC;</span>
-<span class="sd">            &quot;&quot;&quot;</span><span class="p">,</span>
-            <span class="p">{</span><span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">},</span>
+<span class="sd">            """</span><span class="p">,</span>
+            <span class="p">{</span><span class="s2">"table_name"</span><span class="p">:</span> <span class="n">table_name</span><span class="p">},</span>
         <span class="p">)</span>
 
         <span class="c1"># gather column metadata details as list of dictionaries</span>
@@ -758,10 +760,10 @@ window.runMermaid = runMermaid;</script>
                 <span class="k">if</span> <span class="n">col_type</span> <span class="ow">in</span> <span class="n">values</span>
             <span class="p">]</span>
 
-            <span class="c1"># if we&#39;re unable to find a synonym for the type, raise an error</span>
+            <span class="c1"># if we're unable to find a synonym for the type, raise an error</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">translated_type</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;Unable to find SQLite data type synonym for </span><span class="si">{</span><span class="n">col_type</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="sa">f</span><span class="s2">"Unable to find SQLite data type synonym for </span><span class="si">{</span><span class="n">col_type</span><span class="si">}</span><span class="s2">."</span>
                 <span class="p">)</span>
 
             <span class="c1"># return the translated type for use in SQLite</span>
@@ -770,31 +772,31 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># build tablenumber segment addition (if necessary)</span>
         <span class="n">tablenumber_sql</span> <span class="o">=</span> <span class="p">(</span>
             <span class="c1"># to become tablenumber in sql select later with integer</span>
-            <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="si">{</span><span class="n">tablenumber</span><span class="si">}</span><span class="s2"> AS INTEGER) as TableNumber, &quot;</span>
+            <span class="sa">f</span><span class="s2">"CAST(</span><span class="si">{</span><span class="n">tablenumber</span><span class="si">}</span><span class="s2"> AS INTEGER) as TableNumber, "</span>
             <span class="k">if</span> <span class="n">tablenumber</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="c1"># if we don&#39;t have a tablenumber value, don&#39;t introduce the column</span>
-            <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+            <span class="c1"># if we don't have a tablenumber value, don't introduce the column</span>
+            <span class="k">else</span> <span class="s2">""</span>
         <span class="p">)</span>
 
         <span class="c1"># create cases for mixed-type handling in each column discovered above</span>
-        <span class="n">query_parts</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">query_parts</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">            CASE</span>
-<span class="s2">                /* when the storage class type doesn&#39;t match the column, return nulltype */</span>
-<span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s2">) !=</span>
-<span class="s2">                &#39;</span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">&#39; THEN NULL</span>
+<span class="s2">                /* when the storage class type doesn't match the column, return nulltype */</span>
+<span class="s2">                WHEN typeof(</span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">]</span><span class="si">}</span><span class="s2">) !=</span>
+<span class="s2">                '</span><span class="si">{</span><span class="n">_sqlite_affinity_data_type_lookup</span><span class="p">(</span><span class="n">col</span><span class="p">[</span><span class="s2">"column_type"</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="si">}</span><span class="s2">' THEN NULL</span>
 <span class="s2">                /* else, return the normal value */</span>
-<span class="s2">                ELSE </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span>
-<span class="s2">            END AS </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span>
-<span class="s2">            &quot;&quot;&quot;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_info</span><span class="p">])</span>
+<span class="s2">                ELSE </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">            END AS </span><span class="si">{</span><span class="n">col</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">            """</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">column_info</span><span class="p">])</span>
 
         <span class="c1"># perform the select using the cases built above and using chunksize + offset</span>
-        <span class="n">sql_stmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">sql_stmt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">            SELECT</span>
 <span class="s2">                </span><span class="si">{</span><span class="n">query_parts</span><span class="si">}</span>
 <span class="s2">            FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span>
 <span class="s2">            WHERE </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
-<span class="s2">            </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
-<span class="s2">            &quot;&quot;&quot;</span>
+<span class="s2">            </span><span class="si">{</span><span class="s2">"ORDER BY "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">            """</span>
 
         <span class="c1"># execute the sql stmt</span>
         <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_stmt</span><span class="p">)</span>
@@ -821,7 +823,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_cache_cloudpath_to_local">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._cache_cloudpath_to_local">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_cache_cloudpath_to_local</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">AnyPath</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Takes a cloudpath and uses cache to convert to a local copy</span>
 <span class="sd">    for use in scenarios where remote work is not possible (sqlite).</span>
 
@@ -833,15 +835,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        pathlib.Path:</span>
 <span class="sd">            A local pathlib.Path to cached version of cloudpath file.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="c1"># check that the path is a file (caching won&#39;t work with a dir)</span>
+    <span class="c1"># check that the path is a file (caching won't work with a dir)</span>
     <span class="c1"># and check that the file is of sqlite type</span>
     <span class="c1"># (other file types will be handled remotely in cloud)</span>
     <span class="k">if</span> <span class="p">(</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">)</span>
         <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span>
-        <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.sqlite&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">]</span>
+        <span class="ow">and</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".sqlite"</span><span class="p">,</span> <span class="s2">".npz"</span><span class="p">]</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># update the path to be the local filepath for reference in CytoTable ops</span>
@@ -850,7 +852,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">except</span> <span class="n">InvalidPrefixError</span><span class="p">:</span>
             <span class="c1"># share information about not finding a cloud path</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Did not detect a cloud path based on prefix. Defaulting to use local path operations.&quot;</span>
+                <span class="s2">"Did not detect a cloud path based on prefix. Defaulting to use local path operations."</span>
             <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">path</span></div>
@@ -862,7 +864,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_arrow_type_cast_if_specified</span><span class="p">(</span>
     <span class="n">column</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Attempts to cast data types for an PyArrow field using provided a data_type_cast_map.</span>
 
 <span class="sd">    Args:</span>
@@ -872,49 +874,49 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
 <span class="sd">            https://arrow.apache.org/docs/python/api/datatypes.html</span>
-<span class="sd">            Example: {&quot;float&quot;: &quot;float32&quot;}</span>
+<span class="sd">            Example: {"float": "float32"}</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, str]:</span>
 <span class="sd">            A potentially data type updated dictionary of column information</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">DDB_DATA_TYPE_SYNONYMS</span>
 
     <span class="c1"># for casting to new float type</span>
-    <span class="k">if</span> <span class="s2">&quot;float&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_dtype&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
-        <span class="s2">&quot;REAL&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;DOUBLE&quot;</span><span class="p">,</span>
+    <span class="k">if</span> <span class="s2">"float"</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">"column_dtype"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">"REAL"</span><span class="p">,</span>
+        <span class="s2">"DOUBLE"</span><span class="p">,</span>
     <span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;column_id&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_id&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;column_name&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;column_dtype&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">"column_id"</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">"column_id"</span><span class="p">],</span>
+            <span class="s2">"column_name"</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">],</span>
+            <span class="s2">"column_dtype"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="n">key</span>
                 <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DDB_DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;float&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
+                <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">"float"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
             <span class="p">][</span><span class="mi">0</span><span class="p">],</span>
         <span class="p">}</span>
 
     <span class="c1"># for casting to new int type</span>
-    <span class="k">elif</span> <span class="s2">&quot;integer&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_dtype&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
-        <span class="s2">&quot;TINYINT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;SMALLINT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;INTEGER&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;BIGINT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;HUGEINT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;UTINYINT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;USMALLINT&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;UINTEGER&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;UBIGINT&quot;</span><span class="p">,</span>
+    <span class="k">elif</span> <span class="s2">"integer"</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="n">column</span><span class="p">[</span><span class="s2">"column_dtype"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="s2">"TINYINT"</span><span class="p">,</span>
+        <span class="s2">"SMALLINT"</span><span class="p">,</span>
+        <span class="s2">"INTEGER"</span><span class="p">,</span>
+        <span class="s2">"BIGINT"</span><span class="p">,</span>
+        <span class="s2">"HUGEINT"</span><span class="p">,</span>
+        <span class="s2">"UTINYINT"</span><span class="p">,</span>
+        <span class="s2">"USMALLINT"</span><span class="p">,</span>
+        <span class="s2">"UINTEGER"</span><span class="p">,</span>
+        <span class="s2">"UBIGINT"</span><span class="p">,</span>
     <span class="p">]:</span>
         <span class="k">return</span> <span class="p">{</span>
-            <span class="s2">&quot;column_id&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_id&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;column_name&quot;</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">],</span>
-            <span class="s2">&quot;column_dtype&quot;</span><span class="p">:</span> <span class="p">[</span>
+            <span class="s2">"column_id"</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">"column_id"</span><span class="p">],</span>
+            <span class="s2">"column_name"</span><span class="p">:</span> <span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">],</span>
+            <span class="s2">"column_dtype"</span><span class="p">:</span> <span class="p">[</span>
                 <span class="n">key</span>
                 <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">DDB_DATA_TYPE_SYNONYMS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;integer&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
+                <span class="k">if</span> <span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">"integer"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">value</span>
             <span class="p">][</span><span class="mi">0</span><span class="p">],</span>
         <span class="p">}</span>
 
@@ -928,8 +930,8 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_expand_path</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Expands &quot;~&quot; user directory references with the user&#39;s home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Expands "~" user directory references with the user's home directory, and expands variable references with values from the environment. After user/variable expansion, the path is resolved and an absolute path is returned.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        path (Union[str, pathlib.Path, AnyPath]):</span>
@@ -938,7 +940,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[pathlib.Path, AnyPath]:</span>
 <span class="sd">            A local pathlib.Path or Cloudpathlib.AnyPath type path.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
@@ -959,13 +961,13 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_get_cytotable_version">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._get_cytotable_version">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_cytotable_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Seeks the current version of CytoTable from package metadata.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
 <span class="sd">            A string representing the version of CytoTable currently being used.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">cytotable</span>
 
@@ -976,7 +978,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_write_parquet_table_with_metadata">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._write_parquet_table_with_metadata">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_write_parquet_table_with_metadata</span><span class="p">(</span><span class="n">table</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">Table</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Adds metadata to parquet output from CytoTable.</span>
 <span class="sd">    Note: this mostly wraps pyarrow.parquet.write_table</span>
 <span class="sd">    https://arrow.apache.org/docs/python/generated/pyarrow.parquet.write_table.html</span>
@@ -989,7 +991,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            pyarrow.parquet.write_table. The following might be</span>
 <span class="sd">            examples of what to expect here:</span>
 <span class="sd">            - where: str or pyarrow.NativeFile</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="kn">import</span> <span class="n">parquet</span>
 
@@ -1008,7 +1010,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_gather_tablenumber_checksum">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._gather_tablenumber_checksum">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_gather_tablenumber_checksum</span><span class="p">(</span><span class="n">pathname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">buffer_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1048576</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Build and return a checksum for use as a unique identifier across datasets</span>
 <span class="sd">    referenced from cytominer-database:</span>
 <span class="sd">    https://github.com/cytomining/cytominer-database/blob/master/cytominer_database/ingest_variable_engine.py#L129</span>
@@ -1022,7 +1024,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        int:</span>
 <span class="sd">            an integer representing the checksum of the pathname file.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">zlib</span>
@@ -1033,7 +1035,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">buffer_size</span> <span class="o">=</span> <span class="n">file_size</span>
 
     <span class="c1"># open file</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">pathname</span><span class="p">),</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">pathname</span><span class="p">),</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
         <span class="c1"># begin result formation</span>
         <span class="n">result</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">crc32</span><span class="p">(</span><span class="nb">bytes</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
         <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -1052,7 +1054,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_unwrap_value">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._unwrap_value">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_unwrap_value</span><span class="p">(</span><span class="n">val</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">dataflow</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">AppFuture</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Helper function to unwrap futures from values or return values</span>
 <span class="sd">    where there are no futures.</span>
 
@@ -1063,9 +1065,9 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Any:</span>
-<span class="sd">            Returns the value as-is if there&#39;s no future, the future</span>
+<span class="sd">            Returns the value as-is if there's no future, the future</span>
 <span class="sd">            result if Parsl futures are encountered.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># if we have a future value, evaluate the result</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">parsl</span><span class="o">.</span><span class="n">dataflow</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">AppFuture</span><span class="p">):</span>
@@ -1087,7 +1089,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">Union</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">dataflow</span><span class="o">.</span><span class="n">futures</span><span class="o">.</span><span class="n">AppFuture</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Helper function to unwrap futures from sources.</span>
 
 <span class="sd">    Args:</span>
@@ -1100,7 +1102,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[Dict[str, Any], Any]:</span>
 <span class="sd">            An evaluated dictionary or other value type.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="c1"># if we have a dictionary, unwrap any values which may be futures</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">_unwrap_value</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -1115,9 +1117,9 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">evaluate_futures</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Evaluates any Parsl futures for use within other tasks.</span>
-<span class="sd">    This enables a pattern of Parsl app usage as &quot;tasks&quot; and delayed</span>
+<span class="sd">    This enables a pattern of Parsl app usage as "tasks" and delayed</span>
 <span class="sd">    future result evaluation for concurrency.</span>
 
 <span class="sd">    Args:</span>
@@ -1130,7 +1132,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Any:</span>
 <span class="sd">            A data structure which includes evaluated futures where they were found.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">return</span> <span class="p">(</span>
         <span class="p">{</span>
@@ -1157,7 +1159,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_remove_empty_dirs">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._remove_empty_dirs">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_remove_empty_dirs</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Recursively remove empty directories beneath ``path`` (bottom-up).</span>
 
 <span class="sd">    Used to clean up intermediate staging directories left behind after chunked</span>
@@ -1174,7 +1176,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Args:</span>
 <span class="sd">        path (Union[str, pathlib.Path]):</span>
 <span class="sd">            Root directory to sweep for empty subdirectories.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">root</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
@@ -1200,7 +1202,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_generate_pagesets</span><span class="p">(</span>
     <span class="n">keys</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]],</span> <span class="n">chunk_size</span><span class="p">:</span> <span class="nb">int</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Generate a pageset (keyset pagination) from a list of keys.</span>
 
 <span class="sd">    Args:</span>
@@ -1212,7 +1214,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Tuple[Union[int, float], Union[int, float]]]:</span>
 <span class="sd">            List of (start_key, end_key) tuples representing each page.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># Initialize an empty list to store the chunks/pages</span>
     <span class="n">chunks</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1248,7 +1250,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_natural_sort">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._natural_sort">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Sorts the given iterable using natural sort adapted from approach</span>
 <span class="sd">    provided by the following link:</span>
 <span class="sd">    https://stackoverflow.com/a/4836734</span>
@@ -1260,17 +1262,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Any]:</span>
 <span class="sd">            The sorted list.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
         <span class="n">list_to_sort</span><span class="p">,</span>
         <span class="c1"># use a custom key to sort the list</span>
         <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">key</span><span class="p">:</span> <span class="p">[</span>
-            <span class="c1"># use integer of c if it&#39;s a digit, otherwise str</span>
+            <span class="c1"># use integer of c if it's a digit, otherwise str</span>
             <span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="k">else</span> <span class="n">c</span>
             <span class="c1"># Split the key into parts, separating numbers from alphabetic characters</span>
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;([0-9]+)&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"([0-9]+)"</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
         <span class="p">],</span>
     <span class="p">)</span></div>
 
@@ -1283,12 +1285,12 @@ window.runMermaid = runMermaid;</script>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Extract data from an .npz file created by DeepProfiler</span>
 <span class="sd">    as a tabular dataset and write to parquet.</span>
 
 <span class="sd">    DeepProfiler creates datasets which look somewhat like this:</span>
-<span class="sd">    Keys in the .npz file: [&#39;features&#39;, &#39;metadata&#39;, &#39;locations&#39;]</span>
+<span class="sd">    Keys in the .npz file: ['features', 'metadata', 'locations']</span>
 
 <span class="sd">    Variable: features</span>
 <span class="sd">    Shape: (229, 6400)</span>
@@ -1302,22 +1304,22 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Shape: ()</span>
 <span class="sd">    Data type: object</span>
 <span class="sd">    Whole object: {</span>
-<span class="sd">    &#39;Metadata_Plate&#39;: &#39;SQ00014812&#39;,</span>
-<span class="sd">    &#39;Metadata_Well&#39;: &#39;A01&#39;,</span>
-<span class="sd">    &#39;Metadata_Site&#39;: 1,</span>
-<span class="sd">    &#39;Plate_Map_Name&#39;: &#39;C-7161-01-LM6-022&#39;,</span>
-<span class="sd">    &#39;RNA&#39;: &#39;SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png&#39;,</span>
-<span class="sd">    &#39;ER&#39;: &#39;SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png&#39;,</span>
-<span class="sd">    &#39;AGP&#39;: &#39;SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png&#39;,</span>
-<span class="sd">    &#39;Mito&#39;: &#39;SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png&#39;,</span>
-<span class="sd">    &#39;DNA&#39;: &#39;SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png&#39;,</span>
-<span class="sd">    &#39;Treatment_ID&#39;: 0,</span>
-<span class="sd">    &#39;Treatment_Replicate&#39;: 1,</span>
-<span class="sd">    &#39;Treatment&#39;: &#39;DMSO@NA&#39;,</span>
-<span class="sd">    &#39;Compound&#39;: &#39;DMSO&#39;,</span>
-<span class="sd">    &#39;Concentration&#39;: &#39;&#39;,</span>
-<span class="sd">    &#39;Split&#39;: &#39;Training&#39;,</span>
-<span class="sd">    &#39;Metadata_Model&#39;: &#39;efficientnet&#39;</span>
+<span class="sd">    'Metadata_Plate': 'SQ00014812',</span>
+<span class="sd">    'Metadata_Well': 'A01',</span>
+<span class="sd">    'Metadata_Site': 1,</span>
+<span class="sd">    'Plate_Map_Name': 'C-7161-01-LM6-022',</span>
+<span class="sd">    'RNA': 'SQ00014812/r01c01f01p01-ch3sk1fk1fl1.png',</span>
+<span class="sd">    'ER': 'SQ00014812/r01c01f01p01-ch2sk1fk1fl1.png',</span>
+<span class="sd">    'AGP': 'SQ00014812/r01c01f01p01-ch4sk1fk1fl1.png',</span>
+<span class="sd">    'Mito': 'SQ00014812/r01c01f01p01-ch5sk1fk1fl1.png',</span>
+<span class="sd">    'DNA': 'SQ00014812/r01c01f01p01-ch1sk1fk1fl1.png',</span>
+<span class="sd">    'Treatment_ID': 0,</span>
+<span class="sd">    'Treatment_Replicate': 1,</span>
+<span class="sd">    'Treatment': 'DMSO@NA',</span>
+<span class="sd">    'Compound': 'DMSO',</span>
+<span class="sd">    'Concentration': '',</span>
+<span class="sd">    'Split': 'Training',</span>
+<span class="sd">    'Metadata_Model': 'efficientnet'</span>
 <span class="sd">    }</span>
 
 <span class="sd">    Args:</span>
@@ -1331,7 +1333,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
 <span class="sd">            Path to the exported parquet file.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
@@ -1340,34 +1342,34 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 
     <span class="c1"># Load features from the .npz file</span>
-    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
         <span class="n">loaded_npz</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="c1"># find the shape of the features, which will help structure</span>
-        <span class="c1"># data which doesn&#39;t yet conform to the same shape (by row count).</span>
-        <span class="n">rows</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="c1"># data which doesn't yet conform to the same shape (by row count).</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">"features"</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="c1"># note: we use [()] to load the numpy array as a python dict</span>
-        <span class="n">metadata</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][()]</span>
-        <span class="c1"># fetch the metadata model name, falling back to &quot;DP&quot; if not found</span>
-        <span class="n">feature_prefix</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Metadata_Model&quot;</span><span class="p">,</span> <span class="s2">&quot;DP&quot;</span><span class="p">)</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">"metadata"</span><span class="p">][()]</span>
+        <span class="c1"># fetch the metadata model name, falling back to "DP" if not found</span>
+        <span class="n">feature_prefix</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Metadata_Model"</span><span class="p">,</span> <span class="s2">"DP"</span><span class="p">)</span>
         <span class="c1"># we transpose the feature data for more efficient</span>
         <span class="c1"># columnar-focused access</span>
-        <span class="n">feature_data</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;features&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">feature_data</span> <span class="o">=</span> <span class="n">loaded_npz</span><span class="p">[</span><span class="s2">"features"</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
 
         <span class="n">npz_as_pydict</span> <span class="o">=</span> <span class="p">{</span>
             <span class="c1"># add metadata to the table</span>
             <span class="c1"># note: metadata within npz files corresponds to a dictionary of</span>
             <span class="c1"># various keys and values related to the feature and location data.</span>
-            <span class="s2">&quot;Metadata_TableNumber&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tablenumber</span><span class="p">]</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
-            <span class="s2">&quot;Metadata_NPZSource&quot;</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="s2">"Metadata_TableNumber"</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">tablenumber</span><span class="p">]</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()),</span>
+            <span class="s2">"Metadata_NPZSource"</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">*</span> <span class="n">rows</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">pa</span><span class="o">.</span><span class="n">string</span><span class="p">()</span>
             <span class="p">),</span>
             <span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[</span><span class="n">metadata</span><span class="p">[</span><span class="n">key</span><span class="p">]]</span> <span class="o">*</span> <span class="n">rows</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">keys</span><span class="p">()},</span>
             <span class="c1"># add locations data to the table</span>
-            <span class="s2">&quot;Location_Center_X&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;locations&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)],</span>
-            <span class="s2">&quot;Location_Center_Y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">loaded_npz</span><span class="p">[</span><span class="s2">&quot;locations&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)],</span>
+            <span class="s2">"Location_Center_X"</span><span class="p">:</span> <span class="p">[</span><span class="n">loaded_npz</span><span class="p">[</span><span class="s2">"locations"</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)],</span>
+            <span class="s2">"Location_Center_Y"</span><span class="p">:</span> <span class="p">[</span><span class="n">loaded_npz</span><span class="p">[</span><span class="s2">"locations"</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rows</span><span class="p">)],</span>
             <span class="c1"># add features data to the table</span>
             <span class="o">**</span><span class="p">{</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feature_prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">feature_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">feature_data</span><span class="p">[</span><span class="n">feature_idx</span><span class="p">]</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">feature_prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">feature_idx</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">"</span><span class="p">:</span> <span class="n">feature_data</span><span class="p">[</span><span class="n">feature_idx</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">feature_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">feature_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="p">},</span>
         <span class="p">}</span>
@@ -1384,7 +1386,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">map_pyarrow_type</span><span class="p">(</span>
     <span class="n">field_type</span><span class="p">:</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">,</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Map PyArrow types dynamically to handle nested types and casting.</span>
 
 <span class="sd">    This function takes a PyArrow `field_type` and dynamically maps</span>
@@ -1402,9 +1404,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            This allows for custom type casting.</span>
 <span class="sd">            For example:</span>
-<span class="sd">            - {&quot;float&quot;: &quot;float32&quot;} maps</span>
+<span class="sd">            - {"float": "float32"} maps</span>
 <span class="sd">            floating-point types to `float32`.</span>
-<span class="sd">            - {&quot;int&quot;: &quot;int64&quot;} maps integer</span>
+<span class="sd">            - {"int": "int64"} maps integer</span>
 <span class="sd">            types to `int64`.</span>
 <span class="sd">            If `data_type_cast_map` is</span>
 <span class="sd">            None, default PyArrow types are used.</span>
@@ -1414,7 +1416,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            The mapped PyArrow data type.</span>
 <span class="sd">            If no mapping is needed, the original</span>
 <span class="sd">            `field_type` is returned.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_list</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
         <span class="c1"># Handle list types (e.g., list&lt;element: float&gt;)</span>
@@ -1438,13 +1440,13 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
     <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
         <span class="c1"># Handle floating-point types</span>
-        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">and</span> <span class="s2">&quot;float&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;float&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">and</span> <span class="s2">"float"</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">"float"</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()</span>  <span class="c1"># Default to float64 if no mapping is provided</span>
     <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
         <span class="c1"># Handle integer types</span>
-        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">and</span> <span class="s2">&quot;integer&quot;</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">&quot;integer&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">and</span> <span class="s2">"integer"</span> <span class="ow">in</span> <span class="n">data_type_cast_map</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span><span class="n">data_type_cast_map</span><span class="p">[</span><span class="s2">"integer"</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">pa</span><span class="o">.</span><span class="n">int64</span><span class="p">()</span>  <span class="c1"># Default to int64 if no mapping is provided</span>
     <span class="k">elif</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_string</span><span class="p">(</span><span class="n">field_type</span><span class="p">):</span>
         <span class="c1"># Handle string types</span>
@@ -1463,7 +1465,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">find_anndata_metadata_field_names</span><span class="p">(</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Classify the source table columns as</span>
 <span class="sd">    numeric and non-numeric.</span>
 
@@ -1482,7 +1484,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        tuple[list[str], list[str]]:</span>
 <span class="sd">            A 2-tuple ``(numeric_fields, non_numeric_fields)``, where each</span>
 <span class="sd">            element is a list of column names.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
 
@@ -1510,7 +1512,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_glob_pattern_matches">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._glob_pattern_matches">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_glob_pattern_matches</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">pat_parts</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Match path components against pattern components using pathlib-glob</span>
 <span class="sd">    semantics: ``**`` matches zero or more components, ``*`` and ``?`` are</span>
 <span class="sd">    fnmatch wildcards within a single component, and matching is anchored at</span>
@@ -1519,20 +1521,20 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Args:</span>
 <span class="sd">        rel_parts (Tuple[str, ...]):</span>
 <span class="sd">            Path components of the candidate, relative to the search root</span>
-<span class="sd">            (e.g. ``(&quot;analysis&quot;, &quot;Cells.csv&quot;)``).</span>
+<span class="sd">            (e.g. ``("analysis", "Cells.csv")``).</span>
 <span class="sd">        pat_parts (List[str]):</span>
-<span class="sd">            Pattern components produced by splitting the glob on ``&quot;/&quot;``</span>
-<span class="sd">            (e.g. ``[&quot;**&quot;, &quot;*.csv&quot;]``).</span>
+<span class="sd">            Pattern components produced by splitting the glob on ``"/"``</span>
+<span class="sd">            (e.g. ``["**", "*.csv"]``).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        bool:</span>
 <span class="sd">            ``True`` if ``rel_parts`` matches ``pat_parts`` under the semantics</span>
 <span class="sd">            described above, else ``False``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">pat_parts</span><span class="p">:</span>
         <span class="k">return</span> <span class="ow">not</span> <span class="n">rel_parts</span>
     <span class="n">head</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">pat_parts</span>
-    <span class="k">if</span> <span class="n">head</span> <span class="o">==</span> <span class="s2">&quot;**&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">head</span> <span class="o">==</span> <span class="s2">"**"</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">_glob_pattern_matches</span><span class="p">(</span><span class="n">rel_parts</span><span class="p">[</span><span class="n">i</span><span class="p">:],</span> <span class="n">rest</span><span class="p">):</span>
                 <span class="k">return</span> <span class="kc">True</span>
@@ -1548,13 +1550,13 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_glob_follow_symlinks">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._glob_follow_symlinks">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_glob_follow_symlinks</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Like ``Path.glob(pattern)``, but follows symlinked directories on every</span>
 <span class="sd">    Python version CytoTable supports. Intended for local and network</span>
 <span class="sd">    filesystems only - cloud object stores have no filesystem symlinks and</span>
 <span class="sd">    must use the ``CloudPath`` branches in :func:`cloud_glob`. ``Path.glob``</span>
 <span class="sd">    only gained ``recurse_symlinks=True`` in 3.13; on 3.10-3.12 we walk the</span>
-<span class="sd">    tree with ``os.walk(followlinks=True)`` and match each entry&#39;s relative</span>
+<span class="sd">    tree with ``os.walk(followlinks=True)`` and match each entry's relative</span>
 <span class="sd">    path against the full pattern, so any pattern accepted by ``Path.glob``</span>
 <span class="sd">    works across versions.</span>
 
@@ -1563,14 +1565,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Root directory to glob under. Must reference a local or network</span>
 <span class="sd">            filesystem path.</span>
 <span class="sd">        pattern (str):</span>
-<span class="sd">            Glob pattern relative to ``start`` (e.g. ``&quot;**/*.csv&quot;``).</span>
+<span class="sd">            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).</span>
 
 <span class="sd">    Yields:</span>
 <span class="sd">        Path:</span>
 <span class="sd">            ``pathlib.Path`` entries matching ``pattern``, deduplicated so</span>
 <span class="sd">            that two paths resolving to the same real file are only yielded</span>
 <span class="sd">            once.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">13</span><span class="p">):</span>
         <span class="c1"># ``Path.glob(recurse_symlinks=True)`` yields each reachable path,</span>
         <span class="c1"># so two symlinks pointing at the same target produce duplicate</span>
@@ -1593,7 +1595,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_walk_and_match">
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._walk_and_match">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_walk_and_match</span><span class="p">(</span><span class="n">start</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Walk ``start`` with ``os.walk(followlinks=True)`` and yield entries</span>
 <span class="sd">    whose path (relative to ``start``) matches ``pattern`` under</span>
 <span class="sd">    pathlib-glob semantics. Implements the 3.10-3.12 fallback used by</span>
@@ -1606,17 +1608,17 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Root directory of the walk. Must reference a local or network</span>
 <span class="sd">            filesystem path.</span>
 <span class="sd">        pattern (str):</span>
-<span class="sd">            Glob pattern relative to ``start`` (e.g. ``&quot;**/*.csv&quot;``).</span>
+<span class="sd">            Glob pattern relative to ``start`` (e.g. ``"**/*.csv"``).</span>
 
 <span class="sd">    Yields:</span>
 <span class="sd">        Path:</span>
 <span class="sd">            ``pathlib.Path`` entries (files or directories) matching</span>
 <span class="sd">            ``pattern``.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">pat_parts</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="n">pat_parts</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
     <span class="n">visited_dirs</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">start</span><span class="p">)}</span>
     <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">followlinks</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="c1"># Prune subdirectories whose real path we&#39;ve already entered, so that</span>
+        <span class="c1"># Prune subdirectories whose real path we've already entered, so that</span>
         <span class="c1"># cyclic symlinks (e.g. ``start/foo -&gt; start/``) cannot trap os.walk</span>
         <span class="c1"># in an infinite descent.</span>
         <span class="n">kept</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1646,13 +1648,13 @@ window.runMermaid = runMermaid;</script>
     <span class="n">cp_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">S3Client</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">boto_s3_client</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">CloudPath</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Globs under `start` and yields matching paths.</span>
 <span class="sd">    We provide cloud-platform specific optimizations</span>
-<span class="sd">    as needed based on platform SDK&#39;s.</span>
+<span class="sd">    as needed based on platform SDK's.</span>
 
 <span class="sd">    Behavior by input type:</span>
-<span class="sd">      - S3 (cloudpathlib S3Path or &#39;s3://...&#39;):</span>
+<span class="sd">      - S3 (cloudpathlib S3Path or 's3://...'):</span>
 <span class="sd">          Use unsigned boto3 to list keys and yield unsigned cloudpathlib.S3Path.</span>
 <span class="sd">      - Other CloudPath (e.g., GCS/Azure/local providers via cloudpathlib):</span>
 <span class="sd">          Fallback to CloudPath.glob(pattern), yielding CloudPath.</span>
@@ -1684,21 +1686,21 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        TypeError:</span>
 <span class="sd">            Raised when ``start`` is not a ``CloudPath``, ``pathlib.Path``,</span>
 <span class="sd">            or string URI.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_trailing_slash</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">s</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+        <span class="k">return</span> <span class="n">s</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span> <span class="k">else</span> <span class="n">s</span> <span class="o">+</span> <span class="s2">"/"</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">_matches</span><span class="p">(</span><span class="n">rel</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pat</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Pathlib semantics: &#39;**/*.csv&#39; does NOT match &#39;file.csv&#39;.</span>
-<span class="sd">        If pattern starts with &#39;**/&#39;, also try the root-level variant(s).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""</span>
+<span class="sd">        Pathlib semantics: '**/*.csv' does NOT match 'file.csv'.</span>
+<span class="sd">        If pattern starts with '**/', also try the root-level variant(s).</span>
+<span class="sd">        """</span>
         <span class="k">if</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">rel</span><span class="p">)</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pat</span><span class="p">):</span>
             <span class="k">return</span> <span class="kc">True</span>
-        <span class="c1"># if pattern starts with one or more &#39;**/&#39;, progressively strip them</span>
-        <span class="c1"># so &#39;**/*.csv&#39; also tries &#39;*.csv&#39;, etc.</span>
-        <span class="k">while</span> <span class="n">pat</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;**/&quot;</span><span class="p">):</span>
+        <span class="c1"># if pattern starts with one or more '**/', progressively strip them</span>
+        <span class="c1"># so '**/*.csv' also tries '*.csv', etc.</span>
+        <span class="k">while</span> <span class="n">pat</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"**/"</span><span class="p">):</span>
             <span class="n">pat</span> <span class="o">=</span> <span class="n">pat</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
             <span class="k">if</span> <span class="n">PurePosixPath</span><span class="p">(</span><span class="n">rel</span><span class="p">)</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">pat</span><span class="p">):</span>
                 <span class="k">return</span> <span class="kc">True</span>
@@ -1709,23 +1711,23 @@ window.runMermaid = runMermaid;</script>
         <span class="n">cp</span> <span class="o">=</span> <span class="n">start</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">S3Path</span><span class="p">):</span>
             <span class="n">s3cli</span> <span class="o">=</span> <span class="n">boto_s3_client</span> <span class="ow">or</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span>
-                <span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">BotoConfig</span><span class="p">(</span><span class="n">signature_version</span><span class="o">=</span><span class="n">UNSIGNED</span><span class="p">)</span>
+                <span class="s2">"s3"</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">BotoConfig</span><span class="p">(</span><span class="n">signature_version</span><span class="o">=</span><span class="n">UNSIGNED</span><span class="p">)</span>
             <span class="p">)</span>
             <span class="n">s3_cp_client</span> <span class="o">=</span> <span class="n">cp_client</span> <span class="ow">or</span> <span class="n">S3Client</span><span class="p">(</span><span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
             <span class="n">bucket</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">bucket</span>
             <span class="n">base_prefix</span> <span class="o">=</span> <span class="n">_ensure_trailing_slash</span><span class="p">(</span><span class="n">cp</span><span class="o">.</span><span class="n">key</span><span class="p">)</span>
 
-            <span class="n">paginator</span> <span class="o">=</span> <span class="n">s3cli</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">&quot;list_objects_v2&quot;</span><span class="p">)</span>
+            <span class="n">paginator</span> <span class="o">=</span> <span class="n">s3cli</span><span class="o">.</span><span class="n">get_paginator</span><span class="p">(</span><span class="s2">"list_objects_v2"</span><span class="p">)</span>
             <span class="n">yielded</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">for</span> <span class="n">page</span> <span class="ow">in</span> <span class="n">paginator</span><span class="o">.</span><span class="n">paginate</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">bucket</span><span class="p">,</span> <span class="n">Prefix</span><span class="o">=</span><span class="n">base_prefix</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Contents&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
-                    <span class="n">key</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s2">&quot;Key&quot;</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">page</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"Contents"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">[]:</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="n">obj</span><span class="p">[</span><span class="s2">"Key"</span><span class="p">]</span>
                     <span class="n">rel</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="n">key</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">base_prefix</span><span class="p">)</span> <span class="p">:]</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">base_prefix</span><span class="p">)</span> <span class="k">else</span> <span class="n">key</span>
                     <span class="p">)</span>
                     <span class="k">if</span> <span class="n">_matches</span><span class="p">(</span><span class="n">rel</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
-                        <span class="k">yield</span> <span class="n">S3Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">s3_cp_client</span><span class="p">)</span>
+                        <span class="k">yield</span> <span class="n">S3Path</span><span class="p">(</span><span class="sa">f</span><span class="s2">"s3://</span><span class="si">{</span><span class="n">bucket</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">client</span><span class="o">=</span><span class="n">s3_cp_client</span><span class="p">)</span>
                         <span class="n">yielded</span> <span class="o">+=</span> <span class="mi">1</span>
                         <span class="k">if</span> <span class="n">max_matches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">yielded</span> <span class="o">&gt;=</span> <span class="n">max_matches</span><span class="p">:</span>
                             <span class="k">return</span>
@@ -1752,7 +1754,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># ---- Branch 3: string path ----</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">start</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;s3://&quot;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">start</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"s3://"</span><span class="p">):</span>
             <span class="n">s3_cp_client</span> <span class="o">=</span> <span class="n">cp_client</span> <span class="ow">or</span> <span class="n">S3Client</span><span class="p">(</span><span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">cp_root</span> <span class="o">=</span> <span class="n">s3_cp_client</span><span class="o">.</span><span class="n">CloudPath</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
             <span class="c1"># re-enter CloudPath branch</span>
@@ -1774,7 +1776,7 @@ window.runMermaid = runMermaid;</script>
                     <span class="k">return</span>
             <span class="k">return</span>
 
-    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported path type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unsupported path type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">start</span><span class="p">)</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span></div>
 
 </pre></div>
 
@@ -1847,7 +1849,7 @@ window.runMermaid = runMermaid;</script>
       &#169;2022, Cytomining Community.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>

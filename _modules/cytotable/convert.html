@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cytotable.convert &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=37770e68" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=01d9ba92" />
@@ -14,6 +14,8 @@
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
 
 
 
@@ -389,9 +391,9 @@ window.runMermaid = runMermaid;</script>
           <div class="body" role="main">
             
   <h1>Source code for cytotable.convert</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">CytoTable: convert - transforming data for use with pycytominer.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
@@ -422,7 +424,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_get_table_columns_and_types</span><span class="p">(</span>
     <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Gather column data from table through duckdb.</span>
 
 <span class="sd">    Args:</span>
@@ -440,7 +442,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        duckdb.Error:</span>
 <span class="sd">            Re-raised when the underlying duckdb query fails for a reason</span>
 <span class="sd">            other than mixed-type errors on a sqlite source.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
 
@@ -450,27 +452,27 @@ window.runMermaid = runMermaid;</script>
         <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+    <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span>
     <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
     <span class="c1"># If we have .npz files, return a list with None</span>
-    <span class="c1"># because we&#39;re querying a non-tabular data source.</span>
+    <span class="c1"># because we're querying a non-tabular data source.</span>
     <span class="c1"># These will be handled later by _extract_npz_to_parquet.</span>
-    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.npz&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".npz"</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
 
     <span class="c1"># prepare the data source in the form of a duckdb query</span>
     <span class="n">select_source</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
-        <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span>
-        <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+        <span class="sa">f</span><span class="s2">"read_csv_auto('</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">')"</span>
+        <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".csv"</span>
+        <span class="k">else</span> <span class="sa">f</span><span class="s2">"sqlite_scan('</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">', '</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">'table_name'</span><span class="p">]</span><span class="si">}</span><span class="s2">')"</span>
     <span class="p">)</span>
 
     <span class="c1"># Query top 5 results from table and use pragma_storage_info() to</span>
     <span class="c1"># gather duckdb interpreted data typing. We gather 5 values for</span>
     <span class="c1"># each column to help with type inferences (where smaller sets</span>
     <span class="c1"># may yield lower data type accuracy for the full table).</span>
-    <span class="n">select_query</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">select_query</span> <span class="o">=</span> <span class="s2">"""</span>
 <span class="s2">        /* we create an in-mem table for later use with the pragma_storage_info call</span>
 <span class="s2">        as this call only functions with materialized tables and not views or related */</span>
 <span class="s2">        CREATE TABLE column_details AS</span>
@@ -484,12 +486,12 @@ window.runMermaid = runMermaid;</script>
 <span class="s2">            column_id,</span>
 <span class="s2">            column_name,</span>
 <span class="s2">            segment_type as column_dtype</span>
-<span class="s2">        FROM pragma_storage_info(&#39;column_details&#39;)</span>
+<span class="s2">        FROM pragma_storage_info('column_details')</span>
 <span class="s2">        /* avoid duplicate entries in the form of VALIDITY segment_types */</span>
-<span class="s2">        WHERE segment_type != &#39;VALIDITY&#39;</span>
+<span class="s2">        WHERE segment_type != 'VALIDITY'</span>
 <span class="s2">        /* explicitly order the columns by their id to avoid inconsistent results */</span>
 <span class="s2">        ORDER BY column_id ASC;</span>
-<span class="s2">        &quot;&quot;&quot;</span>
+<span class="s2">        """</span>
 
     <span class="c1"># attempt to read the data to parquet from duckdb</span>
     <span class="c1"># with exception handling to read mixed-type data</span>
@@ -501,7 +503,7 @@ window.runMermaid = runMermaid;</script>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">(</span>
                 <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                    <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="n">select_source</span><span class="p">)</span>
+                    <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"&amp;select_source"</span><span class="p">,</span> <span class="n">select_source</span><span class="p">)</span>
                 <span class="p">)</span>
                 <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
                 <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
@@ -513,18 +515,18 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># if we see a mismatched type error</span>
         <span class="c1"># run a more nuanced query through sqlite</span>
         <span class="c1"># to handle the mixed types</span>
-        <span class="k">if</span> <span class="s2">&quot;Mismatch Type Error&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="ow">and</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">"Mismatch Type Error"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="ow">and</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".sqlite"</span><span class="p">:</span>
             <span class="n">arrow_data_tbl</span> <span class="o">=</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
-                <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
-                <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
-                <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">],</span>
-                <span class="n">pageset</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;pagesets&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]),</span>
+                <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"table_name"</span><span class="p">]),</span>
+                <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"page_key"</span><span class="p">],</span>
+                <span class="n">pageset</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"pagesets"</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
                 <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">(</span>
                     <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                        <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&amp;select_source&quot;</span><span class="p">,</span> <span class="s2">&quot;arrow_data_tbl&quot;</span><span class="p">)</span>
+                        <span class="n">select_query</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"&amp;select_source"</span><span class="p">,</span> <span class="s2">"arrow_data_tbl"</span><span class="p">)</span>
                     <span class="p">)</span>
                     <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
                     <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
@@ -537,15 +539,15 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_prep_cast_column_data_types</span><span class="p">(</span>
     <span class="n">columns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span> <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Cast data types per what is received in cast_map.</span>
 
 <span class="sd">    Example:</span>
-<span class="sd">    - columns: [{&quot;column_id&quot;:0, &quot;column_name&quot;:&quot;colname&quot;, &quot;column_dtype&quot;:&quot;DOUBLE&quot;}]</span>
-<span class="sd">    - data_type_cast_map: {&quot;float&quot;: &quot;float32&quot;}</span>
+<span class="sd">    - columns: [{"column_id":0, "column_name":"colname", "column_dtype":"DOUBLE"}]</span>
+<span class="sd">    - data_type_cast_map: {"float": "float32"}</span>
 
-<span class="sd">    The above passed through this function will set the &quot;column_dtype&quot; value</span>
-<span class="sd">    to a &quot;REAL&quot; dtype (&quot;REAL&quot; in duckdb is roughly equivalent to &quot;float32&quot;)</span>
+<span class="sd">    The above passed through this function will set the "column_dtype" value</span>
+<span class="sd">    to a "REAL" dtype ("REAL" in duckdb is roughly equivalent to "float32")</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        columns (List[Dict[str, str]]):</span>
@@ -562,7 +564,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Dict[str, str]]:</span>
 <span class="sd">            list of dictionaries which each include column level information</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">partial</span>
 
@@ -591,8 +593,8 @@ window.runMermaid = runMermaid;</script>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">add_tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Gathers a &quot;TableNumber&quot; from the image table (if CSV) or</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Gathers a "TableNumber" from the image table (if CSV) or</span>
 <span class="sd">    SQLite file (if SQLite source) which is a unique identifier</span>
 <span class="sd">    intended to help differentiate between imagenumbers</span>
 <span class="sd">    to create distinct records for single-cell profiles</span>
@@ -615,7 +617,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            New source group with added TableNumber details.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span>
 
@@ -627,16 +629,16 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># note: the source_path parent is used for non-SQLite files</span>
         <span class="c1"># whereas the direct source path is used for SQLite files.</span>
         <span class="p">(</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">!=</span> <span class="s2">&quot;sqlite&quot;</span>
-            <span class="k">else</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
-        <span class="p">):</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">!=</span> <span class="s2">"sqlite"</span>
+            <span class="k">else</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span>
+        <span class="p">):</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="c1"># use the image tables references only for the basis of the</span>
         <span class="c1"># these calculations.</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span>
             <span class="n">value</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">,</span> <span class="s2">&quot;per_image&quot;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"image"</span><span class="p">,</span> <span class="s2">"per_image"</span><span class="p">]</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
     <span class="p">}</span>
@@ -656,7 +658,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="nb">dict</span><span class="p">(</span>
                     <span class="n">source</span><span class="p">,</span>
                     <span class="o">**</span><span class="p">{</span>
-                        <span class="s2">&quot;tablenumber&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="s2">"tablenumber"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
                     <span class="p">},</span>
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
@@ -677,10 +679,10 @@ window.runMermaid = runMermaid;</script>
         <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
             <span class="nb">dict</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
-                <span class="o">**</span><span class="p">{</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">:</span> <span class="n">tablenumber_table</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)]},</span>
+                <span class="o">**</span><span class="p">{</span><span class="s2">"tablenumber"</span><span class="p">:</span> <span class="n">tablenumber_table</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)]},</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
-            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tablenumber_table</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">tablenumber_table</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
@@ -695,7 +697,7 @@ window.runMermaid = runMermaid;</script>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
     <span class="n">List</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]],</span> <span class="n">List</span><span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="kc">None</span>
 <span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Get table data chunk keys for later use in capturing segments</span>
 <span class="sd">    of values. This work also provides a chance to catch problematic</span>
 <span class="sd">    input data which will be ignored with warnings.</span>
@@ -723,7 +725,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Re-raised (or converted to SQLiteReadOnlyException) when the</span>
 <span class="sd">            underlying duckdb query fails for a reason other than mixed-type</span>
 <span class="sd">            or invalid-input errors on a sqlite source.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
@@ -741,20 +743,20 @@ window.runMermaid = runMermaid;</script>
     <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">table_name</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;table_name&quot;</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+        <span class="n">table_name</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">"table_name"</span><span class="p">]</span> <span class="k">if</span> <span class="s2">"table_name"</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span>
         <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span><span class="p">:</span>
-                    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM read_csv_auto(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="k">elif</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
-                    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM sqlite_scan(&#39;</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">&#39;) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="k">elif</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.npz&quot;</span><span class="p">:</span>
-                    <span class="c1"># If we have npz files there&#39;s no need to paginate</span>
+                <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".csv"</span><span class="p">:</span>
+                    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM read_csv_auto('</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">', header=TRUE, delim=',') ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">"</span>
+                <span class="k">elif</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".sqlite"</span><span class="p">:</span>
+                    <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM sqlite_scan('</span><span class="si">{</span><span class="n">source_path</span><span class="si">}</span><span class="s2">', '</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">') ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">"</span>
+                <span class="k">elif</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".npz"</span><span class="p">:</span>
+                    <span class="c1"># If we have npz files there's no need to paginate</span>
                     <span class="c1"># so we return None. None within a list is used as</span>
-                    <span class="c1"># a special &quot;passthrough&quot; case within the pipeline</span>
+                    <span class="c1"># a special "passthrough" case within the pipeline</span>
                     <span class="c1"># so we may specially handle NPZ files later on via</span>
                     <span class="c1"># _source_pageset_to_parquet and _extract_npz_to_parquet.</span>
                     <span class="k">return</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
@@ -771,7 +773,7 @@ window.runMermaid = runMermaid;</script>
                     <span class="n">page_keys</span> <span class="o">=</span> <span class="p">[</span>
                         <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
                         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">cx</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">;&quot;</span>
+                            <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2"> ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">;"</span>
                         <span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
                         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
                     <span class="p">]</span>
@@ -786,7 +788,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">)</span>
 
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Skipping file due to input file errors: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">invalid_input_exc</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Skipping file due to input file errors: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">invalid_input_exc</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
 
             <span class="k">return</span> <span class="kc">None</span>
@@ -797,7 +799,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">elif</span> <span class="n">sql_stmt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-            <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM (</span><span class="si">{</span><span class="n">sql_stmt</span><span class="si">}</span><span class="s2">) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">sql_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> FROM (</span><span class="si">{</span><span class="n">sql_stmt</span><span class="si">}</span><span class="s2">) ORDER BY </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">"</span>
             <span class="n">page_keys</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql_query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
             <span class="n">page_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="p">]</span>
 
@@ -814,7 +816,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Export source data to chunked parquet file using chunk size and offsets.</span>
 
 <span class="sd">    Args:</span>
@@ -841,7 +843,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        duckdb.Error:</span>
 <span class="sd">            Re-raised when the duckdb-based read fails for a reason other</span>
 <span class="sd">            than a mixed-type sqlite error.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
@@ -857,40 +859,40 @@ window.runMermaid = runMermaid;</script>
         <span class="n">_write_parquet_table_with_metadata</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">source_type</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
 
     <span class="c1"># hash of parent path discriminates sources whose parent dirs share a name</span>
     <span class="c1"># (e.g. analyses/{1,2}/analysis) — see cytomining/CytoTable#442</span>
     <span class="n">source_parent_hash</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha1</span><span class="p">(</span>
-        <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">),</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">"utf-8"</span><span class="p">),</span>
         <span class="n">usedforsecurity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">12</span><span class="p">]</span>
     <span class="n">source_dest_path</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/&quot;</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_parent_hash</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">AnyPath</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/"</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_parent_hash</span><span class="si">}</span><span class="s2">"</span>
     <span class="p">)</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># If we have npz files, we need to extract them in a specialized manner.</span>
     <span class="c1"># See below for CSV and SQLite handling.</span>
-    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.npz&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".npz"</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_extract_npz_to_parquet</span><span class="p">(</span>
-            <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
-            <span class="n">dest_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet&quot;</span><span class="p">,</span>
-            <span class="n">tablenumber</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">],</span>
+            <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]),</span>
+            <span class="n">dest_path</span><span class="o">=</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.parquet"</span><span class="p">,</span>
+            <span class="n">tablenumber</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"tablenumber"</span><span class="p">],</span>
         <span class="p">)</span>
 
     <span class="k">elif</span> <span class="n">pageset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># if we have a `None` pageset and we&#39;re not using</span>
-        <span class="c1"># npz, then we have an exception (this shouldn&#39;t happen</span>
+        <span class="c1"># if we have a `None` pageset and we're not using</span>
+        <span class="c1"># npz, then we have an exception (this shouldn't happen</span>
         <span class="c1"># because we will need a pageset range to work with for</span>
         <span class="c1"># table queries and npz files are handled above with</span>
         <span class="c1"># the none case).</span>
         <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="s2">&quot;No pageset range provided for source data&quot;</span>
-                <span class="s2">&quot; (required for non-NPZ datasets).&quot;</span>
+                <span class="s2">"No pageset range provided for source data"</span>
+                <span class="s2">" (required for non-NPZ datasets)."</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
@@ -899,22 +901,22 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># to become tablenumber in sql select later with bigint (8-byte integer)</span>
         <span class="c1"># we cast here to bigint to avoid concat or join conflicts later due to</span>
         <span class="c1"># misaligned automatic data typing.</span>
-        <span class="sa">f</span><span class="s2">&quot;CAST(</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;tablenumber&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> AS BIGINT) as TableNumber, &quot;</span>
-        <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="c1"># don&#39;t introduce the column if we aren&#39;t supposed to add tablenumber</span>
+        <span class="sa">f</span><span class="s2">"CAST(</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">'tablenumber'</span><span class="p">]</span><span class="si">}</span><span class="s2"> AS BIGINT) as TableNumber, "</span>
+        <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">"tablenumber"</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="c1"># don't introduce the column if we aren't supposed to add tablenumber</span>
         <span class="c1"># as per parameter.</span>
-        <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">else</span> <span class="s2">""</span>
     <span class="p">)</span>
 
     <span class="c1"># add source table columns</span>
     <span class="n">casted_source_cols</span> <span class="o">=</span> <span class="p">[</span>
         <span class="c1"># here we cast the column to the specified type ensure the colname remains the same</span>
-        <span class="sa">f</span><span class="s1">&#39;CAST(&quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot; AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_dtype&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">) AS &quot;</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s2">&quot;column_name&quot;</span><span class="p">]</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
-        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span>
+        <span class="sa">f</span><span class="s1">'CAST("</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">]</span><span class="si">}</span><span class="s1">" AS </span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_dtype"</span><span class="p">]</span><span class="si">}</span><span class="s1">) AS "</span><span class="si">{</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">]</span><span class="si">}</span><span class="s1">"'</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">"columns"</span><span class="p">]</span>
     <span class="p">]</span>
 
     <span class="c1"># create selection statement from tablenumber_sql + lists above</span>
-    <span class="n">select_columns</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">select_columns</span> <span class="o">=</span> <span class="n">tablenumber_sql</span> <span class="o">+</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
         <span class="c1"># if we should sort the output, add the metadata_cols</span>
         <span class="n">casted_source_cols</span>
         <span class="k">if</span> <span class="n">sort_output</span>
@@ -923,16 +925,16 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># build output query and filepath base</span>
     <span class="c1"># (chunked output will append offset to keep output paths unique)</span>
-    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.csv&quot;</span><span class="p">:</span>
-        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM read_csv_auto(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;, header=TRUE, delim=&#39;,&#39;)&quot;</span>
-        <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".csv"</span><span class="p">:</span>
+        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM read_csv_auto('</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">])</span><span class="si">}</span><span class="s2">', header=TRUE, delim=',')"</span>
+        <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
 
-    <span class="k">elif</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
-        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM sqlite_scan(&#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;, &#39;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
-        <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">&#39;table_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">elif</span> <span class="n">source_type</span> <span class="o">==</span> <span class="s2">".sqlite"</span><span class="p">:</span>
+        <span class="n">base_query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SELECT </span><span class="si">{</span><span class="n">select_columns</span><span class="si">}</span><span class="s2"> FROM sqlite_scan('</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">])</span><span class="si">}</span><span class="s2">', '</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'table_name'</span><span class="p">])</span><span class="si">}</span><span class="s2">')"</span>
+        <span class="n">result_filepath_base</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s1">'table_name'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
 
     <span class="c1"># form a filepath which indicates the pageset</span>
-    <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+    <span class="n">result_filepath</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">result_filepath_base</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.parquet"</span>
 
     <span class="c1"># Attempt to read the data to parquet file</span>
     <span class="c1"># using duckdb for extraction and pyarrow for</span>
@@ -942,37 +944,37 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># and export to parquet</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
             <span class="n">_write_parquet_table_with_metadata</span><span class="p">(</span>
-                <span class="n">table</span><span class="o">=</span><span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">                    </span><span class="si">{</span><span class="n">base_query</span><span class="si">}</span>
-<span class="s2">                    WHERE </span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">]</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
+<span class="s2">                    WHERE </span><span class="si">{</span><span class="n">source</span><span class="p">[</span><span class="s2">"page_key"</span><span class="p">]</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span>
 <span class="s2">                    /* optional ordering per pageset */</span>
-<span class="s2">                    </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">]</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
-<span class="s2">                    &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">(),</span>
+<span class="s2">                    </span><span class="si">{</span><span class="s2">"ORDER BY "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">source</span><span class="p">[</span><span class="s2">"page_key"</span><span class="p">]</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">                    """</span><span class="p">)</span><span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">(),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
     <span class="c1"># Include exception handling to read mixed-type data</span>
     <span class="c1"># using sqlite3 and special utility function.</span>
     <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span>
+        <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">])</span>
 
         <span class="c1"># if we see a mismatched type error</span>
         <span class="c1"># run a more nuanced query through sqlite</span>
         <span class="c1"># to handle the mixed types</span>
         <span class="k">if</span> <span class="p">(</span>
-            <span class="s2">&quot;Mismatch Type Error&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
+            <span class="s2">"Mismatch Type Error"</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".sqlite"</span>
         <span class="p">):</span>
             <span class="n">_write_parquet_table_with_metadata</span><span class="p">(</span>
                 <span class="c1"># here we use sqlite instead of duckdb to extract</span>
                 <span class="c1"># data for special cases where column and value types</span>
                 <span class="c1"># may not align (which is valid functionality in SQLite).</span>
                 <span class="n">table</span><span class="o">=</span><span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
-                    <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]),</span>
-                    <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]),</span>
-                    <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;page_key&quot;</span><span class="p">],</span>
+                    <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]),</span>
+                    <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"table_name"</span><span class="p">]),</span>
+                    <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"page_key"</span><span class="p">],</span>
                     <span class="n">pageset</span><span class="o">=</span><span class="n">pageset</span><span class="p">,</span>
                     <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
-                    <span class="n">tablenumber</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;tablenumber&quot;</span><span class="p">],</span>
+                    <span class="n">tablenumber</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"tablenumber"</span><span class="p">],</span>
                 <span class="p">),</span>
                 <span class="n">where</span><span class="o">=</span><span class="n">result_filepath</span><span class="p">,</span>
             <span class="p">)</span>
@@ -991,7 +993,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">source_root_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Move internal chunk output to a source-aligned user-facing path.</span>
 
 <span class="sd">    Args:</span>
@@ -1010,7 +1012,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        str:</span>
 <span class="sd">            User-facing output filepath.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
@@ -1018,7 +1020,7 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnyPath</span>
 
     <span class="n">internal_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span>
-    <span class="n">source_parent</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+    <span class="n">source_parent</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="n">source_root</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_root_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
     <span class="n">source_root_base</span> <span class="o">=</span> <span class="n">source_root</span><span class="o">.</span><span class="n">parent</span> <span class="k">if</span> <span class="n">source_root</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="n">source_root</span>
 
@@ -1027,7 +1029,7 @@ window.runMermaid = runMermaid;</script>
     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
         <span class="n">clean_parent_parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_parent</span><span class="o">.</span><span class="n">name</span><span class="p">,)</span>
 
-    <span class="k">if</span> <span class="n">clean_parent_parts</span> <span class="ow">in</span> <span class="p">((),</span> <span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">,)):</span>
+    <span class="k">if</span> <span class="n">clean_parent_parts</span> <span class="ow">in</span> <span class="p">((),</span> <span class="p">(</span><span class="s2">"."</span><span class="p">,)):</span>
         <span class="n">clean_parent_parts</span> <span class="o">=</span> <span class="p">(</span><span class="n">source_parent</span><span class="o">.</span><span class="n">name</span><span class="p">,)</span>
 
     <span class="n">clean_parent_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
@@ -1058,7 +1060,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">metadata</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
     <span class="n">compartments</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Rename columns using the source group name, avoiding identifying columns.</span>
 
 <span class="sd">    Notes:</span>
@@ -1071,7 +1073,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        source_group_name (str):</span>
 <span class="sd">            Name of data source source group (for common compartments, etc).</span>
 <span class="sd">        identifying_columns (List[str]):</span>
-<span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
+<span class="sd">            Column names which are used as ID's and as a result need to be</span>
 <span class="sd">            treated differently when renaming.</span>
 <span class="sd">        metadata (Union[List[str], Tuple[str, ...]]):</span>
 <span class="sd">            List of source data names which are used as metadata.</span>
@@ -1081,7 +1083,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
 <span class="sd">            Path to the modified file.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
@@ -1099,8 +1101,8 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="n">msg</span><span class="o">=</span><span class="p">(</span>
-                <span class="s2">&quot;Skipping column name prepend operations &quot;</span>
-                <span class="s2">&quot;because no compartments or metadata were provided.&quot;</span>
+                <span class="s2">"Skipping column name prepend operations "</span>
+                <span class="s2">"because no compartments or metadata were provided."</span>
             <span class="p">)</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">table_path</span>
@@ -1111,9 +1113,9 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># stem of source group name</span>
     <span class="c1"># for example:</span>
-    <span class="c1">#   targets: [&#39;cytoplasm&#39;]</span>
-    <span class="c1">#   source_group_name: &#39;Per_Cytoplasm.sqlite&#39;</span>
-    <span class="c1">#   source_group_name_stem: &#39;Cytoplasm&#39;</span>
+    <span class="c1">#   targets: ['cytoplasm']</span>
+    <span class="c1">#   source_group_name: 'Per_Cytoplasm.sqlite'</span>
+    <span class="c1">#   source_group_name_stem: 'Cytoplasm'</span>
     <span class="n">source_group_name_stem</span> <span class="o">=</span> <span class="n">targets</span><span class="p">[</span>
         <span class="c1"># return first result from generator below as index to targets</span>
         <span class="nb">next</span><span class="p">(</span>
@@ -1133,54 +1135,54 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># where colname is not in identifying_columns parameter values</span>
         <span class="c1"># and where the column is not already prepended with source_group_name_stem</span>
         <span class="c1"># for example:</span>
-        <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
-        <span class="c1">#   column_name: &#39;AreaShape_Area&#39;</span>
-        <span class="c1">#   updated_column_name: &#39;Cells_AreaShape_Area&#39;</span>
+        <span class="c1">#   source_group_name_stem: 'Cells'</span>
+        <span class="c1">#   column_name: 'AreaShape_Area'</span>
+        <span class="c1">#   updated_column_name: 'Cells_AreaShape_Area'</span>
         <span class="k">if</span> <span class="n">column_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
             <span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
         <span class="p">):</span>
-            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="c1"># if-condition for prepending &#39;Metadata_&#39; to column name</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="c1"># if-condition for prepending 'Metadata_' to column name</span>
         <span class="c1"># where colname is in identifying_columns parameter values</span>
         <span class="c1"># and where the column is already prepended with source_group_name_stem</span>
         <span class="c1"># for example:</span>
-        <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
-        <span class="c1">#   column_name: &#39;Cells_Number_Object_Number&#39;</span>
-        <span class="c1">#   updated_column_name: &#39;Metadata_Cells_Number_Object_Number&#39;</span>
+        <span class="c1">#   source_group_name_stem: 'Cells'</span>
+        <span class="c1">#   column_name: 'Cells_Number_Object_Number'</span>
+        <span class="c1">#   updated_column_name: 'Metadata_Cells_Number_Object_Number'</span>
         <span class="k">elif</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span> <span class="ow">and</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
             <span class="n">source_group_name_stem</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
         <span class="p">):</span>
-            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="c1"># if-condition for prepending &#39;Metadata&#39; and source_group_name_stem to column name</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="c1"># if-condition for prepending 'Metadata' and source_group_name_stem to column name</span>
         <span class="c1"># where colname is in identifying_columns parameter values</span>
-        <span class="c1"># and where the colname does not already start with &#39;Metadata_&#39;</span>
+        <span class="c1"># and where the colname does not already start with 'Metadata_'</span>
         <span class="c1"># and colname not in metadata list</span>
-        <span class="c1"># and colname does not include &#39;ObjectNumber&#39; or &#39;TableNumber&#39;</span>
+        <span class="c1"># and colname does not include 'ObjectNumber' or 'TableNumber'</span>
         <span class="c1"># (which are specially treated column names in this context)</span>
         <span class="c1"># for example:</span>
-        <span class="c1">#   source_group_name_stem: &#39;Cells&#39;</span>
-        <span class="c1">#   column_name: &#39;Parent_Nuclei&#39;</span>
-        <span class="c1">#   updated_column_name: &#39;Metadata_Cells_Parent_Nuclei&#39;</span>
+        <span class="c1">#   source_group_name_stem: 'Cells'</span>
+        <span class="c1">#   column_name: 'Parent_Nuclei'</span>
+        <span class="c1">#   updated_column_name: 'Metadata_Cells_Parent_Nuclei'</span>
         <span class="k">elif</span> <span class="p">(</span>
             <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
-            <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Metadata_&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"Metadata_"</span><span class="p">)</span>
             <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span> <span class="ow">in</span> <span class="n">column_name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="n">column_name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;ObjectNumber&quot;</span><span class="p">,</span> <span class="s2">&quot;TableNumber&quot;</span><span class="p">])</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="n">column_name</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"ObjectNumber"</span><span class="p">,</span> <span class="s2">"TableNumber"</span><span class="p">])</span>
         <span class="p">):</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"Metadata_</span><span class="si">{</span><span class="n">source_group_name_stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
-        <span class="c1"># if-condition for prepending &#39;Metadata&#39; to column name</span>
-        <span class="c1"># where colname doesn&#39;t already start with &#39;Metadata_&#39;</span>
+        <span class="c1"># if-condition for prepending 'Metadata' to column name</span>
+        <span class="c1"># where colname doesn't already start with 'Metadata_'</span>
         <span class="c1"># and colname is in identifying_columns parameter values</span>
         <span class="c1"># for example:</span>
-        <span class="c1">#   column_name: &#39;ObjectNumber&#39;</span>
-        <span class="c1">#   updated_column_name: &#39;Metadata_ObjectNumber&#39;</span>
+        <span class="c1">#   column_name: 'ObjectNumber'</span>
+        <span class="c1">#   updated_column_name: 'Metadata_ObjectNumber'</span>
         <span class="k">elif</span> <span class="p">(</span>
-            <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;Metadata_&quot;</span><span class="p">)</span>
+            <span class="ow">not</span> <span class="n">column_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"Metadata_"</span><span class="p">)</span>
             <span class="ow">and</span> <span class="n">column_name</span> <span class="ow">in</span> <span class="n">identifying_columns</span>
         <span class="p">):</span>
-            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Metadata_</span><span class="si">{</span><span class="n">column_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
         <span class="c1"># else we add the existing colname to the updated list as-is</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">updated_column_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_name</span><span class="p">)</span>
@@ -1201,7 +1203,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">common_schema</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Concatenate group of source data together as single file.</span>
 
 <span class="sd">    For a reference to data concatenation within Arrow see the following:</span>
@@ -1228,12 +1230,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        # earlier data read into parquet chunks from multiple</span>
 <span class="sd">        # data source files.</span>
 <span class="sd">        read_data = [</span>
-<span class="sd">            {&quot;table&quot;: [&quot;cells-1.parquet&quot;, &quot;cells-2.parquet&quot;]},</span>
-<span class="sd">            {&quot;table&quot;: [&quot;cells-1.parquet&quot;, &quot;cells-2.parquet&quot;]},</span>
+<span class="sd">            {"table": ["cells-1.parquet", "cells-2.parquet"]},</span>
+<span class="sd">            {"table": ["cells-1.parquet", "cells-2.parquet"]},</span>
 <span class="sd">        ]</span>
 
 <span class="sd">        # focus of this function</span>
-<span class="sd">        concatted = [{&quot;table&quot;: [&quot;cells.parquet&quot;]}]</span>
+<span class="sd">        concatted = [{"table": ["cells.parquet"]}]</span>
 
 
 <span class="sd">    Args:</span>
@@ -1257,7 +1259,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        SchemaException:</span>
 <span class="sd">            Raised when source files cannot be unified under a common schema</span>
 <span class="sd">            during concatenation.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
@@ -1274,11 +1276,11 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># build a result placeholder</span>
     <span class="n">concatted</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">{</span>
-            <span class="c1"># source path becomes parent&#39;s parent dir with the same filename</span>
-            <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
+            <span class="c1"># source path becomes parent's parent dir with the same filename</span>
+            <span class="s2">"source_path"</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
                 <span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;/</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">'source_path'</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="sa">f</span><span class="s2">"/</span><span class="si">{</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">'source_path'</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">"</span>
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="p">}</span>
@@ -1287,12 +1289,12 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># build destination path for file to land</span>
     <span class="n">destination_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span>
         <span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/&quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">/"</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">source_group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">.parquet"</span>
         <span class="p">)</span>
     <span class="p">)</span>
 
-    <span class="c1"># if there&#39;s already a file remove it</span>
+    <span class="c1"># if there's already a file remove it</span>
     <span class="n">destination_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># ensure the parent directories exist:</span>
@@ -1304,23 +1306,23 @@ window.runMermaid = runMermaid;</script>
     <span class="p">)</span>
 
     <span class="c1"># build a parquet file writer which will be used to append files</span>
-    <span class="c1"># as a single concatted parquet file, referencing the first file&#39;s schema</span>
+    <span class="c1"># as a single concatted parquet file, referencing the first file's schema</span>
     <span class="c1"># (all must be the same schema)</span>
     <span class="k">with</span> <span class="n">parquet</span><span class="o">.</span><span class="n">ParquetWriter</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">destination_path</span><span class="p">),</span> <span class="n">writer_schema</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group</span><span class="p">:</span>
-            <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]]</span>
+            <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">"table"</span><span class="p">]]</span>
             <span class="k">if</span> <span class="n">sort_output</span><span class="p">:</span>
                 <span class="n">tables</span> <span class="o">=</span> <span class="n">_natural_sort</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
-                <span class="c1"># if we haven&#39;t inferred the common schema</span>
+                <span class="c1"># if we haven't inferred the common schema</span>
                 <span class="c1"># check that our file matches the expected schema, otherwise raise an error</span>
                 <span class="k">if</span> <span class="n">common_schema</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">writer_schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span>
                     <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
                 <span class="p">):</span>
                     <span class="k">raise</span> <span class="n">SchemaException</span><span class="p">(</span>
                         <span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Detected mismatching schema for target concatenation group members:&quot;</span>
-                            <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;table&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="sa">f</span><span class="s2">"Detected mismatching schema for target concatenation group members:"</span>
+                            <span class="sa">f</span><span class="s2">" </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">'table'</span><span class="p">])</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
                         <span class="p">)</span>
                     <span class="p">)</span>
 
@@ -1342,7 +1344,7 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># pass after all work completes; see _remove_empty_dirs in</span>
     <span class="c1"># _run_export_workflow. See cytomining/CytoTable#442.</span>
     <span class="c1"># return the concatted parquet filename</span>
-    <span class="n">concatted</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">destination_path</span><span class="p">]</span>
+    <span class="n">concatted</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"table"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">destination_path</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">concatted</span>
 
@@ -1352,7 +1354,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">joins</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Prepare join SQL statement with actual locations of data based on the sources.</span>
 
 <span class="sd">    Args:</span>
@@ -1366,7 +1368,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
 <span class="sd">            String representing the SQL to be used in later join work.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
     <span class="c1"># replace with real location of sources for join sql</span>
@@ -1375,8 +1377,8 @@ window.runMermaid = runMermaid;</script>
         <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">joins</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
             <span class="n">table_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
             <span class="n">joins</span> <span class="o">=</span> <span class="n">joins</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.parquet&#39;&quot;</span><span class="p">,</span>
-                <span class="nb">str</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">]]),</span>
+                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.parquet'"</span><span class="p">,</span>
+                <span class="nb">str</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"table"</span><span class="p">]]),</span>
             <span class="p">)</span>
             <span class="n">order_by_tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span>
 
@@ -1393,7 +1395,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Join sources based on join group keys (group of specific join column values)</span>
 
 <span class="sd">    Args:</span>
@@ -1416,23 +1418,23 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
 <span class="sd">            Path to joined file which is created as a result of this function.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_duckdb_reader</span><span class="p">,</span> <span class="n">_write_parquet_table_with_metadata</span>
 
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
 <span class="s2">            WITH joined AS (</span>
 <span class="s2">                </span><span class="si">{</span><span class="n">joins</span><span class="si">}</span>
 <span class="s2">            )</span>
 <span class="s2">            SELECT *</span>
 <span class="s2">            FROM joined</span>
-<span class="s2">            </span><span class="si">{</span><span class="sa">f</span><span class="s2">&quot;WHERE </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">pageset</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span>
+<span class="s2">            </span><span class="si">{</span><span class="sa">f</span><span class="s2">"WHERE </span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2"> BETWEEN </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND </span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">pageset</span><span class="w"> </span><span class="ow">is</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="kc">None</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span>
 <span class="s2">            /* optional sorting per pagset */</span>
-<span class="s2">            </span><span class="si">{</span><span class="s2">&quot;ORDER BY &quot;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="si">}</span><span class="s2">;</span>
-<span class="s2">            &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
+<span class="s2">            </span><span class="si">{</span><span class="s2">"ORDER BY "</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page_key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">sort_output</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s2">""</span><span class="si">}</span><span class="s2">;</span>
+<span class="s2">            """</span><span class="p">)</span><span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()</span>
 
     <span class="c1"># drop nulls if specified</span>
     <span class="k">if</span> <span class="n">drop_null</span><span class="p">:</span>
@@ -1453,13 +1455,13 @@ window.runMermaid = runMermaid;</script>
 
     <span class="n">result_file_path</span> <span class="o">=</span> <span class="p">(</span>
         <span class="c1"># store the result in the parent of the dest_path</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">/&quot;</span> <span class="o">+</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span><span class="si">}</span><span class="s2">/"</span> <span class="o">+</span>
         <span class="c1"># use the dest_path stem in the name</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">-&quot;</span> <span class="o">+</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="si">}</span><span class="s2">-"</span> <span class="o">+</span>
         <span class="c1"># add the pageset indication to the filename</span>
-        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.parquet&quot;</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">pageset</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.parquet"</span>
         <span class="k">if</span> <span class="n">pageset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="k">else</span> <span class="s2">&quot;.parquet&quot;</span>
+        <span class="k">else</span> <span class="s2">".parquet"</span>
     <span class="p">)</span>
 
     <span class="c1"># write the result</span>
@@ -1476,10 +1478,10 @@ window.runMermaid = runMermaid;</script>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">join_sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="s2">"anndata_h5ad"</span><span class="p">,</span> <span class="s2">"anndata_zarr"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"parquet"</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Concatenate join sources from parquet-based chunks.</span>
 
 <span class="sd">    For a reference to data concatenation within Arrow see the following:</span>
@@ -1494,15 +1496,15 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        join_sources (List[str]):</span>
 <span class="sd">            List of local filepath destination for join source chunks</span>
 <span class="sd">            which will be concatenated.</span>
-<span class="sd">        dest_datatype (Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]):</span>
-<span class="sd">            The datatype of the output destination file. Default is &#39;parquet&#39;.</span>
+<span class="sd">        dest_datatype (Literal["parquet", "anndata_h5ad", "anndata_zarr"]):</span>
+<span class="sd">            The datatype of the output destination file. Default is 'parquet'.</span>
 <span class="sd">        sort_output (bool):</span>
 <span class="sd">            Specifies whether to sort cytotable output or not.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str:</span>
 <span class="sd">            Path to concatenated file which is created as a result of this function.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">shutil</span>
@@ -1524,16 +1526,16 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># (we now have joined results)</span>
     <span class="n">flattened_sources</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">(</span><span class="o">*</span><span class="nb">list</span><span class="p">(</span><span class="n">sources</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
     <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">flattened_sources</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">"table"</span><span class="p">]:</span>
             <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="c1"># remove dir if we have it</span>
     <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
         <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">&quot;parquet&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">"parquet"</span><span class="p">:</span>
         <span class="c1"># build a parquet file writer which will be used to append files</span>
-        <span class="c1"># as a single concatted parquet file, referencing the first file&#39;s schema</span>
+        <span class="c1"># as a single concatted parquet file, referencing the first file's schema</span>
         <span class="c1"># (all must be the same schema)</span>
         <span class="n">writer_schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">join_sources</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">with_metadata</span><span class="p">(</span>
             <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span>
@@ -1553,7 +1555,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="p">)</span>
                 <span class="c1"># remove the file which was written in the concatted parquet file (we no longer need it)</span>
                 <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="n">dest_datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]:</span>
+    <span class="k">elif</span> <span class="n">dest_datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"anndata_h5ad"</span><span class="p">,</span> <span class="s2">"anndata_zarr"</span><span class="p">]:</span>
         <span class="n">numeric_colnames</span><span class="p">,</span> <span class="n">nonnumeric_colnames</span> <span class="o">=</span> <span class="n">find_anndata_metadata_field_names</span><span class="p">(</span>
             <span class="n">join_sources</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="p">)</span>
@@ -1564,22 +1566,22 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># see: https://github.com/scverse/anndata/issues/2078)</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
             <span class="n">all_files</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">&quot;&#39;&quot;</span>
-                <span class="o">+</span> <span class="s2">&quot;&#39;,&#39;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="s2">"'"</span>
+                <span class="o">+</span> <span class="s2">"','"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                     <span class="n">join_sources</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">sort_output</span>
                     <span class="k">else</span> <span class="n">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="o">=</span><span class="n">join_sources</span><span class="p">)</span>
                 <span class="p">)</span>
-                <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span>
+                <span class="o">+</span> <span class="s2">"'"</span>
             <span class="p">)</span>
-            <span class="n">df_numeric</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                SELECT </span><span class="si">{</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">numeric_colnames</span><span class="p">)</span><span class="si">}</span>
+            <span class="n">df_numeric</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">                SELECT </span><span class="si">{</span><span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">numeric_colnames</span><span class="p">)</span><span class="si">}</span>
 <span class="s2">                FROM read_parquet([</span><span class="si">{</span><span class="n">all_files</span><span class="si">}</span><span class="s2">])</span>
-<span class="s2">                &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
-            <span class="n">df_nonnumeric</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">                SELECT </span><span class="si">{</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nonnumeric_colnames</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">                """</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+            <span class="n">df_nonnumeric</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">                SELECT </span><span class="si">{</span><span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nonnumeric_colnames</span><span class="p">)</span><span class="si">}</span>
 <span class="s2">                FROM read_parquet([</span><span class="si">{</span><span class="n">all_files</span><span class="si">}</span><span class="s2">])</span>
-<span class="s2">                &quot;&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+<span class="s2">                """</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
 
         <span class="c1"># create the anndata object with numeric features</span>
         <span class="n">adata</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">AnnData</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">df_numeric</span><span class="p">)</span>
@@ -1593,10 +1595,10 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># add the non-numeric features as obs</span>
         <span class="n">adata</span><span class="o">.</span><span class="n">obs</span> <span class="o">=</span> <span class="n">df_nonnumeric</span>
 
-        <span class="k">if</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">"anndata_h5ad"</span><span class="p">:</span>
             <span class="c1"># write the anndata object to h5ad with gzip compression</span>
-            <span class="n">adata</span><span class="o">.</span><span class="n">write_h5ad</span><span class="p">(</span><span class="n">dest_path</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s2">&quot;gzip&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">:</span>
+            <span class="n">adata</span><span class="o">.</span><span class="n">write_h5ad</span><span class="p">(</span><span class="n">dest_path</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="s2">"gzip"</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">dest_datatype</span> <span class="o">==</span> <span class="s2">"anndata_zarr"</span><span class="p">:</span>
             <span class="c1"># write the anndata object to zarr</span>
             <span class="n">adata</span><span class="o">.</span><span class="n">write_zarr</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span>
 
@@ -1610,7 +1612,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">source_group</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pa</span><span class="o">.</span><span class="n">DataType</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Infers a common schema for a group of parquet files which may have</span>
 <span class="sd">    similar but slightly different schema or data. Intended to assist with</span>
 <span class="sd">    data concatenation and other operations.</span>
@@ -1628,7 +1630,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        List[Tuple[str, pa.DataType]]:</span>
 <span class="sd">            A list of tuples which includes column name and PyArrow datatype.</span>
 <span class="sd">            This data will later be used as the basis for forming a PyArrow schema.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>
@@ -1636,13 +1638,13 @@ window.runMermaid = runMermaid;</script>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">map_pyarrow_type</span>
 
     <span class="c1"># Read the first file to establish the base schema</span>
-    <span class="n">common_schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;table&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">common_schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">source_group</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"table"</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
 
     <span class="c1"># Infer the common schema by comparing all schemas in the group</span>
     <span class="k">for</span> <span class="n">schema</span> <span class="ow">in</span> <span class="p">[</span>
         <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group</span>
-        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">"table"</span><span class="p">]</span>
     <span class="p">]:</span>
         <span class="c1"># Skip if the schema matches the common schema</span>
         <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">common_schema</span><span class="p">):</span>
@@ -1675,7 +1677,7 @@ window.runMermaid = runMermaid;</script>
                         <span class="n">pa</span><span class="o">.</span><span class="n">float64</span><span class="p">()</span>
                         <span class="k">if</span> <span class="n">data_type_cast_map</span> <span class="ow">is</span> <span class="kc">None</span>
                         <span class="k">else</span> <span class="n">pa</span><span class="o">.</span><span class="n">type_for_alias</span><span class="p">(</span>
-                            <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;float&quot;</span><span class="p">,</span> <span class="s2">&quot;float64&quot;</span><span class="p">)</span>
+                            <span class="n">data_type_cast_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"float"</span><span class="p">,</span> <span class="s2">"float64"</span><span class="p">)</span>
                         <span class="p">)</span>
                     <span class="p">),</span>
                 <span class="p">)</span>
@@ -1722,19 +1724,19 @@ window.runMermaid = runMermaid;</script>
     <span class="n">drop_null</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">page_keys</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-    <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="s2">"anndata_h5ad"</span><span class="p">,</span> <span class="s2">"anndata_zarr"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"parquet"</span><span class="p">,</span>
     <span class="n">data_type_cast_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">add_tablenumber</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Export data to various formats (e.g., parquet) based on configuration.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source_path (str):</span>
 <span class="sd">            str reference to read source files from.</span>
 <span class="sd">            Note: may be local or remote object-storage</span>
-<span class="sd">            location using convention &quot;s3://...&quot; or similar.</span>
+<span class="sd">            location using convention "s3://..." or similar.</span>
 <span class="sd">        dest_path (str):</span>
 <span class="sd">            Path to write files to. This path will be used for</span>
 <span class="sd">            intermediary data work and must be a new file or directory path.</span>
@@ -1748,7 +1750,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        compartments (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Compartment names to use for conversion.</span>
 <span class="sd">        identifying_columns (Optional[Union[List[str], Tuple[str, ...]]]):</span>
-<span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
+<span class="sd">            Column names which are used as ID's and as a result need to be</span>
 <span class="sd">            ignored with regards to renaming.</span>
 <span class="sd">        concat (bool):</span>
 <span class="sd">            Whether to concatenate similar files together.</span>
@@ -1767,8 +1769,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        page_keys (Dict[str, str]):</span>
 <span class="sd">            A dictionary which defines which column names are used for keyset pagination</span>
 <span class="sd">            in order to perform data extraction.</span>
-<span class="sd">        dest_datatype (Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]):</span>
-<span class="sd">            Output destination datatype to write to. Defaults to &#39;parquet&#39;.</span>
+<span class="sd">        dest_datatype (Literal["parquet", "anndata_h5ad", "anndata_zarr"]):</span>
+<span class="sd">            Output destination datatype to write to. Defaults to 'parquet'.</span>
 <span class="sd">        data_type_cast_map (Optional[Dict[str, str]]):</span>
 <span class="sd">            A dictionary mapping data type groups to specific types.</span>
 <span class="sd">            Roughly includes Arrow data types language from:</span>
@@ -1791,7 +1793,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        CytoTableException:</span>
 <span class="sd">            Raised when a source group lacks a matching ``page_keys`` entry</span>
 <span class="sd">            for non-NPZ source data, since pagination requires a key column.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="c1"># gather sources to be processed</span>
     <span class="n">sources</span> <span class="o">=</span> <span class="n">_gather_sources</span><span class="p">(</span>
@@ -1813,10 +1815,10 @@ window.runMermaid = runMermaid;</script>
         <span class="n">matching_keys</span> <span class="o">=</span> <span class="p">[</span>
             <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">source_group_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
         <span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">matching_keys</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="o">!=</span> <span class="s2">&quot;npz&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">matching_keys</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="o">!=</span> <span class="s2">"npz"</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;No matching key found in page_keys for source_group_name: </span><span class="si">{</span><span class="n">source_group_name</span><span class="si">}</span><span class="s2">. &quot;</span>
-                <span class="s2">&quot;Please include a pagination key based on a column name from the table.&quot;</span>
+                <span class="sa">f</span><span class="s2">"No matching key found in page_keys for source_group_name: </span><span class="si">{</span><span class="n">source_group_name</span><span class="si">}</span><span class="s2">. "</span>
+                <span class="s2">"Please include a pagination key based on a column name from the table."</span>
             <span class="p">)</span>
 
     <span class="c1"># prepare pagesets for chunked data export from source tables</span>
@@ -1825,7 +1827,7 @@ window.runMermaid = runMermaid;</script>
             <span class="nb">dict</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="o">**</span><span class="p">{</span>
-                    <span class="s2">&quot;page_key&quot;</span><span class="p">:</span> <span class="p">(</span>
+                    <span class="s2">"page_key"</span><span class="p">:</span> <span class="p">(</span>
                         <span class="n">page_key</span> <span class="o">:=</span> <span class="nb">next</span><span class="p">(</span>
                             <span class="p">(</span>
                                 <span class="n">value</span>
@@ -1834,10 +1836,10 @@ window.runMermaid = runMermaid;</script>
                             <span class="p">),</span>
                             <span class="c1"># Placeholder value if no match is found</span>
                             <span class="c1"># used in cases for .npz source types.</span>
-                            <span class="s2">&quot;placeholder&quot;</span><span class="p">,</span>
+                            <span class="s2">"placeholder"</span><span class="p">,</span>
                         <span class="p">)</span>
                     <span class="p">),</span>
-                    <span class="s2">&quot;pagesets&quot;</span><span class="p">:</span> <span class="n">_get_table_keyset_pagination_sets</span><span class="p">(</span>
+                    <span class="s2">"pagesets"</span><span class="p">:</span> <span class="n">_get_table_keyset_pagination_sets</span><span class="p">(</span>
                         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
                         <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
                         <span class="n">page_key</span><span class="o">=</span><span class="n">page_key</span><span class="p">,</span>
@@ -1849,14 +1851,14 @@ window.runMermaid = runMermaid;</script>
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span>
 
-    <span class="c1"># if pagesets is none and we haven&#39;t halted, remove the file as there</span>
+    <span class="c1"># if pagesets is none and we haven't halted, remove the file as there</span>
     <span class="c1"># were input formatting errors which will create challenges downstream</span>
     <span class="n">invalid_files_dropped</span> <span class="o">=</span> <span class="p">{</span>
         <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
             <span class="c1"># ensure we have pagesets</span>
             <span class="n">source</span>
             <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
-            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;pagesets&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">"pagesets"</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
             <span class="n">pagesets_prepared</span>
@@ -1871,7 +1873,7 @@ window.runMermaid = runMermaid;</script>
             <span class="nb">dict</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="o">**</span><span class="p">{</span>
-                    <span class="s2">&quot;columns&quot;</span><span class="p">:</span> <span class="n">_prep_cast_column_data_types</span><span class="p">(</span>
+                    <span class="s2">"columns"</span><span class="p">:</span> <span class="n">_prep_cast_column_data_types</span><span class="p">(</span>
                         <span class="n">columns</span><span class="o">=</span><span class="n">_get_table_columns_and_types</span><span class="p">(</span>
                             <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span> <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span>
                         <span class="p">),</span>
@@ -1895,7 +1897,7 @@ window.runMermaid = runMermaid;</script>
             <span class="nb">dict</span><span class="p">(</span>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="o">**</span><span class="p">{</span>
-                    <span class="s2">&quot;table&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="s2">"table"</span><span class="p">:</span> <span class="p">[</span>
                         <span class="c1"># perform column renaming and create potential return result</span>
                         <span class="n">_prepend_column_name</span><span class="p">(</span>
                             <span class="c1"># perform chunked data export to parquet using pagesets</span>
@@ -1911,7 +1913,7 @@ window.runMermaid = runMermaid;</script>
                             <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
                             <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
                         <span class="p">)</span>
-                        <span class="k">for</span> <span class="n">pageset</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;pagesets&quot;</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">pageset</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">"pagesets"</span><span class="p">]</span>
                     <span class="p">]</span>
                 <span class="p">},</span>
             <span class="p">)</span>
@@ -1928,7 +1930,7 @@ window.runMermaid = runMermaid;</script>
                 <span class="nb">dict</span><span class="p">(</span>
                     <span class="n">source</span><span class="p">,</span>
                     <span class="o">**</span><span class="p">{</span>
-                        <span class="s2">&quot;table&quot;</span><span class="p">:</span> <span class="p">[</span>
+                        <span class="s2">"table"</span><span class="p">:</span> <span class="p">[</span>
                             <span class="n">_expose_source_pageset_path</span><span class="p">(</span>
                                 <span class="n">table_path</span><span class="o">=</span><span class="n">table_path</span><span class="p">,</span>
                                 <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
@@ -1936,7 +1938,7 @@ window.runMermaid = runMermaid;</script>
                                 <span class="n">source_root_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
                                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
                             <span class="p">)</span>
-                            <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table&quot;</span><span class="p">]</span>
+                            <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="n">source</span><span class="p">[</span><span class="s2">"table"</span><span class="p">]</span>
                         <span class="p">]</span>
                     <span class="p">},</span>
                 <span class="p">)</span>
@@ -1945,14 +1947,14 @@ window.runMermaid = runMermaid;</script>
             <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
         <span class="p">}</span>
 
-    <span class="c1"># if we&#39;re concatting or joining and need to infer the common schema</span>
+    <span class="c1"># if we're concatting or joining and need to infer the common schema</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">concat</span> <span class="ow">or</span> <span class="n">join</span><span class="p">)</span> <span class="ow">and</span> <span class="n">infer_common_schema</span><span class="p">:</span>
         <span class="c1"># create a common schema for concatenation work</span>
         <span class="n">common_schema_determined</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">source_group_name</span><span class="p">:</span> <span class="p">[</span>
                 <span class="p">{</span>
-                    <span class="s2">&quot;sources&quot;</span><span class="p">:</span> <span class="n">source_group_vals</span><span class="p">,</span>
-                    <span class="s2">&quot;common_schema&quot;</span><span class="p">:</span> <span class="n">_infer_source_group_common_schema</span><span class="p">(</span>
+                    <span class="s2">"sources"</span><span class="p">:</span> <span class="n">source_group_vals</span><span class="p">,</span>
+                    <span class="s2">"common_schema"</span><span class="p">:</span> <span class="n">_infer_source_group_common_schema</span><span class="p">(</span>
                         <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">,</span>
                         <span class="n">data_type_cast_map</span><span class="o">=</span><span class="n">data_type_cast_map</span><span class="p">,</span>
                     <span class="p">),</span>
@@ -1972,9 +1974,9 @@ window.runMermaid = runMermaid;</script>
         <span class="n">results</span> <span class="o">=</span> <span class="p">{</span>
             <span class="n">source_group_name</span><span class="p">:</span> <span class="n">_concat_source_group</span><span class="p">(</span>
                 <span class="n">source_group_name</span><span class="o">=</span><span class="n">source_group_name</span><span class="p">,</span>
-                <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;sources&quot;</span><span class="p">],</span>
+                <span class="n">source_group</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"sources"</span><span class="p">],</span>
                 <span class="n">dest_path</span><span class="o">=</span><span class="n">expanded_dest_path</span><span class="p">,</span>
-                <span class="n">common_schema</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;common_schema&quot;</span><span class="p">],</span>
+                <span class="n">common_schema</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"common_schema"</span><span class="p">],</span>
                 <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">source_group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">evaluate_futures</span><span class="p">(</span>
@@ -1985,7 +1987,7 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># conditional section for merging</span>
     <span class="c1"># note: join implies a concat, but concat does not imply a join</span>
     <span class="k">if</span> <span class="n">join</span><span class="p">:</span>
-        <span class="c1"># evaluate the results as they&#39;re used multiple times below</span>
+        <span class="c1"># evaluate the results as they're used multiple times below</span>
         <span class="n">evaluated_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
         <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span>
@@ -1993,7 +1995,7 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
 
         <span class="n">page_key_join</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;join&quot;</span>
+            <span class="n">value</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"join"</span>
         <span class="p">][</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="c1"># map joined results based on the join groups gathered above</span>
@@ -2056,8 +2058,8 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">convert</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-arguments,too-many-locals</span>
     <span class="n">source_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">dest_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
-    <span class="n">dest_backend</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;iceberg&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="s2">"anndata_h5ad"</span><span class="p">,</span> <span class="s2">"anndata_zarr"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"parquet"</span><span class="p">,</span>
+    <span class="n">dest_backend</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="s2">"iceberg"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"parquet"</span><span class="p">,</span>
     <span class="n">image_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">include_source_images</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">mask_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2078,68 +2080,68 @@ window.runMermaid = runMermaid;</script>
     <span class="n">page_keys</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">bbox_column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">sort_output</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
+    <span class="n">preset</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"cellprofiler_csv"</span><span class="p">,</span>
     <span class="n">parsl_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">parsl</span><span class="o">.</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">image_crop_workers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Convert file-based data from various sources to Pycytominer-compatible standards.</span>
 
 <span class="sd">    Note: source paths may be local or remote object-storage location</span>
-<span class="sd">    using convention &quot;s3://...&quot; or similar.</span>
+<span class="sd">    using convention "s3://..." or similar.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        source_path (str):</span>
 <span class="sd">            str reference to read source files from.</span>
 <span class="sd">            Note: may be local or remote object-storage location</span>
-<span class="sd">            using convention &quot;s3://...&quot; or similar.</span>
+<span class="sd">            using convention "s3://..." or similar.</span>
 <span class="sd">        dest_path (str):</span>
-<span class="sd">            Path to write files to. Setting ``dest_backend=&quot;parquet&quot;`` will trigger CytoTable to use the provided path to perform</span>
+<span class="sd">            Path to write files to. Setting ``dest_backend="parquet"`` will trigger CytoTable to use the provided path to perform</span>
 <span class="sd">            intermediary data processing. The path must represent a new file or directory.</span>
 <span class="sd">            This parameter will result in a directory on ``join=False``.</span>
 <span class="sd">            This parameter will result in a single file on ``join=True``.</span>
-<span class="sd">            Setting ``dest_backend=&quot;iceberg&quot;`` will trigger CytoTable to use the provided path as the local warehouse root</span>
+<span class="sd">            Setting ``dest_backend="iceberg"`` will trigger CytoTable to use the provided path as the local warehouse root</span>
 <span class="sd">            directory. CytoTable still stages parquet files internally (during write),</span>
 <span class="sd">            but these intermediary files are temporary and automatically deleted following write</span>
 <span class="sd">            of the final output at ``dest_path``.</span>
-<span class="sd">        dest_datatype (Literal[&quot;parquet&quot;, &quot;anndata_h5ad&quot;, &quot;anndata_zarr&quot;]):</span>
+<span class="sd">        dest_datatype (Literal["parquet", "anndata_h5ad", "anndata_zarr"]):</span>
 <span class="sd">            Output destination datatype to write to. CytoTable uses this</span>
-<span class="sd">            value when the selected backend is ``&quot;parquet&quot;``. For</span>
-<span class="sd">            ``dest_backend=&quot;iceberg&quot;``, CytoTable currently requires</span>
-<span class="sd">            ``dest_datatype=&quot;parquet&quot;`` because CytoTable uses parquet as the</span>
+<span class="sd">            value when the selected backend is ``"parquet"``. For</span>
+<span class="sd">            ``dest_backend="iceberg"``, CytoTable currently requires</span>
+<span class="sd">            ``dest_datatype="parquet"`` because CytoTable uses parquet as the</span>
 <span class="sd">            temporary staging format before it writes data into the Iceberg</span>
 <span class="sd">            warehouse.</span>
-<span class="sd">        dest_backend (Literal[&quot;parquet&quot;, &quot;iceberg&quot;]):</span>
-<span class="sd">            Output backend to write to. Defaults to ``&quot;parquet&quot;``. Use</span>
-<span class="sd">            ``&quot;iceberg&quot;`` to store processed CytoTable tables in a local</span>
+<span class="sd">        dest_backend (Literal["parquet", "iceberg"]):</span>
+<span class="sd">            Output backend to write to. Defaults to ``"parquet"``. Use</span>
+<span class="sd">            ``"iceberg"`` to store processed CytoTable tables in a local</span>
 <span class="sd">            Iceberg warehouse.</span>
 <span class="sd">        image_dir (Optional[str]):</span>
 <span class="sd">            Optional directory or cloud object-storage prefix of source images</span>
 <span class="sd">            aligned with the experiment of interest. CytoTable uses this input</span>
 <span class="sd">            to build OME-Arrow image crops and, when</span>
 <span class="sd">            ``include_source_images=True``, full-image rows in</span>
-<span class="sd">            the iceberg table called ``images.source_images``. Requires ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">            the iceberg table called ``images.source_images``. Requires ``dest_backend="iceberg"``.</span>
 <span class="sd">        include_source_images (bool):</span>
 <span class="sd">            Whether to also store full source images in an Iceberg</span>
 <span class="sd">            ``images.source_images`` table. Requires ``image_dir`` and</span>
-<span class="sd">            ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">            ``dest_backend="iceberg"``.</span>
 <span class="sd">        mask_dir (Optional[str]):</span>
 <span class="sd">            Optional directory or cloud object-storage prefix of segmentation</span>
 <span class="sd">            masks corresponding to images within ``image_dir``. CytoTable uses these files to</span>
 <span class="sd">            populate ``ome_arrow_label`` when no outline image is available.</span>
-<span class="sd">            Requires ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">            Requires ``dest_backend="iceberg"``.</span>
 <span class="sd">        outline_dir (Optional[str]):</span>
 <span class="sd">            Optional directory or cloud object-storage prefix of outline images</span>
 <span class="sd">            corresponding to images within ``image_dir``. CytoTable uses these files to populate</span>
 <span class="sd">            ``ome_arrow_label`` before falling back to ``mask_dir``. Requires</span>
-<span class="sd">            ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">            ``dest_backend="iceberg"``.</span>
 <span class="sd">        segmentation_file_regex (Optional[Dict[str, str]]):</span>
 <span class="sd">            Optional regex mapping of segmentation filename patterns to source</span>
 <span class="sd">            image filename patterns to link masks and/or outlines. For example,</span>
-<span class="sd">            use ``{r&quot;.*_outline\\.tiff$&quot;: r&quot;(plateA_well_B03_site_1)\\.tiff$&quot;}``</span>
+<span class="sd">            use ``{r".*_outline\\.tiff$": r"(plateA_well_B03_site_1)\\.tiff$"}``</span>
 <span class="sd">            when outline files and source images do not share the same</span>
-<span class="sd">            basename. Requires ``dest_backend=&quot;iceberg&quot;``.</span>
+<span class="sd">            basename. Requires ``dest_backend="iceberg"``.</span>
 <span class="sd">        source_datatype (Optional[str]):</span>
 <span class="sd">            Source datatype to focus on during conversion.</span>
 <span class="sd">        metadata (Optional[Union[List[str], Tuple[str, ...]]]):</span>
@@ -2147,7 +2149,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        compartments (Optional[Union[List[str], Tuple[str, ...]]]):</span>
 <span class="sd">            Compartment names to use for conversion.</span>
 <span class="sd">        identifying_columns (Optional[Union[List[str], Tuple[str, ...]]]):</span>
-<span class="sd">            Column names which are used as ID&#39;s and as a result need to be</span>
+<span class="sd">            Column names which are used as ID's and as a result need to be</span>
 <span class="sd">            ignored with regards to renaming.</span>
 <span class="sd">        concat (bool):</span>
 <span class="sd">            Whether to concatenate similar files together.</span>
@@ -2172,7 +2174,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            to retain distinction from each dataset.</span>
 <span class="sd">        page_keys (Optional[Dict[str, str]]):</span>
 <span class="sd">            The table and column names to be used for key pagination.</span>
-<span class="sd">            Uses the form: ``{&quot;table_name&quot;: &quot;column_name&quot;}``.</span>
+<span class="sd">            Uses the form: ``{"table_name": "column_name"}``.</span>
 <span class="sd">            Expects columns to include numeric data (ints or floats).</span>
 <span class="sd">            Interacts with the ``chunk_size`` parameter to form</span>
 <span class="sd">            pages of ``chunk_size``.</span>
@@ -2194,7 +2196,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">        image_crop_workers (Optional[int]):</span>
 <span class="sd">            Number of worker processes used to parallelize the per-row image</span>
 <span class="sd">            crop work within each chunk when exporting to an Iceberg warehouse</span>
-<span class="sd">            (requires ``dest_backend=&quot;iceberg&quot;`` and ``image_dir``). ``None``</span>
+<span class="sd">            (requires ``dest_backend="iceberg"`` and ``image_dir``). ``None``</span>
 <span class="sd">            (default) selects an automatic count (capped at 8); ``0`` or ``1``</span>
 <span class="sd">            keeps the serial path. The crop work holds the GIL, so this uses</span>
 <span class="sd">            processes rather than threads; small chunks stay serial</span>
@@ -2204,9 +2206,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            processes at once (up to 32 with the defaults) — lower this for</span>
 <span class="sd">            multi-chunk plates to avoid oversubscribing cores. The parallel path</span>
 <span class="sd">            uses the ``spawn`` start</span>
-<span class="sd">            method, which re-imports the caller&#39;s top-level script as</span>
+<span class="sd">            method, which re-imports the caller's top-level script as</span>
 <span class="sd">            ``__main__`` in each worker: when calling ``convert(...)`` from a</span>
-<span class="sd">            plain script, guard that call with ``if __name__ == &quot;__main__&quot;:`` so</span>
+<span class="sd">            plain script, guard that call with ``if __name__ == "__main__":`` so</span>
 <span class="sd">            workers do not re-run your whole pipeline (notebooks and REPLs are</span>
 <span class="sd">            unaffected), or set ``image_crop_workers=1`` to use the serial path.</span>
 <span class="sd">        **kwargs:</span>
@@ -2235,33 +2237,33 @@ window.runMermaid = runMermaid;</script>
 
 <span class="sd">            # using a local path with cellprofiler csv presets</span>
 <span class="sd">            convert(</span>
-<span class="sd">                source_path=&quot;./tests/data/cellprofiler/ExampleHuman&quot;,</span>
-<span class="sd">                source_datatype=&quot;csv&quot;,</span>
-<span class="sd">                dest_path=&quot;ExampleHuman.parquet&quot;,</span>
-<span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
-<span class="sd">                preset=&quot;cellprofiler_csv&quot;,</span>
+<span class="sd">                source_path="./tests/data/cellprofiler/ExampleHuman",</span>
+<span class="sd">                source_datatype="csv",</span>
+<span class="sd">                dest_path="ExampleHuman.parquet",</span>
+<span class="sd">                dest_datatype="parquet",</span>
+<span class="sd">                preset="cellprofiler_csv",</span>
 <span class="sd">            )</span>
 
 <span class="sd">            # using an s3-compatible path with no signature for client</span>
 <span class="sd">            # and cellprofiler csv presets</span>
 <span class="sd">            convert(</span>
-<span class="sd">                source_path=&quot;s3://s3path&quot;,</span>
-<span class="sd">                source_datatype=&quot;csv&quot;,</span>
-<span class="sd">                dest_path=&quot;s3_local_result&quot;,</span>
-<span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
+<span class="sd">                source_path="s3://s3path",</span>
+<span class="sd">                source_datatype="csv",</span>
+<span class="sd">                dest_path="s3_local_result",</span>
+<span class="sd">                dest_datatype="parquet",</span>
 <span class="sd">                concat=True,</span>
-<span class="sd">                preset=&quot;cellprofiler_csv&quot;,</span>
+<span class="sd">                preset="cellprofiler_csv",</span>
 <span class="sd">                no_sign_request=True,</span>
 <span class="sd">            )</span>
 
 <span class="sd">            # using local path with cellprofiler sqlite presets</span>
 <span class="sd">            convert(</span>
-<span class="sd">                source_path=&quot;example.sqlite&quot;,</span>
-<span class="sd">                dest_path=&quot;example.parquet&quot;,</span>
-<span class="sd">                dest_datatype=&quot;parquet&quot;,</span>
-<span class="sd">                preset=&quot;cellprofiler_sqlite&quot;,</span>
+<span class="sd">                source_path="example.sqlite",</span>
+<span class="sd">                dest_path="example.parquet",</span>
+<span class="sd">                dest_datatype="parquet",</span>
+<span class="sd">                preset="cellprofiler_sqlite",</span>
 <span class="sd">            )</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="n">validate_convert_backend_options</span><span class="p">(</span>
         <span class="n">dest_backend</span><span class="o">=</span><span class="n">dest_backend</span><span class="p">,</span>
@@ -2277,7 +2279,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">drop_null</span><span class="o">=</span><span class="n">drop_null</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">dest_backend</span> <span class="o">==</span> <span class="s2">&quot;iceberg&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">dest_backend</span> <span class="o">==</span> <span class="s2">"iceberg"</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.warehouse.iceberg</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_iceberg_warehouse</span>
 
         <span class="k">return</span> <span class="n">write_iceberg_warehouse</span><span class="p">(</span>
@@ -2308,18 +2310,18 @@ window.runMermaid = runMermaid;</script>
         <span class="p">)</span>
 
     <span class="c1"># check that our destination type is valid</span>
-    <span class="k">if</span> <span class="n">dest_datatype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">dest_datatype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"parquet"</span><span class="p">,</span> <span class="s2">"anndata_h5ad"</span><span class="p">,</span> <span class="s2">"anndata_zarr"</span><span class="p">]:</span>
         <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Invalid dest_datatype provided: </span><span class="si">{</span><span class="n">dest_datatype</span><span class="si">}</span><span class="s2">. &quot;</span>
-            <span class="s2">&quot;Valid options are &#39;parquet&#39;, &#39;anndata_h5ad&#39;, or &#39;anndata_zarr&#39;.&quot;</span>
+            <span class="sa">f</span><span class="s2">"Invalid dest_datatype provided: </span><span class="si">{</span><span class="n">dest_datatype</span><span class="si">}</span><span class="s2">. "</span>
+            <span class="s2">"Valid options are 'parquet', 'anndata_h5ad', or 'anndata_zarr'."</span>
         <span class="p">)</span>
 
     <span class="c1"># ensure we check about join + concat requirement for</span>
     <span class="c1"># anndata destination formats</span>
-    <span class="k">if</span> <span class="n">dest_datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;anndata_h5ad&quot;</span><span class="p">,</span> <span class="s2">&quot;anndata_zarr&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">join</span> <span class="ow">and</span> <span class="n">concat</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">dest_datatype</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">"anndata_h5ad"</span><span class="p">,</span> <span class="s2">"anndata_zarr"</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">join</span> <span class="ow">and</span> <span class="n">concat</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
-            <span class="s2">&quot;Anndata formats (h5ad and zarr) are not supported for join=False. &quot;</span>
-            <span class="s2">&quot;Please set join=True to use these formats.&quot;</span>
+            <span class="s2">"Anndata formats (h5ad and zarr) are not supported for join=False. "</span>
+            <span class="s2">"Please set join=True to use these formats."</span>
         <span class="p">)</span>
 
     <span class="c1"># Raise an exception if an existing path is provided as the destination</span>
@@ -2327,16 +2329,16 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="n">_expand_path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
         <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="s2">&quot;An existing file or directory was provided as dest_path: &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">&#39;. Please use a new path for this parameter.&quot;</span>
+                <span class="s2">"An existing file or directory was provided as dest_path: "</span>
+                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">dest_path</span><span class="si">}</span><span class="s2">'. Please use a new path for this parameter."</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
     <span class="n">parsl_loaded_here</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="c1"># attempt to load parsl configuration if we didn&#39;t already load one</span>
+    <span class="c1"># attempt to load parsl configuration if we didn't already load one</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_parsl_loaded</span><span class="p">():</span>
-        <span class="c1"># if we don&#39;t have a parsl configuration provided, load the default</span>
+        <span class="c1"># if we don't have a parsl configuration provided, load the default</span>
         <span class="k">if</span> <span class="n">parsl_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">parsl</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">_default_parsl_config</span><span class="p">())</span>
         <span class="k">else</span><span class="p">:</span>
@@ -2345,7 +2347,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">parsl_loaded_here</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="c1"># otherwise warn the user about previous config.</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Reusing previously loaded Parsl configuration.&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"Reusing previously loaded Parsl configuration."</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># optionally load preset configuration for arguments</span>
@@ -2353,44 +2355,44 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># are not None (allows intermixing of presets and overrides)</span>
         <span class="k">if</span> <span class="n">preset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">metadata</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_METADATA&quot;</span><span class="p">])</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">"CONFIG_NAMES_METADATA"</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span>
                 <span class="k">else</span> <span class="n">metadata</span>
             <span class="p">)</span>
             <span class="n">compartments</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_NAMES_COMPARTMENTS&quot;</span><span class="p">])</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">"CONFIG_NAMES_COMPARTMENTS"</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">compartments</span> <span class="ow">is</span> <span class="kc">None</span>
                 <span class="k">else</span> <span class="n">compartments</span>
             <span class="p">)</span>
             <span class="n">identifying_columns</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_IDENTIFYING_COLUMNS&quot;</span><span class="p">])</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">"CONFIG_IDENTIFYING_COLUMNS"</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">identifying_columns</span> <span class="ow">is</span> <span class="kc">None</span>
                 <span class="k">else</span> <span class="n">identifying_columns</span>
             <span class="p">)</span>
             <span class="n">joins</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_JOINS&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="n">joins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">joins</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">"CONFIG_JOINS"</span><span class="p">])</span> <span class="k">if</span> <span class="n">joins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">joins</span>
             <span class="p">)</span>
             <span class="n">chunk_size</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_CHUNK_SIZE&quot;</span><span class="p">])</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">"CONFIG_CHUNK_SIZE"</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span>
                 <span class="k">else</span> <span class="n">chunk_size</span>
             <span class="p">)</span>
             <span class="n">page_keys</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">&quot;CONFIG_PAGE_KEYS&quot;</span><span class="p">])</span>
+                <span class="n">cast</span><span class="p">(</span><span class="nb">dict</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">preset</span><span class="p">][</span><span class="s2">"CONFIG_PAGE_KEYS"</span><span class="p">])</span>
                 <span class="k">if</span> <span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span>
                 <span class="k">else</span> <span class="n">page_keys</span>
             <span class="p">)</span>
 
         <span class="c1"># Raise an exception for scenarios where one configures CytoTable to join</span>
         <span class="c1"># but does not provide a pagination key for the joins.</span>
-        <span class="k">if</span> <span class="n">join</span> <span class="ow">and</span> <span class="p">(</span><span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;join&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">join</span> <span class="ow">and</span> <span class="p">(</span><span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">"join"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
             <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
                 <span class="p">(</span>
-                    <span class="s2">&quot;When using join=True one must pass a &#39;join&#39; pagination key &quot;</span>
-                    <span class="s2">&quot;in the page_keys parameter. The &#39;join&#39; pagination key is a column &quot;</span>
-                    <span class="s2">&quot;name found within the joined results based on the SQL provided from &quot;</span>
-                    <span class="s2">&quot;the joins parameter. This special key is required as not all columns &quot;</span>
-                    <span class="s2">&quot;from the source tables might not be included.&quot;</span>
+                    <span class="s2">"When using join=True one must pass a 'join' pagination key "</span>
+                    <span class="s2">"in the page_keys parameter. The 'join' pagination key is a column "</span>
+                    <span class="s2">"name found within the joined results based on the SQL provided from "</span>
+                    <span class="s2">"the joins parameter. This special key is required as not all columns "</span>
+                    <span class="s2">"from the source tables might not be included."</span>
                 <span class="p">)</span>
             <span class="p">)</span>
 
@@ -2493,7 +2495,7 @@ window.runMermaid = runMermaid;</script>
       &#169;2022, Cytomining Community.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>

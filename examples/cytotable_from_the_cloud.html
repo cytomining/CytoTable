@@ -7,7 +7,7 @@
 
     <title>CytoTable from the cloud (using cloud-based data sources) &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=37770e68" />
     <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
     <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=01d9ba92" />
@@ -60,17 +60,17 @@ For a more general overview of using CytoTable and the concepts behind the work 
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># setup variables for use in this section of the notebook</span>
 <span class="n">source_path</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s2">&quot;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/&quot;</span>
-    <span class="s2">&quot;analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/&quot;</span>
+    <span class="s2">"s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/"</span>
+    <span class="s2">"analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/"</span>
 <span class="p">)</span>
-<span class="n">dest_path</span> <span class="o">=</span> <span class="s2">&quot;./cloud_example.parquet&quot;</span>
+<span class="n">dest_path</span> <span class="o">=</span> <span class="s2">"./cloud_example.parquet"</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># remove the dest_path if it&#39;s present</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># remove the dest_path if it's present</span>
 <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 </pre></div>
@@ -84,7 +84,7 @@ For a more general overview of using CytoTable and the concepts behind the work 
 <span class="n">source_cloud_path</span> <span class="o">=</span> <span class="n">S3Client</span><span class="p">(</span><span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">CloudPath</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">source_cloud_path</span><span class="p">)</span>
 <span class="c1"># show the files within the path</span>
-<span class="nb">list</span><span class="p">(</span><span class="n">source_cloud_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">))</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">source_cloud_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*"</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -92,14 +92,14 @@ For a more general overview of using CytoTable and the concepts behind the work 
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/outlines&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Cells.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/CellsIncludingEdges.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Cytoplasm.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Experiment.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Image.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Nuclei.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/NucleiIncludingEdges.csv&#39;)]
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/outlines'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Cells.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/CellsIncludingEdges.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Cytoplasm.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Experiment.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Image.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/Nuclei.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0037-oasis/broad/workspace/analysis/2025_01_12_U2OS_Batch2/BR00146052/analysis/BR00146052-A01-1/NucleiIncludingEdges.csv')]
 </pre></div>
 </div>
 </div>
@@ -111,7 +111,7 @@ For a more general overview of using CytoTable and the concepts behind the work 
 <span class="c1"># run cytotable convert</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cytotable</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span>
     <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
-    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">"csv"</span><span class="p">,</span>
     <span class="c1"># Set the chunk size for paginated processing.</span>
     <span class="c1"># Smaller values use fewer resources but take longer;</span>
     <span class="c1"># larger values use more resources and process faster.</span>
@@ -119,9 +119,9 @@ For a more general overview of using CytoTable and the concepts behind the work 
     <span class="c1"># specify the destination path</span>
     <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
     <span class="c1"># specify a destination data format type</span>
-    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">"parquet"</span><span class="p">,</span>
     <span class="c1"># specify a preset which enables quick use of common input file formats</span>
-    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_csv&quot;</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">"cellprofiler_csv"</span><span class="p">,</span>
     <span class="c1"># use unsigned (anonymous) requests to AWS S3</span>
     <span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span>
@@ -340,8 +340,8 @@ Wall time: 34.6 s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{b&#39;data-producer&#39;: b&#39;https://github.com/cytomining/CytoTable&#39;,
- b&#39;data-producer-version&#39;: b&#39;1.1.2.post9.dev0+323d0d2&#39;}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{b'data-producer': b'https://github.com/cytomining/CytoTable',
+ b'data-producer-version': b'1.1.2.post9.dev0+323d0d2'}
 </pre></div>
 </div>
 </div>
@@ -351,8 +351,8 @@ Wall time: 34.6 s
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show schema column name summaries</span>
 <span class="c1"># note: we have all compartments in one table</span>
 <span class="c1"># after processing with CytoTable.</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Column name prefix counts:&quot;</span><span class="p">)</span>
-<span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Column name prefix counts:"</span><span class="p">)</span>
+<span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -360,7 +360,7 @@ Wall time: 34.6 s
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Column name prefix counts:
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;Metadata&#39;: 4, &#39;Image&#39;: 14, &#39;Cytoplasm&#39;: 1480, &#39;Cells&#39;: 1494, &#39;Nuclei&#39;: 1421}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{'Metadata': 4, 'Image': 14, 'Cytoplasm': 1480, 'Cells': 1494, 'Nuclei': 1421}
 </pre></div>
 </div>
 </div>
@@ -372,17 +372,17 @@ Wall time: 34.6 s
 <div class="cell_input docutils container">
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># setup variables for use in this section of the notebook</span>
 <span class="n">source_path</span> <span class="o">=</span> <span class="p">(</span>
-    <span class="s2">&quot;s3://cellpainting-gallery/cpg0016-jump/source_4/&quot;</span>
-    <span class="s2">&quot;workspace/backend/2021_08_23_Batch12/BR00126114&quot;</span>
+    <span class="s2">"s3://cellpainting-gallery/cpg0016-jump/source_4/"</span>
+    <span class="s2">"workspace/backend/2021_08_23_Batch12/BR00126114"</span>
 <span class="p">)</span>
-<span class="n">dest_path</span> <span class="o">=</span> <span class="s2">&quot;./cloud_example.parquet&quot;</span>
+<span class="n">dest_path</span> <span class="o">=</span> <span class="s2">"./cloud_example.parquet"</span>
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># remove the dest_path if it&#39;s present</span>
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># remove the dest_path if it's present</span>
 <span class="k">if</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
     <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">dest_path</span><span class="p">)</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
 </pre></div>
@@ -396,7 +396,7 @@ Wall time: 34.6 s
 <span class="n">source_cloud_path</span> <span class="o">=</span> <span class="n">S3Client</span><span class="p">(</span><span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">CloudPath</span><span class="p">(</span><span class="n">source_path</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">source_cloud_path</span><span class="p">)</span>
 <span class="c1"># show the files within the path</span>
-<span class="nb">list</span><span class="p">(</span><span class="n">source_cloud_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">))</span>
+<span class="nb">list</span><span class="p">(</span><span class="n">source_cloud_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*"</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -404,8 +404,8 @@ Wall time: 34.6 s
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[S3Path(&#39;s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.csv&#39;),
- S3Path(&#39;s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.sqlite&#39;)]
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[S3Path('s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.csv'),
+ S3Path('s3://cellpainting-gallery/cpg0016-jump/source_4/workspace/backend/2021_08_23_Batch12/BR00126114/BR00126114.sqlite')]
 </pre></div>
 </div>
 </div>
@@ -417,7 +417,7 @@ Wall time: 34.6 s
 <span class="c1"># run cytotable convert</span>
 <span class="n">result</span> <span class="o">=</span> <span class="n">cytotable</span><span class="o">.</span><span class="n">convert</span><span class="p">(</span>
     <span class="n">source_path</span><span class="o">=</span><span class="n">source_path</span><span class="p">,</span>
-    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">&quot;sqlite&quot;</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">"sqlite"</span><span class="p">,</span>
     <span class="c1"># Set the chunk size for paginated processing.</span>
     <span class="c1"># Smaller values use fewer resources but take longer;</span>
     <span class="c1"># larger values use more resources and process faster.</span>
@@ -425,16 +425,16 @@ Wall time: 34.6 s
     <span class="c1"># specify the destination path</span>
     <span class="n">dest_path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">,</span>
     <span class="c1"># specify a destination data format type</span>
-    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">&quot;parquet&quot;</span><span class="p">,</span>
+    <span class="n">dest_datatype</span><span class="o">=</span><span class="s2">"parquet"</span><span class="p">,</span>
     <span class="c1"># specify a preset which enables quick use of common input file formats</span>
     <span class="c1"># note: presets can be customized to meet the needs of </span>
     <span class="c1"># specific datasets. Check out the presets.py module for more here.</span>
-    <span class="n">preset</span><span class="o">=</span><span class="s2">&quot;cellprofiler_sqlite_cpg0016_jump&quot;</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="s2">"cellprofiler_sqlite_cpg0016_jump"</span><span class="p">,</span>
     <span class="c1"># use unsigned (anonymous) requests to AWS S3</span>
     <span class="n">no_sign_request</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="c1"># set a local cache to avoid challenges with</span>
     <span class="c1"># OS-specific temp disk space</span>
-    <span class="n">local_cache_dir</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;./sqlite_s3_cache&quot;</span><span class="p">,</span>
+    <span class="n">local_cache_dir</span><span class="o">=</span><span class="sa">f</span><span class="s2">"./sqlite_s3_cache"</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 </pre></div>
@@ -651,8 +651,8 @@ Wall time: 1min 30s
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{b&#39;data-producer&#39;: b&#39;https://github.com/cytomining/CytoTable&#39;,
- b&#39;data-producer-version&#39;: b&#39;1.1.2.post9.dev0+323d0d2&#39;}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{b'data-producer': b'https://github.com/cytomining/CytoTable',
+ b'data-producer-version': b'1.1.2.post9.dev0+323d0d2'}
 </pre></div>
 </div>
 </div>
@@ -662,8 +662,8 @@ Wall time: 1min 30s
 <div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># show schema column name summaries</span>
 <span class="c1"># note: we have all compartments in one table</span>
 <span class="c1"># after processing with CytoTable.</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Column name prefix counts:&quot;</span><span class="p">)</span>
-<span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Column name prefix counts:"</span><span class="p">)</span>
+<span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">pq</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">result</span><span class="p">)</span><span class="o">.</span><span class="n">names</span><span class="p">))</span>
 </pre></div>
 </div>
 </div>
@@ -671,7 +671,7 @@ Wall time: 1min 30s
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Column name prefix counts:
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{&#39;Metadata&#39;: 6, &#39;Image&#39;: 21, &#39;Cytoplasm&#39;: 1985, &#39;Cells&#39;: 1998, &#39;Nuclei&#39;: 1936}
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>{'Metadata': 6, 'Image': 21, 'Cytoplasm': 1985, 'Cells': 1998, 'Nuclei': 1936}
 </pre></div>
 </div>
 </div>
@@ -6631,8 +6631,8 @@ Nuclei_Texture_Variance_RNA_5_01_256: double
 Nuclei_Texture_Variance_RNA_5_02_256: double
 Nuclei_Texture_Variance_RNA_5_03_256: double
 -- schema metadata --
-data-producer: &#39;https://github.com/cytomining/CytoTable&#39;
-data-producer-version: &#39;1.1.2.post9.dev0+323d0d2&#39;
+data-producer: 'https://github.com/cytomining/CytoTable'
+data-producer-version: '1.1.2.post9.dev0+323d0d2'
 </pre></div>
 </div>
 </div>
@@ -6721,7 +6721,7 @@ data-producer-version: &#39;1.1.2.post9.dev0+323d0d2&#39;
       &#169;2022, Cytomining Community.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |

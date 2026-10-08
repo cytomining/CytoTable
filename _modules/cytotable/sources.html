@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cytotable.sources &#8212; CytoTable v0.0.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
     <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=37770e68" />
     <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=01d9ba92" />
@@ -14,6 +14,8 @@
     <script src="../../_static/doctools.js?v=9bcbadda"></script>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
 
 
 
@@ -389,10 +391,10 @@ window.runMermaid = runMermaid;</script>
           <div class="body" role="main">
             
   <h1>Source code for cytotable.sources</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="sd">"""</span>
 <span class="sd">CytoTable: sources - tasks and flows related to</span>
 <span class="sd">source data and metadata for performing conversion work.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
@@ -405,7 +407,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_build_path">
 <a class="viewcode-back" href="../../python-api.html#cytotable.sources._build_path">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_path</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Build a path client or return local path.</span>
 
 <span class="sd">    Args:</span>
@@ -418,14 +420,14 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[pathlib.Path, AnyPath]:</span>
 <span class="sd">            A local pathlib.Path or Cloudpathlib.AnyPath type path.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cloudpathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">CloudPath</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">_expand_path</span>
 
     <span class="c1"># form a path using cloudpathlib AnyPath, stripping certain characters</span>
-    <span class="n">processed_path</span> <span class="o">=</span> <span class="n">_expand_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="se">\&quot;</span><span class="s2"> &quot;</span><span class="p">))</span>
+    <span class="n">processed_path</span> <span class="o">=</span> <span class="n">_expand_path</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">"'</span><span class="se">\"</span><span class="s2"> "</span><span class="p">))</span>
 
     <span class="c1"># set the client for a CloudPath</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processed_path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">):</span>
@@ -445,7 +447,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">targets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Gather dataset of filepaths from a provided directory path.</span>
 
 <span class="sd">    Args:</span>
@@ -468,9 +470,9 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Raised when no input files are found at ``path``.</span>
 <span class="sd">        duckdb.Error:</span>
 <span class="sd">            Re-raised (or converted to SQLiteReadOnlyException) when querying</span>
-<span class="sd">            a sqlite source&#39;s table list fails for a reason other than the</span>
+<span class="sd">            a sqlite source's table list fails for a reason other than the</span>
 <span class="sd">            known WAL/readonly failure mode.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
@@ -487,16 +489,16 @@ window.runMermaid = runMermaid;</script>
 
     <span class="k">if</span> <span class="p">(</span><span class="n">targets</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">targets</span> <span class="o">==</span> <span class="p">[])</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
-            <span class="s2">&quot;A source_datatype must be specified when using undefined compartments and metadata names.&quot;</span>
+            <span class="s2">"A source_datatype must be specified when using undefined compartments and metadata names."</span>
         <span class="p">)</span>
 
-    <span class="n">source_datatypes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;.csv&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">,</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">]</span>  <span class="c1"># Default supported extensions</span>
+    <span class="n">source_datatypes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">".csv"</span><span class="p">,</span> <span class="s2">".npz"</span><span class="p">,</span> <span class="s2">".sqlite"</span><span class="p">]</span>  <span class="c1"># Default supported extensions</span>
 
     <span class="c1"># Gather files from the provided path using compartments + metadata as a filter</span>
     <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span>
         <span class="c1"># build source_paths for all files</span>
         <span class="c1"># note: builds local cache for sqlite files from cloud</span>
-        <span class="p">{</span><span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">_cache_cloudpath_to_local</span><span class="p">(</span><span class="n">subpath</span><span class="p">)}</span>
+        <span class="p">{</span><span class="s2">"source_path"</span><span class="p">:</span> <span class="n">_cache_cloudpath_to_local</span><span class="p">(</span><span class="n">subpath</span><span class="p">)}</span>
         <span class="c1"># loop for navigating single file or subpaths</span>
         <span class="k">for</span> <span class="n">subpath</span> <span class="ow">in</span> <span class="p">(</span>
             <span class="p">(</span><span class="n">path</span><span class="p">,)</span>
@@ -507,10 +509,10 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">x</span>
                 <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cloud_glob</span><span class="p">(</span>
                     <span class="n">start</span><span class="o">=</span><span class="n">path</span><span class="p">,</span>
-                    <span class="n">pattern</span><span class="o">=</span><span class="s2">&quot;**/*&quot;</span><span class="p">,</span>
+                    <span class="n">pattern</span><span class="o">=</span><span class="s2">"**/*"</span><span class="p">,</span>
                     <span class="c1"># preserve cloud client (and its cache settings) when globbing</span>
                     <span class="o">**</span><span class="p">(</span>
-                        <span class="p">{</span><span class="s2">&quot;cp_client&quot;</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">client</span><span class="p">}</span>
+                        <span class="p">{</span><span class="s2">"cp_client"</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">client</span><span class="p">}</span>
                         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">CloudPath</span><span class="p">)</span>
                         <span class="k">else</span> <span class="p">{}</span>
                     <span class="p">),</span>
@@ -524,7 +526,7 @@ window.runMermaid = runMermaid;</script>
             <span class="p">(</span>
                 <span class="n">targets</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
                 <span class="ow">and</span> <span class="nb">str</span><span class="p">(</span><span class="n">subpath</span><span class="o">.</span><span class="n">stem</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">]</span>
-                <span class="ow">or</span> <span class="n">subpath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span>
+                <span class="ow">or</span> <span class="n">subpath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".sqlite"</span>
             <span class="p">)</span>
             <span class="c1"># Otherwise, include files matching the source_datatypes</span>
             <span class="ow">or</span> <span class="p">(</span>
@@ -540,35 +542,35 @@ window.runMermaid = runMermaid;</script>
     <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
             <span class="c1"># check that the path is of sqlite type</span>
-            <span class="k">if</span> <span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;.sqlite&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">element</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".sqlite"</span><span class="p">:</span>
                 <span class="c1"># perform a query to find the table names from the sqlite file</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">table_names</span> <span class="o">=</span> <span class="p">(</span>
                         <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
-<span class="w">                            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">                            </span><span class="sd">"""</span>
 <span class="sd">                            /* perform query on sqlite_master table for metadata on tables */</span>
 <span class="sd">                            SELECT name as table_name</span>
-<span class="sd">                            FROM sqlite_scan(?, &#39;sqlite_master&#39;)</span>
-<span class="sd">                            WHERE type=&#39;table&#39;</span>
-<span class="sd">                            &quot;&quot;&quot;</span><span class="p">,</span>
-                            <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])],</span>
+<span class="sd">                            FROM sqlite_scan(?, 'sqlite_master')</span>
+<span class="sd">                            WHERE type='table'</span>
+<span class="sd">                            """</span><span class="p">,</span>
+                            <span class="n">parameters</span><span class="o">=</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">element</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">])],</span>
                         <span class="p">)</span>
-                        <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()[</span><span class="s2">&quot;table_name&quot;</span><span class="p">]</span>
+                        <span class="o">.</span><span class="n">fetch_arrow_table</span><span class="p">()[</span><span class="s2">"table_name"</span><span class="p">]</span>
                         <span class="o">.</span><span class="n">to_pylist</span><span class="p">()</span>
                     <span class="p">)</span>
                 <span class="k">except</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">Error</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="n">_raise_if_sqlite_readonly_error</span><span class="p">(</span>
-                        <span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">element</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span>
+                        <span class="n">e</span><span class="p">,</span> <span class="n">source_path</span><span class="o">=</span><span class="n">element</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span>
                     <span class="p">)</span>
                     <span class="k">raise</span>
 
                 <span class="c1"># creates individual entries for each table</span>
                 <span class="n">expanded_sources</span> <span class="o">+=</span> <span class="p">[</span>
                     <span class="p">{</span>
-                        <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">AnyPath</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">element</span><span class="p">[</span><span class="s1">&#39;source_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.sqlite&quot;</span>
+                        <span class="s2">"source_path"</span><span class="p">:</span> <span class="n">AnyPath</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">element</span><span class="p">[</span><span class="s1">'source_path'</span><span class="p">]</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.sqlite"</span>
                         <span class="p">),</span>
-                        <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">table_name</span><span class="p">,</span>
+                        <span class="s2">"table_name"</span><span class="p">:</span> <span class="n">table_name</span><span class="p">,</span>
                     <span class="p">}</span>
                     <span class="k">for</span> <span class="n">table_name</span> <span class="ow">in</span> <span class="n">table_names</span>
                     <span class="c1"># make sure the table names match with compartment + metadata names</span>
@@ -576,7 +578,7 @@ window.runMermaid = runMermaid;</script>
                     <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">table_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">)</span>
                 <span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="c1"># if we don&#39;t have sqlite source, append the existing element</span>
+                <span class="c1"># if we don't have sqlite source, append the existing element</span>
                 <span class="n">expanded_sources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">element</span><span class="p">)</span>
 
     <span class="c1"># reset sources to expanded_sources</span>
@@ -584,7 +586,7 @@ window.runMermaid = runMermaid;</script>
 
     <span class="c1"># if we collected no files above, raise exception</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No input data to process at path: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">NoInputDataException</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No input data to process at path: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
     <span class="c1"># group files together by similar filename for later data operations</span>
     <span class="n">grouped_sources</span> <span class="o">=</span> <span class="p">{}</span>
@@ -597,36 +599,36 @@ window.runMermaid = runMermaid;</script>
         <span class="n">common_prefix</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">commonprefix</span><span class="p">(</span>
             <span class="p">[</span>
                 <span class="c1"># use lowercase version of the path to infer a commonprefix</span>
-                <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
                 <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span>
-                <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="n">source_datatypes</span>
+                <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="n">source_datatypes</span>
             <span class="p">]</span>
         <span class="p">)</span>
         <span class="n">grouped_sources</span><span class="p">[</span>
-            <span class="c1"># construct a grouped source name, deferring to use &#39;all_files&#39;</span>
+            <span class="c1"># construct a grouped source name, deferring to use 'all_files'</span>
             <span class="c1"># if no common prefix is found.</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">common_prefix</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">common_prefix</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;all_files&#39;</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">common_prefix</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">common_prefix</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s1">''</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'all_files'</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">]</span> <span class="o">=</span> <span class="n">sources</span>
 
     <span class="c1"># otherwise, use the unique names in the paths to determine source grouping</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">unique_source</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">unique_source</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">):</span>
             <span class="n">grouped_sources</span><span class="p">[</span><span class="n">unique_source</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()]</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="c1"># case for files besides sqlite</span>
                 <span class="p">(</span>
                     <span class="n">source</span>
-                    <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">&quot;.sqlite&quot;</span>
+                    <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">".sqlite"</span>
                     <span class="c1"># if we have sqlite entries, update the source_path to the parent</span>
                     <span class="c1"># (the parent table database file) as grouped key name will now</span>
                     <span class="c1"># encapsulate the table name details.</span>
                     <span class="k">else</span> <span class="p">{</span>
-                        <span class="s2">&quot;source_path&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
-                        <span class="s2">&quot;table_name&quot;</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;table_name&quot;</span><span class="p">],</span>
+                        <span class="s2">"source_path"</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                        <span class="s2">"table_name"</span><span class="p">:</span> <span class="n">source</span><span class="p">[</span><span class="s2">"table_name"</span><span class="p">],</span>
                     <span class="p">}</span>
                 <span class="p">)</span>
                 <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span>
                 <span class="c1"># focus only on entries which include the unique_source name</span>
-                <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
+                <span class="k">if</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">unique_source</span>
             <span class="p">]</span>
 
     <span class="k">return</span> <span class="n">grouped_sources</span></div>
@@ -638,7 +640,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_infer_source_datatype</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">source_datatype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Infers and optionally validates datatype (extension) of files.</span>
 
 <span class="sd">    Args:</span>
@@ -657,31 +659,31 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Raised when more than one datatype is inferred without an explicit</span>
 <span class="sd">            ``source_datatype``, or when the requested ``source_datatype`` is</span>
 <span class="sd">            not present among the detected file suffixes.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">DatatypeException</span>
 
     <span class="c1"># gather file extension suffixes</span>
-    <span class="n">suffixes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">((</span><span class="n">group</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">))</span>
+    <span class="n">suffixes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">((</span><span class="n">group</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"."</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">))</span>
 
-    <span class="c1"># if we don&#39;t have a source datatype and have more than one suffix</span>
-    <span class="c1"># we can&#39;t infer which file type to read.</span>
+    <span class="c1"># if we don't have a source datatype and have more than one suffix</span>
+    <span class="c1"># we can't infer which file type to read.</span>
     <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffixes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Detected more than one inferred datatypes from source path: </span><span class="si">{</span><span class="n">suffixes</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">"Detected more than one inferred datatypes from source path: </span><span class="si">{</span><span class="n">suffixes</span><span class="si">}</span><span class="s2">"</span>
         <span class="p">)</span>
 
-    <span class="c1"># if we have a source datatype and it isn&#39;t within the detected suffixes</span>
+    <span class="c1"># if we have a source datatype and it isn't within the detected suffixes</span>
     <span class="c1"># we will have no files to process.</span>
     <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">suffixes</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">DatatypeException</span><span class="p">(</span>
             <span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;Unable to find source datatype </span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2"> &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;within files. Detected datatypes: </span><span class="si">{</span><span class="n">suffixes</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">"Unable to find source datatype </span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"within files. Detected datatypes: </span><span class="si">{</span><span class="n">suffixes</span><span class="si">}</span><span class="s2">"</span>
             <span class="p">)</span>
         <span class="p">)</span>
 
-    <span class="c1"># if we haven&#39;t set a source datatype and need to rely on the inferred one</span>
+    <span class="c1"># if we haven't set a source datatype and need to rely on the inferred one</span>
     <span class="c1"># set it so it may be returned</span>
     <span class="k">if</span> <span class="n">source_datatype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">source_datatype</span> <span class="o">=</span> <span class="n">suffixes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -695,7 +697,7 @@ window.runMermaid = runMermaid;</script>
 <span class="k">def</span><span class="w"> </span><span class="nf">_filter_source_filepaths</span><span class="p">(</span>
     <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span> <span class="n">source_datatype</span><span class="p">:</span> <span class="nb">str</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Filter source filepaths based on provided source_datatype.</span>
 
 <span class="sd">    Args:</span>
@@ -707,7 +709,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            Data structure which groups related files based on the datatype.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
@@ -718,10 +720,10 @@ window.runMermaid = runMermaid;</script>
             <span class="n">file</span>
             <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span>
             <span class="c1"># ensure the filesize is greater than 0</span>
-            <span class="k">if</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+            <span class="k">if</span> <span class="n">file</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
             <span class="c1"># ensure the datatype matches the source datatype</span>
-            <span class="ow">and</span> <span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">&quot;.</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="ow">and</span> <span class="n">_file_is_more_than_one_line</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">file</span><span class="p">[</span><span class="s2">&quot;source_path&quot;</span><span class="p">])</span>
+            <span class="ow">and</span> <span class="n">file</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">".</span><span class="si">{</span><span class="n">source_datatype</span><span class="si">}</span><span class="s2">"</span>
+            <span class="ow">and</span> <span class="n">_file_is_more_than_one_line</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">file</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">])</span>
         <span class="p">]</span>
         <span class="k">for</span> <span class="n">filegroup</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span></div>
@@ -731,7 +733,7 @@ window.runMermaid = runMermaid;</script>
 <div class="viewcode-block" id="_file_is_more_than_one_line">
 <a class="viewcode-back" href="../../python-api.html#cytotable.sources._file_is_more_than_one_line">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_file_is_more_than_one_line</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">,</span> <span class="n">AnyPath</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Check if the file has more than one line.</span>
 
 <span class="sd">    Args:</span>
@@ -743,12 +745,12 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            True if the file has more than one line, False otherwise.</span>
 <span class="sd">            For sqlite and npz files (which are not line-oriented),</span>
 <span class="sd">            always returns True.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
-    <span class="c1"># if we don&#39;t have a sqlite file</span>
-    <span class="c1"># (we can&#39;t check sqlite files for lines)</span>
-    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;.sqlite&quot;</span><span class="p">,</span> <span class="s2">&quot;.npz&quot;</span><span class="p">]:</span>
-        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="c1"># if we don't have a sqlite file</span>
+    <span class="c1"># (we can't check sqlite files for lines)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">".sqlite"</span><span class="p">,</span> <span class="s2">".npz"</span><span class="p">]:</span>
+        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="c1"># read two lines; if either is empty (EOF) the file has fewer</span>
             <span class="c1"># than two lines so we report False</span>
             <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">())</span>
@@ -764,7 +766,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">targets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Flow for gathering data sources for conversion.</span>
 
 <span class="sd">    Args:</span>
@@ -781,7 +783,7 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    Returns:</span>
 <span class="sd">        Dict[str, List[Dict[str, Any]]]:</span>
 <span class="sd">            Data structure which groups related files based on the compartments.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
 
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_build_path</span><span class="p">,</span>
@@ -876,7 +878,7 @@ window.runMermaid = runMermaid;</script>
       &#169;2022, Cytomining Community.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
       &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
     </div>
