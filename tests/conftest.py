@@ -671,6 +671,22 @@ def fixture_cytominerdatabase_merged_cellhealth(
     # convert to arrow table using the pandas df
     control_result = pa.Table.from_pandas(df=df_from_sqlite)
 
+    # normalize string columns to "string" (instead of "large_string"):
+    # pandas >= 3.0 infers object columns from pd.read_sql as pyarrow
+    # large_string-backed, while CytoTable's duckdb-based conversion
+    # (which doesn't route through pandas here) yields plain "string".
+    # Casting keeps this fixture comparable across pandas versions.
+    control_result = control_result.cast(
+        pa.schema(
+            [
+                pa.field(field.name, pa.string())
+                if pa.types.is_large_string(field.type)
+                else field
+                for field in control_result.schema
+            ]
+        )
+    )
+
     # inner sorted alphabetizes any columns which may not be part of custom_sort
     # outer sort provides pycytominer-specific column sort order
     control_result = control_result.select(
