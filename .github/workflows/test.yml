@@ -15,11 +15,12 @@ jobs:
     strategy:
       matrix:
         # matrixed execution for parallel gh-action performance increases
-        python_version: ["3.11", "3.12", "3.13"]
+        python_version: ["3.11", "3.12", "3.13", "3.14"]
         os: [ubuntu-24.04, macos-14]
     runs-on: ${{ matrix.os }}
     env:
       OS: ${{ matrix.os }}
+      UV_PYTHON: ${{ matrix.python_version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
