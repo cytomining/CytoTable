@@ -10,12 +10,13 @@ on:
 
 jobs:
   run_pre_commit_tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          # Match the hook runtime in .pre-commit-config.yaml.
+          python-version: "3.12"
       # run pre-commit
       - uses: pre-commit/action@v3.0.1
         id: pre_commit

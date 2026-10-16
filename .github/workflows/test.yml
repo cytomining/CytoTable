@@ -16,7 +16,7 @@ jobs:
       matrix:
         # matrixed execution for parallel gh-action performance increases
         python_version: ["3.11", "3.12", "3.13", "3.14"]
-        os: [ubuntu-24.04, macos-14]
+        os: [ubuntu-26.04, macos-26]
     runs-on: ${{ matrix.os }}
     env:
       OS: ${{ matrix.os }}
@@ -47,7 +47,7 @@ jobs:
   # conserve resources by detecting failure with
   # smaller tests first.
   run_large_data_tests:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: tests
     steps:
       - name: Checkout
@@ -65,4 +65,10 @@ jobs:
       - name: Install frozen environment
         run: uv sync --frozen --all-extras --group dev
       - name: Run pytest for large data tests
-        run: uv run --frozen --group dev pytest -m "large_data_tests"
+        env:
+          # Newer images can mount /tmp as quota-limited memory storage.
+          TMPDIR: ${{ runner.temp }}/cytotable-large-data
+        run: |
+          mkdir -p "$TMPDIR"
+          df -hT /tmp "$TMPDIR"
+          uv run --frozen --group dev pytest -m "large_data_tests"
