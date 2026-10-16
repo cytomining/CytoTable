@@ -11,24 +11,6 @@ on:
     - cron: "0 7 * * 3"
 
 jobs:
-  runner_storage_probe:
-    name: Storage probe (${{ matrix.os }})
-    strategy:
-      matrix:
-        os: [ubuntu-24.04, ubuntu-26.04]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 5
-    steps:
-      - name: Inspect storage mounts
-        run: |
-          mkdir -p "$GITHUB_WORKSPACE"
-          df -hT /tmp "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
-          df -i /tmp "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
-          for path in /tmp "$RUNNER_TEMP" "$GITHUB_WORKSPACE"; do
-            printf '\nMount for %s\n' "$path"
-            findmnt -T "$path" -o TARGET,SOURCE,FSTYPE,SIZE,AVAIL,OPTIONS
-          done
-          ulimit -a
   tests:
     strategy:
       matrix:
@@ -83,4 +65,10 @@ jobs:
       - name: Install frozen environment
         run: uv sync --frozen --all-extras --group dev
       - name: Run pytest for large data tests
-        run: uv run --frozen --group dev pytest -m "large_data_tests"
+        env:
+          # Newer images can mount /tmp as quota-limited memory storage.
+          TMPDIR: ${{ runner.temp }}/cytotable-large-data
+        run: |
+          mkdir -p "$TMPDIR"
+          df -hT /tmp "$TMPDIR"
+          uv run --frozen --group dev pytest -m "large_data_tests"
