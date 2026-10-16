@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          # Match .pre-commit-config.yaml instead of relying on the runner image.
+          # Match the hook runtime in .pre-commit-config.yaml.
           python-version: "3.12"
       # run pre-commit
       - uses: pre-commit/action@v3.0.1
