@@ -1,0 +1,8 @@
+---
+# actionlint 1.7.12 predates this hosted label's GA announcement:
+# https://github.com/actions/runner-images/issues/14747
+# Validation-only additional label; this does not select a self-hosted runner.
+# Remove when actionlint's built-in hosted-runner catalog includes ubuntu-26.04.
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
