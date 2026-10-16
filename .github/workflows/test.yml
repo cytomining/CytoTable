@@ -11,6 +11,24 @@ on:
     - cron: "0 7 * * 3"
 
 jobs:
+  runner_storage_probe:
+    name: Storage probe (${{ matrix.os }})
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - name: Inspect storage mounts
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE"
+          df -hT /tmp "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+          df -i /tmp "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+          for path in /tmp "$RUNNER_TEMP" "$GITHUB_WORKSPACE"; do
+            printf '\nMount for %s\n' "$path"
+            findmnt -T "$path" -o TARGET,SOURCE,FSTYPE,SIZE,AVAIL,OPTIONS
+          done
+          ulimit -a
   tests:
     strategy:
       matrix:
