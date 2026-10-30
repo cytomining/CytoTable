@@ -1559,11 +1559,11 @@ wheels = [
 
 [[package]]
 name = "filelock"
-version = "3.32.7"
+version = "4.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/0f/59/e19834834cb01a32febfbb0f8a23a9088088f5d45991824ff2bc3b5e8acb/filelock-3.32.7.tar.gz", hash = "sha256:37b8a3d9811b0f9aef7e5ec5c71bb320de52df51e6ca9bcd6f5ad81187660da7", size = 225154, upload-time = "2026-09-16T00:24:20.907Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/98/771d8ca889f220d7d7e352addf500666368f0fd081c6080a83767580c6e4/filelock-4.2.1.tar.gz", hash = "sha256:c4c937ccac2a813cee448e662a56366cfb374c0f8702e75f295c412cc1c5d5a3", size = 650997, upload-time = "2026-10-17T16:48:14.435Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/15/df/31098c5aeb4d966b553641472bd55fcf5fdfac953549894b8a765ba44e91/filelock-3.32.7-py3-none-any.whl", hash = "sha256:65ff0d0190ea42038b32bda4b77834fb05be2cad4c5b9b01aa4dfb3614536e52", size = 100157, upload-time = "2026-09-16T00:24:19.543Z" },
+    { url = "https://files.pythonhosted.org/packages/28/00/db89d339bc4ecdc8087fa7b8607ba22ffc27bf96286f340c9620bea428b3/filelock-4.2.1-py3-none-any.whl", hash = "sha256:7be2662e9e826b9bba28afc0f843a123280d799a2ea44bb5d35ccec67905ae44", size = 162455, upload-time = "2026-10-17T16:48:12.937Z" },
 ]
 
 [[package]]
@@ -3905,7 +3905,7 @@ wheels = [
 
 [[package]]
 name = "parsl"
-version = "2026.10.5"
+version = "2026.10.26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dill" },
@@ -3919,9 +3919,9 @@ dependencies = [
     { name = "typeguard" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/03/98/dbf36c118283ab86af76fc21df3833a9e9c562ffc6a6b8236b2bdd722367/parsl-2026.10.5.tar.gz", hash = "sha256:c428c0fa6611905f159c4e344500c489724cf1e1dbcf81e29b503b23507e44bd", size = 386606, upload-time = "2026-10-05T22:45:12.271Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/f2/6e22e3257bddb8b5ad7e92a5f2f81b4f809dfcf93aba3497e4f440a60d44/parsl-2026.10.26.tar.gz", hash = "sha256:8a0550a51dace16bb1c79b2538de55cb9e72bdb1748c9b9c1a733718a019d1f1", size = 385307, upload-time = "2026-10-26T22:46:34.481Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/78/e2/90d8a079483dd16e44120ee6d268c665367ccdf4af0f6614a0d93f09dd83/parsl-2026.10.5-py3-none-any.whl", hash = "sha256:7b1e5d8296113b66d8550d4e4aa9f54a2ea1ed2362b1394f6f20324567cf10fc", size = 574106, upload-time = "2026-10-05T22:45:10.411Z" },
+    { url = "https://files.pythonhosted.org/packages/54/2b/223b4f4a6e10c4ea09c2adc9387e87d8544b1257be3ead00d0cdd3a46697/parsl-2026.10.26-py3-none-any.whl", hash = "sha256:a384a78f0d69784ec313f34046460e133d400db28432d5340211552790364c3f", size = 572209, upload-time = "2026-10-26T22:46:32.705Z" },
 ]
 
 [[package]]
