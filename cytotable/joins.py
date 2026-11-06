@@ -97,6 +97,7 @@ class _TableInfo:
     is_metadata: bool
     paths: Tuple[str, ...]
     columns: Tuple[str, ...]
+    numeric_columns: frozenset[str] = frozenset()
     image_key: Optional[str] = None
     tablenumber_key: Optional[str] = None
     objectnumber_key: Optional[str] = None
@@ -221,13 +222,20 @@ def _collect_tables(
             Table information sorted by alias for deterministic output.
     """
 
+    import pyarrow as pa  # pylint: disable=import-outside-toplevel
     import pyarrow.parquet as parquet  # pylint: disable=import-outside-toplevel
 
     tables = []
     for group_name, source_group_vals in sources.items():
         stem = pathlib.Path(group_name).stem.lower()
         paths = tuple(str(path) for path in source_group_vals[0]["table"])
-        columns = tuple(parquet.read_schema(paths[0]).names)
+        schema = parquet.read_schema(paths[0])
+        columns = tuple(schema.names)
+        numeric_columns = frozenset(
+            name
+            for name, field_type in zip(schema.names, schema.types)
+            if pa.types.is_integer(field_type) or pa.types.is_floating(field_type)
+        )
         compartment, is_metadata = _classify_group(
             stem=stem, metadata=metadata, compartments=compartments
         )
@@ -242,6 +250,7 @@ def _collect_tables(
                 is_metadata=is_metadata,
                 paths=paths,
                 columns=columns,
+                numeric_columns=numeric_columns,
                 image_key=image_key,
                 tablenumber_key=tablenumber_key,
                 objectnumber_key=objectnumber_key,
@@ -376,12 +385,17 @@ def _find_reference_edges(*, tables: List[_TableInfo]) -> List[_Edge]:
 
     Returns:
         List[_Edge]:
-            Candidate edges sorted by (child, parent, reference column).
+            Candidate edges, unvalidated and not yet deduplicated by
+            table pair (a table pair may have more than one candidate
+            reference column).
     """
 
-    table_by_compartment = {
-        table.compartment: table for table in tables if table.compartment
-    }
+    table_by_compartment: Dict[str, List[_TableInfo]] = {}
+    for table in tables:
+        if table.compartment:
+            table_by_compartment.setdefault(table.compartment, []).append(table)
+    table_by_alias = {table.alias: table for table in tables}
+
     edges = []
     for table in tables:
         if table.is_metadata:
@@ -392,7 +406,7 @@ def _find_reference_edges(*, tables: List[_TableInfo]) -> List[_Edge]:
                 continue
             parent = _find_referenced_table(
                 target=match.group("target"),
-                tables=tables,
+                table_by_alias=table_by_alias,
                 table_by_compartment=table_by_compartment,
             )
             if (
@@ -414,46 +428,62 @@ def _find_reference_edges(*, tables: List[_TableInfo]) -> List[_Edge]:
                 )
             )
 
-    # dedupe multiple references between the same table pair,
-    # keeping the first reference column deterministically
-    deduped: Dict[Tuple[str, str], _Edge] = {}
-    for edge in sorted(
+    return sorted(
         edges, key=lambda edge: (edge.child, edge.parent, edge.reference_column)
-    ):
-        deduped.setdefault((edge.child, edge.parent), edge)
-
-    return [deduped[key] for key in sorted(deduped)]
+    )
 
 
 def _find_referenced_table(
     *,
     target: str,
-    tables: List[_TableInfo],
-    table_by_compartment: Dict[str, _TableInfo],
+    table_by_alias: Dict[str, _TableInfo],
+    table_by_compartment: Dict[str, List[_TableInfo]],
 ) -> Optional[_TableInfo]:
     """
     Find the table which a parent reference column points to.
 
+    An exact alias match (for ex. a table whose group name stem is
+    literally the target, such as ``'per_cells'`` for target
+    ``'cells'``) is preferred. Otherwise, the target must resolve to
+    exactly one compartment-classified table; a target which matches
+    more than one table's compartment (for ex. both ``cells`` and
+    ``cells_summary`` classifying as compartment ``cells``) is
+    ambiguous and is not resolved, so the reference is not used.
+
     Args:
         target (str):
             Lowercased compartment name referenced by the column.
-        tables (List[_TableInfo]):
-            Table information gathered from converted sources.
-        table_by_compartment (Dict[str, _TableInfo]):
+        table_by_alias (Dict[str, _TableInfo]):
+            Tables keyed by alias.
+        table_by_compartment (Dict[str, List[_TableInfo]]):
             Tables keyed by lowercased compartment name.
 
     Returns:
         Optional[_TableInfo]:
-            The referenced table, if one is detected.
+            The referenced table, if exactly one is detected.
     """
 
-    if target in table_by_compartment:
-        return table_by_compartment[target]
+    if target in table_by_alias:
+        return table_by_alias[target]
     # fall back to alias matching for tables whose group name is
     # compartment-prefixed, for ex. 'per_cells' referencing 'cells'
-    for table in tables:
-        if table.alias == target or table.alias.endswith(f"_{target}"):
-            return table
+    alias_matches = [
+        table for table in table_by_alias.values() if table.alias.endswith(f"_{target}")
+    ]
+    if len(alias_matches) == 1:
+        return alias_matches[0]
+
+    candidates = table_by_compartment.get(target, [])
+    if len(candidates) == 1:
+        return candidates[0]
+    if len(candidates) > 1:
+        logger.info(
+            "Ambiguous parent reference target '%s': multiple tables "
+            "(%s) classify as this compartment. Skipping this reference "
+            "rather than guessing.",
+            target,
+            ", ".join(sorted(table.alias for table in candidates)),
+        )
     return None
 
 
@@ -461,11 +491,17 @@ def _validate_edges(
     *, edges: List[_Edge], tables: Dict[str, _TableInfo]
 ) -> List[_Edge]:
     """
-    Validate candidate edges against the actual table data.
+    Validate candidate edges against the actual table data, then keep
+    the best-matching edge for each (child, parent) table pair.
 
     Measures the fraction of child rows whose parent reference matches
-    an existing parent object. Edges which match nothing are rejected,
-    and edges with low match rates are kept with a warning.
+    an existing parent object. Edges which match nothing are rejected
+    before deduplication, so a table pair with multiple candidate
+    reference columns is not resolved by an arbitrary (and possibly
+    invalid) column picked before validation. Edges with low match
+    rates are kept with a warning. Edges where any child row matches
+    more than one parent row are rejected, since such a reference
+    would multiply rows or produce ambiguous parent associations.
 
     Args:
         edges (List[_Edge]):
@@ -475,12 +511,17 @@ def _validate_edges(
 
     Returns:
         List[_Edge]:
-            Edges with at least one matching row, or an empty child table.
+            At most one validated edge per (child, parent) table pair.
+
+    Raises:
+        CytoTableException:
+            Raised when a candidate edge references duplicate parent
+            keys, which would produce ambiguous or multiplied rows.
     """
 
     validated = []
     for edge in edges:
-        child_rows, matched_rows = _measure_edge_match(
+        child_rows, matched_rows, max_parent_matches = _measure_edge_match(
             edge=edge, child=tables[edge.child], parent=tables[edge.parent]
         )
         if child_rows > 0 and matched_rows == 0:
@@ -493,6 +534,14 @@ def _validate_edges(
                 edge.parent,
             )
             continue
+        if max_parent_matches > 1:
+            raise CytoTableException(
+                f"Inferred join edge '{edge.child}'.'{edge.reference_column}' "
+                f"-> '{edge.parent}' matches more than one '{edge.parent}' row "
+                "for at least one child row, which would produce ambiguous "
+                "or multiplied results. Please provide join SQL manually "
+                "through the 'joins' parameter."
+            )
         match_rate = matched_rows / child_rows if child_rows > 0 else 1.0
         if match_rate < _TRUSTED_MATCH_RATE:
             logger.warning(
@@ -515,14 +564,28 @@ def _validate_edges(
             child_rows,
             match_rate,
         )
-        validated.append(edge)
+        validated.append((edge, match_rate))
 
-    return validated
+    # keep only the best-matching edge for each (child, parent) pair,
+    # now that every candidate has been validated against real data
+    best_by_pair: Dict[Tuple[str, str], Tuple[_Edge, float]] = {}
+    for edge, match_rate in validated:
+        pair = (edge.child, edge.parent)
+        current = best_by_pair.get(pair)
+        if current is None or match_rate > current[1]:
+            best_by_pair[pair] = (edge, match_rate)
+        elif (
+            match_rate == current[1]
+            and edge.reference_column < current[0].reference_column
+        ):
+            best_by_pair[pair] = (edge, match_rate)
+
+    return [best_by_pair[pair][0] for pair in sorted(best_by_pair)]
 
 
 def _measure_edge_match(
     *, edge: _Edge, child: _TableInfo, parent: _TableInfo
-) -> Tuple[int, int]:
+) -> Tuple[int, int, int]:
     """
     Measure how many child rows reference existing parent objects.
 
@@ -535,9 +598,11 @@ def _measure_edge_match(
             The referenced (parent) table.
 
     Returns:
-        Tuple[int, int]:
-            The total child row count and the count of child rows
-            which reference an existing parent object.
+        Tuple[int, int, int]:
+            The total child row count, the count of child rows which
+            reference an existing parent object, and the maximum
+            number of parent rows a single child row matches (used to
+            detect ambiguous references which would multiply rows).
     """
 
     from cytotable.utils import (  # pylint: disable=import-outside-toplevel
@@ -555,14 +620,21 @@ def _measure_edge_match(
                     FROM {_paths_sql(parent.paths)} AS "{parent.alias}"
                     WHERE {" AND ".join(conditions)}
                 )
-            ) AS matched_rows
+            ) AS matched_rows,
+            MAX(
+                (
+                    SELECT COUNT(*)
+                    FROM {_paths_sql(parent.paths)} AS "{parent.alias}"
+                    WHERE {" AND ".join(conditions)}
+                )
+            ) AS max_parent_matches
         FROM {_paths_sql(child.paths)} AS "{child.alias}"
     """
 
     with _duckdb_reader() as ddb_reader:
-        result = ddb_reader.execute(query).fetchone() or (0, 0)
+        result = ddb_reader.execute(query).fetchone() or (0, 0, 0)
 
-    return int(result[0]), int(result[1])
+    return int(result[0]), int(result[1]), int(result[2] or 0)
 
 
 def _shared_key_pairs(*, left: _TableInfo, right: _TableInfo) -> List[Tuple[str, str]]:
@@ -720,9 +792,14 @@ def _build_join_tree(
             progress = True
             break
 
-    # attach metadata tables to the base table through shared keys
+    # attach metadata tables to the base table through shared keys;
+    # compartment tables must be joined through a validated parent
+    # reference edge above (object-level relationship) and are never
+    # attached by shared image/table keys alone, since that would
+    # cross-join every object pair sharing an image (see
+    # cytomining/CytoTable#522 review discussion)
     for table in tables:
-        if table.alias in joined:
+        if table.alias in joined or not table.is_metadata:
             continue
         pairs = _shared_key_pairs(left=base, right=table)
         if not pairs:
@@ -795,16 +872,46 @@ def _render_join_sql(*, base: _TableInfo, steps: List[_JoinStep]) -> Tuple[str, 
         + "\n".join(from_parts)
     )
 
-    page_key = base.objectnumber_key or base.image_key
+    # prefer the object number key, but only when it is numeric
+    # (required for keyset pagination); fall back to the numeric
+    # image key otherwise
+    page_key = (
+        base.objectnumber_key
+        if base.objectnumber_key is not None
+        and base.objectnumber_key in base.numeric_columns
+        else None
+    ) or (
+        base.image_key
+        if base.image_key is not None and base.image_key in base.numeric_columns
+        else None
+    )
     if page_key is None:
         raise CytoTableException(
             f"Unable to determine a join pagination key for base table "
-            f"'{base.alias}': no object number or image number column "
-            "was detected. Please provide join SQL manually through the "
-            "'joins' parameter."
+            f"'{base.alias}': no numeric object number or image number "
+            "column was detected. Please provide join SQL manually "
+            "through the 'joins' parameter."
         )
 
     return sql, page_key
+
+
+def _sql_string_literal(value: str) -> str:
+    """
+    Render a value as a DuckDB SQL string literal, escaping apostrophes.
+
+    Args:
+        value (str):
+            The value to render.
+
+    Returns:
+        str:
+            A quoted SQL string literal, with embedded apostrophes
+            doubled so DuckDB does not misread them as closing the
+            literal (which would otherwise be parsed as an identifier).
+    """
+
+    return "'" + value.replace("'", "''") + "'"
 
 
 def _paths_sql(paths: Tuple[str, ...]) -> str:
@@ -821,8 +928,10 @@ def _paths_sql(paths: Tuple[str, ...]) -> str:
     """
 
     if len(paths) == 1:
-        return f"read_parquet('{paths[0]}')"
-    return "read_parquet([{}])".format(", ".join(f"'{path}'" for path in paths))
+        return f"read_parquet({_sql_string_literal(paths[0])})"
+    return "read_parquet([{}])".format(
+        ", ".join(_sql_string_literal(path) for path in paths)
+    )
 
 
 def _validate_rendered_sql(
@@ -930,8 +1039,10 @@ def _infer_source_page_keys(
     """
     Infer pagination keys for source table groups which lack one.
 
-    Preserve explicit keys. Inspect each remaining group's first source,
-    preferring numeric object, image, and table numbers, then any numeric column.
+    Preserve explicit keys. For each remaining group, select a key
+    which is numeric and free of null values across every source file
+    in the group, preferring object, image, and table numbers, then
+    any other common numeric column.
 
     Args:
         sources (Dict[str, List[Dict[str, Any]]]):
@@ -947,9 +1058,12 @@ def _infer_source_page_keys(
     """
 
     updated = dict(page_keys or {})
+    # the 'join' entry is reserved for the final joined-table
+    # pagination key and never refers to a raw source group
+    explicit_keys = [key for key in updated if key.lower() != "join"]
     for group_name, source_group_vals in sources.items():
         # skip groups already covered by an existing pagination key
-        if any(key.lower() in group_name.lower() for key in updated):
+        if any(key.lower() in group_name.lower() for key in explicit_keys):
             continue
         # skip npz sources, which use the passthrough pagination case
         if all(
@@ -958,7 +1072,7 @@ def _infer_source_page_keys(
         ):
             continue
         page_key = _detect_source_page_key(
-            source=source_group_vals[0],
+            sources=source_group_vals,
             group_name=group_name,
             compartments=compartments,
         )
@@ -972,20 +1086,87 @@ def _infer_source_page_keys(
     return updated
 
 
+def _raw_source_select_sql(source: Dict[str, Any]) -> str:
+    """
+    Render a DuckDB FROM-clause source for a raw (unconverted) source.
+
+    Args:
+        source (Dict[str, Any]):
+            A source table entry with a ``source_path`` and, for
+            SQLite sources, a ``table_name``.
+
+    Returns:
+        str:
+            A DuckDB table function expression reading the source.
+    """
+
+    source_path = source["source_path"]
+    if str(source_path.suffix).lower() == ".csv":
+        return f"read_csv_auto({_sql_string_literal(str(source_path))})"
+    return (
+        f"sqlite_scan({_sql_string_literal(str(source_path))}, "
+        f"{_sql_string_literal(str(source['table_name']))})"
+    )
+
+
+def _column_has_nulls(*, sources: List[Dict[str, Any]], column: str) -> bool:
+    """
+    Check whether a column contains null values in any of the sources.
+
+    Args:
+        sources (List[Dict[str, Any]]):
+            Raw source table entries to check.
+        column (str):
+            The column name to check for null values.
+
+    Returns:
+        bool:
+            True if the column contains a null value in any source,
+            or if the column could not be queried (treated as unsafe
+            to use for pagination rather than silently dropping rows).
+    """
+
+    from cytotable.utils import (  # pylint: disable=import-outside-toplevel
+        _duckdb_reader,
+    )
+
+    for source in sources:
+        query = (
+            f"SELECT 1 FROM {_raw_source_select_sql(source)} "
+            f'WHERE "{column}" IS NULL LIMIT 1'
+        )
+        try:
+            with _duckdb_reader() as ddb_reader:
+                if ddb_reader.execute(query).fetchone() is not None:
+                    return True
+        except Exception:  # pylint: disable=broad-exception-caught
+            # treat an unqueryable column as unsafe rather than assuming
+            # it is null-free
+            return True
+    return False
+
+
 def _detect_source_page_key(
     *,
-    source: Dict[str, Any],
+    sources: List[Dict[str, Any]],
     group_name: str,
     compartments: Optional[Sequence[str]] = None,
 ) -> str:
     """
-    Detect a numeric pagination key column for a source table group.
+    Detect a numeric, null-free pagination key column for a source group.
+
+    The key must be present, numeric, and free of null values in
+    every source file within the group: keyset pagination filters rows
+    with ``WHERE page_key BETWEEN ...``, which silently excludes rows
+    with a null key, and a column present in only some files would
+    fail to query for the others.
 
     Args:
-        source (Dict[str, Any]):
-            A source table entry from the group to detect a key for.
+        sources (List[Dict[str, Any]]):
+            All source table entries within the group to detect a key
+            for.
         group_name (str):
-            The source group name the source belongs to.
+            The source group name the sources belong to.
         compartments (Optional[Sequence[str]]):
             Compartment source table names.
 
@@ -995,44 +1176,53 @@ def _detect_source_page_key(
 
     Raises:
         CytoTableException:
-            Raised when no numeric pagination key column can be
-            detected for the source.
+            Raised when no numeric, null-free pagination key column
+            common to every source file can be detected for the group.
     """
 
     from cytotable.convert import (  # pylint: disable=import-outside-toplevel
         _get_table_columns_and_types,
     )
 
-    columns = _get_table_columns_and_types(
-        source=dict(source), sort_output=True
-    ).result()
-
-    if not columns or columns[0] is None:
-        raise CytoTableException(
-            f"Unable to infer a pagination key for source group "
-            f"'{group_name}': the source table could not be inspected. "
-            "Please provide pagination keys through the 'page_keys' "
-            "parameter."
-        )
-
-    # map lowercased column names to original column names
-    lowered = {
-        str(column["column_name"]).lower(): str(column["column_name"])
-        for column in columns
-        if column is not None
-    }
-    # map lowercased column names to duckdb storage types
-    dtypes = {
-        str(column["column_name"]).lower(): str(column["column_dtype"])
-        for column in columns
-        if column is not None
-    }
-    # only numeric columns are eligible for keyset pagination
-    numeric = {
-        name
-        for name, dtype in dtypes.items()
-        if any(token in dtype.upper() for token in _NUMERIC_TYPE_TOKENS)
-    }
+    # gather per-source numeric columns, then intersect so only
+    # columns present (and numeric) in every file remain eligible
+    common_lowered: Dict[str, str] = {}
+    common_numeric: set[str] = set()
+    for index, source in enumerate(sources):
+        columns = _get_table_columns_and_types(
+            source=dict(source), sort_output=True
+        ).result()
+        if not columns or columns[0] is None:
+            raise CytoTableException(
+                f"Unable to infer a pagination key for source group "
+                f"'{group_name}': the source table could not be "
+                "inspected. Please provide pagination keys through "
+                "the 'page_keys' parameter."
+            )
+        lowered = {
+            str(column["column_name"]).lower(): str(column["column_name"])
+            for column in columns
+            if column is not None
+        }
+        dtypes = {
+            str(column["column_name"]).lower(): str(column["column_dtype"])
+            for column in columns
+            if column is not None
+        }
+        numeric = {
+            name
+            for name, dtype in dtypes.items()
+            if any(token in dtype.upper() for token in _NUMERIC_TYPE_TOKENS)
+        }
+        if index == 0:
+            common_lowered, common_numeric = lowered, numeric
+        else:
+            common_lowered = {
+                name: original
+                for name, original in common_lowered.items()
+                if name in lowered
+            }
+            common_numeric &= numeric
 
     compartment, _ = _classify_group(
         stem=pathlib.Path(group_name).stem.lower(),
@@ -1058,22 +1248,33 @@ def _detect_source_page_key(
         (_IMAGE_KEY_NAMES, _STEM_IMAGE_KEY_REGEX),
         (_TABLENUMBER_KEY_NAMES, _STEM_TABLENUMBER_REGEX),
     ]
+    tried = []
     for exact_names, regex in candidates:
         page_key = _pick_column(
-            lowered=lowered,
+            lowered=common_lowered,
             exact_names=exact_names,
             regex=regex,
-            allowed=numeric,
+            allowed=common_numeric,
         )
-        if page_key is not None:
+        if page_key is None:
+            continue
+        tried.append(page_key)
+        if not _column_has_nulls(sources=sources, column=page_key):
             return page_key
 
-    # fall back to the first numeric column, if one exists
-    for name in sorted(numeric):
-        return lowered[name]
+    # fall back to any other common numeric column
+    for name in sorted(common_numeric):
+        page_key = common_lowered[name]
+        if page_key in tried:
+            continue
+        tried.append(page_key)
+        if not _column_has_nulls(sources=sources, column=page_key):
+            return page_key
 
     raise CytoTableException(
         f"Unable to infer a pagination key for source group "
-        f"'{group_name}': no numeric key column was detected. Please "
+        f"'{group_name}': no numeric column free of null values and "
+        "common to every source file in the group was detected "
+        f"(considered: {', '.join(tried) if tried else 'none'}). Please "
         "provide pagination keys through the 'page_keys' parameter."
     )

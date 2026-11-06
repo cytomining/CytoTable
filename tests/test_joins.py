@@ -328,14 +328,34 @@ def test_convert_join_sql_inference_no_fanout(
             joins=INFER_JOINS_SENTINEL,
             metadata=["image"],
             compartments=["cells", "nuclei", "cytoplasm"],
-            # disable tablenumber to retain all plate sources
-            # (one plate in data_b has an image table without rows)
+            # disable tablenumber to retain all plate sources, as
+            # data_a's two plates reuse overlapping image numbers
             add_tablenumber=False,
         )
     )
 
     # every cytoplasm row across plates is retained exactly once
     assert infer_result.num_rows == 40
+
+    # verify actual joined values, not just row count, for one row
+    # from each plate (plate 1 uses ImageNumbers 1-4, plate 2 uses
+    # 19-22; checking real values catches a join that silently
+    # matched the wrong row)
+    image_number = infer_result.column("Metadata_ImageNumber")
+    object_number = infer_result.column("Metadata_ObjectNumber")
+    cells_area = infer_result.column("Cells_AreaShape_Area")
+    for expected_image, expected_object, expected_area in (
+        (1, 1, 739),
+        (19, 200, 379),
+    ):
+        matches = [
+            index
+            for index in range(infer_result.num_rows)
+            if image_number[index].as_py() == expected_image
+            and object_number[index].as_py() == expected_object
+        ]
+        assert len(matches) == 1
+        assert cells_area[matches[0]].as_py() == expected_area
 
 
 def test_infer_join_sql_unjoinable_table(
@@ -366,6 +386,91 @@ def test_infer_join_sql_unjoinable_table(
 
     with pytest.raises(CytoTableException, match="Unable to infer a join"):
         infer_join_sql(sources=sources)
+
+
+def test_infer_join_sql_rejects_ambiguous_parent_match(
+    load_parsl_default: None,
+    fx_tempdir: str,
+):
+    """
+    Tests that join SQL inference raises when a parent reference
+    would match more than one parent row, which would multiply or
+    ambiguously associate child rows rather than join them cleanly.
+    """
+
+    dest_path = pathlib.Path(fx_tempdir) / "ambiguous"
+    dest_path.mkdir()
+    # two "cells" rows share the same (image, object) key, so any
+    # cytoplasm row referencing object 1 of image 1 matches both
+    parquet.write_table(
+        pa.table(
+            {
+                "Metadata_ImageNumber": [1, 1],
+                "Metadata_ObjectNumber": [1, 1],
+            }
+        ),
+        str(dest_path / "cells.parquet"),
+    )
+    parquet.write_table(
+        pa.table(
+            {
+                "Metadata_ImageNumber": [1],
+                "Metadata_ObjectNumber": [10],
+                "Parent_Cells": [1],
+            }
+        ),
+        str(dest_path / "cytoplasm.parquet"),
+    )
+
+    sources = {
+        "cells.parquet": [{"table": [str(dest_path / "cells.parquet")]}],
+        "cytoplasm.parquet": [{"table": [str(dest_path / "cytoplasm.parquet")]}],
+    }
+
+    with pytest.raises(CytoTableException, match="matches more than one"):
+        infer_join_sql(sources=sources, compartments=["cells", "cytoplasm"])
+
+
+def test_infer_join_sql_rejects_unsupported_compartment_join(
+    load_parsl_default: None,
+    fx_tempdir: str,
+):
+    """
+    Tests that join SQL inference raises for two compartment tables
+    which share only an image-level key and have no validated
+    object-level parent reference between them, rather than silently
+    joining on the shared image key (which would pair every object in
+    one compartment with every object in the other for a given image).
+    """
+
+    dest_path = pathlib.Path(fx_tempdir) / "unsupported"
+    dest_path.mkdir()
+    parquet.write_table(
+        pa.table(
+            {
+                "Metadata_ImageNumber": [1, 1],
+                "Metadata_ObjectNumber": [1, 2],
+            }
+        ),
+        str(dest_path / "cells.parquet"),
+    )
+    parquet.write_table(
+        pa.table(
+            {
+                "Metadata_ImageNumber": [1, 1],
+                "Metadata_ObjectNumber": [1, 2],
+            }
+        ),
+        str(dest_path / "nuclei.parquet"),
+    )
+
+    sources = {
+        "cells.parquet": [{"table": [str(dest_path / "cells.parquet")]}],
+        "nuclei.parquet": [{"table": [str(dest_path / "nuclei.parquet")]}],
+    }
+
+    with pytest.raises(CytoTableException, match="Unable to infer a join"):
+        infer_join_sql(sources=sources, compartments=["cells", "nuclei"])
 
 
 def test_convert_join_sql_inference_raises_with_manual_override(

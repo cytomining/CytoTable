@@ -1636,7 +1636,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             joins = inferred_join.sql
             page_keys = {
                 **page_keys,
-                "join": inferred_join.page_key,
+                "join": page_keys.get("join") or inferred_join.page_key,
             }
 
         # when no join SQL was provided and inference was not requested,

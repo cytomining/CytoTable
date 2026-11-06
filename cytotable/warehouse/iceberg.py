@@ -21,7 +21,7 @@ from parsl.app.app import python_app
 from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
-from cytotable.joins import is_infer_joins_sentinel
+from cytotable.joins import _default_identifying_columns, is_infer_joins_sentinel
 from cytotable.presets import config
 from cytotable.sources import _build_path
 from cytotable.utils import (
@@ -735,6 +735,21 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         chunk_size=chunk_size,
         page_keys=page_keys,
     )
+
+    # when join SQL will be inferred and the caller did not provide
+    # identifying columns or a chunk size, apply the same canonical
+    # defaults convert() applies: write_iceberg_warehouse() calls
+    # _run_export_workflow() directly rather than through convert(),
+    # so those defaults are not otherwise applied here
+    if identifying_columns is None and is_infer_joins_sentinel(
+        cast(str, resolved["joins"])
+    ):
+        resolved["identifying_columns"] = _default_identifying_columns(
+            compartments=cast(Tuple[str, ...], resolved["compartments"])
+        )
+    if chunk_size is None and is_infer_joins_sentinel(cast(str, resolved["joins"])):
+        resolved["chunk_size"] = config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"]
+
     _validate_iceberg_join_prerequisites(
         joins=cast(str, resolved["joins"]),
         page_keys=cast(Dict[str, str], resolved["page_keys"]),
