@@ -21,6 +21,7 @@ from parsl.app.app import python_app
 from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
+from cytotable.joins import is_infer_joins_sentinel
 from cytotable.presets import config
 from cytotable.sources import _build_path
 from cytotable.utils import (
@@ -331,6 +332,11 @@ def _validate_image_export_prerequisites(
             "preset that defines them."
         )
 
+    # join SQL inference provides the join pagination key itself,
+    # so the page_keys requirement is lifted in this case
+    if is_infer_joins_sentinel(joins):
+        return True
+
     if not page_keys.get("join"):
         raise CytoTableException(
             "Image export requires page_keys to include a non-empty 'join' entry."
@@ -351,6 +357,11 @@ def _validate_iceberg_join_prerequisites(
             "Iceberg export requires non-empty join SQL. Provide 'joins' directly "
             "or use a preset that defines them."
         )
+
+    # join SQL inference provides the join pagination key itself,
+    # so the page_keys requirement is lifted in this case
+    if is_infer_joins_sentinel(joins):
+        return
 
     if not page_keys.get("join"):
         raise ValueError(

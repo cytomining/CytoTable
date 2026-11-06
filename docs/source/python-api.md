@@ -41,6 +41,17 @@ Convert
 
 |
 
+Joins
+-----
+
+.. automodule:: cytotable.joins
+   :members:
+   :private-members:
+   :undoc-members:
+   :show-inheritance:
+
+|
+
 .. autofunction:: _prep_cast_column_data_types
 
 |

@@ -345,6 +345,33 @@ missing image-level fields or includes more columns than you want, pass a custom
 `joins=` SQL string to {func}`cytotable.convert.convert` and edit the `SELECT`
 list directly ([example](tutorials/cellprofiler_to_parquet.md#step-2-run-the-conversion-minimal-python)).
 
+```{eval-rst}
+Alternatively, CytoTable can generate the join SQL automatically by inspecting the
+source table schemas and data: set :code:`convert(..., joins="infer", ...)` to have
+CytoTable infer the join relationships (shared image and table number keys,
+compartment object numbers, and parent references), validate them against the
+actual data, and render the join SQL for you. Inference also determines the
+pagination keys and default identifying columns, so a conversion may run without a
+preset:
+
+.. code-block:: python
+
+    from cytotable import convert
+
+    convert(
+        source_path="./data",
+        source_datatype="csv",
+        dest_path="profiles.parquet",
+        joins="infer",
+        metadata=["image"],
+        compartments=["cells", "nuclei", "cytoplasm"],
+    )
+
+Manually provided `joins=` SQL always takes precedence over inference. If no
+defensible join can be inferred for the data, CytoTable raises an exception which
+suggests providing the join SQL manually instead of guessing.
+```
+
 Note: data software outside of CytoTable sometimes makes use of the term "merge" to describe capabilities which are similar to join (for ex. [`pandas.DataFrame.merge`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html).
 Within CytoTable, we opt to describe these operations with "join" to avoid confusion with software development alongside the technologies used (for example, [DuckDB SQL](https://duckdb.org/docs/archive/0.9.2/sql/introduction) includes no `MERGE` keyword).
 
