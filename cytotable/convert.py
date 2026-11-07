@@ -980,6 +980,8 @@ def _prepare_join_sql(
     """
     import pathlib
 
+    from cytotable.joins import _sql_string_literal
+
     # replace with real location of sources for join sql
     order_by_tables = []
     for key, val in sources.items():
@@ -987,7 +989,11 @@ def _prepare_join_sql(
             table_name = str(pathlib.Path(key).stem.lower())
             joins = joins.replace(
                 f"'{table_name}.parquet'",
-                str([str(table) for table in val[0]["table"]]),
+                "["
+                + ", ".join(
+                    _sql_string_literal(str(table)) for table in val[0]["table"]
+                )
+                + "]",
             )
             order_by_tables.append(table_name)
 
