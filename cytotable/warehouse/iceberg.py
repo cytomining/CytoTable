@@ -21,6 +21,7 @@ from parsl.app.app import python_app
 from cytotable.constants import CYTOTABLE_DEFAULT_PARQUET_METADATA
 from cytotable.convert import _run_export_workflow
 from cytotable.exceptions import CytoTableException
+from cytotable.joins import _default_identifying_columns, is_infer_joins_sentinel
 from cytotable.presets import config
 from cytotable.sources import _build_path
 from cytotable.utils import (
@@ -264,6 +265,15 @@ def _apply_preset_defaults_to_convert_config(
             else page_keys
         )
 
+    # Apply inference fallbacks only after explicit and preset values resolve.
+    if is_infer_joins_sentinel(joins):
+        if identifying_columns is None:
+            identifying_columns = _default_identifying_columns(
+                compartments=compartments
+            )
+        if chunk_size is None:
+            chunk_size = cast(int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"])
+
     return {
         "metadata": tuple(metadata or ()),
         "compartments": tuple(compartments or ()),
@@ -331,6 +341,11 @@ def _validate_image_export_prerequisites(
             "preset that defines them."
         )
 
+    # join SQL inference provides the join pagination key itself,
+    # so the page_keys requirement is lifted in this case
+    if is_infer_joins_sentinel(joins):
+        return True
+
     if not page_keys.get("join"):
         raise CytoTableException(
             "Image export requires page_keys to include a non-empty 'join' entry."
@@ -351,6 +366,11 @@ def _validate_iceberg_join_prerequisites(
             "Iceberg export requires non-empty join SQL. Provide 'joins' directly "
             "or use a preset that defines them."
         )
+
+    # join SQL inference provides the join pagination key itself,
+    # so the page_keys requirement is lifted in this case
+    if is_infer_joins_sentinel(joins):
+        return
 
     if not page_keys.get("join"):
         raise ValueError(
@@ -724,6 +744,7 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         chunk_size=chunk_size,
         page_keys=page_keys,
     )
+
     _validate_iceberg_join_prerequisites(
         joins=cast(str, resolved["joins"]),
         page_keys=cast(Dict[str, str], resolved["page_keys"]),

@@ -12,6 +12,7 @@ import pyarrow as pa
 from parsl.app.app import python_app
 
 from cytotable.exceptions import CytoTableException, DatatypeException
+from cytotable.joins import is_infer_joins_sentinel
 from cytotable.presets import config
 from cytotable.sources import _gather_sources
 from cytotable.utils import (
@@ -20,6 +21,7 @@ from cytotable.utils import (
     _expand_path,
     _parsl_loaded,
     _remove_empty_dirs,
+    _resolve_source_page_keys,
     evaluate_futures,
 )
 from cytotable.validation import validate_convert_backend_options
@@ -1363,6 +1365,8 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             Whether to join the compartment data together into one dataset.
         joins (Optional[str]):
             DuckDB-compatible SQL which will be used to perform the join operations.
+            Use ``"infer"`` to generate the join SQL automatically by inspecting
+            the source table schemas and data (join SQL inference).
         chunk_size (Optional[int]):
             Size of join chunks which is used to limit data size during join ops.
         infer_common_schema (bool):
@@ -1415,15 +1419,31 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     # expand the destination path
     expanded_dest_path = _expand_path(path=dest_path)
 
-    # check that each source group name has a pagination key
+    # when join SQL will be inferred, infer pagination keys for any
+    # source groups which lack one (see cytomining/CytoTable#522)
+    if is_infer_joins_sentinel(joins):
+        from cytotable.joins import (  # pylint: disable=import-outside-toplevel
+            _infer_source_page_keys,
+        )
+
+        page_keys = _infer_source_page_keys(
+            sources=sources,
+            page_keys=page_keys,
+            compartments=compartments,
+        )
+
+    # Resolve once for both validation and export; exact groups cannot be
+    # masked by shorter keys such as 'cells' for 'cells_summary'.
+    source_page_keys = _resolve_source_page_keys(
+        source_group_names=list(sources), page_keys=page_keys
+    )
     for source_group_name in sources.keys():
-        matching_keys = [
-            key for key in page_keys.keys() if key.lower() in source_group_name.lower()
-        ]
-        if not matching_keys and source_datatype != "npz":
+        if source_group_name not in source_page_keys and source_datatype != "npz":
             raise CytoTableException(
                 f"No matching key found in page_keys for source_group_name: {source_group_name}. "
-                "Please include a pagination key based on a column name from the table."
+                "Please include a pagination key based on a column name from the table. "
+                "Alternatively, set joins='infer' to have CytoTable infer pagination "
+                "keys from the source data."
             )
 
     # prepare pagesets for chunked data export from source tables
@@ -1433,15 +1453,9 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
                 source,
                 **{
                     "page_key": (
-                        page_key := next(
-                            (
-                                value
-                                for key, value in page_keys.items()
-                                if key.lower() in source_group_name.lower()
-                            ),
-                            # Placeholder value if no match is found
-                            # used in cases for .npz source types.
-                            "placeholder",
+                        # NPZ sources use the passthrough pagination case.
+                        page_key := source_page_keys.get(
+                            source_group_name, "placeholder"
                         )
                     ),
                     "pagesets": _get_table_keyset_pagination_sets(
@@ -1594,6 +1608,43 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
     if join:
         # evaluate the results as they're used multiple times below
         evaluated_results = evaluate_futures(results)
+
+        # infer join SQL from the converted source tables when
+        # the inference sentinel was provided (see cytomining/CytoTable#522)
+        if is_infer_joins_sentinel(joins):
+            from cytotable.joins import (  # pylint: disable=import-outside-toplevel
+                infer_join_sql,
+            )
+
+            inferred_join = infer_join_sql(
+                sources=evaluated_results,
+                metadata=metadata,
+                compartments=compartments,
+                page_key=page_keys.get("join") or None,
+            )
+            logger.info(
+                "Inferred join SQL from source table data (base table: "
+                "'%s', joined tables: %s).",
+                inferred_join.base_table,
+                [parent for _, parent in inferred_join.edges],
+            )
+            # use the inferred join SQL and, when no join pagination
+            # key was provided, the inferred pagination key
+            joins = inferred_join.sql
+            page_keys = {
+                **page_keys,
+                "join": page_keys.get("join") or inferred_join.page_key,
+            }
+
+        # when no join SQL was provided and inference was not requested,
+        # we cannot proceed with the join work
+        if joins is None:
+            raise CytoTableException(
+                "No join SQL was provided for the join work. Please "
+                "provide join SQL through the 'joins' parameter or set "
+                "joins='infer' to have CytoTable infer the join SQL "
+                "from the source data."
+            )
 
         prepared_joins_sql = _prepare_join_sql(
             sources=evaluated_results, joins=joins
@@ -1759,6 +1810,8 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
             Whether to join the compartment data together into one dataset.
         joins (Optional[str]):
             DuckDB-compatible SQL which will be used to perform the join operations.
+            Use ``"infer"`` to generate the join SQL automatically by inspecting
+            the source table schemas and data (join SQL inference).
         chunk_size (Optional[int]):
             Size of join chunks which is used to limit data size during join ops.
         infer_common_schema (bool):
@@ -1987,16 +2040,41 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
 
         # Raise an exception for scenarios where one configures CytoTable to join
         # but does not provide a pagination key for the joins.
-        if join and (page_keys is None or "join" not in page_keys.keys()):
+        # Note: this requirement is lifted when join SQL will be inferred,
+        # as inference determines and provides the join pagination key.
+        if (
+            join
+            and (page_keys is None or "join" not in page_keys.keys())
+            and not is_infer_joins_sentinel(joins)
+        ):
             raise CytoTableException(
                 (
                     "When using join=True one must pass a 'join' pagination key "
                     "in the page_keys parameter. The 'join' pagination key is a column "
                     "name found within the joined results based on the SQL provided from "
                     "the joins parameter. This special key is required as not all columns "
-                    "from the source tables might not be included."
+                    "from the source tables might not be included. Alternatively, set "
+                    "joins='infer' to have CytoTable infer the join SQL and the join "
+                    "pagination key from the source data."
                 )
             )
+
+        # when join SQL will be inferred and no identifying columns were
+        # provided, use canonical defaults so the column renaming stage
+        # yields the key and parent reference columns inference detects
+        if identifying_columns is None and is_infer_joins_sentinel(joins):
+            from cytotable.joins import (  # pylint: disable=import-outside-toplevel
+                _default_identifying_columns,
+            )
+
+            identifying_columns = _default_identifying_columns(
+                compartments=compartments
+            )
+
+        # when join SQL will be inferred and no chunk size was provided,
+        # use the canonical default chunk size from the presets
+        if chunk_size is None and is_infer_joins_sentinel(joins):
+            chunk_size = cast(int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"])
 
         # send sources to be written to parquet if selected
         output = _run_export_workflow(

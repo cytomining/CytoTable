@@ -1,0 +1,466 @@
+{
+  "selection": "Complete rows from seven public CSV site/well export groups; only columns are projected. No row sampling, renumbering, or value changes.",
+  "files": [
+    {
+      "path": "jump-source1/UL000109-A02-1/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-1/Cells.csv",
+      "source_bytes": 8355070,
+      "source_sha256": "79c416eaa457d8d93ea8b933170d0b078a4120f8f85e8ddbdcf2b38e55d698ec",
+      "fixture_sha256": "cae934c78d64a8ea767b09363689ff525e0c76a60500c248c035a46cc21b50e8",
+      "rows": 309,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Parent_CellsIncludingEdges"
+      ],
+      "fixture_bytes": 10114
+    },
+    {
+      "path": "jump-source1/UL000109-A02-1/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-1/Cytoplasm.csv",
+      "source_bytes": 7980754,
+      "source_sha256": "03ebdae4e951e0908b9e42572600d6a6685ebe0ecf69f642cd6e3d09dbc83997",
+      "fixture_sha256": "0323e3615db243a965720b87437c7fe3db80f587fca9efc6fe86a4306cf2ad52",
+      "rows": 309,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 12361
+    },
+    {
+      "path": "jump-source1/UL000109-A02-1/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-1/Image.csv",
+      "source_bytes": 78780,
+      "source_sha256": "fbe1c8f95d4becf9e01aac4d7a4525bff3d59b8d149cd44c07b77f78257c96cd",
+      "fixture_sha256": "6ae813da6e66a201501ad5403a32eb349d61fec98af07d096af0e4bd910749b0",
+      "rows": 1,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 72
+    },
+    {
+      "path": "jump-source1/UL000109-A02-1/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-1/Nuclei.csv",
+      "source_bytes": 7799066,
+      "source_sha256": "53732189f55315b2c4a4e4b6ac7aedeca7695d5185a67feb812001918d0917d1",
+      "fixture_sha256": "567cb1d399b9f9bbaf0b12ea5e9e7159f64ddf29d0dd12fc8c8ecd93c53a42b8",
+      "rows": 309,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_NucleiIncludingEdges"
+      ],
+      "fixture_bytes": 10975
+    },
+    {
+      "path": "jump-source1/UL000109-A02-2/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-2/Cells.csv",
+      "source_bytes": 3225936,
+      "source_sha256": "c6ee23375fb4c8cc7bddd222810019cb46f65eeddb25c002778a82e6a14263f7",
+      "fixture_sha256": "b7e83ea553405c5e4169212b1499dd83107a7f0ecc2de7dd0b4c1cd18cc4d794",
+      "rows": 118,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Parent_CellsIncludingEdges"
+      ],
+      "fixture_bytes": 3787
+    },
+    {
+      "path": "jump-source1/UL000109-A02-2/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-2/Cytoplasm.csv",
+      "source_bytes": 3082459,
+      "source_sha256": "b67c8a7ec75b30eb480fc278cad3015f813d0e046c9cd90dca6bb0c3487f39bb",
+      "fixture_sha256": "38e0d5f50704ebf44a23a138f4eff992e3787e4b4ab771713cd0040a66c00c25",
+      "rows": 118,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 4502
+    },
+    {
+      "path": "jump-source1/UL000109-A02-2/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-2/Image.csv",
+      "source_bytes": 78698,
+      "source_sha256": "8e680aaa21520f49b92ac0b9d5e91935c3f8f912407f9235eb013d192af1dd16",
+      "fixture_sha256": "1f53f535257520b74dfc5d058ad15dc5ad00839a87610d6fb4e35db56c7cfca0",
+      "rows": 1,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 72
+    },
+    {
+      "path": "jump-source1/UL000109-A02-2/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_1/workspace/analysis/Batch1_20221004/UL000109/analysis/UL000109-A02-2/Nuclei.csv",
+      "source_bytes": 3004357,
+      "source_sha256": "49092bbd6849ca16f5f4b4545f53d5697f4d7ecac3492351c609efd81b495964",
+      "fixture_sha256": "12e1e061bf02b6e5fd8c27c7b247c7f6afb345b0df7b33d5d6b627e1b47d2d83",
+      "rows": 118,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_NucleiIncludingEdges"
+      ],
+      "fixture_bytes": 4063
+    },
+    {
+      "path": "jump-source3/BR5867a3-A01/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_3/workspace/analysis/CP59/BR5867a3/analysis/BR5867a3-A01/Cells.csv",
+      "source_bytes": 31282688,
+      "source_sha256": "871b9fd7474e03aa452970a617802779fc51059ed1b2cfa010be8a11f7dbbd52",
+      "fixture_sha256": "d15e24033daa0244d34e65b26f0046f4ea37f6951141e7d77404bd374adb35e9",
+      "rows": 1359,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X"
+      ],
+      "fixture_bytes": 38824
+    },
+    {
+      "path": "jump-source3/BR5867a3-A01/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_3/workspace/analysis/CP59/BR5867a3/analysis/BR5867a3-A01/Cytoplasm.csv",
+      "source_bytes": 29990152,
+      "source_sha256": "8e9d5ae691eea4601ed9ac0015ae4b562d261e056b27e1c73317a832919e412c",
+      "fixture_sha256": "e0c2763859da733482c8178d53684f3fbc0ca929421721877627ef6a0098e324",
+      "rows": 1359,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 52408
+    },
+    {
+      "path": "jump-source3/BR5867a3-A01/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_3/workspace/analysis/CP59/BR5867a3/analysis/BR5867a3-A01/Image.csv",
+      "source_bytes": 248494,
+      "source_sha256": "854363f43cbd708aa867afb50d563a644986552d401be9daad2539f94f9dccbd",
+      "fixture_sha256": "c6d905fe631fcb09dee6f7b7cda3929e69bd1906003209e8816e146bbc3f380c",
+      "rows": 9,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 208
+    },
+    {
+      "path": "jump-source3/BR5867a3-A01/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_3/workspace/analysis/CP59/BR5867a3/analysis/BR5867a3-A01/Nuclei.csv",
+      "source_bytes": 28977522,
+      "source_sha256": "3ce03a1516ec25b5adedd687e76e7b13bda7765dc5d08f4e49a0c8b452b28760",
+      "fixture_sha256": "2944cc2d2f1527dde5ce9a246d8acf004d3864a5d11337a1556b386130969eba",
+      "rows": 1359,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_NucleiIncludingEdges"
+      ],
+      "fixture_bytes": 47244
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-1/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-1/Cells.csv",
+      "source_bytes": 2497224,
+      "source_sha256": "9b89dd7cfe83880956ae988a1e41404616c1df060c5f16d3608ebf74c5d4d380",
+      "fixture_sha256": "caab96ea175f419ea4e213f35e3bb2688049f208ad497dec0e990e5f602d4078",
+      "rows": 66,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Parent_CellsIncludingEdges"
+      ],
+      "fixture_bytes": 2134
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-1/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-1/Cytoplasm.csv",
+      "source_bytes": 2431302,
+      "source_sha256": "f6987e5ee637ae9646fcfca2f847d5d2f45f70106aa678602d7c6cc74bd70f2b",
+      "fixture_sha256": "fca83a02108b0a59a40711e9f48c3283e1ca5b18937ba3a9611946177ff80553",
+      "rows": 66,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 2520
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-1/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-1/Image.csv",
+      "source_bytes": 105210,
+      "source_sha256": "3f6376ec33d1d2c431b8f90f6db8921397e606fd72d7f2c184d1d6c9b7cf6a1c",
+      "fixture_sha256": "6a4f8e4f8b9090c4149797c3ff84fbc22c6e2db85fda7d8c5f5e36fe939bee56",
+      "rows": 1,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 74
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-1/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-1/Nuclei.csv",
+      "source_bytes": 2378879,
+      "source_sha256": "8af071090e77523ac6e97d9c641a9988682a89e5bceaa1ac054f62b08eeecd4c",
+      "fixture_sha256": "f760d830eb1623aa5cc7ab9c9ee1fad37fa616d5481db5d8ce83ffcf80c8fbfe",
+      "rows": 66,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_NucleiIncludingEdges"
+      ],
+      "fixture_bytes": 2309
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-2/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-2/Cells.csv",
+      "source_bytes": 8301088,
+      "source_sha256": "4f4b388e8c002313f90823fc247ab2e269bb91fd351cdd685e4d155f6725de19",
+      "fixture_sha256": "cdde49730744f695e10d04c01cc259d4fa478f249cc332259ca3e7db963859db",
+      "rows": 226,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Parent_CellsIncludingEdges"
+      ],
+      "fixture_bytes": 7403
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-2/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-2/Cytoplasm.csv",
+      "source_bytes": 8026097,
+      "source_sha256": "1601f948d635a5bd25364898662189bc06a6c20fcaf4f5dac1eb59942916796a",
+      "fixture_sha256": "4527fc52d8950e32f4a3020af8441cddf215608ee6f7546bafd0d7df3ec0085a",
+      "rows": 226,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 8965
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-2/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-2/Image.csv",
+      "source_bytes": 105251,
+      "source_sha256": "1c92898a314888584eba20ad331076cfbc961df91a4ea62cd947b5a09b65246b",
+      "fixture_sha256": "82307e7e84be65d2f83f9ac3482a4e93195aaeea5ca984862a82a0bfca2d16cd",
+      "rows": 1,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 74
+    },
+    {
+      "path": "jump-source4/BR00117035-A01-2/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_4/workspace/analysis/2021_04_26_Batch1/BR00117035/analysis/BR00117035-A01-2/Nuclei.csv",
+      "source_bytes": 7920455,
+      "source_sha256": "4c260fecbde8fe3547f0f351c167ca550564e6790dacf96bf3e8197cfce541be",
+      "fixture_sha256": "c0c03157ba5e04a05cf1806b98dd07c56211df8b2a601c47a8a5f03b851a867a",
+      "rows": 226,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_NucleiIncludingEdges"
+      ],
+      "fixture_bytes": 8107
+    },
+    {
+      "path": "jump-scope/BR00117060a10x-A01-1/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0002-jump-scope/source_4/workspace/analysis/2020_11_24_Scope1_Nikon/BR00117060a10x/analysis/BR00117060a10x-A01-1/Cells.csv",
+      "source_bytes": 36021725,
+      "source_sha256": "a0f0e454249ace3ad0a70fa004a7bf9cb5c5f03a161a7d4d826de76121e98c10",
+      "fixture_sha256": "ea2f697c5d00e7dea1c6edc35e00b52a636bf3ee5358211350703e3150299866",
+      "rows": 2266,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 86425
+    },
+    {
+      "path": "jump-scope/BR00117060a10x-A01-1/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0002-jump-scope/source_4/workspace/analysis/2020_11_24_Scope1_Nikon/BR00117060a10x/analysis/BR00117060a10x-A01-1/Cytoplasm.csv",
+      "source_bytes": 35660559,
+      "source_sha256": "2bedc1cd1def8a0b2ae10184370279478f5c406ab19a465c039381abeae257d2",
+      "fixture_sha256": "daae2f6056454394f424a805522a4082908e2f5b6f4233eaeccb2fb84995973e",
+      "rows": 2266,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 96216
+    },
+    {
+      "path": "jump-scope/BR00117060a10x-A01-1/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0002-jump-scope/source_4/workspace/analysis/2020_11_24_Scope1_Nikon/BR00117060a10x/analysis/BR00117060a10x-A01-1/Image.csv",
+      "source_bytes": 52865,
+      "source_sha256": "e591e9828025f9373838086717432e1d18c9a1c81e1643ace290f7eb9a5fcfef",
+      "fixture_sha256": "7a6ecb0af25b3473e9d98348e74469e68a379735f74aa10af8a27f641366c021",
+      "rows": 1,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 78
+    },
+    {
+      "path": "jump-scope/BR00117060a10x-A01-1/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0002-jump-scope/source_4/workspace/analysis/2020_11_24_Scope1_Nikon/BR00117060a10x/analysis/BR00117060a10x-A01-1/Nuclei.csv",
+      "source_bytes": 28665596,
+      "source_sha256": "edf732513c7ec19d08407b7b3cf836d37825542ff30ee7580fb84673beda77d2",
+      "fixture_sha256": "2a8c03e7d8c831d5ff0d18aa6063b34013f405bc34e21f7988d6c9824ba573a5",
+      "rows": 2266,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number"
+      ],
+      "fixture_bytes": 74736
+    },
+    {
+      "path": "jump-pilot/BR00116992-A01-1/Cells.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116992/analysis/BR00116992-A01-1/Cells.csv",
+      "source_bytes": 6141715,
+      "source_sha256": "8144880655853f2ee307dde01a1c19589675da7f591160cb59c0365fae1c1abc",
+      "fixture_sha256": "1c1a02ccb577e894a73722a39a73b661d43ce09f7da9efa333140f47e96bb72d",
+      "rows": 172,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 6168
+    },
+    {
+      "path": "jump-pilot/BR00116992-A01-1/Cytoplasm.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116992/analysis/BR00116992-A01-1/Cytoplasm.csv",
+      "source_bytes": 6113873,
+      "source_sha256": "a3e5023842bb153a51fa1b3441108b657968355b09ad355b093b5eb396ce0c1b",
+      "fixture_sha256": "a3174e7d1e35d0f2df9c8d05c31c90480be5b38f936c2f4ed617c6207e19513a",
+      "rows": 172,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number",
+        "Parent_Cells",
+        "Parent_Nuclei"
+      ],
+      "fixture_bytes": 6759
+    },
+    {
+      "path": "jump-pilot/BR00116992-A01-1/Image.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116992/analysis/BR00116992-A01-1/Image.csv",
+      "source_bytes": 85701,
+      "source_sha256": "ba2ab336470b833ead2265f0289850c304cd29ef484c92eb667685ae2041e62d",
+      "fixture_sha256": "bef5d89441a0ee282acb6529d61041c0aaeff0c987642fac332129638db52264",
+      "rows": 1,
+      "columns": [
+        "ImageNumber",
+        "Metadata_Plate",
+        "Metadata_Site",
+        "Metadata_Well"
+      ],
+      "fixture_bytes": 74
+    },
+    {
+      "path": "jump-pilot/BR00116992-A01-1/Nuclei.csv",
+      "source_url": "https://cellpainting-gallery.s3.amazonaws.com/cpg0000-jump-pilot/source_4/workspace/analysis/2020_11_04_CPJUMP1/BR00116992/analysis/BR00116992-A01-1/Nuclei.csv",
+      "source_bytes": 6047967,
+      "source_sha256": "5507e87793e3d61cb8eedc9eac55610a81ffc44eaf0b014c5a7293bd4249346f",
+      "fixture_sha256": "32bb0bc6f70dff6e3c6e00e7f7cf585fafac7c7a41e2102f19295b0a009e93d4",
+      "rows": 172,
+      "columns": [
+        "ImageNumber",
+        "ObjectNumber",
+        "AreaShape_Area",
+        "AreaShape_Center_X",
+        "Number_Object_Number"
+      ],
+      "fixture_bytes": 5369
+    }
+  ]
+}
