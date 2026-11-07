@@ -265,6 +265,15 @@ def _apply_preset_defaults_to_convert_config(
             else page_keys
         )
 
+    # Apply inference fallbacks only after explicit and preset values resolve.
+    if is_infer_joins_sentinel(joins):
+        if identifying_columns is None:
+            identifying_columns = _default_identifying_columns(
+                compartments=compartments
+            )
+        if chunk_size is None:
+            chunk_size = cast(int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"])
+
     return {
         "metadata": tuple(metadata or ()),
         "compartments": tuple(compartments or ()),
@@ -735,20 +744,6 @@ def write_iceberg_warehouse(  # noqa: PLR0913
         chunk_size=chunk_size,
         page_keys=page_keys,
     )
-
-    # when join SQL will be inferred and the caller did not provide
-    # identifying columns or a chunk size, apply the same canonical
-    # defaults convert() applies: write_iceberg_warehouse() calls
-    # _run_export_workflow() directly rather than through convert(),
-    # so those defaults are not otherwise applied here
-    if identifying_columns is None and is_infer_joins_sentinel(
-        cast(str, resolved["joins"])
-    ):
-        resolved["identifying_columns"] = _default_identifying_columns(
-            compartments=cast(Tuple[str, ...], resolved["compartments"])
-        )
-    if chunk_size is None and is_infer_joins_sentinel(cast(str, resolved["joins"])):
-        resolved["chunk_size"] = config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"]
 
     _validate_iceberg_join_prerequisites(
         joins=cast(str, resolved["joins"]),

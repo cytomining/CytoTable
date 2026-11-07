@@ -21,6 +21,7 @@ from cytotable.utils import (
     _expand_path,
     _parsl_loaded,
     _remove_empty_dirs,
+    _resolve_source_page_keys,
     evaluate_futures,
 )
 from cytotable.validation import validate_convert_backend_options
@@ -1431,12 +1432,13 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
             compartments=compartments,
         )
 
-    # check that each source group name has a pagination key
+    # Resolve once for both validation and export; exact groups cannot be
+    # masked by shorter keys such as 'cells' for 'cells_summary'.
+    source_page_keys = _resolve_source_page_keys(
+        source_group_names=list(sources), page_keys=page_keys
+    )
     for source_group_name in sources.keys():
-        matching_keys = [
-            key for key in page_keys.keys() if key.lower() in source_group_name.lower()
-        ]
-        if not matching_keys and source_datatype != "npz":
+        if source_group_name not in source_page_keys and source_datatype != "npz":
             raise CytoTableException(
                 f"No matching key found in page_keys for source_group_name: {source_group_name}. "
                 "Please include a pagination key based on a column name from the table. "
@@ -1451,15 +1453,9 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
                 source,
                 **{
                     "page_key": (
-                        page_key := next(
-                            (
-                                value
-                                for key, value in page_keys.items()
-                                if key.lower() in source_group_name.lower()
-                            ),
-                            # Placeholder value if no match is found
-                            # used in cases for .npz source types.
-                            "placeholder",
+                        # NPZ sources use the passthrough pagination case.
+                        page_key := source_page_keys.get(
+                            source_group_name, "placeholder"
                         )
                     ),
                     "pagesets": _get_table_keyset_pagination_sets(
@@ -1624,6 +1620,7 @@ def _run_export_workflow(  # pylint: disable=too-many-arguments, too-many-locals
                 sources=evaluated_results,
                 metadata=metadata,
                 compartments=compartments,
+                page_key=page_keys.get("join") or None,
             )
             logger.info(
                 "Inferred join SQL from source table data (base table: "
@@ -2077,7 +2074,7 @@ def convert(  # pylint: disable=too-many-arguments,too-many-locals
         # when join SQL will be inferred and no chunk size was provided,
         # use the canonical default chunk size from the presets
         if chunk_size is None and is_infer_joins_sentinel(joins):
-            chunk_size = config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"]
+            chunk_size = cast(int, config["cellprofiler_csv"]["CONFIG_CHUNK_SIZE"])
 
         # send sources to be written to parquet if selected
         output = _run_export_workflow(

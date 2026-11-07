@@ -26,7 +26,60 @@ from parsl.executors import (
 )
 from parsl.executors import ThreadPoolExecutor as ParslThreadPoolExecutor
 
+from cytotable.exceptions import CytoTableException
+
 logger = logging.getLogger(__name__)
+
+
+def _resolve_source_page_keys(
+    *, source_group_names: List[str], page_keys: Dict[str, str]
+) -> Dict[str, str]:
+    """
+    Resolve source pagination keys without overlapping-name collisions.
+
+    Exact group names or stems take precedence. A shorthand substring is
+    accepted only when it identifies one group, and the reserved join key
+    never applies to raw sources.
+
+    Args:
+        source_group_names (List[str]):
+            Names of all source groups in the export.
+        page_keys (Dict[str, str]):
+            Caller-provided or inferred pagination keys.
+
+    Returns:
+        Dict[str, str]:
+            Pagination columns keyed by resolved source group name.
+
+    Raises:
+        CytoTableException:
+            Raised when conflicting shorthand keys identify the same group.
+    """
+    stems = {name: pathlib.Path(name).stem.lower() for name in source_group_names}
+    candidates: Dict[str, List[Tuple[str, bool]]] = {}
+    for key, column in page_keys.items():
+        if key.lower() == "join":
+            continue
+        exact = [
+            name for name, stem in stems.items() if key.lower() in (stem, name.lower())
+        ]
+        matches = exact or [name for name, stem in stems.items() if key.lower() in stem]
+        if len(matches) == 1:
+            candidates.setdefault(matches[0], []).append((column, bool(exact)))
+
+    resolved = {}
+    for name, options in candidates.items():
+        columns = {column for column, exact in options if exact} or {
+            column for column, _ in options
+        }
+        if len(columns) != 1:
+            raise CytoTableException(
+                f"Ambiguous pagination keys for source group '{name}'. "
+                "Provide a pagination key using its exact group name or stem."
+            )
+        resolved[name] = next(iter(columns))
+    return resolved
+
 
 CYTOTABLE_THREAD_EXECUTOR_LABEL = "cytotable_threads"
 

@@ -147,6 +147,7 @@ def infer_join_sql(
     sources: Dict[str, List[Dict[str, Any]]],
     metadata: Optional[Sequence[str]] = None,
     compartments: Optional[Sequence[str]] = None,
+    page_key: Optional[str] = None,
 ) -> InferredJoin:
     """
     Infer DuckDB join SQL by inspecting converted source table data.
@@ -164,6 +165,8 @@ def infer_join_sql(
             Metadata source table names used to classify source groups.
         compartments (Optional[Sequence[str]]):
             Compartment source table names used to classify source groups.
+        page_key (Optional[str]):
+            Explicit join pagination key to preserve instead of inferring one.
 
     Returns:
         InferredJoin:
@@ -189,7 +192,7 @@ def infer_join_sql(
     )
     base = _select_base_table(tables=tables, edges=edges)
     steps = _build_join_tree(base=base, tables=tables, edges=edges)
-    sql, page_key = _render_join_sql(base=base, steps=steps)
+    sql, page_key = _render_join_sql(base=base, steps=steps, page_key=page_key)
     _validate_rendered_sql(base=base, steps=steps, sql=sql)
 
     return InferredJoin(
@@ -824,7 +827,9 @@ def _build_join_tree(
     return steps
 
 
-def _render_join_sql(*, base: _TableInfo, steps: List[_JoinStep]) -> Tuple[str, str]:
+def _render_join_sql(
+    *, base: _TableInfo, steps: List[_JoinStep], page_key: Optional[str] = None
+) -> Tuple[str, str]:
     """
     Render the inferred join SQL and its suggested pagination key.
 
@@ -833,6 +838,8 @@ def _render_join_sql(*, base: _TableInfo, steps: List[_JoinStep]) -> Tuple[str, 
             The base table to join from.
         steps (List[_JoinStep]):
             Ordered join steps describing each LEFT JOIN.
+        page_key (Optional[str]):
+            Explicit join pagination key, if provided by the caller.
 
     Returns:
         Tuple[str, str]:
@@ -872,25 +879,30 @@ def _render_join_sql(*, base: _TableInfo, steps: List[_JoinStep]) -> Tuple[str, 
         + "\n".join(from_parts)
     )
 
-    # prefer the object number key, but only when it is numeric
-    # (required for keyset pagination); fall back to the numeric
-    # image key otherwise
-    page_key = (
-        base.objectnumber_key
-        if base.objectnumber_key is not None
-        and base.objectnumber_key in base.numeric_columns
-        else None
-    ) or (
-        base.image_key
-        if base.image_key is not None and base.image_key in base.numeric_columns
-        else None
-    )
+    # A nullable key would lose rows or fail while building page ranges.
+    # Inspect all converted files, preserving an explicit caller override.
+    if page_key is None:
+        from cytotable.utils import (  # pylint: disable=import-outside-toplevel
+            _duckdb_reader,
+        )
+
+        with _duckdb_reader() as ddb_reader:
+            for candidate in (base.objectnumber_key, base.image_key):
+                if candidate is None or candidate not in base.numeric_columns:
+                    continue
+                has_null = ddb_reader.execute(
+                    f"SELECT 1 FROM {_paths_sql(base.paths)} "
+                    f'WHERE "{candidate}" IS NULL LIMIT 1'
+                ).fetchone()
+                if has_null is None:
+                    page_key = candidate
+                    break
     if page_key is None:
         raise CytoTableException(
             f"Unable to determine a join pagination key for base table "
-            f"'{base.alias}': no numeric object number or image number "
-            "column was detected. Please provide join SQL manually "
-            "through the 'joins' parameter."
+            f"'{base.alias}': no null-free numeric object number or image "
+            "number column was detected. Please provide a join pagination "
+            "key through 'page_keys' or join SQL through 'joins'."
         )
 
     return sql, page_key
@@ -1057,13 +1069,17 @@ def _infer_source_page_keys(
             Updated pagination keys including inferred entries.
     """
 
+    from cytotable.utils import (  # pylint: disable=import-outside-toplevel
+        _resolve_source_page_keys,
+    )
+
     updated = dict(page_keys or {})
-    # the 'join' entry is reserved for the final joined-table
-    # pagination key and never refers to a raw source group
-    explicit_keys = [key for key in updated if key.lower() != "join"]
+    resolved = _resolve_source_page_keys(
+        source_group_names=list(sources), page_keys=updated
+    )
     for group_name, source_group_vals in sources.items():
-        # skip groups already covered by an existing pagination key
-        if any(key.lower() in group_name.lower() for key in explicit_keys):
+        # skip groups already covered by an unambiguous explicit key
+        if group_name in resolved:
             continue
         # skip npz sources, which use the passthrough pagination case
         if all(
@@ -1142,6 +1158,12 @@ def _column_has_nulls(*, sources: List[Dict[str, Any]], column: str) -> bool:
         except Exception:  # pylint: disable=broad-exception-caught
             # treat an unqueryable column as unsafe rather than assuming
             # it is null-free
+            logger.warning(
+                "Could not check column '%s' for nulls in source '%s'.",
+                column,
+                source["source_path"],
+                exc_info=True,
+            )
             return True
     return False
 
