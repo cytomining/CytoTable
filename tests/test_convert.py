@@ -10,14 +10,12 @@ import importlib
 import itertools
 import os
 import pathlib
-import shutil
-import sqlite3
-from contextlib import closing
 from importlib.util import find_spec
 from shutil import copy
 from typing import Any, Dict, List, Optional, Tuple, cast
 from unittest.mock import MagicMock, Mock
 
+import anndata as ad
 import duckdb
 import pandas as pd
 import pyarrow as pa
@@ -622,28 +620,51 @@ def test_prepare_join_sql_quotes_paths(
 
 @pytest.mark.parametrize("joins", [None, "infer"])
 @pytest.mark.parametrize("directory", ["O'Brien", "both'and\"quotes"])
+@pytest.mark.parametrize("dest_datatype", ["parquet", "anndata_h5ad", "anndata_zarr"])
+@pytest.mark.usefixtures("load_parsl_default")
 def test_convert_quoted_destination(
-    load_parsl_default: None,
     tmp_path: pathlib.Path,
     data_dir_cellprofiler: str,
     joins: Optional[str],
     directory: str,
+    dest_datatype: str,
 ):
     """Manual and inferred joins retain values and pagination in quoted paths."""
     options: Dict[str, Any] = {
         "source_path": f"{data_dir_cellprofiler}/ExampleHuman",
-        "dest_datatype": "parquet",
         "source_datatype": "csv",
         "preset": "cellprofiler_csv",
         "joins": joins,
         "chunk_size": 25,
     }
     expected = parquet.read_table(
-        convert(dest_path=str(tmp_path / "expected.parquet"), **options)
+        convert(
+            dest_path=str(tmp_path / "expected.parquet"),
+            dest_datatype="parquet",
+            **options,
+        )
     )
-    actual = parquet.read_table(
-        convert(dest_path=str(tmp_path / directory / "actual.parquet"), **options)
+    suffix = {"parquet": "parquet", "anndata_h5ad": "h5ad", "anndata_zarr": "zarr"}[
+        dest_datatype
+    ]
+    result = convert(
+        dest_path=str(tmp_path / directory / f"actual.{suffix}"),
+        dest_datatype=dest_datatype,
+        **options,
     )
+    if dest_datatype == "parquet":
+        actual = parquet.read_table(result)
+    else:
+        adata = (
+            ad.read_h5ad(result)
+            if dest_datatype == "anndata_h5ad"
+            else ad.read_zarr(result)
+        )
+        actual = pa.Table.from_pandas(
+            adata.obs.join(adata.to_df()),
+            schema=expected.schema,
+            preserve_index=False,
+        )
     order = [(name, "ascending") for name in expected.column_names]
     assert actual.num_rows == expected.num_rows == 289
     assert actual.sort_by(order).equals(expected.sort_by(order))
@@ -815,6 +836,58 @@ def test_join_source_pageset(load_parsl_default: None, fx_tempdir: str):
     )
 
 
+@pytest.mark.parametrize("dest_datatype", ["anndata_h5ad", "anndata_zarr"])
+@pytest.mark.parametrize("sort_output", [False, True])
+@pytest.mark.parametrize("directory", ["O'Brien", "both'and\"quotes"])
+def test_concat_join_sources_anndata_quoted_paths(
+    load_parsl_default: None,
+    tmp_path: pathlib.Path,
+    dest_datatype: str,
+    sort_output: bool,
+    directory: str,
+):
+    """Escape every chunk path for both matrix and observation reads."""
+    chunk_paths = []
+    for index in [1, 10, 2]:
+        parent = tmp_path / ("plain" if index == 1 else directory)
+        parent.mkdir(exist_ok=True)
+        path = parent / f"chunk{index}.parquet"
+        parquet.write_table(
+            pa.table(
+                {
+                    "Cells_ObjectNumber": [index],
+                    "Cells_Feature": [index / 4],
+                    "Metadata_Label": [f"cell'{index}"],
+                }
+            ),
+            path,
+        )
+        chunk_paths.append(str(path))
+
+    suffix = "h5ad" if dest_datatype == "anndata_h5ad" else "zarr"
+    result = _concat_join_sources(
+        sources={},
+        dest_path=str(tmp_path / directory / f"result.{suffix}"),
+        join_sources=chunk_paths,
+        dest_datatype=dest_datatype,
+        sort_output=sort_output,
+    ).result()
+    adata = (
+        ad.read_h5ad(result)
+        if dest_datatype == "anndata_h5ad"
+        else ad.read_zarr(result)
+    )
+    assert adata.var_names.tolist() == ["Cells_ObjectNumber", "Cells_Feature"]
+    # DuckDB allows unordered results, independently of the chunk-path sorting.
+    assert sorted(adata.X.tolist()) == [[index, index / 4] for index in [1, 2, 10]]
+    assert adata.obs.columns.tolist() == ["Metadata_Label"]
+    assert sorted(adata.obs["Metadata_Label"].tolist()) == [
+        "cell'1",
+        "cell'10",
+        "cell'2",
+    ]
+
+
 def test_concat_join_sources(load_parsl_default: None, fx_tempdir: str):
     """
     Tests _concat_join_sources
@@ -924,43 +997,17 @@ def test_infer_source_datatype(
 
 
 def test_get_table_keyset_pagination_sets_with_wal_mode_readonly_sqlite(
-    load_parsl_default: None, fx_tempdir: str
+    load_parsl_default: None, readonly_wal_sqlite: pathlib.Path
 ):
     """
-    Tests that pagination raises SQLiteReadOnlyException for a read-only
-    WAL-mode sqlite source missing its '-wal'/'-shm' companion files.
+    Tests pagination reports a read-only WAL database without companion files.
     """
-
-    tmp_dir_path = pathlib.Path(fx_tempdir)
-
-    source_dir = tmp_dir_path / "pagination_wal_source"
-    source_dir.mkdir()
-    source_path = source_dir / "example.sqlite"
-    with closing(sqlite3.connect(source_path)) as conn:
-        with conn:
-            conn.execute("PRAGMA journal_mode=WAL;")
-            conn.execute("CREATE TABLE Image (ImageNumber INTEGER);")
-            conn.execute("INSERT INTO Image VALUES (1);")
-            conn.commit()
-
-    readonly_dir = tmp_dir_path / "pagination_readonly"
-    readonly_dir.mkdir()
-    readonly_path = readonly_dir / "example.sqlite"
-    shutil.copy(source_path, readonly_path)
-
-    os.chmod(readonly_path, 0o444)
-    os.chmod(readonly_dir, 0o555)
-
-    try:
-        with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
-            _get_table_keyset_pagination_sets(
-                chunk_size=1000,
-                page_key="ImageNumber",
-                source={"table_name": "Image", "source_path": readonly_path},
-            ).result()
-    finally:
-        os.chmod(readonly_dir, 0o755)
-        os.chmod(readonly_path, 0o644)
+    with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
+        _get_table_keyset_pagination_sets(
+            chunk_size=1000,
+            page_key="ImageNumber",
+            source={"table_name": "Image", "source_path": readonly_wal_sqlite},
+        ).result()
 
 
 def test_run_export_workflow(

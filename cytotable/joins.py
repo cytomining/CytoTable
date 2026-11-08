@@ -193,7 +193,7 @@ def infer_join_sql(
     base = _select_base_table(tables=tables, edges=edges)
     steps = _build_join_tree(base=base, tables=tables, edges=edges)
     sql, page_key = _render_join_sql(base=base, steps=steps, page_key=page_key)
-    _validate_rendered_sql(base=base, steps=steps, sql=sql)
+    _validate_rendered_sql(base=base, steps=steps, sql=sql, page_key=page_key)
 
     return InferredJoin(
         sql=sql,
@@ -879,7 +879,7 @@ def _render_join_sql(
         + "\n".join(from_parts)
     )
 
-    # A nullable key would lose rows or fail while building page ranges.
+    # Null or non-finite keys would lose rows or fail while building ranges.
     # Inspect all converted files, preserving an explicit caller override.
     if page_key is None:
         from cytotable.utils import (  # pylint: disable=import-outside-toplevel
@@ -890,22 +890,38 @@ def _render_join_sql(
             for candidate in (base.objectnumber_key, base.image_key):
                 if candidate is None or candidate not in base.numeric_columns:
                     continue
-                has_null = ddb_reader.execute(
+                invalid = ddb_reader.execute(
                     f"SELECT 1 FROM {_paths_sql(base.paths)} "
-                    f'WHERE "{candidate}" IS NULL LIMIT 1'
+                    f"WHERE {_invalid_page_key_condition(candidate)} LIMIT 1"
                 ).fetchone()
-                if has_null is None:
+                if invalid is None:
                     page_key = candidate
                     break
     if page_key is None:
         raise CytoTableException(
             f"Unable to determine a join pagination key for base table "
-            f"'{base.alias}': no null-free numeric object number or image "
+            f"'{base.alias}': no null-free, finite numeric object number or image "
             "number column was detected. Please provide a join pagination "
             "key through 'page_keys' or join SQL through 'joins'."
         )
 
     return sql, page_key
+
+
+def _invalid_page_key_condition(column: str) -> str:
+    """
+    Build the SQL predicate for unusable numeric pagination values.
+
+    Args:
+        column (str):
+            Numeric pagination column name.
+
+    Returns:
+        str:
+            A predicate matching nulls, NaN, and positive or negative infinity.
+    """
+    identifier = '"' + column.replace('"', '""') + '"'
+    return f"{identifier} IS NULL OR NOT isfinite({identifier})"
 
 
 def _sql_string_literal(value: str) -> str:
@@ -947,13 +963,13 @@ def _paths_sql(paths: Tuple[str, ...]) -> str:
 
 
 def _validate_rendered_sql(
-    *, base: _TableInfo, steps: List[_JoinStep], sql: str
+    *, base: _TableInfo, steps: List[_JoinStep], sql: str, page_key: str
 ) -> None:
     """
     Validate the rendered SQL by binding and counting joined rows.
 
-    Substitute real paths, bind without materializing rows, and compare
-    joined and base row counts to warn about fan-out.
+    Substitute real paths, bind without materializing rows, validate pagination
+    values in the joined result, and compare row counts to warn about fan-out.
 
     Args:
         base (_TableInfo):
@@ -962,12 +978,14 @@ def _validate_rendered_sql(
             Ordered join steps of the join.
         sql (str):
             The rendered SQL with parquet read placeholders.
+        page_key (str):
+            Explicit or inferred pagination column in the joined result.
 
     Raises:
         CytoTableException:
             Raised when the SQL fails to bind or execute against the
-            data, or when the joined result has fewer rows than the base
-            table (which left joins cannot produce).
+            data, when pagination values are null or non-finite, or when the
+            joined result has fewer rows than the base table.
     """
 
     from cytotable.utils import (  # pylint: disable=import-outside-toplevel
@@ -991,10 +1009,10 @@ def _validate_rendered_sql(
                 ).fetchone()
                 or (0,)
             )[0]
-            joined_rows = (
-                ddb_reader.execute(f"SELECT COUNT(*) FROM ({rendered})").fetchone()
-                or (0,)
-            )[0]
+            joined_rows, invalid_keys = ddb_reader.execute(
+                "SELECT COUNT(*), COUNT(*) FILTER (WHERE "
+                f"{_invalid_page_key_condition(page_key)}) FROM ({rendered})"
+            ).fetchone() or (0, 0)
         except Exception as e:  # pylint: disable=broad-exception-caught
             raise CytoTableException(
                 "Inferred join SQL failed validation against the source "
@@ -1002,6 +1020,12 @@ def _validate_rendered_sql(
                 "the 'joins' parameter."
             ) from e
 
+    if invalid_keys:
+        raise CytoTableException(
+            f"Join pagination key '{page_key}' must contain only non-null, "
+            "finite numeric values in the joined result. Choose another "
+            "column through 'page_keys'."
+        )
     if joined_rows < base_rows:
         raise CytoTableException(
             f"Inferred join produced {joined_rows} rows from a base table "
@@ -1052,7 +1076,7 @@ def _infer_source_page_keys(
     Infer pagination keys for source table groups which lack one.
 
     Preserve explicit keys. For each remaining group, select a key
-    which is numeric and free of null values across every source file
+    which is numeric, finite, and free of null values across every source file
     in the group, preferring object, image, and table numbers, then
     any other common numeric column.
 
@@ -1125,19 +1149,19 @@ def _raw_source_select_sql(source: Dict[str, Any]) -> str:
     )
 
 
-def _column_has_nulls(*, sources: List[Dict[str, Any]], column: str) -> bool:
+def _column_has_invalid_values(*, sources: List[Dict[str, Any]], column: str) -> bool:
     """
-    Check whether a column contains null values in any of the sources.
+    Check whether a pagination column contains null or non-finite values.
 
     Args:
         sources (List[Dict[str, Any]]):
             Raw source table entries to check.
         column (str):
-            The column name to check for null values.
+            The numeric column name to validate for pagination.
 
     Returns:
         bool:
-            True if the column contains a null value in any source,
+            True if the column contains a null or non-finite value in any source,
             or if the column could not be queried (treated as unsafe
             to use for pagination rather than silently dropping rows).
     """
@@ -1149,7 +1173,7 @@ def _column_has_nulls(*, sources: List[Dict[str, Any]], column: str) -> bool:
     for source in sources:
         query = (
             f"SELECT 1 FROM {_raw_source_select_sql(source)} "
-            f'WHERE "{column}" IS NULL LIMIT 1'
+            f"WHERE {_invalid_page_key_condition(column)} LIMIT 1"
         )
         try:
             with _duckdb_reader() as ddb_reader:
@@ -1159,7 +1183,7 @@ def _column_has_nulls(*, sources: List[Dict[str, Any]], column: str) -> bool:
             # treat an unqueryable column as unsafe rather than assuming
             # it is null-free
             logger.warning(
-                "Could not check column '%s' for nulls in source '%s'.",
+                "Could not validate pagination column '%s' in source '%s'.",
                 column,
                 source["source_path"],
                 exc_info=True,
@@ -1175,9 +1199,9 @@ def _detect_source_page_key(
     compartments: Optional[Sequence[str]] = None,
 ) -> str:
     """
-    Detect a numeric, null-free pagination key column for a source group.
+    Detect a finite, numeric, null-free pagination key for a source group.
 
-    The key must be present, numeric, and free of null values in
+    The key must be present, numeric, finite, and free of null values in
     every source file within the group: keyset pagination filters rows
     with ``WHERE page_key BETWEEN ...``, which silently excludes rows
     with a null key, and a column present in only some files would
@@ -1198,7 +1222,7 @@ def _detect_source_page_key(
 
     Raises:
         CytoTableException:
-            Raised when no numeric, null-free pagination key column
+            Raised when no finite, numeric, null-free pagination key column
             common to every source file can be detected for the group.
     """
 
@@ -1281,7 +1305,7 @@ def _detect_source_page_key(
         if page_key is None:
             continue
         tried.append(page_key)
-        if not _column_has_nulls(sources=sources, column=page_key):
+        if not _column_has_invalid_values(sources=sources, column=page_key):
             return page_key
 
     # fall back to any other common numeric column
@@ -1290,12 +1314,12 @@ def _detect_source_page_key(
         if page_key in tried:
             continue
         tried.append(page_key)
-        if not _column_has_nulls(sources=sources, column=page_key):
+        if not _column_has_invalid_values(sources=sources, column=page_key):
             return page_key
 
     raise CytoTableException(
         f"Unable to infer a pagination key for source group "
-        f"'{group_name}': no numeric column free of null values and "
+        f"'{group_name}': no finite numeric column free of null values and "
         "common to every source file in the group was detected "
         f"(considered: {', '.join(tried) if tried else 'none'}). Please "
         "provide pagination keys through the 'page_keys' parameter."

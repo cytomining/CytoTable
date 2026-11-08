@@ -9,6 +9,7 @@ through the load_parsl_default fixture.
 
 import pathlib
 from importlib.util import find_spec
+from typing import Optional
 
 import pandas as pd
 import pyarrow as pa
@@ -20,7 +21,7 @@ from cytotable.exceptions import CytoTableException
 from cytotable.joins import (
     INFER_JOINS_SENTINEL,
     _collect_tables,
-    _column_has_nulls,
+    _column_has_invalid_values,
     _default_identifying_columns,
     _find_reference_edges,
     _infer_source_page_keys,
@@ -536,6 +537,115 @@ def test_convert_join_sql_inference_raises_with_manual_override(
     assert "Cells_AreaShape_Area" not in manual_result.column_names
 
 
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan")])
+def test_join_page_key_skips_nonfinite_object_numbers(
+    tmp_path: pathlib.Path, value: float
+):
+    """Prefer a finite image key over an object key containing NaN or infinity."""
+    path = tmp_path / "cells.parquet"
+    parquet.write_table(
+        pa.table({"ImageNumber": [1, 2], "ObjectNumber": [1.0, value]}), path
+    )
+    inferred = infer_join_sql(sources={"cells.parquet": [{"table": [path]}]})
+    assert inferred.page_key == "ImageNumber"
+
+
+def test_join_page_key_requires_finite_key(tmp_path: pathlib.Path):
+    """Fail clearly when neither recognized base key has usable numeric values."""
+    path = tmp_path / "cells.parquet"
+    parquet.write_table(
+        pa.table({"ImageNumber": [float("nan")], "ObjectNumber": [float("inf")]}),
+        path,
+    )
+    with pytest.raises(CytoTableException, match="no null-free, finite numeric"):
+        infer_join_sql(sources={"cells.parquet": [{"table": [path]}]})
+
+
+@pytest.mark.parametrize("value", [None, float("inf"), float("-inf"), float("nan")])
+def test_explicit_join_page_key_rejects_invalid_values(
+    tmp_path: pathlib.Path, value: Optional[float]
+):
+    """An explicit key is preserved only when all joined values are usable."""
+    path = tmp_path / "cells.parquet"
+    parquet.write_table(
+        pa.table(
+            {
+                "ImageNumber": [1, 2],
+                "ObjectNumber": [1, 2],
+                "PageIndex": pa.array([1.0, value], type=pa.float64()),
+            }
+        ),
+        path,
+    )
+    with pytest.raises(CytoTableException, match="pagination key"):
+        infer_join_sql(
+            sources={"cells.parquet": [{"table": [path]}]}, page_key="PageIndex"
+        )
+
+
+@pytest.mark.parametrize("value", [float("inf"), float("-inf"), float("nan")])
+def test_convert_inferred_page_keys_skip_nonfinite_values(
+    load_parsl_default: None, tmp_path: pathlib.Path, value: float
+):
+    """Source and joined pagination both retain rows using a finite image key."""
+    source = tmp_path / "Cells.csv"
+    source.write_text(f"ImageNumber,ObjectNumber\n1,1\n2,{value}\n", encoding="utf-8")
+    result = parquet.read_table(
+        convert(
+            source_path=str(source),
+            dest_path=str(tmp_path / "joined.parquet"),
+            source_datatype="csv",
+            preset=None,
+            joins="infer",
+            metadata=[],
+            compartments=["cells"],
+            chunk_size=1,
+            add_tablenumber=False,
+        )
+    )
+    image_key = next(
+        name for name in result.column_names if name.endswith("ImageNumber")
+    )
+    assert sorted(result[image_key].to_pylist()) == [1, 2]
+    assert result.num_rows == 2
+
+
+@pytest.mark.parametrize("matched", [True, False])
+def test_convert_explicit_parent_page_key(
+    load_parsl_default: None, tmp_path: pathlib.Path, matched: bool
+):
+    """Check the explicit parent key after joining, including unmatched rows."""
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "Cells.csv").write_text(
+        "ImageNumber,ObjectNumber,PageID\n1,1,10\n1,2,20\n", encoding="utf-8"
+    )
+    (source / "Cytoplasm.csv").write_text(
+        "ImageNumber,ObjectNumber,Parent_Cells\n1,1,1\n" f"1,2,{2 if matched else 0}\n",
+        encoding="utf-8",
+    )
+    options: dict = {
+        "source_path": str(source),
+        "dest_path": str(tmp_path / "joined.parquet"),
+        "source_datatype": "csv",
+        "preset": None,
+        "joins": "infer",
+        "metadata": [],
+        "compartments": ["cells", "cytoplasm"],
+        "page_keys": {"join": "Cells_PageID"},
+        "chunk_size": 1,
+        "add_tablenumber": False,
+        "drop_null": False,
+    }
+    if not matched:
+        with pytest.raises(CytoTableException, match="pagination key.*non-null"):
+            convert(**options)
+    else:
+        result = parquet.read_table(convert(**options))
+        assert sorted(result["Cells_PageID"].to_pylist()) == [10, 20]
+        assert result.num_rows == 2
+
+
 def test_join_page_key_is_null_free_across_files(tmp_path: pathlib.Path):
     """Reject a numeric object key with nulls in a later parquet file."""
     paths = []
@@ -604,7 +714,9 @@ def test_null_check_logs_query_failure(
     """Unsafe candidates include the original query failure in the warning."""
     source = tmp_path / "Cells.csv"
     source.write_text("ObjectNumber\n1\n", encoding="utf-8")
-    assert _column_has_nulls(sources=[{"source_path": source}], column="missing")
+    assert _column_has_invalid_values(
+        sources=[{"source_path": source}], column="missing"
+    )
     warnings = [record for record in caplog.records if record.levelname == "WARNING"]
     assert any(
         "missing" in record.getMessage()

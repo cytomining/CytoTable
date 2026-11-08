@@ -1131,6 +1131,7 @@ def _concat_join_sources(
         CYTOTABLE_ARROW_USE_MEMORY_MAPPING,
         CYTOTABLE_DEFAULT_PARQUET_METADATA,
     )
+    from cytotable.joins import _sql_string_literal
     from cytotable.utils import (
         _duckdb_reader,
         _natural_sort,
@@ -1180,14 +1181,13 @@ def _concat_join_sources(
         # (anndata is not compatible with arrow directly,
         # see: https://github.com/scverse/anndata/issues/2078)
         with _duckdb_reader() as ddb_reader:
-            all_files = (
-                "'"
-                + "','".join(
+            all_files = ",".join(
+                _sql_string_literal(table_path)
+                for table_path in (
                     join_sources
                     if not sort_output
                     else _natural_sort(list_to_sort=join_sources)
                 )
-                + "'"
             )
             df_numeric = ddb_reader.execute(f"""
                 SELECT {",".join(numeric_colnames)}

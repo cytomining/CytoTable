@@ -8,6 +8,7 @@ import pathlib
 import shutil
 import sqlite3
 import tempfile
+from contextlib import closing
 from typing import Any, Dict, Generator, List, Tuple
 
 import duckdb
@@ -76,6 +77,33 @@ def fixture_load_parsl_default(clear_parsl_config: None) -> None:
             run_dir=tempfile.mkdtemp(prefix="cytotable-parsl-default-"),
         )
     )
+
+
+@pytest.fixture(name="readonly_wal_sqlite")
+def fixture_readonly_wal_sqlite(
+    tmp_path: pathlib.Path,
+) -> Generator[pathlib.Path, None, None]:
+    """Provide a read-only WAL database copied without its companion files."""
+    source_dir = tmp_path / "wal_source"
+    source_dir.mkdir()
+    source_path = source_dir / "example.sqlite"
+    with closing(sqlite3.connect(source_path)) as connection:
+        connection.execute("PRAGMA journal_mode=WAL;")
+        connection.execute("CREATE TABLE Image (ImageNumber INTEGER);")
+        connection.execute("INSERT INTO Image VALUES (1);")
+        connection.commit()
+
+    readonly_dir = tmp_path / "readonly"
+    readonly_dir.mkdir()
+    readonly_path = readonly_dir / source_path.name
+    shutil.copy(source_path, readonly_path)
+    readonly_path.chmod(0o444)
+    readonly_dir.chmod(0o555)
+    try:
+        yield readonly_path
+    finally:
+        readonly_dir.chmod(0o755)
+        readonly_path.chmod(0o644)
 
 
 # note: we use name here to avoid pylint flagging W0621
