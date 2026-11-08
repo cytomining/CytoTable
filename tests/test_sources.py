@@ -73,14 +73,21 @@ def test_get_source_filepaths_with_npz():
         )
 
 
+def test_readonly_wal_fixture_skips_root(
+    tmp_path: pathlib.Path,
+    monkeypatch: pytest.MonkeyPatch,
+    request: pytest.FixtureRequest,
+):
+    """Skip permission-dependent fixture setup before creating files under root."""
+    monkeypatch.setattr(os, "geteuid", lambda: 0, raising=False)
+    with pytest.raises(pytest.skip.Exception, match="root bypasses"):
+        request.getfixturevalue("readonly_wal_sqlite")
+    assert not (tmp_path / "wal_source").exists()
+
+
 def test_get_source_filepaths_with_wal_mode_readonly_sqlite(
     readonly_wal_sqlite: pathlib.Path,
 ):
     """Report a read-only WAL database copied without companion files."""
-    if hasattr(os, "geteuid") and os.geteuid() == 0:
-        pytest.skip(
-            "root bypasses file permission bits, so the read-only fixture "
-            "would not reproduce the target error."
-        )
     with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
         _get_source_filepaths(path=readonly_wal_sqlite.parent, targets=["image"])

@@ -4,6 +4,7 @@ conftest.py for pytest
 
 # pylint: disable=line-too-long,unused-argument
 
+import os
 import pathlib
 import shutil
 import sqlite3
@@ -84,6 +85,8 @@ def fixture_readonly_wal_sqlite(
     tmp_path: pathlib.Path,
 ) -> Generator[pathlib.Path, None, None]:
     """Provide a read-only WAL database copied without its companion files."""
+    if hasattr(os, "geteuid") and os.geteuid() == 0:
+        pytest.skip("root bypasses file permission bits")
     source_dir = tmp_path / "wal_source"
     source_dir.mkdir()
     source_path = source_dir / "example.sqlite"

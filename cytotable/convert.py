@@ -1189,14 +1189,12 @@ def _concat_join_sources(
                     else _natural_sort(list_to_sort=join_sources)
                 )
             )
-            df_numeric = ddb_reader.execute(f"""
-                SELECT {",".join(numeric_colnames)}
-                FROM read_parquet([{all_files}])
-                """).df()
-            df_nonnumeric = ddb_reader.execute(f"""
-                SELECT {",".join(nonnumeric_colnames)}
-                FROM read_parquet([{all_files}])
-                """).df()
+            # Read once so matrix rows and observation labels stay paired.
+            joined_data = ddb_reader.execute(
+                f"SELECT * FROM read_parquet([{all_files}])"
+            ).df()
+            df_numeric = joined_data[numeric_colnames]
+            df_nonnumeric = joined_data[nonnumeric_colnames]
 
         # create the anndata object with numeric features
         adata = ad.AnnData(X=df_numeric)

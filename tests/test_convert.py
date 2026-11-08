@@ -878,13 +878,10 @@ def test_concat_join_sources_anndata_quoted_paths(
         else ad.read_zarr(result)
     )
     assert adata.var_names.tolist() == ["Cells_ObjectNumber", "Cells_Feature"]
-    # DuckDB allows unordered results, independently of the chunk-path sorting.
-    assert sorted(adata.X.tolist()) == [[index, index / 4] for index in [1, 2, 10]]
     assert adata.obs.columns.tolist() == ["Metadata_Label"]
-    assert sorted(adata.obs["Metadata_Label"].tolist()) == [
-        "cell'1",
-        "cell'10",
-        "cell'2",
+    # Check each matrix row with its label, regardless of output row order.
+    assert sorted(zip(adata.X.tolist(), adata.obs["Metadata_Label"].tolist())) == [
+        ([index, index / 4], f"cell'{index}") for index in [1, 2, 10]
     ]
 
 
