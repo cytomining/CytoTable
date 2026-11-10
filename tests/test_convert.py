@@ -10,6 +10,8 @@ import importlib
 import itertools
 import os
 import pathlib
+import sqlite3
+from contextlib import closing
 from importlib.util import find_spec
 from shutil import copy
 from typing import Any, Dict, List, Optional, Tuple, cast
@@ -29,6 +31,7 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
+    _get_table_columns_and_types,
     _get_table_keyset_pagination_sets,
     _infer_source_group_common_schema,
     _join_source_pageset,
@@ -1592,6 +1595,125 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
         cytotable_table.cast(target_schema=pycytominer_table.schema).schema
     )
     assert pycytominer_table.shape == cytotable_table.shape
+
+
+def test_sqlite_mixed_type_schema_without_page_keys(
+    load_parsl_default: None, data_dir_cytominerdatabase: str
+):
+    """Inspect real mixed-type CellProfiler data before pagination is configured."""
+    source = {
+        "source_path": pathlib.Path(data_dir_cytominerdatabase)
+        / "Cell-Health"
+        / "test-SQ00014613.sqlite",
+        "table_name": "Nuclei",
+    }
+    result = _get_table_columns_and_types(source=source, sort_output=True).result()
+    columns = {
+        column["column_name"]: column["column_dtype"]
+        for column in result
+        if column is not None
+    }
+    assert columns["ObjectNumber"] == "BIGINT"
+    assert columns["Nuclei_Correlation_Costes_AGP_DNA"] == "DOUBLE"
+    assert "page_key" not in source and "pagesets" not in source
+
+
+def test_sqlite_mixed_type_schema_sample_is_bounded(
+    example_sqlite_mixed_types_database: str,
+):
+    """A schema sample needs neither a page key nor an unbounded table read."""
+    sample = _sqlite_mixed_type_query_to_parquet(
+        source_path=example_sqlite_mixed_types_database,
+        table_name="tbl_a",
+        page_key=None,
+        pageset=None,
+        sort_output=True,
+        limit=1,
+    )
+    assert sample.to_pydict() == {
+        "col_integer": [1],
+        "col_text": ["sample"],
+        "col_blob": [b"sample_blob"],
+        "col_real": [0.5],
+    }
+
+
+def test_sqlite_mixed_type_pagination_requires_key(tmp_path: pathlib.Path):
+    """Do not silently drop a requested pagination range when its key is absent."""
+    source = tmp_path / "missing.sqlite"
+    with pytest.raises(ValueError, match="page key"):
+        _sqlite_mixed_type_query_to_parquet(
+            source_path=str(source),
+            table_name="Cells",
+            page_key=None,
+            pageset=(1, 2),
+            sort_output=False,
+        )
+    assert not source.exists()
+
+
+@pytest.mark.parametrize("floating_integer", [False, True])
+def test_convert_inferred_joins_mixed_type_sqlite(
+    load_parsl_default: None,
+    tmp_path: pathlib.Path,
+    data_dir_cytominerdatabase: str,
+    floating_integer: bool,
+):
+    """Infer real CellProfiler joins despite text NaNs and a float in an int field."""
+    source = tmp_path / "mixed.sqlite"
+    copy(f"{data_dir_cytominerdatabase}/Cell-Health/test-SQ00014613.sqlite", source)
+    with closing(sqlite3.connect(source)) as connection:
+        if floating_integer:
+            connection.execute(
+                "UPDATE Cells SET Cells_AreaShape_Area = 10.5 "
+                "WHERE rowid = (SELECT rowid FROM Cells LIMIT 1)"
+            )
+            connection.commit()
+        # Independent joins and storage-class checks mirror the existing
+        # mixed-type policy: mismatched feature values become null, not rows.
+        expected = connection.execute("""
+            SELECT cytoplasm.TableNumber, cytoplasm.ImageNumber,
+                   cytoplasm.ObjectNumber,
+                   CASE WHEN typeof(cells.Cells_AreaShape_Area) = 'integer'
+                        THEN cells.Cells_AreaShape_Area END,
+                   CASE WHEN typeof(nuclei.Nuclei_Correlation_Costes_AGP_DNA) = 'real'
+                        THEN nuclei.Nuclei_Correlation_Costes_AGP_DNA END
+            FROM Cytoplasm AS cytoplasm
+            LEFT JOIN Cells AS cells
+              ON cells.TableNumber = cytoplasm.TableNumber
+             AND cells.ImageNumber = cytoplasm.ImageNumber
+             AND cells.ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN Nuclei AS nuclei
+              ON nuclei.TableNumber = cytoplasm.TableNumber
+             AND nuclei.ImageNumber = cytoplasm.ImageNumber
+             AND nuclei.ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
+            """).fetchall()
+    result = parquet.read_table(
+        convert(
+            source_path=str(source),
+            dest_path=str(tmp_path / "joined.parquet"),
+            source_datatype="sqlite",
+            preset=None,
+            joins="infer",
+            metadata=["image"],
+            compartments=["cells", "nuclei", "cytoplasm"],
+            chunk_size=1,
+            add_tablenumber=False,
+        )
+    )
+    columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Cells_AreaShape_Area",
+        "Nuclei_Correlation_Costes_AGP_DNA",
+    ]
+    actual = [
+        tuple(row[name] for name in columns)
+        for row in result.select(columns).to_pylist()
+    ]
+    assert len(actual) == len(expected) == 12
+    assert sorted(actual) == sorted(expected)
 
 
 def test_sqlite_mixed_type_query_to_parquet(

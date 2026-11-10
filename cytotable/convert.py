@@ -128,9 +128,11 @@ def _get_table_columns_and_types(
             arrow_data_tbl = _sqlite_mixed_type_query_to_parquet(
                 source_path=str(source["source_path"]),
                 table_name=str(source["table_name"]),
-                page_key=source["page_key"],
-                pageset=source["pagesets"][0],
+                # Schema discovery can run before pagination is inferred.
+                page_key=None,
+                pageset=None,
                 sort_output=sort_output,
+                limit=5,
             )
             with _duckdb_reader() as ddb_reader:
                 return (

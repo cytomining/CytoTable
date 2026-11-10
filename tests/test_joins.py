@@ -185,6 +185,85 @@ def test_validate_edges_logs_match_rates(
     assert bool(warnings) == (0 < matched_rows < child_rows / 2)
 
 
+@pytest.mark.parametrize("preserve_metadata", [False, True])
+def test_convert_join_sql_inference_metadata_names(
+    load_parsl_default: None, tmp_path: pathlib.Path, preserve_metadata: bool
+):
+    """Keep default prefixes or preserve raw metadata with explicit identifiers."""
+    source = tmp_path / "source"
+    source.mkdir()
+    metadata_values = {
+        "Metadata_Plate": ["plate-A", "plate-B"],
+        "Metadata_Row": ["A", "B"],
+        "Metadata_Column": [1, 2],
+        "Metadata_Well": ["A01", "B02"],
+        "Metadata_Site": [1, 2],
+    }
+    keys = {"TableNumber": [7, 7], "ImageNumber": [1, 2]}
+    tables = {
+        "Image": {
+            **keys,
+            **metadata_values,
+            "Image_Metadata_Batch": ["batch-A", "batch-B"],
+        },
+        "Cells": {**keys, "ObjectNumber": [11, 22], "AreaShape_Area": [1.5, 2.5]},
+        "Nuclei": {**keys, "ObjectNumber": [31, 42]},
+        "Cytoplasm": {
+            **keys,
+            "ObjectNumber": [101, 202],
+            "Parent_Cells": [11, 22],
+            "Parent_Nuclei": [31, 42],
+        },
+    }
+    for name, columns in tables.items():
+        pd.DataFrame(columns).to_csv(source / f"{name}.csv", index=False)
+
+    options: dict = {}
+    if preserve_metadata:
+        # Explicit identifiers replace, rather than extend, inference defaults.
+        options["identifying_columns"] = [
+            "ImageNumber",
+            "ObjectNumber",
+            "TableNumber",
+            "Parent_Cells",
+            "Parent_Nuclei",
+            "Parent_Cytoplasm",
+            *metadata_values,
+        ]
+    result = parquet.read_table(
+        convert(
+            source_path=str(source),
+            dest_path=str(tmp_path / "joined.parquet"),
+            source_datatype="csv",
+            dest_datatype="parquet",
+            preset=None,
+            joins="infer",
+            metadata=["image"],
+            compartments=["cells", "nuclei", "cytoplasm"],
+            add_tablenumber=False,
+            chunk_size=1,
+            **options,
+        )
+    ).sort_by([("Metadata_ImageNumber", "ascending")])
+
+    assert result.num_rows == 2
+    for name, values in metadata_values.items():
+        output_name = name if preserve_metadata else f"Image_{name}"
+        other_name = f"Image_{name}" if preserve_metadata else name
+        assert result[output_name].to_pylist() == values
+        assert other_name not in result.column_names
+    assert result["Image_Metadata_Batch"].to_pylist() == ["batch-A", "batch-B"]
+    assert "Image_Image_Metadata_Batch" not in result.column_names
+    assert "Metadata_Batch" not in result.column_names
+    assert "Metadata_Image_Metadata_Batch" not in result.column_names
+    assert result["Metadata_TableNumber"].to_pylist() == [7, 7]
+    assert result["Metadata_ImageNumber"].to_pylist() == [1, 2]
+    assert result["Metadata_ObjectNumber"].to_pylist() == [101, 202]
+    assert result["Metadata_Cytoplasm_Parent_Cells"].to_pylist() == [11, 22]
+    assert result["Metadata_Cytoplasm_Parent_Nuclei"].to_pylist() == [31, 42]
+    assert result["Cells_AreaShape_Area"].to_pylist() == [1.5, 2.5]
+
+
 def test_convert_join_sql_inference_matches_preset_cellprofiler_csv(
     load_parsl_default: None,
     fx_tempdir: str,
