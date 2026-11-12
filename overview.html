@@ -686,8 +686,71 @@ columns while another wants all image columns (<code class="docutils literal not
 missing image-level fields or includes more columns than you want, pass a custom
 <code class="docutils literal notranslate"><span class="pre">joins=</span></code> SQL string to <a class="reference internal" href="python-api.html#cytotable.convert.convert" title="cytotable.convert.convert"><code class="xref py py-func docutils literal notranslate"><span class="pre">cytotable.convert.convert()</span></code></a> and edit the <code class="docutils literal notranslate"><span class="pre">SELECT</span></code>
 list directly (<a class="reference internal" href="tutorials/cellprofiler_to_parquet.html#step-2-run-the-conversion-minimal-python"><span class="std std-ref">example</span></a>).</p>
+<p>Alternatively, CytoTable can generate the join SQL automatically by inspecting the
+source table schemas and data: set <code class="code docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">joins=&quot;infer&quot;,</span> <span class="pre">...)</span></code> to have
+CytoTable infer the join relationships (shared image and table number keys,
+compartment object numbers, and parent references), validate them against the
+actual data, and render the join SQL for you. Inference also determines the
+pagination keys and default identifying columns, so a conversion may run without a
+preset:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cytotable</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+
+<span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">"./data"</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">"csv"</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">"profiles.parquet"</span><span class="p">,</span>
+    <span class="n">joins</span><span class="o">=</span><span class="s2">"infer"</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">[</span><span class="s2">"image"</span><span class="p">],</span>
+    <span class="n">compartments</span><span class="o">=</span><span class="p">[</span><span class="s2">"cells"</span><span class="p">,</span> <span class="s2">"nuclei"</span><span class="p">,</span> <span class="s2">"cytoplasm"</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Manually provided <cite>joins=</cite> SQL always takes precedence over inference. If no
+defensible join can be inferred for the data, CytoTable raises an exception which
+suggests providing the join SQL manually instead of guessing.</p>
+<section id="metadata-column-names-with-inferred-joins">
+<h4>Metadata column names with inferred joins<a class="headerlink" href="#metadata-column-names-with-inferred-joins" title="Link to this heading">¶</a></h4>
+<p>Join inference keeps the existing column-naming rules: image fields such as
+<code class="docutils literal notranslate"><span class="pre">Metadata_Plate</span></code> and <code class="docutils literal notranslate"><span class="pre">Metadata_Row</span></code> become <code class="docutils literal notranslate"><span class="pre">Image_Metadata_Plate</span></code> and
+<code class="docutils literal notranslate"><span class="pre">Image_Metadata_Row</span></code> by default. If a downstream workflow (for example, coSMicQC
+or pycytominer) expects the raw <code class="docutils literal notranslate"><span class="pre">Metadata_*</span></code> names, list those source columns in
+<code class="docutils literal notranslate"><span class="pre">identifying_columns</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cytotable</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert</span>
+
+<span class="n">convert</span><span class="p">(</span>
+    <span class="n">source_path</span><span class="o">=</span><span class="s2">"./data"</span><span class="p">,</span>
+    <span class="n">source_datatype</span><span class="o">=</span><span class="s2">"csv"</span><span class="p">,</span>
+    <span class="n">dest_path</span><span class="o">=</span><span class="s2">"profiles.parquet"</span><span class="p">,</span>
+    <span class="n">preset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">joins</span><span class="o">=</span><span class="s2">"infer"</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="o">=</span><span class="p">[</span><span class="s2">"image"</span><span class="p">],</span>
+    <span class="n">compartments</span><span class="o">=</span><span class="p">[</span><span class="s2">"cells"</span><span class="p">,</span> <span class="s2">"nuclei"</span><span class="p">,</span> <span class="s2">"cytoplasm"</span><span class="p">],</span>
+    <span class="n">identifying_columns</span><span class="o">=</span><span class="p">[</span>
+        <span class="s2">"ImageNumber"</span><span class="p">,</span>
+        <span class="s2">"ObjectNumber"</span><span class="p">,</span>
+        <span class="s2">"TableNumber"</span><span class="p">,</span>
+        <span class="s2">"Parent_Cells"</span><span class="p">,</span>
+        <span class="s2">"Parent_Nuclei"</span><span class="p">,</span>
+        <span class="s2">"Parent_Cytoplasm"</span><span class="p">,</span>
+        <span class="s2">"Metadata_Plate"</span><span class="p">,</span>
+        <span class="s2">"Metadata_Row"</span><span class="p">,</span>
+        <span class="s2">"Metadata_Column"</span><span class="p">,</span>
+        <span class="s2">"Metadata_Well"</span><span class="p">,</span>
+        <span class="s2">"Metadata_Site"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>An explicit <code class="docutils literal notranslate"><span class="pre">identifying_columns</span></code> list replaces the defaults; retain the image,
+object, table, and parent-reference columns needed by your data, and adjust the
+metadata names to match the source. The listed raw <code class="docutils literal notranslate"><span class="pre">Metadata_*</span></code> columns keep
+their names and values. Source columns already named <code class="docutils literal notranslate"><span class="pre">Image_Metadata_*</span></code> are not
+automatically stripped to <code class="docutils literal notranslate"><span class="pre">Metadata_*</span></code>; leave them out of this preservation list
+and check the output schema before explicitly renaming them downstream. Check
+for an existing target column before renaming to avoid collisions.</p>
 <p>Note: data software outside of CytoTable sometimes makes use of the term “merge” to describe capabilities which are similar to join (for ex. <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.merge.html"><code class="docutils literal notranslate"><span class="pre">pandas.DataFrame.merge</span></code></a>.
 Within CytoTable, we opt to describe these operations with “join” to avoid confusion with software development alongside the technologies used (for example, <a class="reference external" href="https://duckdb.org/docs/archive/0.9.2/sql/introduction">DuckDB SQL</a> includes no <code class="docutils literal notranslate"><span class="pre">MERGE</span></code> keyword).</p>
+</section>
 </section>
 </section>
 <section id="pagination">

@@ -426,6 +426,8 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._build_file_index">_build_file_index() (in module cytotable.warehouse.images)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._build_join_tree">_build_join_tree() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.sources._build_path">_build_path() (in module cytotable.sources)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._build_stable_image_crop_id">_build_stable_image_crop_id() (in module cytotable.warehouse.images)</a>
@@ -436,9 +438,15 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.utils._cache_cloudpath_to_local">_cache_cloudpath_to_local() (in module cytotable.utils)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._classify_group">_classify_group() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.warehouse.images._collect_crop_rows">_collect_crop_rows() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._collect_source_rows">_collect_source_rows() (in module cytotable.warehouse.images)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._collect_tables">_collect_tables() (in module cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._column_has_invalid_values">_column_has_invalid_values() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._column_sort">_column_sort() (in module cytotable.utils)</a>
 </li>
@@ -454,9 +462,19 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._dedup_table_by_first_occurrence">_dedup_table_by_first_occurrence() (in module cytotable.warehouse.images)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._default_identifying_columns">_default_identifying_columns() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.utils._default_parsl_config">_default_parsl_config() (in module cytotable.utils)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._detect_key_columns">_detect_key_columns() (in module cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._detect_source_page_key">_detect_source_page_key() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.utils._duckdb_reader">_duckdb_reader() (in module cytotable.utils)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._Edge">_Edge (class in cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._edge_conditions">_edge_conditions() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._ensure_thread_executor">_ensure_thread_executor() (in module cytotable.utils)</a>
 </li>
@@ -478,6 +496,10 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._find_matching_segmentation_path">_find_matching_segmentation_path() (in module cytotable.warehouse.images)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._find_reference_edges">_find_reference_edges() (in module cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._find_referenced_table">_find_referenced_table() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.sources._gather_sources">_gather_sources() (in module cytotable.sources)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._gather_tablenumber_checksum">_gather_tablenumber_checksum() (in module cytotable.utils)</a>
@@ -494,25 +516,37 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.utils._glob_follow_symlinks">_glob_follow_symlinks() (in module cytotable.utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="python-api.html#cytotable.utils._glob_pattern_matches">_glob_pattern_matches() (in module cytotable.utils)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._image_crop_table_parallel">_image_crop_table_parallel() (in module cytotable.warehouse.images)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="python-api.html#cytotable.sources._infer_source_datatype">_infer_source_datatype() (in module cytotable.sources)</a>
 </li>
       <li><a href="python-api.html#cytotable.convert._infer_source_group_common_schema">_infer_source_group_common_schema() (in module cytotable.convert)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._infer_source_page_keys">_infer_source_page_keys() (in module cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._invalid_page_key_condition">_invalid_page_key_condition() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.convert._join_source_pageset">_join_source_pageset() (in module cytotable.convert)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._JoinStep">_JoinStep (class in cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.warehouse.images._local_image_io_path">_local_image_io_path() (in module cytotable.warehouse.images)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._measure_edge_match">_measure_edge_match() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._natural_sort">_natural_sort() (in module cytotable.utils)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._normalize_file_value">_normalize_file_value() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._parsl_loaded">_parsl_loaded() (in module cytotable.utils)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._paths_sql">_paths_sql() (in module cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._pick_column">_pick_column() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.convert._prep_cast_column_data_types">_prep_cast_column_data_types() (in module cytotable.convert)</a>
 </li>
@@ -522,6 +556,8 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.utils._raise_if_sqlite_readonly_error">_raise_if_sqlite_readonly_error() (in module cytotable.utils)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._raw_source_select_sql">_raw_source_select_sql() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.warehouse.images._read_ome_arrow">_read_ome_arrow() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.iceberg.TinyCatalog._read_registry">_read_registry() (cytotable.warehouse.iceberg.TinyCatalog method)</a>
@@ -529,6 +565,8 @@ window.runMermaid = runMermaid;</script>
       <li><a href="python-api.html#cytotable.warehouse.images._relative_index_key">_relative_index_key() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._remove_empty_dirs">_remove_empty_dirs() (in module cytotable.utils)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._render_join_sql">_render_join_sql() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._require_ome_arrow">_require_ome_arrow() (in module cytotable.warehouse.images)</a>
 </li>
@@ -538,13 +576,19 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._resolve_indexed_path">_resolve_indexed_path() (in module cytotable.warehouse.images)</a>
 </li>
+      <li><a href="python-api.html#cytotable.utils._resolve_source_page_keys">_resolve_source_page_keys() (in module cytotable.utils)</a>
+</li>
       <li><a href="python-api.html#cytotable.warehouse.images._rows_to_crop_table">_rows_to_crop_table() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._rows_to_source_table">_rows_to_source_table() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.convert._run_export_workflow">_run_export_workflow() (in module cytotable.convert)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._select_base_table">_select_base_table() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.convert._set_tablenumber">_set_tablenumber() (in module cytotable.convert)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._shared_key_pairs">_shared_key_pairs() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._source_image_table_parallel">_source_image_table_parallel() (in module cytotable.warehouse.images)</a>
 </li>
@@ -552,15 +596,23 @@ window.runMermaid = runMermaid;</script>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._source_shard_worker">_source_shard_worker() (in module cytotable.warehouse.images)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._sql_string_literal">_sql_string_literal() (in module cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.utils._sqlite_mixed_type_query_to_parquet">_sqlite_mixed_type_query_to_parquet() (in module cytotable.utils)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._strip_null_fields_from_type">_strip_null_fields_from_type() (in module cytotable.warehouse.images)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._strip_null_fields_from_value">_strip_null_fields_from_value() (in module cytotable.warehouse.images)</a>
 </li>
+      <li><a href="python-api.html#cytotable.joins._TableInfo">_TableInfo (class in cytotable.joins)</a>
+</li>
       <li><a href="python-api.html#cytotable.utils._unwrap_source">_unwrap_source() (in module cytotable.utils)</a>
 </li>
       <li><a href="python-api.html#cytotable.utils._unwrap_value">_unwrap_value() (in module cytotable.utils)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._validate_edges">_validate_edges() (in module cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins._validate_rendered_sql">_validate_rendered_sql() (in module cytotable.joins)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images._validated_bbox_values">_validated_bbox_values() (in module cytotable.warehouse.images)</a>
 </li>
@@ -586,12 +638,14 @@ window.runMermaid = runMermaid;</script>
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="python-api.html#cytotable.warehouse.images.BBoxColumns">BBoxColumns (class in cytotable.warehouse.images)</a>
+      <li><a href="python-api.html#cytotable.joins.InferredJoin.base_table">base_table (cytotable.joins.InferredJoin attribute)</a>
 </li>
-      <li><a href="python-api.html#cytotable.warehouse.images.FileIndex.by_basename">by_basename (cytotable.warehouse.images.FileIndex attribute)</a>
+      <li><a href="python-api.html#cytotable.warehouse.images.BBoxColumns">BBoxColumns (class in cytotable.warehouse.images)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="python-api.html#cytotable.warehouse.images.FileIndex.by_basename">by_basename (cytotable.warehouse.images.FileIndex attribute)</a>
+</li>
       <li><a href="python-api.html#cytotable.warehouse.images.FileIndex.by_relative">by_relative (cytotable.warehouse.images.FileIndex attribute)</a>
 </li>
       <li><a href="python-api.html#cytotable.warehouse.images.FileIndex.by_stem">by_stem (cytotable.warehouse.images.FileIndex attribute)</a>
@@ -628,6 +682,13 @@ window.runMermaid = runMermaid;</script>
 
       <ul>
         <li><a href="python-api.html#module-cytotable.exceptions">module</a>
+</li>
+      </ul></li>
+      <li>
+    cytotable.joins
+
+      <ul>
+        <li><a href="python-api.html#module-cytotable.joins">module</a>
 </li>
       </ul></li>
   </ul></td>
@@ -693,6 +754,10 @@ window.runMermaid = runMermaid;</script>
 <h2 id="E">E</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="python-api.html#cytotable.joins.InferredJoin.edges">edges (cytotable.joins.InferredJoin attribute)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="python-api.html#cytotable.utils.evaluate_futures">evaluate_futures() (in module cytotable.utils)</a>
 </li>
   </ul></td>
@@ -714,6 +779,14 @@ window.runMermaid = runMermaid;</script>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="python-api.html#cytotable.warehouse.images.image_crop_table_from_joined_chunk">image_crop_table_from_joined_chunk() (in module cytotable.warehouse.images)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins.infer_join_sql">infer_join_sql() (in module cytotable.joins)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="python-api.html#cytotable.joins.InferredJoin">InferredJoin (class in cytotable.joins)</a>
+</li>
+      <li><a href="python-api.html#cytotable.joins.is_infer_joins_sentinel">is_infer_joins_sentinel() (in module cytotable.joins)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -755,6 +828,8 @@ window.runMermaid = runMermaid;</script>
 </li>
         <li><a href="python-api.html#module-cytotable.exceptions">cytotable.exceptions</a>
 </li>
+        <li><a href="python-api.html#module-cytotable.joins">cytotable.joins</a>
+</li>
         <li><a href="python-api.html#module-cytotable.sources">cytotable.sources</a>
 </li>
         <li><a href="python-api.html#module-cytotable.utils">cytotable.utils</a>
@@ -788,10 +863,12 @@ window.runMermaid = runMermaid;</script>
 <h2 id="P">P</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="python-api.html#cytotable.utils.Parsl_AppBase_init_for_docs">Parsl_AppBase_init_for_docs() (in module cytotable.utils)</a>
+      <li><a href="python-api.html#cytotable.joins.InferredJoin.page_key">page_key (cytotable.joins.InferredJoin attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="python-api.html#cytotable.utils.Parsl_AppBase_init_for_docs">Parsl_AppBase_init_for_docs() (in module cytotable.utils)</a>
+</li>
       <li><a href="python-api.html#cytotable.warehouse.images.profile_with_images_frame">profile_with_images_frame() (in module cytotable.warehouse.images)</a>
 </li>
   </ul></td>
@@ -820,9 +897,11 @@ window.runMermaid = runMermaid;</script>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="python-api.html#cytotable.exceptions.SchemaException">SchemaException</a>
 </li>
+      <li><a href="python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk">source_image_table_from_joined_chunk() (in module cytotable.warehouse.images)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="python-api.html#cytotable.warehouse.images.source_image_table_from_joined_chunk">source_image_table_from_joined_chunk() (in module cytotable.warehouse.images)</a>
+      <li><a href="python-api.html#cytotable.joins.InferredJoin.sql">sql (cytotable.joins.InferredJoin attribute)</a>
 </li>
       <li><a href="python-api.html#cytotable.exceptions.SQLiteReadOnlyException">SQLiteReadOnlyException</a>
 </li>

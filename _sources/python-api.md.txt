@@ -57,6 +57,16 @@ Convert
 
 |
 
+Joins
+-----
+
+.. automodule:: cytotable.joins
+   :members:
+   :private-members:
+   :show-inheritance:
+
+|
+
 Access
 ------
 

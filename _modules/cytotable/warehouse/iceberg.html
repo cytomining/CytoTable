@@ -414,6 +414,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.convert</span><span class="w"> </span><span class="kn">import</span> <span class="n">_run_export_workflow</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CytoTableException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="n">_default_identifying_columns</span><span class="p">,</span> <span class="n">is_infer_joins_sentinel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.presets</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">_build_path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -657,6 +658,15 @@ window.runMermaid = runMermaid;</script>
             <span class="k">else</span> <span class="n">page_keys</span>
         <span class="p">)</span>
 
+    <span class="c1"># Apply inference fallbacks only after explicit and preset values resolve.</span>
+    <span class="k">if</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">identifying_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">identifying_columns</span> <span class="o">=</span> <span class="n">_default_identifying_columns</span><span class="p">(</span>
+                <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">"cellprofiler_csv"</span><span class="p">][</span><span class="s2">"CONFIG_CHUNK_SIZE"</span><span class="p">])</span>
+
     <span class="k">return</span> <span class="p">{</span>
         <span class="s2">"metadata"</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">()),</span>
         <span class="s2">"compartments"</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">compartments</span> <span class="ow">or</span> <span class="p">()),</span>
@@ -724,6 +734,11 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"preset that defines them."</span>
         <span class="p">)</span>
 
+    <span class="c1"># join SQL inference provides the join pagination key itself,</span>
+    <span class="c1"># so the page_keys requirement is lifted in this case</span>
+    <span class="k">if</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"join"</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
             <span class="s2">"Image export requires page_keys to include a non-empty 'join' entry."</span>
@@ -744,6 +759,11 @@ window.runMermaid = runMermaid;</script>
             <span class="s2">"Iceberg export requires non-empty join SQL. Provide 'joins' directly "</span>
             <span class="s2">"or use a preset that defines them."</span>
         <span class="p">)</span>
+
+    <span class="c1"># join SQL inference provides the join pagination key itself,</span>
+    <span class="c1"># so the page_keys requirement is lifted in this case</span>
+    <span class="k">if</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+        <span class="k">return</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"join"</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -1179,6 +1199,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">chunk_size</span><span class="o">=</span><span class="n">chunk_size</span><span class="p">,</span>
         <span class="n">page_keys</span><span class="o">=</span><span class="n">page_keys</span><span class="p">,</span>
     <span class="p">)</span>
+
     <span class="n">_validate_iceberg_join_prerequisites</span><span class="p">(</span>
         <span class="n">joins</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">"joins"</span><span class="p">]),</span>
         <span class="n">page_keys</span><span class="o">=</span><span class="n">cast</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">resolved</span><span class="p">[</span><span class="s2">"page_keys"</span><span class="p">]),</span>

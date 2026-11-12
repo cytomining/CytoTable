@@ -1,0 +1,1884 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>cytotable.joins &#8212; CytoTable v0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css?v=37770e68" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=01d9ba92" />
+    <script src="../../_static/documentation_options.js?v=2fea6348"></script>
+    <script src="../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = "pre.mermaid {\n    /* Same as .mermaid-container > pre */\n    display: block;\n    width: 100%;\n}\n\npre.mermaid > svg {\n    /* Same as .mermaid-container > pre > svg */\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}";
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = ".mermaid-container {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    width: 100%;\n}\n\n.mermaid-container > pre {\n    display: block;\n    width: 100%;\n}\n\n.mermaid-container > pre > svg {\n    height: 500px;\n    width: 100%;\n    max-width: 100% !important;\n}\n\n.mermaid-fullscreen-btn {\n    position: absolute;\n    width: 28px;\n    height: 28px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.3);\n    border-radius: 4px;\n    cursor: pointer;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    transition: all 0.2s;\n    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);\n    font-size: 14px;\n    line-height: 1;\n    padding: 0;\n    color: #333;\n}\n\n.mermaid-fullscreen-btn:hover {\n    opacity: 100% !important;\n    background: rgba(255, 255, 255, 1);\n    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-btn.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.3);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-btn.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal {\n    display: none;\n    position: fixed !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: 95vw;\n    height: 100vh;\n    background: rgba(255, 255, 255, 0.98);\n    z-index: 9999;\n    padding: 20px;\n    overflow: auto;\n}\n\n.mermaid-fullscreen-modal.dark-theme {\n    background: rgba(0, 0, 0, 0.98);\n}\n\n.mermaid-fullscreen-modal.active {\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen {\n    position: relative;\n    width: 95vw;\n    height: 90vh;\n    max-width: 95vw;\n    max-height: 90vh;\n    background: white;\n    border-radius: 8px;\n    padding: 20px;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);\n    overflow: auto;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen.dark-theme {\n    background: #1a1a1a;\n    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);\n}\n\n.mermaid-container-fullscreen pre.mermaid {\n    width: 100%;\n    height: 100%;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.mermaid-container-fullscreen .mermaid svg {\n    height: 100% !important;\n    width: 100% !important;\n    cursor: grab;\n}\n\n.mermaid-fullscreen-close {\n    position: fixed !important;\n    top: 20px !important;\n    right: 20px !important;\n    width: 40px;\n    height: 40px;\n    background: rgba(255, 255, 255, 0.95);\n    border: 1px solid rgba(0, 0, 0, 0.2);\n    border-radius: 50%;\n    cursor: pointer;\n    z-index: 10000;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    transition: all 0.2s;\n    font-size: 24px;\n    line-height: 1;\n    color: #333;\n}\n\n.mermaid-fullscreen-close:hover {\n    background: white;\n    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);\n    transform: scale(1.1);\n}\n\n.mermaid-fullscreen-close.dark-theme {\n    background: rgba(50, 50, 50, 0.95);\n    border: 1px solid rgba(255, 255, 255, 0.2);\n    color: #e0e0e0;\n}\n\n.mermaid-fullscreen-close.dark-theme:hover {\n    background: rgba(60, 60, 60, 1);\n    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);\n}\n\n.mermaid-fullscreen-modal .mermaid-fullscreen-btn {\n    display: none !important;\n}";
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+let _lazyObserver = null;
+let _renderQueue = Promise.resolve();
+let closeModal = () => {};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal?.classList.contains('active')) {
+        closeModal();
+    }
+});
+
+// Apply d3 zoom to each SVG. Idempotent: an SVG already wrapped is skipped,
+// so this is safe to call both for the initial batch and for diagrams that
+// render lazily once they become visible.
+const addZoomToSvgs = (svgs) => {
+    svgs.each(function() {
+        if (this.getAttribute('data-zoom-applied') === 'true') return;
+        var svg = d3.select(this);
+        svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+        var inner = svg.select("g");
+        var zoom = d3.zoom().on("zoom", function(event) {
+            inner.attr("transform", event.transform);
+        });
+        svg.call(zoom);
+        this.setAttribute('data-zoom-applied', 'true');
+    });
+};
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        // Disconnect any previous lazy rendering observer
+        if (_lazyObserver) {
+            _lazyObserver.disconnect();
+            _lazyObserver = null;
+        }
+
+        all_mermaids.forEach((el) => {
+            el.removeAttribute('data-mermaid-deferred');
+            el.removeAttribute('data-mermaid-render-failed');
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+
+        // Separate visible and hidden elements. Mermaid's layout engine measures
+        // text dimensions via the DOM, which fails for elements hidden by a parent
+        // (e.g., Reveal.js non-active slides, sphinx-design unopened tabs),
+        // producing broken SVGs. Render visible elements now, defer hidden ones.
+        const visible = [];
+        const hidden = [];
+        all_mermaids.forEach((el) => {
+            // offsetParent is null for display:none ancestors.
+            // getClientRects().length > 0 catches position:fixed elements
+            // (which also have null offsetParent but are still visible).
+            if (el.offsetParent !== null || el.getClientRects().length > 0) {
+                visible.push(el);
+            } else {
+                hidden.push(el);
+                el.setAttribute('data-mermaid-deferred', 'true');
+            }
+        });
+
+        if (visible.length > 0) {
+            try {
+                await mermaid.run({ nodes: visible });
+            } catch (e) {
+                console.error("Mermaid rendering failed:", e);
+            }
+        }
+
+        // Lazily render hidden elements when they become visible.
+        // Uses a promise chain (_renderQueue) to serialize rendering,
+        // since IntersectionObserver may report multiple entries at once
+        // and mermaid.run() is not safe to call concurrently.
+        if (hidden.length > 0) {
+            if (typeof IntersectionObserver === 'undefined') {
+                console.warn("IntersectionObserver not available; hidden mermaid diagrams will not render.");
+            } else {
+                _renderQueue = Promise.resolve();
+                _lazyObserver = new IntersectionObserver((entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && entry.target.getAttribute("data-processed") !== "true") {
+                            _lazyObserver.unobserve(entry.target);
+                            const el = entry.target;
+                            _renderQueue = _renderQueue.then(async () => {
+                                try {
+                                    await mermaid.run({ nodes: [el] });
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    // Apply zoom to the now-rendered diagram, matching
+                                    // the decoration visible diagrams receive.
+                                    if (false) {
+                                        addZoomToSvgs(d3.selectAll("").select(function() {
+                                            return this.querySelector("svg");
+                                        }));
+                                    }
+                                } catch (e) {
+                                    console.error("Mermaid deferred rendering failed:", e);
+                                    el.removeAttribute('data-mermaid-deferred');
+                                    el.setAttribute('data-mermaid-render-failed', 'true');
+                                }
+                            });
+                        }
+                    }
+                });
+                hidden.forEach((el) => _lazyObserver.observe(el));
+            }
+        }
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    // Exclude deferred (hidden) and render-failed elements from completion checks
+    const mermaids_active = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])");
+    const mermaids_processed = document.querySelectorAll(".mermaid:not([data-mermaid-deferred]):not([data-mermaid-render-failed])[data-processed='true']");
+
+    if (false) {
+        const mermaids_to_add_zoom = 0 === -1 ? mermaids_active.length : 0;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("").select(function() {
+                return this.querySelector("svg");
+            });
+            // Wait until every active (visible) diagram has rendered. Deferred
+            // diagrams are excluded, so a fixed d3_node_count that counts a
+            // hidden diagram no longer loops forever waiting for its SVG.
+            if(mermaids_active.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            }
+            addZoomToSvgs(svgs);
+        }
+    } else if(mermaids_active.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if (!true) return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = "\u26f6";
+        fullscreenBtn.style.opacity = "50%";
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scrollX, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.display = 'block';
+
+                if (false) {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+
+
+const load = async () => {
+    initStyles();
+
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...{"startOnLoad": false},
+                ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...{"startOnLoad": false},
+    ...{ darkMode: darkTheme, theme: darkTheme ? "dark" : "default" },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for cytotable.joins</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""</span>
+<span class="sd">Infer CellProfiler-style joins for ``convert(..., joins="infer")``.</span>
+
+<span class="sd">Recognize image/table keys, object numbers, and Parent_* references in</span>
+<span class="sd">converted parquet schemas. Validate parent references against actual values,</span>
+<span class="sd">then build and bind a LEFT JOIN tree and check its row count. Unsupported</span>
+<span class="sd">relationships require manual SQL; no fuzzy schema matching is attempted.</span>
+
+<span class="sd">See cytomining/CytoTable#522.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CytoTableException</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Sentinel value for the convert() `joins` parameter which requests</span>
+<span class="c1"># join SQL inference instead of manually provided SQL.</span>
+<span class="n">INFER_JOINS_SENTINEL</span> <span class="o">=</span> <span class="s2">"infer"</span>
+
+<span class="c1"># lowercased canonical shared key column names, in priority order</span>
+<span class="n">_IMAGE_KEY_NAMES</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"metadata_imagenumber"</span><span class="p">,</span> <span class="s2">"imagenumber"</span><span class="p">)</span>
+<span class="n">_TABLENUMBER_KEY_NAMES</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"metadata_tablenumber"</span><span class="p">,</span> <span class="s2">"tablenumber"</span><span class="p">)</span>
+<span class="c1"># regexes for table-specific shared key columns, for ex.</span>
+<span class="c1"># "Cells_ImageNumber" or "Image_TableNumber"</span>
+<span class="n">_STEM_IMAGE_KEY_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?:metadata_)?[a-z0-9]+_imagenumber$"</span><span class="p">)</span>
+<span class="n">_STEM_TABLENUMBER_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^(?:metadata_)?[a-z0-9]+_tablenumber$"</span><span class="p">)</span>
+<span class="c1"># lowercased generic object number column names, in priority order</span>
+<span class="n">_OBJECTNUMBER_NAMES</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"metadata_objectnumber"</span><span class="p">,</span>
+    <span class="s2">"objectnumber"</span><span class="p">,</span>
+    <span class="s2">"number_object_number"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="c1"># regex for compartment-prefixed object number columns, for ex.</span>
+<span class="c1"># "Cells_Number_Object_Number" or "Metadata_Cells_Number_Object_Number"</span>
+<span class="n">_COMPARTMENT_OBJECTNUMBER_TEMPLATE</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">r</span><span class="s2">"^(?:metadata_)?</span><span class="si">{compartment}</span><span class="s2">_number_object_number$"</span>
+<span class="p">)</span>
+<span class="c1"># regex for parent reference columns, for ex. "Parent_Cells",</span>
+<span class="c1"># "Metadata_Cytoplasm_Parent_Cells", or "Cells_Parent_Nuclei"</span>
+<span class="n">_PARENT_REFERENCE_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+    <span class="sa">r</span><span class="s2">"^(?:metadata_)?(?:[a-z0-9]+_)?parent_(?P&lt;target&gt;[a-z0-9]+)$"</span>
+<span class="p">)</span>
+<span class="c1"># minimum fraction of child rows which must reference an existing parent</span>
+<span class="c1"># object for a parent-reference edge to be trusted without a warning</span>
+<span class="n">_TRUSTED_MATCH_RATE</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="c1"># duckdb storage type tokens which indicate numeric (pagination-safe) columns</span>
+<span class="n">_NUMERIC_TYPE_TOKENS</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"INT"</span><span class="p">,</span>
+    <span class="s2">"FLOAT"</span><span class="p">,</span>
+    <span class="s2">"DOUBLE"</span><span class="p">,</span>
+    <span class="s2">"DECIMAL"</span><span class="p">,</span>
+    <span class="s2">"NUMERIC"</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="InferredJoin">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins.InferredJoin">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">InferredJoin</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Result of join SQL inference from source table data.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        sql (str):</span>
+<span class="sd">            DuckDB join SQL using ``'&lt;table_stem&gt;.parquet'`` read_parquet</span>
+<span class="sd">            placeholders, as expected by ``_prepare_join_sql``.</span>
+<span class="sd">        page_key (str):</span>
+<span class="sd">            Column name suggested as the ``page_keys["join"]`` pagination</span>
+<span class="sd">            key for the joined result.</span>
+<span class="sd">        base_table (str):</span>
+<span class="sd">            Table alias used as the join tree base.</span>
+<span class="sd">        edges (Tuple[Tuple[str, str], ...]):</span>
+<span class="sd">            Accepted (child, parent) table alias pairs used for the joins.</span>
+<span class="sd">    """</span>
+
+    <span class="n">sql</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">base_table</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">edges</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="o">...</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="_TableInfo">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._TableInfo">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_TableInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Schema-level information about a converted source table group.</span>
+<span class="sd">    """</span>
+
+    <span class="n">group_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">compartment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">is_metadata</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">paths</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">columns</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">numeric_columns</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">()</span>
+    <span class="n">image_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">tablenumber_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">objectnumber_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="_Edge">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._Edge">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_Edge</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    A candidate or validated join edge from a child to a parent table.</span>
+<span class="sd">    """</span>
+
+    <span class="n">child</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">parent</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">reference_column</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">parent_key</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="_JoinStep">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._JoinStep">[docs]</a>
+<span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_JoinStep</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    A single LEFT JOIN step within the inferred join tree.</span>
+<span class="sd">    """</span>
+
+    <span class="n">table</span><span class="p">:</span> <span class="n">_TableInfo</span>
+    <span class="n">conditions</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="is_infer_joins_sentinel">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins.is_infer_joins_sentinel">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Determine whether a joins value is the inference sentinel.</span>
+
+<span class="sd">    Join SQL inference occurs only when this returns True for the</span>
+<span class="sd">    ``joins`` value; inference is always an explicit choice.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        joins (Optional[str]):</span>
+<span class="sd">            The joins value to check.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool:</span>
+<span class="sd">            True if the value references join SQL inference.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">joins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">joins</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">INFER_JOINS_SENTINEL</span></div>
+
+
+
+<div class="viewcode-block" id="infer_join_sql">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins.infer_join_sql">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">infer_join_sql</span><span class="p">(</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">page_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InferredJoin</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Infer DuckDB join SQL by inspecting converted source table data.</span>
+
+<span class="sd">    Return SQL with ``'&lt;table_stem&gt;.parquet'`` placeholders for</span>
+<span class="sd">    ``_prepare_join_sql``. Validation scans parent-reference values and</span>
+<span class="sd">    counts the full joined result before returning.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
+<span class="sd">            Grouped converted sources which each include ``table`` keys</span>
+<span class="sd">            with parquet filepath lists, as produced by the export</span>
+<span class="sd">            workflow's concatenation stage.</span>
+<span class="sd">        metadata (Optional[Sequence[str]]):</span>
+<span class="sd">            Metadata source table names used to classify source groups.</span>
+<span class="sd">        compartments (Optional[Sequence[str]]):</span>
+<span class="sd">            Compartment source table names used to classify source groups.</span>
+<span class="sd">        page_key (Optional[str]):</span>
+<span class="sd">            Explicit join pagination key to preserve instead of inferring one.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        InferredJoin:</span>
+<span class="sd">            The inferred join SQL and related details.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when no tables are provided, when no defensible join</span>
+<span class="sd">            can be inferred for one or more tables, when no pagination</span>
+<span class="sd">            key can be determined, or when the rendered SQL fails</span>
+<span class="sd">            validation against the source data.</span>
+<span class="sd">    """</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="n">_collect_tables</span><span class="p">(</span>
+        <span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span> <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tables</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span><span class="s2">"No source tables available for join SQL inference."</span><span class="p">)</span>
+
+    <span class="n">edges</span> <span class="o">=</span> <span class="n">_validate_edges</span><span class="p">(</span>
+        <span class="n">edges</span><span class="o">=</span><span class="n">_find_reference_edges</span><span class="p">(</span><span class="n">tables</span><span class="o">=</span><span class="n">tables</span><span class="p">),</span>
+        <span class="n">tables</span><span class="o">=</span><span class="p">{</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">:</span> <span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="n">base</span> <span class="o">=</span> <span class="n">_select_base_table</span><span class="p">(</span><span class="n">tables</span><span class="o">=</span><span class="n">tables</span><span class="p">,</span> <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">)</span>
+    <span class="n">steps</span> <span class="o">=</span> <span class="n">_build_join_tree</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">tables</span><span class="o">=</span><span class="n">tables</span><span class="p">,</span> <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">)</span>
+    <span class="n">sql</span><span class="p">,</span> <span class="n">page_key</span> <span class="o">=</span> <span class="n">_render_join_sql</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span> <span class="n">page_key</span><span class="o">=</span><span class="n">page_key</span><span class="p">)</span>
+    <span class="n">_validate_rendered_sql</span><span class="p">(</span><span class="n">base</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">steps</span><span class="o">=</span><span class="n">steps</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">,</span> <span class="n">page_key</span><span class="o">=</span><span class="n">page_key</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">InferredJoin</span><span class="p">(</span>
+        <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">,</span>
+        <span class="n">page_key</span><span class="o">=</span><span class="n">page_key</span><span class="p">,</span>
+        <span class="n">base_table</span><span class="o">=</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+        <span class="n">edges</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">((</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_collect_tables">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._collect_tables">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_collect_tables</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Gather schema-level information for each converted source table group.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
+<span class="sd">            Grouped converted sources with parquet ``table`` paths.</span>
+<span class="sd">        metadata (Optional[Sequence[str]]):</span>
+<span class="sd">            Metadata source table names.</span>
+<span class="sd">        compartments (Optional[Sequence[str]]):</span>
+<span class="sd">            Compartment source table names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[_TableInfo]:</span>
+<span class="sd">            Table information sorted by alias for deterministic output.</span>
+<span class="sd">    """</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pa</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pyarrow.parquet</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">parquet</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+
+    <span class="n">tables</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">stem</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">source_group_vals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"table"</span><span class="p">])</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="n">parquet</span><span class="o">.</span><span class="n">read_schema</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="n">numeric_columns</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+            <span class="n">name</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">field_type</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">schema</span><span class="o">.</span><span class="n">names</span><span class="p">,</span> <span class="n">schema</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_integer</span><span class="p">(</span><span class="n">field_type</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pa</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_floating</span><span class="p">(</span><span class="n">field_type</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">compartment</span><span class="p">,</span> <span class="n">is_metadata</span> <span class="o">=</span> <span class="n">_classify_group</span><span class="p">(</span>
+            <span class="n">stem</span><span class="o">=</span><span class="n">stem</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span> <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span>
+        <span class="p">)</span>
+        <span class="n">image_key</span><span class="p">,</span> <span class="n">tablenumber_key</span><span class="p">,</span> <span class="n">objectnumber_key</span> <span class="o">=</span> <span class="n">_detect_key_columns</span><span class="p">(</span>
+            <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">,</span> <span class="n">compartment</span><span class="o">=</span><span class="n">compartment</span>
+        <span class="p">)</span>
+        <span class="n">tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">_TableInfo</span><span class="p">(</span>
+                <span class="n">group_name</span><span class="o">=</span><span class="n">group_name</span><span class="p">,</span>
+                <span class="n">alias</span><span class="o">=</span><span class="n">stem</span><span class="p">,</span>
+                <span class="n">compartment</span><span class="o">=</span><span class="n">compartment</span><span class="p">,</span>
+                <span class="n">is_metadata</span><span class="o">=</span><span class="n">is_metadata</span><span class="p">,</span>
+                <span class="n">paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">,</span>
+                <span class="n">numeric_columns</span><span class="o">=</span><span class="n">numeric_columns</span><span class="p">,</span>
+                <span class="n">image_key</span><span class="o">=</span><span class="n">image_key</span><span class="p">,</span>
+                <span class="n">tablenumber_key</span><span class="o">=</span><span class="n">tablenumber_key</span><span class="p">,</span>
+                <span class="n">objectnumber_key</span><span class="o">=</span><span class="n">objectnumber_key</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tables</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">table</span><span class="p">:</span> <span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_classify_group">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._classify_group">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_classify_group</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">stem</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Classify a source group stem as a compartment or a metadata table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        stem (str):</span>
+<span class="sd">            Lowercased source group filename stem.</span>
+<span class="sd">        metadata (Optional[Sequence[str]]):</span>
+<span class="sd">            Metadata source table names.</span>
+<span class="sd">        compartments (Optional[Sequence[str]]):</span>
+<span class="sd">            Compartment source table names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[Optional[str], bool]:</span>
+<span class="sd">            The matched compartment or metadata name (lowercased) and</span>
+<span class="sd">            whether the group classifies as a metadata table.</span>
+<span class="sd">    """</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">compartments</span> <span class="ow">or</span> <span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">stem</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">metadata</span> <span class="ow">or</span> <span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">stem</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="_detect_key_columns">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._detect_key_columns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_detect_key_columns</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">compartment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Detect shared image/tablenumber key and object number columns.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        columns (Sequence[str]):</span>
+<span class="sd">            Column names of the table.</span>
+<span class="sd">        compartment (Optional[str]):</span>
+<span class="sd">            Lowercased compartment name of the table, if any.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[Optional[str], Optional[str], Optional[str]]:</span>
+<span class="sd">            The image key, tablenumber key, and object number column</span>
+<span class="sd">            names, where detectable.</span>
+<span class="sd">    """</span>
+
+    <span class="n">lowered</span> <span class="o">=</span> <span class="p">{</span><span class="n">column</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">column</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">}</span>
+
+    <span class="n">image_key</span> <span class="o">=</span> <span class="n">_pick_column</span><span class="p">(</span>
+        <span class="n">lowered</span><span class="o">=</span><span class="n">lowered</span><span class="p">,</span> <span class="n">exact_names</span><span class="o">=</span><span class="n">_IMAGE_KEY_NAMES</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="n">_STEM_IMAGE_KEY_REGEX</span>
+    <span class="p">)</span>
+    <span class="n">tablenumber_key</span> <span class="o">=</span> <span class="n">_pick_column</span><span class="p">(</span>
+        <span class="n">lowered</span><span class="o">=</span><span class="n">lowered</span><span class="p">,</span>
+        <span class="n">exact_names</span><span class="o">=</span><span class="n">_TABLENUMBER_KEY_NAMES</span><span class="p">,</span>
+        <span class="n">regex</span><span class="o">=</span><span class="n">_STEM_TABLENUMBER_REGEX</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">objectnumber_key</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">compartment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">objectnumber_key</span> <span class="o">=</span> <span class="n">_pick_column</span><span class="p">(</span>
+            <span class="n">lowered</span><span class="o">=</span><span class="n">lowered</span><span class="p">,</span>
+            <span class="n">exact_names</span><span class="o">=</span><span class="p">(),</span>
+            <span class="n">regex</span><span class="o">=</span><span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+                <span class="n">_COMPARTMENT_OBJECTNUMBER_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">compartment</span><span class="o">=</span><span class="n">compartment</span><span class="p">)</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">objectnumber_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">objectnumber_key</span> <span class="o">=</span> <span class="n">_pick_column</span><span class="p">(</span>
+            <span class="n">lowered</span><span class="o">=</span><span class="n">lowered</span><span class="p">,</span>
+            <span class="n">exact_names</span><span class="o">=</span><span class="n">_OBJECTNUMBER_NAMES</span><span class="p">,</span>
+            <span class="n">regex</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">image_key</span><span class="p">,</span> <span class="n">tablenumber_key</span><span class="p">,</span> <span class="n">objectnumber_key</span></div>
+
+
+
+<div class="viewcode-block" id="_pick_column">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._pick_column">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_pick_column</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">lowered</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">exact_names</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="n">regex</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
+    <span class="n">allowed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Select a column by exact lowercased names, then by regex, in order.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lowered (Dict[str, str]):</span>
+<span class="sd">            Mapping of lowercased column names to original column names.</span>
+<span class="sd">        exact_names (Tuple[str, ...]):</span>
+<span class="sd">            Lowercased names to seek exactly, in priority order.</span>
+<span class="sd">        regex (Optional[re.Pattern[str]]):</span>
+<span class="sd">            Optional regex applied to lowercased names as a fallback.</span>
+<span class="sd">        allowed (Optional[set[str]]):</span>
+<span class="sd">            Optional set of lowercased names which are eligible for</span>
+<span class="sd">            selection, for ex. those of numeric columns.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[str]:</span>
+<span class="sd">            The original column name which matched, if any.</span>
+<span class="sd">    """</span>
+
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">exact_names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">lowered</span> <span class="ow">and</span> <span class="p">(</span><span class="n">allowed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">lowered</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">regex</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lowered</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">allowed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">allowed</span><span class="p">)</span> <span class="ow">and</span> <span class="n">regex</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">lowered</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="_find_reference_edges">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._find_reference_edges">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_find_reference_edges</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">tables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">_Edge</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Detect candidate parent reference join edges between compartment tables.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tables (List[_TableInfo]):</span>
+<span class="sd">            Table information gathered from converted sources.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[_Edge]:</span>
+<span class="sd">            Candidate edges, unvalidated and not yet deduplicated by</span>
+<span class="sd">            table pair (a table pair may have more than one candidate</span>
+<span class="sd">            reference column).</span>
+<span class="sd">    """</span>
+
+    <span class="n">table_by_compartment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">compartment</span><span class="p">:</span>
+            <span class="n">table_by_compartment</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">compartment</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+    <span class="n">table_by_alias</span> <span class="o">=</span> <span class="p">{</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">:</span> <span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">}</span>
+
+    <span class="n">edges</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">is_metadata</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">_PARENT_REFERENCE_REGEX</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">match</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">parent</span> <span class="o">=</span> <span class="n">_find_referenced_table</span><span class="p">(</span>
+                <span class="n">target</span><span class="o">=</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"target"</span><span class="p">),</span>
+                <span class="n">table_by_alias</span><span class="o">=</span><span class="n">table_by_alias</span><span class="p">,</span>
+                <span class="n">table_by_compartment</span><span class="o">=</span><span class="n">table_by_compartment</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">parent</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="ow">or</span> <span class="n">parent</span><span class="o">.</span><span class="n">alias</span> <span class="o">==</span> <span class="n">table</span><span class="o">.</span><span class="n">alias</span>
+                <span class="ow">or</span> <span class="n">parent</span><span class="o">.</span><span class="n">objectnumber_key</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="c1"># a shared image-level key is required so that object</span>
+                <span class="c1"># numbers are not matched across unrelated images</span>
+                <span class="ow">or</span> <span class="n">table</span><span class="o">.</span><span class="n">image_key</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="ow">or</span> <span class="n">parent</span><span class="o">.</span><span class="n">image_key</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">edges</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">_Edge</span><span class="p">(</span>
+                    <span class="n">child</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                    <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+                    <span class="n">reference_column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
+                    <span class="n">parent_key</span><span class="o">=</span><span class="n">parent</span><span class="o">.</span><span class="n">objectnumber_key</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">edges</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">edge</span><span class="p">:</span> <span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_find_referenced_table">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._find_referenced_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_find_referenced_table</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">table_by_alias</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_TableInfo</span><span class="p">],</span>
+    <span class="n">table_by_compartment</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Find the table which a parent reference column points to.</span>
+
+<span class="sd">    An exact alias match (for ex. a table whose group name stem is</span>
+<span class="sd">    literally the target, such as ``'per_cells'`` for target</span>
+<span class="sd">    ``'cells'``) is preferred. Otherwise, the target must resolve to</span>
+<span class="sd">    exactly one compartment-classified table; a target which matches</span>
+<span class="sd">    more than one table's compartment (for ex. both ``cells`` and</span>
+<span class="sd">    ``cells_summary`` classifying as compartment ``cells``) is</span>
+<span class="sd">    ambiguous and is not resolved, so the reference is not used.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        target (str):</span>
+<span class="sd">            Lowercased compartment name referenced by the column.</span>
+<span class="sd">        table_by_alias (Dict[str, _TableInfo]):</span>
+<span class="sd">            Tables keyed by alias.</span>
+<span class="sd">        table_by_compartment (Dict[str, List[_TableInfo]]):</span>
+<span class="sd">            Tables keyed by lowercased compartment name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[_TableInfo]:</span>
+<span class="sd">            The referenced table, if exactly one is detected.</span>
+<span class="sd">    """</span>
+
+    <span class="k">if</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">table_by_alias</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">table_by_alias</span><span class="p">[</span><span class="n">target</span><span class="p">]</span>
+    <span class="c1"># fall back to alias matching for tables whose group name is</span>
+    <span class="c1"># compartment-prefixed, for ex. 'per_cells' referencing 'cells'</span>
+    <span class="n">alias_matches</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">table_by_alias</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">"_</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alias_matches</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">alias_matches</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">table_by_compartment</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">"Ambiguous parent reference target '</span><span class="si">%s</span><span class="s2">': multiple tables "</span>
+            <span class="s2">"(</span><span class="si">%s</span><span class="s2">) classify as this compartment. Skipping this reference "</span>
+            <span class="s2">"rather than guessing."</span><span class="p">,</span>
+            <span class="n">target</span><span class="p">,</span>
+            <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">)),</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="_validate_edges">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._validate_edges">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_edges</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_Edge</span><span class="p">],</span> <span class="n">tables</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">_TableInfo</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">_Edge</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Validate candidate edges against the actual table data, then keep</span>
+<span class="sd">    the best-matching edge for each (child, parent) table pair.</span>
+
+<span class="sd">    Measures the fraction of child rows whose parent reference matches</span>
+<span class="sd">    an existing parent object. Edges which match nothing are rejected</span>
+<span class="sd">    before deduplication, so a table pair with multiple candidate</span>
+<span class="sd">    reference columns is not resolved by an arbitrary (and possibly</span>
+<span class="sd">    invalid) column picked before validation. Edges with low match</span>
+<span class="sd">    rates are kept with a warning. Edges where any child row matches</span>
+<span class="sd">    more than one parent row are rejected, since such a reference</span>
+<span class="sd">    would multiply rows or produce ambiguous parent associations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        edges (List[_Edge]):</span>
+<span class="sd">            Candidate join edges.</span>
+<span class="sd">        tables (Dict[str, _TableInfo]):</span>
+<span class="sd">            Table information by alias.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[_Edge]:</span>
+<span class="sd">            At most one validated edge per (child, parent) table pair.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when a candidate edge references duplicate parent</span>
+<span class="sd">            keys, which would produce ambiguous or multiplied rows.</span>
+<span class="sd">    """</span>
+
+    <span class="n">validated</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+        <span class="n">child_rows</span><span class="p">,</span> <span class="n">matched_rows</span><span class="p">,</span> <span class="n">max_parent_matches</span> <span class="o">=</span> <span class="n">_measure_edge_match</span><span class="p">(</span>
+            <span class="n">edge</span><span class="o">=</span><span class="n">edge</span><span class="p">,</span> <span class="n">child</span><span class="o">=</span><span class="n">tables</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">],</span> <span class="n">parent</span><span class="o">=</span><span class="n">tables</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">child_rows</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">matched_rows</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">"Dropping inferred join edge '</span><span class="si">%s</span><span class="s2">'.'</span><span class="si">%s</span><span class="s2">' -&gt; '</span><span class="si">%s</span><span class="s2">': no values "</span>
+                <span class="s2">"match the referenced '</span><span class="si">%s</span><span class="s2">' objects."</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">max_parent_matches</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Inferred join edge '</span><span class="si">{</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="si">}</span><span class="s2">'.'</span><span class="si">{</span><span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span><span class="si">}</span><span class="s2">' "</span>
+                <span class="sa">f</span><span class="s2">"-&gt; '</span><span class="si">{</span><span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">' matches more than one '</span><span class="si">{</span><span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2">' row "</span>
+                <span class="s2">"for at least one child row, which would produce ambiguous "</span>
+                <span class="s2">"or multiplied results. Please provide join SQL manually "</span>
+                <span class="s2">"through the 'joins' parameter."</span>
+            <span class="p">)</span>
+        <span class="n">match_rate</span> <span class="o">=</span> <span class="n">matched_rows</span> <span class="o">/</span> <span class="n">child_rows</span> <span class="k">if</span> <span class="n">child_rows</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">1.0</span>
+        <span class="k">if</span> <span class="n">match_rate</span> <span class="o">&lt;</span> <span class="n">_TRUSTED_MATCH_RATE</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">"Inferred join edge '</span><span class="si">%s</span><span class="s2">'.'</span><span class="si">%s</span><span class="s2">' -&gt; '</span><span class="si">%s</span><span class="s2">' matches only "</span>
+                <span class="s2">"</span><span class="si">%d</span><span class="s2"> of </span><span class="si">%d</span><span class="s2"> child rows. Rows without matches will "</span>
+                <span class="s2">"retain null values from the left join."</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span><span class="p">,</span>
+                <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                <span class="n">matched_rows</span><span class="p">,</span>
+                <span class="n">child_rows</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">"Validated inferred join edge '</span><span class="si">%s</span><span class="s2">'.'</span><span class="si">%s</span><span class="s2">' -&gt; '</span><span class="si">%s</span><span class="s2">': "</span>
+            <span class="s2">"</span><span class="si">%d</span><span class="s2"> of </span><span class="si">%d</span><span class="s2"> child rows match (rate=</span><span class="si">%.3f</span><span class="s2">)."</span><span class="p">,</span>
+            <span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span>
+            <span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span><span class="p">,</span>
+            <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+            <span class="n">matched_rows</span><span class="p">,</span>
+            <span class="n">child_rows</span><span class="p">,</span>
+            <span class="n">match_rate</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">validated</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">edge</span><span class="p">,</span> <span class="n">match_rate</span><span class="p">))</span>
+
+    <span class="c1"># keep only the best-matching edge for each (child, parent) pair,</span>
+    <span class="c1"># now that every candidate has been validated against real data</span>
+    <span class="n">best_by_pair</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">_Edge</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">edge</span><span class="p">,</span> <span class="n">match_rate</span> <span class="ow">in</span> <span class="n">validated</span><span class="p">:</span>
+        <span class="n">pair</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span> <span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">best_by_pair</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pair</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">current</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">match_rate</span> <span class="o">&gt;</span> <span class="n">current</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">best_by_pair</span><span class="p">[</span><span class="n">pair</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="n">match_rate</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span>
+            <span class="n">match_rate</span> <span class="o">==</span> <span class="n">current</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="ow">and</span> <span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span> <span class="o">&lt;</span> <span class="n">current</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">reference_column</span>
+        <span class="p">):</span>
+            <span class="n">best_by_pair</span><span class="p">[</span><span class="n">pair</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">edge</span><span class="p">,</span> <span class="n">match_rate</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">[</span><span class="n">best_by_pair</span><span class="p">[</span><span class="n">pair</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">pair</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">best_by_pair</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="_measure_edge_match">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._measure_edge_match">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_measure_edge_match</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">edge</span><span class="p">:</span> <span class="n">_Edge</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">_TableInfo</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Measure how many child rows reference existing parent objects.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        edge (_Edge):</span>
+<span class="sd">            The join edge to measure.</span>
+<span class="sd">        child (_TableInfo):</span>
+<span class="sd">            The referencing (child) table.</span>
+<span class="sd">        parent (_TableInfo):</span>
+<span class="sd">            The referenced (parent) table.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[int, int, int]:</span>
+<span class="sd">            The total child row count, the count of child rows which</span>
+<span class="sd">            reference an existing parent object, and the maximum</span>
+<span class="sd">            number of parent rows a single child row matches (used to</span>
+<span class="sd">            detect ambiguous references which would multiply rows).</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="n">_duckdb_reader</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">conditions</span> <span class="o">=</span> <span class="n">_edge_conditions</span><span class="p">(</span><span class="n">edge</span><span class="o">=</span><span class="n">edge</span><span class="p">,</span> <span class="n">child</span><span class="o">=</span><span class="n">child</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"""</span>
+<span class="s2">        SELECT</span>
+<span class="s2">            COUNT(*) AS total_rows,</span>
+<span class="s2">            COUNT(*) FILTER (</span>
+<span class="s2">                WHERE EXISTS (</span>
+<span class="s2">                    SELECT 1</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">_paths_sql</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> AS "</span><span class="si">{</span><span class="n">parent</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">"</span>
+<span class="s2">                    WHERE </span><span class="si">{</span><span class="s2">" AND "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">                )</span>
+<span class="s2">            ) AS matched_rows,</span>
+<span class="s2">            MAX(</span>
+<span class="s2">                (</span>
+<span class="s2">                    SELECT COUNT(*)</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">_paths_sql</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> AS "</span><span class="si">{</span><span class="n">parent</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">"</span>
+<span class="s2">                    WHERE </span><span class="si">{</span><span class="s2">" AND "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span><span class="si">}</span>
+<span class="s2">                )</span>
+<span class="s2">            ) AS max_parent_matches</span>
+<span class="s2">        FROM </span><span class="si">{</span><span class="n">_paths_sql</span><span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> AS "</span><span class="si">{</span><span class="n">child</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">"</span>
+<span class="s2">    """</span>
+
+    <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_shared_key_pairs">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._shared_key_pairs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_shared_key_pairs</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">left</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">,</span> <span class="n">right</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Gather shared key column pairs (left, right) between two tables.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        left (_TableInfo):</span>
+<span class="sd">            One table of the pair.</span>
+<span class="sd">        right (_TableInfo):</span>
+<span class="sd">            The other table of the pair.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Tuple[str, str]]:</span>
+<span class="sd">            Column name pairs which both tables share.</span>
+<span class="sd">    """</span>
+
+    <span class="n">pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">left</span><span class="o">.</span><span class="n">image_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">right</span><span class="o">.</span><span class="n">image_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">left</span><span class="o">.</span><span class="n">image_key</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">image_key</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">left</span><span class="o">.</span><span class="n">tablenumber_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">right</span><span class="o">.</span><span class="n">tablenumber_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">left</span><span class="o">.</span><span class="n">tablenumber_key</span><span class="p">,</span> <span class="n">right</span><span class="o">.</span><span class="n">tablenumber_key</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">pairs</span></div>
+
+
+
+<div class="viewcode-block" id="_edge_conditions">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._edge_conditions">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_edge_conditions</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">edge</span><span class="p">:</span> <span class="n">_Edge</span><span class="p">,</span> <span class="n">child</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">,</span> <span class="n">parent</span><span class="p">:</span> <span class="n">_TableInfo</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Render the ON conditions for a parent reference join edge.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        edge (_Edge):</span>
+<span class="sd">            The join edge to render conditions for.</span>
+<span class="sd">        child (_TableInfo):</span>
+<span class="sd">            The referencing (child) table.</span>
+<span class="sd">        parent (_TableInfo):</span>
+<span class="sd">            The referenced (parent) table.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[str, ...]:</span>
+<span class="sd">            SQL condition strings relating the two tables.</span>
+<span class="sd">    """</span>
+
+    <span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">child</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"."</span><span class="si">{</span><span class="n">child_column</span><span class="si">}</span><span class="s1">" = "</span><span class="si">{</span><span class="n">parent</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"."</span><span class="si">{</span><span class="n">parent_column</span><span class="si">}</span><span class="s1">"'</span>
+        <span class="k">for</span> <span class="n">child_column</span><span class="p">,</span> <span class="n">parent_column</span> <span class="ow">in</span> <span class="n">_shared_key_pairs</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">child</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">parent</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">child</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"."</span><span class="si">{</span><span class="n">edge</span><span class="o">.</span><span class="n">reference_column</span><span class="si">}</span><span class="s1">" = '</span>
+        <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">parent</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"."</span><span class="si">{</span><span class="n">edge</span><span class="o">.</span><span class="n">parent_key</span><span class="si">}</span><span class="s1">"'</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">conditions</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_select_base_table">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._select_base_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_select_base_table</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">tables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">],</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_Edge</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">_TableInfo</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Select the table to use as the base of the inferred join tree.</span>
+
+<span class="sd">    The compartment with the most parent references is preferred</span>
+<span class="sd">    (canonically the cytoplasm compartment), then cytoplasm-named</span>
+<span class="sd">    tables, then tables with more columns, then alphabetical order.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tables (List[_TableInfo]):</span>
+<span class="sd">            Table information gathered from converted sources.</span>
+<span class="sd">        edges (List[_Edge]):</span>
+<span class="sd">            Validated join edges.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        _TableInfo:</span>
+<span class="sd">            The selected base table.</span>
+<span class="sd">    """</span>
+
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">table</span><span class="o">.</span><span class="n">is_metadata</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">candidates</span><span class="p">:</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">tables</span><span class="p">)</span>
+
+    <span class="n">reference_counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">edges</span><span class="p">:</span>
+        <span class="n">reference_counts</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">]</span> <span class="o">=</span> <span class="n">reference_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">most_references</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">reference_counts</span><span class="o">.</span><span class="n">values</span><span class="p">(),</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">finalists</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">table</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">candidates</span>
+        <span class="k">if</span> <span class="n">reference_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">most_references</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">finalists</span><span class="p">,</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">table</span><span class="p">:</span> <span class="p">(</span>
+            <span class="mi">0</span> <span class="k">if</span> <span class="s2">"cytoplasm"</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">alias</span> <span class="ow">or</span> <span class="n">table</span><span class="o">.</span><span class="n">compartment</span> <span class="o">==</span> <span class="s2">"cytoplasm"</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="_build_join_tree">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._build_join_tree">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_build_join_tree</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">,</span> <span class="n">tables</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_TableInfo</span><span class="p">],</span> <span class="n">edges</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_Edge</span><span class="p">]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">_JoinStep</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Build a spanning left-join tree which joins every table exactly once.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base (_TableInfo):</span>
+<span class="sd">            The base table to join from.</span>
+<span class="sd">        tables (List[_TableInfo]):</span>
+<span class="sd">            All table information.</span>
+<span class="sd">        edges (List[_Edge]):</span>
+<span class="sd">            Validated join edges.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[_JoinStep]:</span>
+<span class="sd">            Ordered join steps describing each LEFT JOIN.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when one or more tables cannot be joined to the tree.</span>
+<span class="sd">    """</span>
+
+    <span class="n">table_by_alias</span> <span class="o">=</span> <span class="p">{</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">:</span> <span class="n">table</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">}</span>
+    <span class="n">joined</span> <span class="o">=</span> <span class="p">{</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="p">}</span>
+    <span class="n">steps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_JoinStep</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">remaining</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">child</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">parent</span><span class="p">))</span>
+
+    <span class="c1"># attach tables reachable through parent reference edges</span>
+    <span class="n">progress</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">while</span> <span class="n">remaining</span> <span class="ow">and</span> <span class="n">progress</span><span class="p">:</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">remaining</span><span class="p">):</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">edge</span><span class="o">.</span><span class="n">child</span> <span class="ow">in</span> <span class="n">joined</span> <span class="ow">and</span> <span class="n">edge</span><span class="o">.</span><span class="n">parent</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">joined</span><span class="p">:</span>
+                <span class="c1"># joining the referenced parent table from the child</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="n">table_by_alias</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">edge</span><span class="o">.</span><span class="n">parent</span> <span class="ow">in</span> <span class="n">joined</span> <span class="ow">and</span> <span class="n">edge</span><span class="o">.</span><span class="n">child</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">joined</span><span class="p">:</span>
+                <span class="c1"># joining the referencing child table from the parent</span>
+                <span class="n">table</span> <span class="o">=</span> <span class="n">table_by_alias</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">table</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">_JoinStep</span><span class="p">(</span>
+                    <span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="p">,</span>
+                    <span class="n">conditions</span><span class="o">=</span><span class="n">_edge_conditions</span><span class="p">(</span>
+                        <span class="n">edge</span><span class="o">=</span><span class="n">edge</span><span class="p">,</span>
+                        <span class="n">child</span><span class="o">=</span><span class="n">table_by_alias</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">child</span><span class="p">],</span>
+                        <span class="n">parent</span><span class="o">=</span><span class="n">table_by_alias</span><span class="p">[</span><span class="n">edge</span><span class="o">.</span><span class="n">parent</span><span class="p">],</span>
+                    <span class="p">),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">joined</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">)</span>
+            <span class="n">remaining</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+            <span class="n">progress</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">break</span>
+
+    <span class="c1"># attach metadata tables to the base table through shared keys;</span>
+    <span class="c1"># compartment tables must be joined through a validated parent</span>
+    <span class="c1"># reference edge above (object-level relationship) and are never</span>
+    <span class="c1"># attached by shared image/table keys alone, since that would</span>
+    <span class="c1"># cross-join every object pair sharing an image (see</span>
+    <span class="c1"># cytomining/CytoTable#522 review discussion)</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">alias</span> <span class="ow">in</span> <span class="n">joined</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">table</span><span class="o">.</span><span class="n">is_metadata</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">pairs</span> <span class="o">=</span> <span class="n">_shared_key_pairs</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">base</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pairs</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"."</span><span class="si">{</span><span class="n">table_column</span><span class="si">}</span><span class="s1">" = '</span> <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"."</span><span class="si">{</span><span class="n">base_column</span><span class="si">}</span><span class="s1">"'</span>
+            <span class="k">for</span> <span class="n">base_column</span><span class="p">,</span> <span class="n">table_column</span> <span class="ow">in</span> <span class="n">pairs</span>
+        <span class="p">]</span>
+        <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_JoinStep</span><span class="p">(</span><span class="n">table</span><span class="o">=</span><span class="n">table</span><span class="p">,</span> <span class="n">conditions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">conditions</span><span class="p">)))</span>
+        <span class="n">joined</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="p">)</span>
+
+    <span class="n">unjoined</span> <span class="o">=</span> <span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">tables</span> <span class="k">if</span> <span class="n">table</span><span class="o">.</span><span class="n">alias</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">joined</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">unjoined</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+            <span class="s2">"Unable to infer a join for table(s): "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">unjoined</span><span class="p">))</span><span class="si">}</span><span class="s2">. No compartment parent "</span>
+            <span class="s2">"reference or shared key relationship with the other tables "</span>
+            <span class="s2">"was detected and validated against the data. Please provide "</span>
+            <span class="s2">"join SQL manually through the 'joins' parameter."</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">steps</span></div>
+
+
+
+<div class="viewcode-block" id="_render_join_sql">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._render_join_sql">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_render_join_sql</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_JoinStep</span><span class="p">],</span> <span class="n">page_key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Render the inferred join SQL and its suggested pagination key.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base (_TableInfo):</span>
+<span class="sd">            The base table to join from.</span>
+<span class="sd">        steps (List[_JoinStep]):</span>
+<span class="sd">            Ordered join steps describing each LEFT JOIN.</span>
+<span class="sd">        page_key (Optional[str]):</span>
+<span class="sd">            Explicit join pagination key, if provided by the caller.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[str, str]:</span>
+<span class="sd">            The rendered SQL (with parquet read placeholders) and the</span>
+<span class="sd">            suggested join pagination key column name.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when no pagination key column can be determined.</span>
+<span class="sd">    """</span>
+
+    <span class="c1"># track columns already selected so duplicate column names from</span>
+    <span class="c1"># joined tables are excluded (mirroring the join presets)</span>
+    <span class="n">seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+    <span class="n">select_parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">".*'</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
+        <span class="n">excluded</span> <span class="o">=</span> <span class="p">[</span><span class="n">column</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">step</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">seen</span><span class="p">]</span>
+        <span class="n">select_part</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">step</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">".*'</span>
+        <span class="k">if</span> <span class="n">excluded</span><span class="p">:</span>
+            <span class="n">select_part</span> <span class="o">+=</span> <span class="s2">" EXCLUDE (</span><span class="si">{}</span><span class="s2">)"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">'"</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s1">"'</span> <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">excluded</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="n">select_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">select_part</span><span class="p">)</span>
+        <span class="n">seen</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+
+    <span class="n">from_parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"read_parquet('</span><span class="si">{</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">.parquet') AS </span><span class="se">\"</span><span class="si">{</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="se">\"</span><span class="s2">"</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
+        <span class="n">from_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"LEFT JOIN read_parquet('</span><span class="si">{</span><span class="n">step</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">.parquet') "</span>
+            <span class="sa">f</span><span class="s1">'AS "</span><span class="si">{</span><span class="n">step</span><span class="o">.</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s1">"</span><span class="se">\n</span><span class="s1">    ON </span><span class="si">{</span><span class="s2">" AND "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">conditions</span><span class="p">)</span><span class="si">}</span><span class="s1">'</span>
+        <span class="p">)</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">"SELECT</span><span class="se">\n</span><span class="s2">    "</span>
+        <span class="o">+</span> <span class="s2">",</span><span class="se">\n</span><span class="s2">    "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">select_parts</span><span class="p">)</span>
+        <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">FROM "</span>
+        <span class="o">+</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">from_parts</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Null or non-finite keys would lose rows or fail while building ranges.</span>
+    <span class="c1"># Inspect all converted files, preserving an explicit caller override.</span>
+    <span class="k">if</span> <span class="n">page_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+            <span class="n">_duckdb_reader</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">objectnumber_key</span><span class="p">,</span> <span class="n">base</span><span class="o">.</span><span class="n">image_key</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">candidate</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">candidate</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">base</span><span class="o">.</span><span class="n">numeric_columns</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">invalid</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"SELECT 1 FROM </span><span class="si">{</span><span class="n">_paths_sql</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
+                    <span class="sa">f</span><span class="s2">"WHERE </span><span class="si">{</span><span class="n">_invalid_page_key_condition</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span><span class="si">}</span><span class="s2"> LIMIT 1"</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">invalid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">page_key</span> <span class="o">=</span> <span class="n">candidate</span>
+                    <span class="k">break</span>
+    <span class="k">if</span> <span class="n">page_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Unable to determine a join pagination key for base table "</span>
+            <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">base</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">': no null-free, finite numeric object number or image "</span>
+            <span class="s2">"number column was detected. Please provide a join pagination "</span>
+            <span class="s2">"key through 'page_keys' or join SQL through 'joins'."</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">page_key</span></div>
+
+
+
+<div class="viewcode-block" id="_invalid_page_key_condition">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._invalid_page_key_condition">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_invalid_page_key_condition</span><span class="p">(</span><span class="n">column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Build the SQL predicate for unusable numeric pagination values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        column (str):</span>
+<span class="sd">            Numeric pagination column name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str:</span>
+<span class="sd">            A predicate matching nulls, NaN, and positive or negative infinity.</span>
+<span class="sd">    """</span>
+    <span class="n">identifier</span> <span class="o">=</span> <span class="s1">'"'</span> <span class="o">+</span> <span class="n">column</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'"'</span><span class="p">,</span> <span class="s1">'""'</span><span class="p">)</span> <span class="o">+</span> <span class="s1">'"'</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">identifier</span><span class="si">}</span><span class="s2"> IS NULL OR NOT isfinite(</span><span class="si">{</span><span class="n">identifier</span><span class="si">}</span><span class="s2">)"</span></div>
+
+
+
+<div class="viewcode-block" id="_sql_string_literal">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._sql_string_literal">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_sql_string_literal</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Render a value as a DuckDB SQL string literal, escaping apostrophes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (str):</span>
+<span class="sd">            The value to render.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str:</span>
+<span class="sd">            A quoted SQL string literal, with embedded apostrophes</span>
+<span class="sd">            doubled so DuckDB does not misread them as closing the</span>
+<span class="sd">            literal (which would otherwise be parsed as an identifier).</span>
+<span class="sd">    """</span>
+
+    <span class="k">return</span> <span class="s2">"'"</span> <span class="o">+</span> <span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"'"</span><span class="p">,</span> <span class="s2">"''"</span><span class="p">)</span> <span class="o">+</span> <span class="s2">"'"</span></div>
+
+
+
+<div class="viewcode-block" id="_paths_sql">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._paths_sql">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_paths_sql</span><span class="p">(</span><span class="n">paths</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Render a read_parquet source for one or more parquet paths.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        paths (Tuple[str, ...]):</span>
+<span class="sd">            Parquet filepaths to read.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str:</span>
+<span class="sd">            DuckDB read_parquet expression for the paths.</span>
+<span class="sd">    """</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"read_parquet(</span><span class="si">{</span><span class="n">_sql_string_literal</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="k">return</span> <span class="s2">"read_parquet([</span><span class="si">{}</span><span class="s2">])"</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_sql_string_literal</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_validate_rendered_sql">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._validate_rendered_sql">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_validate_rendered_sql</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">base</span><span class="p">:</span> <span class="n">_TableInfo</span><span class="p">,</span> <span class="n">steps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">_JoinStep</span><span class="p">],</span> <span class="n">sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">page_key</span><span class="p">:</span> <span class="nb">str</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Validate the rendered SQL by binding and counting joined rows.</span>
+
+<span class="sd">    Substitute real paths, bind without materializing rows, validate pagination</span>
+<span class="sd">    values in the joined result, and compare row counts to warn about fan-out.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        base (_TableInfo):</span>
+<span class="sd">            The base table of the join.</span>
+<span class="sd">        steps (List[_JoinStep]):</span>
+<span class="sd">            Ordered join steps of the join.</span>
+<span class="sd">        sql (str):</span>
+<span class="sd">            The rendered SQL with parquet read placeholders.</span>
+<span class="sd">        page_key (str):</span>
+<span class="sd">            Explicit or inferred pagination column in the joined result.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when the SQL fails to bind or execute against the</span>
+<span class="sd">            data, when pagination values are null or non-finite, or when the</span>
+<span class="sd">            joined result has fewer rows than the base table.</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="n">_duckdb_reader</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">rendered</span> <span class="o">=</span> <span class="n">sql</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="p">[</span><span class="n">base</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">step</span><span class="o">.</span><span class="n">table</span> <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]:</span>
+        <span class="n">rendered</span> <span class="o">=</span> <span class="n">rendered</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"read_parquet('</span><span class="si">{</span><span class="n">table</span><span class="o">.</span><span class="n">alias</span><span class="si">}</span><span class="s2">.parquet')"</span><span class="p">,</span>
+            <span class="n">_paths_sql</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">paths</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># bind the statement without materializing results</span>
+            <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"EXPLAIN </span><span class="si">{</span><span class="n">rendered</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="n">base_rows</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"SELECT COUNT(*) FROM </span><span class="si">{</span><span class="n">_paths_sql</span><span class="p">(</span><span class="n">base</span><span class="o">.</span><span class="n">paths</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+                <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,)</span>
+            <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">joined_rows</span><span class="p">,</span> <span class="n">invalid_keys</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s2">"SELECT COUNT(*), COUNT(*) FILTER (WHERE "</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_invalid_page_key_condition</span><span class="p">(</span><span class="n">page_key</span><span class="p">)</span><span class="si">}</span><span class="s2">) FROM (</span><span class="si">{</span><span class="n">rendered</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-exception-caught</span>
+            <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                <span class="s2">"Inferred join SQL failed validation against the source "</span>
+                <span class="sa">f</span><span class="s2">"data: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">. Please provide join SQL manually through "</span>
+                <span class="s2">"the 'joins' parameter."</span>
+            <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="k">if</span> <span class="n">invalid_keys</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Join pagination key '</span><span class="si">{</span><span class="n">page_key</span><span class="si">}</span><span class="s2">' must contain only non-null, "</span>
+            <span class="s2">"finite numeric values in the joined result. Choose another "</span>
+            <span class="s2">"column through 'page_keys'."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">joined_rows</span> <span class="o">&lt;</span> <span class="n">base_rows</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Inferred join produced </span><span class="si">{</span><span class="n">joined_rows</span><span class="si">}</span><span class="s2"> rows from a base table "</span>
+            <span class="sa">f</span><span class="s2">"with </span><span class="si">{</span><span class="n">base_rows</span><span class="si">}</span><span class="s2"> rows, which left joins cannot do. Please "</span>
+            <span class="s2">"provide join SQL manually through the 'joins' parameter."</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">joined_rows</span> <span class="o">&gt;</span> <span class="n">base_rows</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s2">"Inferred join produces </span><span class="si">%d</span><span class="s2"> rows from a base table with </span><span class="si">%d</span><span class="s2"> "</span>
+            <span class="s2">"rows: joined tables contain duplicated key values which "</span>
+            <span class="s2">"multiply rows. Verify whether this is expected."</span><span class="p">,</span>
+            <span class="n">joined_rows</span><span class="p">,</span>
+            <span class="n">base_rows</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_default_identifying_columns">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._default_identifying_columns">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_default_identifying_columns</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span> <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Build default identifying columns for join SQL inference runs.</span>
+
+<span class="sd">    Preserve canonical keys and parent references during column renaming.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        compartments (Optional[Sequence[str]]):</span>
+<span class="sd">            Compartment source table names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[str, ...]:</span>
+<span class="sd">            Default identifying column names.</span>
+<span class="sd">    """</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"ImageNumber"</span><span class="p">,</span> <span class="s2">"ObjectNumber"</span><span class="p">,</span> <span class="s2">"TableNumber"</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">compartments</span> <span class="ow">or</span> <span class="p">():</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Parent_</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_infer_source_page_keys">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._infer_source_page_keys">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_infer_source_page_keys</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]],</span>
+    <span class="n">page_keys</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Infer pagination keys for source table groups which lack one.</span>
+
+<span class="sd">    Preserve explicit keys. For each remaining group, select a key</span>
+<span class="sd">    which is numeric, finite, and free of null values across every source file</span>
+<span class="sd">    in the group, preferring object, image, and table numbers, then</span>
+<span class="sd">    any other common numeric column.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources (Dict[str, List[Dict[str, Any]]]):</span>
+<span class="sd">            Grouped sources gathered for conversion work.</span>
+<span class="sd">        page_keys (Dict[str, str]):</span>
+<span class="sd">            User-provided pagination keys, if any.</span>
+<span class="sd">        compartments (Optional[Sequence[str]]):</span>
+<span class="sd">            Compartment source table names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, str]:</span>
+<span class="sd">            Updated pagination keys including inferred entries.</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="n">_resolve_source_page_keys</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">updated</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">page_keys</span> <span class="ow">or</span> <span class="p">{})</span>
+    <span class="n">resolved</span> <span class="o">=</span> <span class="n">_resolve_source_page_keys</span><span class="p">(</span>
+        <span class="n">source_group_names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">sources</span><span class="p">),</span> <span class="n">page_keys</span><span class="o">=</span><span class="n">updated</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">source_group_vals</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># skip groups already covered by an unambiguous explicit key</span>
+        <span class="k">if</span> <span class="n">group_name</span> <span class="ow">in</span> <span class="n">resolved</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="c1"># skip npz sources, which use the passthrough pagination case</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".npz"</span>
+            <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">source_group_vals</span>
+        <span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">page_key</span> <span class="o">=</span> <span class="n">_detect_source_page_key</span><span class="p">(</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">source_group_vals</span><span class="p">,</span>
+            <span class="n">group_name</span><span class="o">=</span><span class="n">group_name</span><span class="p">,</span>
+            <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">updated</span><span class="p">[</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">page_key</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s2">"Inferred pagination key '</span><span class="si">%s</span><span class="s2">' for source group '</span><span class="si">%s</span><span class="s2">'."</span><span class="p">,</span>
+            <span class="n">page_key</span><span class="p">,</span>
+            <span class="n">group_name</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">updated</span></div>
+
+
+
+<div class="viewcode-block" id="_raw_source_select_sql">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._raw_source_select_sql">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_raw_source_select_sql</span><span class="p">(</span><span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Render a DuckDB FROM-clause source for a raw (unconverted) source.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        source (Dict[str, Any]):</span>
+<span class="sd">            A source table entry with a ``source_path`` and, for</span>
+<span class="sd">            SQLite sources, a ``table_name``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str:</span>
+<span class="sd">            A DuckDB table function expression reading the source.</span>
+<span class="sd">    """</span>
+
+    <span class="n">source_path</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".csv"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"read_csv_auto(</span><span class="si">{</span><span class="n">_sql_string_literal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="p">))</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"sqlite_scan(</span><span class="si">{</span><span class="n">_sql_string_literal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">source_path</span><span class="p">))</span><span class="si">}</span><span class="s2">, "</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">_sql_string_literal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s1">'table_name'</span><span class="p">]))</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="_column_has_invalid_values">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._column_has_invalid_values">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_column_has_invalid_values</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">column</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Check whether a pagination column contains null or non-finite values.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources (List[Dict[str, Any]]):</span>
+<span class="sd">            Raw source table entries to check.</span>
+<span class="sd">        column (str):</span>
+<span class="sd">            The numeric column name to validate for pagination.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool:</span>
+<span class="sd">            True if the column contains a null or non-finite value in any source,</span>
+<span class="sd">            or if the column could not be queried (treated as unsafe</span>
+<span class="sd">            to use for pagination rather than silently dropping rows).</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="n">_duckdb_reader</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"SELECT 1 FROM </span><span class="si">{</span><span class="n">_raw_source_select_sql</span><span class="p">(</span><span class="n">source</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
+            <span class="sa">f</span><span class="s2">"WHERE </span><span class="si">{</span><span class="n">_invalid_page_key_condition</span><span class="p">(</span><span class="n">column</span><span class="p">)</span><span class="si">}</span><span class="s2"> LIMIT 1"</span>
+        <span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">query</span><span class="p">)</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-exception-caught</span>
+            <span class="c1"># treat an unqueryable column as unsafe rather than assuming</span>
+            <span class="c1"># it is null-free</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">"Could not validate pagination column '</span><span class="si">%s</span><span class="s2">' in source '</span><span class="si">%s</span><span class="s2">'."</span><span class="p">,</span>
+                <span class="n">column</span><span class="p">,</span>
+                <span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">],</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="_detect_source_page_key">
+<a class="viewcode-back" href="../../python-api.html#cytotable.joins._detect_source_page_key">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">_detect_source_page_key</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">group_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">compartments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Detect a finite, numeric, null-free pagination key for a source group.</span>
+
+<span class="sd">    The key must be present, numeric, finite, and free of null values in</span>
+<span class="sd">    every source file within the group: keyset pagination filters rows</span>
+<span class="sd">    with ``WHERE page_key BETWEEN ...``, which silently excludes rows</span>
+<span class="sd">    with a null key, and a column present in only some files would</span>
+<span class="sd">    fail to query for the others.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sources (List[Dict[str, Any]]):</span>
+<span class="sd">            All source table entries within the group to detect a key</span>
+<span class="sd">            for.</span>
+<span class="sd">        group_name (str):</span>
+<span class="sd">            The source group name the sources belong to.</span>
+<span class="sd">        compartments (Optional[Sequence[str]]):</span>
+<span class="sd">            Compartment source table names.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str:</span>
+<span class="sd">            The detected pagination key column name.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        CytoTableException:</span>
+<span class="sd">            Raised when no finite, numeric, null-free pagination key column</span>
+<span class="sd">            common to every source file can be detected for the group.</span>
+<span class="sd">    """</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.convert</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+        <span class="n">_get_table_columns_and_types</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># gather per-source numeric columns, then intersect so only</span>
+    <span class="c1"># columns present (and numeric) in every file remain eligible</span>
+    <span class="n">common_lowered</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">common_numeric</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sources</span><span class="p">):</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="n">_get_table_columns_and_types</span><span class="p">(</span>
+            <span class="n">source</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">source</span><span class="p">),</span> <span class="n">sort_output</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">columns</span> <span class="ow">or</span> <span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"Unable to infer a pagination key for source group "</span>
+                <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">': the source table could not be "</span>
+                <span class="s2">"inspected. Please provide pagination keys through "</span>
+                <span class="s2">"the 'page_keys' parameter."</span>
+            <span class="p">)</span>
+        <span class="n">lowered</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">}</span>
+        <span class="n">dtypes</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_name"</span><span class="p">])</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">[</span><span class="s2">"column_dtype"</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">}</span>
+        <span class="n">numeric</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">name</span>
+            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">dtypes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">token</span> <span class="ow">in</span> <span class="n">dtype</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">_NUMERIC_TYPE_TOKENS</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">common_lowered</span><span class="p">,</span> <span class="n">common_numeric</span> <span class="o">=</span> <span class="n">lowered</span><span class="p">,</span> <span class="n">numeric</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">common_lowered</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">name</span><span class="p">:</span> <span class="n">original</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">original</span> <span class="ow">in</span> <span class="n">common_lowered</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">lowered</span>
+            <span class="p">}</span>
+            <span class="n">common_numeric</span> <span class="o">&amp;=</span> <span class="n">numeric</span>
+
+    <span class="n">compartment</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_classify_group</span><span class="p">(</span>
+        <span class="n">stem</span><span class="o">=</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">group_name</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="c1"># compartment-prefixed object number, for ex.</span>
+        <span class="c1"># "Cells_Number_Object_Number"</span>
+        <span class="p">(</span>
+            <span class="p">(),</span>
+            <span class="p">(</span>
+                <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+                    <span class="n">_COMPARTMENT_OBJECTNUMBER_TEMPLATE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">compartment</span><span class="o">=</span><span class="n">compartment</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">compartment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">),</span>
+        <span class="p">),</span>
+        <span class="c1"># generic object number names, for ex. "ObjectNumber"</span>
+        <span class="p">(</span><span class="n">_OBJECTNUMBER_NAMES</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="c1"># image and table number keys</span>
+        <span class="p">(</span><span class="n">_IMAGE_KEY_NAMES</span><span class="p">,</span> <span class="n">_STEM_IMAGE_KEY_REGEX</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">_TABLENUMBER_KEY_NAMES</span><span class="p">,</span> <span class="n">_STEM_TABLENUMBER_REGEX</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">tried</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">exact_names</span><span class="p">,</span> <span class="n">regex</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+        <span class="n">page_key</span> <span class="o">=</span> <span class="n">_pick_column</span><span class="p">(</span>
+            <span class="n">lowered</span><span class="o">=</span><span class="n">common_lowered</span><span class="p">,</span>
+            <span class="n">exact_names</span><span class="o">=</span><span class="n">exact_names</span><span class="p">,</span>
+            <span class="n">regex</span><span class="o">=</span><span class="n">regex</span><span class="p">,</span>
+            <span class="n">allowed</span><span class="o">=</span><span class="n">common_numeric</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">page_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">tried</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">page_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_column_has_invalid_values</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">page_key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">page_key</span>
+
+    <span class="c1"># fall back to any other common numeric column</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">common_numeric</span><span class="p">):</span>
+        <span class="n">page_key</span> <span class="o">=</span> <span class="n">common_lowered</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">page_key</span> <span class="ow">in</span> <span class="n">tried</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">tried</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">page_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_column_has_invalid_values</span><span class="p">(</span><span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">page_key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">page_key</span>
+
+    <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+        <span class="sa">f</span><span class="s2">"Unable to infer a pagination key for source group "</span>
+        <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">group_name</span><span class="si">}</span><span class="s2">': no finite numeric column free of null values and "</span>
+        <span class="s2">"common to every source file in the group was detected "</span>
+        <span class="sa">f</span><span class="s2">"(considered: </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tried</span><span class="p">)</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">tried</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'none'</span><span class="si">}</span><span class="s2">). Please "</span>
+        <span class="s2">"provide pagination keys through the 'page_keys' parameter."</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">CytoTable</a></h1>
+
+
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=cytomining&repo=CytoTable&type=star&count=false&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../presentations.html">Presentations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../contributing.html">Contributing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../python-api.html">Python API</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2022, Cytomining Community.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

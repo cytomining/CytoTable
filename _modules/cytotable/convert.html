@@ -405,6 +405,7 @@ window.runMermaid = runMermaid;</script>
 <span class="kn">from</span><span class="w"> </span><span class="nn">parsl.app.app</span><span class="w"> </span><span class="kn">import</span> <span class="n">python_app</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">CytoTableException</span><span class="p">,</span> <span class="n">DatatypeException</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_infer_joins_sentinel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.presets</span><span class="w"> </span><span class="kn">import</span> <span class="n">config</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">_gather_sources</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -413,6 +414,7 @@ window.runMermaid = runMermaid;</script>
     <span class="n">_expand_path</span><span class="p">,</span>
     <span class="n">_parsl_loaded</span><span class="p">,</span>
     <span class="n">_remove_empty_dirs</span><span class="p">,</span>
+    <span class="n">_resolve_source_page_keys</span><span class="p">,</span>
     <span class="n">evaluate_futures</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.validation</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_convert_backend_options</span>
@@ -519,9 +521,11 @@ window.runMermaid = runMermaid;</script>
             <span class="n">arrow_data_tbl</span> <span class="o">=</span> <span class="n">_sqlite_mixed_type_query_to_parquet</span><span class="p">(</span>
                 <span class="n">source_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"source_path"</span><span class="p">]),</span>
                 <span class="n">table_name</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">source</span><span class="p">[</span><span class="s2">"table_name"</span><span class="p">]),</span>
-                <span class="n">page_key</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"page_key"</span><span class="p">],</span>
-                <span class="n">pageset</span><span class="o">=</span><span class="n">source</span><span class="p">[</span><span class="s2">"pagesets"</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
+                <span class="c1"># Schema discovery can run before pagination is inferred.</span>
+                <span class="n">page_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">pageset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                 <span class="n">sort_output</span><span class="o">=</span><span class="n">sort_output</span><span class="p">,</span>
+                <span class="n">limit</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
                 <span class="k">return</span> <span class="p">(</span>
@@ -1371,6 +1375,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">    """</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
 
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="n">_sql_string_literal</span>
+
     <span class="c1"># replace with real location of sources for join sql</span>
     <span class="n">order_by_tables</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1378,7 +1384,11 @@ window.runMermaid = runMermaid;</script>
             <span class="n">table_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
             <span class="n">joins</span> <span class="o">=</span> <span class="n">joins</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">table_name</span><span class="si">}</span><span class="s2">.parquet'"</span><span class="p">,</span>
-                <span class="nb">str</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">)</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"table"</span><span class="p">]]),</span>
+                <span class="s2">"["</span>
+                <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="n">_sql_string_literal</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">table</span><span class="p">))</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">"table"</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="o">+</span> <span class="s2">"]"</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">order_by_tables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table_name</span><span class="p">)</span>
 
@@ -1516,6 +1526,7 @@ window.runMermaid = runMermaid;</script>
         <span class="n">CYTOTABLE_ARROW_USE_MEMORY_MAPPING</span><span class="p">,</span>
         <span class="n">CYTOTABLE_DEFAULT_PARQUET_METADATA</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="n">_sql_string_literal</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
         <span class="n">_duckdb_reader</span><span class="p">,</span>
         <span class="n">_natural_sort</span><span class="p">,</span>
@@ -1565,23 +1576,20 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># (anndata is not compatible with arrow directly,</span>
         <span class="c1"># see: https://github.com/scverse/anndata/issues/2078)</span>
         <span class="k">with</span> <span class="n">_duckdb_reader</span><span class="p">()</span> <span class="k">as</span> <span class="n">ddb_reader</span><span class="p">:</span>
-            <span class="n">all_files</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="s2">"'"</span>
-                <span class="o">+</span> <span class="s2">"','"</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">all_files</span> <span class="o">=</span> <span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="n">_sql_string_literal</span><span class="p">(</span><span class="n">table_path</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">table_path</span> <span class="ow">in</span> <span class="p">(</span>
                     <span class="n">join_sources</span>
                     <span class="k">if</span> <span class="ow">not</span> <span class="n">sort_output</span>
                     <span class="k">else</span> <span class="n">_natural_sort</span><span class="p">(</span><span class="n">list_to_sort</span><span class="o">=</span><span class="n">join_sources</span><span class="p">)</span>
                 <span class="p">)</span>
-                <span class="o">+</span> <span class="s2">"'"</span>
             <span class="p">)</span>
-            <span class="n">df_numeric</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
-<span class="s2">                SELECT </span><span class="si">{</span><span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">numeric_colnames</span><span class="p">)</span><span class="si">}</span>
-<span class="s2">                FROM read_parquet([</span><span class="si">{</span><span class="n">all_files</span><span class="si">}</span><span class="s2">])</span>
-<span class="s2">                """</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
-            <span class="n">df_nonnumeric</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">"""</span>
-<span class="s2">                SELECT </span><span class="si">{</span><span class="s2">","</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nonnumeric_colnames</span><span class="p">)</span><span class="si">}</span>
-<span class="s2">                FROM read_parquet([</span><span class="si">{</span><span class="n">all_files</span><span class="si">}</span><span class="s2">])</span>
-<span class="s2">                """</span><span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+            <span class="c1"># Read once so matrix rows and observation labels stay paired.</span>
+            <span class="n">joined_data</span> <span class="o">=</span> <span class="n">ddb_reader</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"SELECT * FROM read_parquet([</span><span class="si">{</span><span class="n">all_files</span><span class="si">}</span><span class="s2">])"</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">df</span><span class="p">()</span>
+            <span class="n">df_numeric</span> <span class="o">=</span> <span class="n">joined_data</span><span class="p">[</span><span class="n">numeric_colnames</span><span class="p">]</span>
+            <span class="n">df_nonnumeric</span> <span class="o">=</span> <span class="n">joined_data</span><span class="p">[</span><span class="n">nonnumeric_colnames</span><span class="p">]</span>
 
         <span class="c1"># create the anndata object with numeric features</span>
         <span class="n">adata</span> <span class="o">=</span> <span class="n">ad</span><span class="o">.</span><span class="n">AnnData</span><span class="p">(</span><span class="n">X</span><span class="o">=</span><span class="n">df_numeric</span><span class="p">)</span>
@@ -1758,6 +1766,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Whether to join the compartment data together into one dataset.</span>
 <span class="sd">        joins (Optional[str]):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
+<span class="sd">            Use ``"infer"`` to generate the join SQL automatically by inspecting</span>
+<span class="sd">            the source table schemas and data (join SQL inference).</span>
 <span class="sd">        chunk_size (Optional[int]):</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
 <span class="sd">        infer_common_schema (bool):</span>
@@ -1810,15 +1820,31 @@ window.runMermaid = runMermaid;</script>
     <span class="c1"># expand the destination path</span>
     <span class="n">expanded_dest_path</span> <span class="o">=</span> <span class="n">_expand_path</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">dest_path</span><span class="p">)</span>
 
-    <span class="c1"># check that each source group name has a pagination key</span>
+    <span class="c1"># when join SQL will be inferred, infer pagination keys for any</span>
+    <span class="c1"># source groups which lack one (see cytomining/CytoTable#522)</span>
+    <span class="k">if</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+            <span class="n">_infer_source_page_keys</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">page_keys</span> <span class="o">=</span> <span class="n">_infer_source_page_keys</span><span class="p">(</span>
+            <span class="n">sources</span><span class="o">=</span><span class="n">sources</span><span class="p">,</span>
+            <span class="n">page_keys</span><span class="o">=</span><span class="n">page_keys</span><span class="p">,</span>
+            <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Resolve once for both validation and export; exact groups cannot be</span>
+    <span class="c1"># masked by shorter keys such as 'cells' for 'cells_summary'.</span>
+    <span class="n">source_page_keys</span> <span class="o">=</span> <span class="n">_resolve_source_page_keys</span><span class="p">(</span>
+        <span class="n">source_group_names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">sources</span><span class="p">),</span> <span class="n">page_keys</span><span class="o">=</span><span class="n">page_keys</span>
+    <span class="p">)</span>
     <span class="k">for</span> <span class="n">source_group_name</span> <span class="ow">in</span> <span class="n">sources</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-        <span class="n">matching_keys</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">source_group_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-        <span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">matching_keys</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="o">!=</span> <span class="s2">"npz"</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">source_group_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">source_page_keys</span> <span class="ow">and</span> <span class="n">source_datatype</span> <span class="o">!=</span> <span class="s2">"npz"</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">"No matching key found in page_keys for source_group_name: </span><span class="si">{</span><span class="n">source_group_name</span><span class="si">}</span><span class="s2">. "</span>
-                <span class="s2">"Please include a pagination key based on a column name from the table."</span>
+                <span class="s2">"Please include a pagination key based on a column name from the table. "</span>
+                <span class="s2">"Alternatively, set joins='infer' to have CytoTable infer pagination "</span>
+                <span class="s2">"keys from the source data."</span>
             <span class="p">)</span>
 
     <span class="c1"># prepare pagesets for chunked data export from source tables</span>
@@ -1828,15 +1854,9 @@ window.runMermaid = runMermaid;</script>
                 <span class="n">source</span><span class="p">,</span>
                 <span class="o">**</span><span class="p">{</span>
                     <span class="s2">"page_key"</span><span class="p">:</span> <span class="p">(</span>
-                        <span class="n">page_key</span> <span class="o">:=</span> <span class="nb">next</span><span class="p">(</span>
-                            <span class="p">(</span>
-                                <span class="n">value</span>
-                                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                                <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">source_group_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-                            <span class="p">),</span>
-                            <span class="c1"># Placeholder value if no match is found</span>
-                            <span class="c1"># used in cases for .npz source types.</span>
-                            <span class="s2">"placeholder"</span><span class="p">,</span>
+                        <span class="c1"># NPZ sources use the passthrough pagination case.</span>
+                        <span class="n">page_key</span> <span class="o">:=</span> <span class="n">source_page_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                            <span class="n">source_group_name</span><span class="p">,</span> <span class="s2">"placeholder"</span>
                         <span class="p">)</span>
                     <span class="p">),</span>
                     <span class="s2">"pagesets"</span><span class="p">:</span> <span class="n">_get_table_keyset_pagination_sets</span><span class="p">(</span>
@@ -1989,6 +2009,43 @@ window.runMermaid = runMermaid;</script>
     <span class="k">if</span> <span class="n">join</span><span class="p">:</span>
         <span class="c1"># evaluate the results as they're used multiple times below</span>
         <span class="n">evaluated_results</span> <span class="o">=</span> <span class="n">evaluate_futures</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+
+        <span class="c1"># infer join SQL from the converted source tables when</span>
+        <span class="c1"># the inference sentinel was provided (see cytomining/CytoTable#522)</span>
+        <span class="k">if</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+                <span class="n">infer_join_sql</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">inferred_join</span> <span class="o">=</span> <span class="n">infer_join_sql</span><span class="p">(</span>
+                <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+                <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span><span class="p">,</span>
+                <span class="n">page_key</span><span class="o">=</span><span class="n">page_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"join"</span><span class="p">)</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">"Inferred join SQL from source table data (base table: "</span>
+                <span class="s2">"'</span><span class="si">%s</span><span class="s2">', joined tables: </span><span class="si">%s</span><span class="s2">)."</span><span class="p">,</span>
+                <span class="n">inferred_join</span><span class="o">.</span><span class="n">base_table</span><span class="p">,</span>
+                <span class="p">[</span><span class="n">parent</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">inferred_join</span><span class="o">.</span><span class="n">edges</span><span class="p">],</span>
+            <span class="p">)</span>
+            <span class="c1"># use the inferred join SQL and, when no join pagination</span>
+            <span class="c1"># key was provided, the inferred pagination key</span>
+            <span class="n">joins</span> <span class="o">=</span> <span class="n">inferred_join</span><span class="o">.</span><span class="n">sql</span>
+            <span class="n">page_keys</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="o">**</span><span class="n">page_keys</span><span class="p">,</span>
+                <span class="s2">"join"</span><span class="p">:</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"join"</span><span class="p">)</span> <span class="ow">or</span> <span class="n">inferred_join</span><span class="o">.</span><span class="n">page_key</span><span class="p">,</span>
+            <span class="p">}</span>
+
+        <span class="c1"># when no join SQL was provided and inference was not requested,</span>
+        <span class="c1"># we cannot proceed with the join work</span>
+        <span class="k">if</span> <span class="n">joins</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
+                <span class="s2">"No join SQL was provided for the join work. Please "</span>
+                <span class="s2">"provide join SQL through the 'joins' parameter or set "</span>
+                <span class="s2">"joins='infer' to have CytoTable infer the join SQL "</span>
+                <span class="s2">"from the source data."</span>
+            <span class="p">)</span>
 
         <span class="n">prepared_joins_sql</span> <span class="o">=</span> <span class="n">_prepare_join_sql</span><span class="p">(</span>
             <span class="n">sources</span><span class="o">=</span><span class="n">evaluated_results</span><span class="p">,</span> <span class="n">joins</span><span class="o">=</span><span class="n">joins</span>
@@ -2157,6 +2214,8 @@ window.runMermaid = runMermaid;</script>
 <span class="sd">            Whether to join the compartment data together into one dataset.</span>
 <span class="sd">        joins (Optional[str]):</span>
 <span class="sd">            DuckDB-compatible SQL which will be used to perform the join operations.</span>
+<span class="sd">            Use ``"infer"`` to generate the join SQL automatically by inspecting</span>
+<span class="sd">            the source table schemas and data (join SQL inference).</span>
 <span class="sd">        chunk_size (Optional[int]):</span>
 <span class="sd">            Size of join chunks which is used to limit data size during join ops.</span>
 <span class="sd">        infer_common_schema (bool):</span>
@@ -2385,16 +2444,41 @@ window.runMermaid = runMermaid;</script>
 
         <span class="c1"># Raise an exception for scenarios where one configures CytoTable to join</span>
         <span class="c1"># but does not provide a pagination key for the joins.</span>
-        <span class="k">if</span> <span class="n">join</span> <span class="ow">and</span> <span class="p">(</span><span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">"join"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+        <span class="c1"># Note: this requirement is lifted when join SQL will be inferred,</span>
+        <span class="c1"># as inference determines and provides the join pagination key.</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">join</span>
+            <span class="ow">and</span> <span class="p">(</span><span class="n">page_keys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">"join"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">page_keys</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">)</span>
+        <span class="p">):</span>
             <span class="k">raise</span> <span class="n">CytoTableException</span><span class="p">(</span>
                 <span class="p">(</span>
                     <span class="s2">"When using join=True one must pass a 'join' pagination key "</span>
                     <span class="s2">"in the page_keys parameter. The 'join' pagination key is a column "</span>
                     <span class="s2">"name found within the joined results based on the SQL provided from "</span>
                     <span class="s2">"the joins parameter. This special key is required as not all columns "</span>
-                    <span class="s2">"from the source tables might not be included."</span>
+                    <span class="s2">"from the source tables might not be included. Alternatively, set "</span>
+                    <span class="s2">"joins='infer' to have CytoTable infer the join SQL and the join "</span>
+                    <span class="s2">"pagination key from the source data."</span>
                 <span class="p">)</span>
             <span class="p">)</span>
+
+        <span class="c1"># when join SQL will be inferred and no identifying columns were</span>
+        <span class="c1"># provided, use canonical defaults so the column renaming stage</span>
+        <span class="c1"># yields the key and parent reference columns inference detects</span>
+        <span class="k">if</span> <span class="n">identifying_columns</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">cytotable.joins</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>  <span class="c1"># pylint: disable=import-outside-toplevel</span>
+                <span class="n">_default_identifying_columns</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="n">identifying_columns</span> <span class="o">=</span> <span class="n">_default_identifying_columns</span><span class="p">(</span>
+                <span class="n">compartments</span><span class="o">=</span><span class="n">compartments</span>
+            <span class="p">)</span>
+
+        <span class="c1"># when join SQL will be inferred and no chunk size was provided,</span>
+        <span class="c1"># use the canonical default chunk size from the presets</span>
+        <span class="k">if</span> <span class="n">chunk_size</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">is_infer_joins_sentinel</span><span class="p">(</span><span class="n">joins</span><span class="p">):</span>
+            <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s2">"cellprofiler_csv"</span><span class="p">][</span><span class="s2">"CONFIG_CHUNK_SIZE"</span><span class="p">])</span>
 
         <span class="c1"># send sources to be written to parquet if selected</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">_run_export_workflow</span><span class="p">(</span>

@@ -314,6 +314,37 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.convert._source_pageset_to_parquet"><code class="docutils literal notranslate"><span class="pre">_source_pageset_to_parquet()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.joins">Joins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins.InferredJoin"><code class="docutils literal notranslate"><span class="pre">InferredJoin</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._Edge"><code class="docutils literal notranslate"><span class="pre">_Edge</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._JoinStep"><code class="docutils literal notranslate"><span class="pre">_JoinStep</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._TableInfo"><code class="docutils literal notranslate"><span class="pre">_TableInfo</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._build_join_tree"><code class="docutils literal notranslate"><span class="pre">_build_join_tree()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._classify_group"><code class="docutils literal notranslate"><span class="pre">_classify_group()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._collect_tables"><code class="docutils literal notranslate"><span class="pre">_collect_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._column_has_invalid_values"><code class="docutils literal notranslate"><span class="pre">_column_has_invalid_values()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._default_identifying_columns"><code class="docutils literal notranslate"><span class="pre">_default_identifying_columns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._detect_key_columns"><code class="docutils literal notranslate"><span class="pre">_detect_key_columns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._detect_source_page_key"><code class="docutils literal notranslate"><span class="pre">_detect_source_page_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._edge_conditions"><code class="docutils literal notranslate"><span class="pre">_edge_conditions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._find_reference_edges"><code class="docutils literal notranslate"><span class="pre">_find_reference_edges()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._find_referenced_table"><code class="docutils literal notranslate"><span class="pre">_find_referenced_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._infer_source_page_keys"><code class="docutils literal notranslate"><span class="pre">_infer_source_page_keys()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._invalid_page_key_condition"><code class="docutils literal notranslate"><span class="pre">_invalid_page_key_condition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._measure_edge_match"><code class="docutils literal notranslate"><span class="pre">_measure_edge_match()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._paths_sql"><code class="docutils literal notranslate"><span class="pre">_paths_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._pick_column"><code class="docutils literal notranslate"><span class="pre">_pick_column()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._raw_source_select_sql"><code class="docutils literal notranslate"><span class="pre">_raw_source_select_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._render_join_sql"><code class="docutils literal notranslate"><span class="pre">_render_join_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._select_base_table"><code class="docutils literal notranslate"><span class="pre">_select_base_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._shared_key_pairs"><code class="docutils literal notranslate"><span class="pre">_shared_key_pairs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._sql_string_literal"><code class="docutils literal notranslate"><span class="pre">_sql_string_literal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._validate_edges"><code class="docutils literal notranslate"><span class="pre">_validate_edges()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins._validate_rendered_sql"><code class="docutils literal notranslate"><span class="pre">_validate_rendered_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins.infer_join_sql"><code class="docutils literal notranslate"><span class="pre">infer_join_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.joins.is_infer_joins_sentinel"><code class="docutils literal notranslate"><span class="pre">is_infer_joins_sentinel()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="python-api.html#module-cytotable.warehouse.access">Access</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.access.list_tables"><code class="docutils literal notranslate"><span class="pre">list_tables()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.warehouse.access.read_table"><code class="docutils literal notranslate"><span class="pre">read_table()</span></code></a></li>
@@ -399,6 +430,7 @@ At scale, CytoTable transforms data into file formats which can be directly inte
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._raise_if_sqlite_readonly_error"><code class="docutils literal notranslate"><span class="pre">_raise_if_sqlite_readonly_error()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._remove_empty_dirs"><code class="docutils literal notranslate"><span class="pre">_remove_empty_dirs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._resolve_source_page_keys"><code class="docutils literal notranslate"><span class="pre">_resolve_source_page_keys()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="python-api.html#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>

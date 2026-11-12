@@ -61,7 +61,9 @@ Note: this may only be a local path.</p></li>
 ignored with regards to renaming.</p></li>
 <li><p><strong>concat</strong> (<em>bool</em>) – Whether to concatenate similar files together.</p></li>
 <li><p><strong>join</strong> (<em>bool</em>) – Whether to join the compartment data together into one dataset.</p></li>
-<li><p><strong>joins</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
+<li><p><strong>joins</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – DuckDB-compatible SQL which will be used to perform the join operations.
+Use <code class="docutils literal notranslate"><span class="pre">&quot;infer&quot;</span></code> to generate the join SQL automatically by inspecting
+the source table schemas and data (join SQL inference).</p></li>
 <li><p><strong>chunk_size</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Size of join chunks which is used to limit data size during join ops.</p></li>
 <li><p><strong>infer_common_schema</strong> (<em>bool</em>) – Whether to infer a common schema when concatenating sources.</p></li>
 <li><p><strong>drop_null</strong> (<em>bool</em>) – Whether to drop null results.</p></li>
@@ -151,7 +153,9 @@ basename. Requires <code class="docutils literal notranslate"><span class="pre">
 ignored with regards to renaming.</p></li>
 <li><p><strong>concat</strong> (<em>bool</em>) – Whether to concatenate similar files together.</p></li>
 <li><p><strong>join</strong> (<em>bool</em>) – Whether to join the compartment data together into one dataset.</p></li>
-<li><p><strong>joins</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – DuckDB-compatible SQL which will be used to perform the join operations.</p></li>
+<li><p><strong>joins</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – DuckDB-compatible SQL which will be used to perform the join operations.
+Use <code class="docutils literal notranslate"><span class="pre">&quot;infer&quot;</span></code> to generate the join SQL automatically by inspecting
+the source table schemas and data (join SQL inference).</p></li>
 <li><p><strong>chunk_size</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Size of join chunks which is used to limit data size during join ops.</p></li>
 <li><p><strong>infer_common_schema</strong> (<em>bool</em>) – Whether to infer a common schema when concatenating sources.</p></li>
 <li><p><strong>drop_null</strong> (<em>bool</em>) – Whether to drop nan/null values from results.</p></li>
@@ -613,6 +617,638 @@ file or table of some kind along with collected information about table.</p></li
 <li><p><strong>duckdb.Error</strong> – Re-raised when the duckdb-based read fails for a reason other
     than a mixed-type sqlite error.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="module-cytotable.joins">
+<span id="joins"></span><h2>Joins<a class="headerlink" href="#module-cytotable.joins" title="Link to this heading">¶</a></h2>
+<p>Infer CellProfiler-style joins for <code class="docutils literal notranslate"><span class="pre">convert(...,</span> <span class="pre">joins=&quot;infer&quot;)</span></code>.</p>
+<p>Recognize image/table keys, object numbers, and Parent_* references in
+converted parquet schemas. Validate parent references against actual values,
+then build and bind a LEFT JOIN tree and check its row count. Unsupported
+relationships require manual SQL; no fuzzy schema matching is attempted.</p>
+<p>See cytomining/CytoTable#522.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="cytotable.joins.InferredJoin">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">InferredJoin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sql</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/joins.html#InferredJoin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins.InferredJoin" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Result of join SQL inference from source table data.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cytotable.joins.InferredJoin.sql">
+<span class="sig-name descname"><span class="pre">sql</span></span><a class="headerlink" href="#cytotable.joins.InferredJoin.sql" title="Link to this definition">¶</a></dt>
+<dd><p>DuckDB join SQL using <code class="docutils literal notranslate"><span class="pre">'&lt;table_stem&gt;.parquet'</span></code> read_parquet
+placeholders, as expected by <code class="docutils literal notranslate"><span class="pre">_prepare_join_sql</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cytotable.joins.InferredJoin.page_key">
+<span class="sig-name descname"><span class="pre">page_key</span></span><a class="headerlink" href="#cytotable.joins.InferredJoin.page_key" title="Link to this definition">¶</a></dt>
+<dd><p>Column name suggested as the <code class="docutils literal notranslate"><span class="pre">page_keys[&quot;join&quot;]</span></code> pagination
+key for the joined result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cytotable.joins.InferredJoin.base_table">
+<span class="sig-name descname"><span class="pre">base_table</span></span><a class="headerlink" href="#cytotable.joins.InferredJoin.base_table" title="Link to this definition">¶</a></dt>
+<dd><p>Table alias used as the join tree base.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cytotable.joins.InferredJoin.edges">
+<span class="sig-name descname"><span class="pre">edges</span></span><a class="headerlink" href="#cytotable.joins.InferredJoin.edges" title="Link to this definition">¶</a></dt>
+<dd><p>Accepted (child, parent) table alias pairs used for the joins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Tuple[str, str], …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cytotable.joins._Edge">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_Edge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">child</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/joins.html#_Edge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._Edge" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A candidate or validated join edge from a child to a parent table.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cytotable.joins._JoinStep">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_JoinStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">table</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">conditions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/joins.html#_JoinStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._JoinStep" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A single LEFT JOIN step within the inferred join tree.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cytotable.joins._TableInfo">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_TableInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">group_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">numeric_columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">frozenset({})</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tablenumber_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">objectnumber_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/cytotable/joins.html#_TableInfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._TableInfo" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Schema-level information about a converted source table group.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._build_join_tree">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_build_join_tree</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._JoinStep" title="cytotable.joins._JoinStep"><span class="pre">_JoinStep</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_build_join_tree"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._build_join_tree" title="Link to this definition">¶</a></dt>
+<dd><p>Build a spanning left-join tree which joins every table exactly once.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The base table to join from.</p></li>
+<li><p><strong>tables</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a><em>]</em>) – All table information.</p></li>
+<li><p><strong>edges</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><em>_Edge</em></a><em>]</em>) – Validated join edges.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Ordered join steps describing each LEFT JOIN.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#cytotable.joins._JoinStep" title="cytotable.joins._JoinStep">_JoinStep</a>]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when one or more tables cannot be joined to the tree.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._classify_group">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_classify_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">stem</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_classify_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._classify_group" title="Link to this definition">¶</a></dt>
+<dd><p>Classify a source group stem as a compartment or a metadata table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stem</strong> (<em>str</em>) – Lowercased source group filename stem.</p></li>
+<li><p><strong>metadata</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Metadata source table names.</p></li>
+<li><p><strong>compartments</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Compartment source table names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matched compartment or metadata name (lowercased) and
+whether the group classifies as a metadata table.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Optional[str], bool]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._collect_tables">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_collect_tables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_collect_tables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._collect_tables" title="Link to this definition">¶</a></dt>
+<dd><p>Gather schema-level information for each converted source table group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em><em>]</em>) – Grouped converted sources with parquet <code class="docutils literal notranslate"><span class="pre">table</span></code> paths.</p></li>
+<li><p><strong>metadata</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Metadata source table names.</p></li>
+<li><p><strong>compartments</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Compartment source table names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Table information sorted by alias for deterministic output.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo">_TableInfo</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._column_has_invalid_values">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_column_has_invalid_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_column_has_invalid_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._column_has_invalid_values" title="Link to this definition">¶</a></dt>
+<dd><p>Check whether a pagination column contains null or non-finite values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> (<em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em>) – Raw source table entries to check.</p></li>
+<li><p><strong>column</strong> (<em>str</em>) – The numeric column name to validate for pagination.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the column contains a null or non-finite value in any source,
+or if the column could not be queried (treated as unsafe
+to use for pagination rather than silently dropping rows).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._default_identifying_columns">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_default_identifying_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_default_identifying_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._default_identifying_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Build default identifying columns for join SQL inference runs.</p>
+<p>Preserve canonical keys and parent references during column renaming.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>compartments</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Compartment source table names.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Default identifying column names.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[str, …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._detect_key_columns">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_detect_key_columns</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_detect_key_columns"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._detect_key_columns" title="Link to this definition">¶</a></dt>
+<dd><p>Detect shared image/tablenumber key and object number columns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>columns</strong> (<em>Sequence</em><em>[</em><em>str</em><em>]</em>) – Column names of the table.</p></li>
+<li><p><strong>compartment</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Lowercased compartment name of the table, if any.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The image key, tablenumber key, and object number column
+names, where detectable.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[Optional[str], Optional[str], Optional[str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._detect_source_page_key">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_detect_source_page_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_detect_source_page_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._detect_source_page_key" title="Link to this definition">¶</a></dt>
+<dd><p>Detect a finite, numeric, null-free pagination key for a source group.</p>
+<p>The key must be present, numeric, finite, and free of null values in
+every source file within the group: keyset pagination filters rows
+with <code class="docutils literal notranslate"><span class="pre">WHERE</span> <span class="pre">page_key</span> <span class="pre">BETWEEN</span> <span class="pre">...</span></code>, which silently excludes rows
+with a null key, and a column present in only some files would
+fail to query for the others.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> (<em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em>) – All source table entries within the group to detect a key
+for.</p></li>
+<li><p><strong>group_name</strong> (<em>str</em>) – The source group name the sources belong to.</p></li>
+<li><p><strong>compartments</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Compartment source table names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The detected pagination key column name.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when no finite, numeric, null-free pagination key column
+    common to every source file can be detected for the group.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._edge_conditions">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_edge_conditions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">child</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_edge_conditions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._edge_conditions" title="Link to this definition">¶</a></dt>
+<dd><p>Render the ON conditions for a parent reference join edge.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edge</strong> (<a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><em>_Edge</em></a>) – The join edge to render conditions for.</p></li>
+<li><p><strong>child</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The referencing (child) table.</p></li>
+<li><p><strong>parent</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The referenced (parent) table.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SQL condition strings relating the two tables.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[str, …]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._find_reference_edges">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_find_reference_edges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_find_reference_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._find_reference_edges" title="Link to this definition">¶</a></dt>
+<dd><p>Detect candidate parent reference join edges between compartment tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tables</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a><em>]</em>) – Table information gathered from converted sources.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Candidate edges, unvalidated and not yet deduplicated by
+table pair (a table pair may have more than one candidate
+reference column).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge">_Edge</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._find_referenced_table">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_find_referenced_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_by_alias</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_by_compartment</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_find_referenced_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._find_referenced_table" title="Link to this definition">¶</a></dt>
+<dd><p>Find the table which a parent reference column points to.</p>
+<p>An exact alias match (for ex. a table whose group name stem is
+literally the target, such as <code class="docutils literal notranslate"><span class="pre">'per_cells'</span></code> for target
+<code class="docutils literal notranslate"><span class="pre">'cells'</span></code>) is preferred. Otherwise, the target must resolve to
+exactly one compartment-classified table; a target which matches
+more than one table’s compartment (for ex. both <code class="docutils literal notranslate"><span class="pre">cells</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cells_summary</span></code> classifying as compartment <code class="docutils literal notranslate"><span class="pre">cells</span></code>) is
+ambiguous and is not resolved, so the reference is not used.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target</strong> (<em>str</em>) – Lowercased compartment name referenced by the column.</p></li>
+<li><p><strong>table_by_alias</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a><em>]</em>) – Tables keyed by alias.</p></li>
+<li><p><strong>table_by_compartment</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a><em>]</em><em>]</em>) – Tables keyed by lowercased compartment name.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The referenced table, if exactly one is detected.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo">_TableInfo</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._infer_source_page_keys">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_infer_source_page_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_infer_source_page_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._infer_source_page_keys" title="Link to this definition">¶</a></dt>
+<dd><p>Infer pagination keys for source table groups which lack one.</p>
+<p>Preserve explicit keys. For each remaining group, select a key
+which is numeric, finite, and free of null values across every source file
+in the group, preferring object, image, and table numbers, then
+any other common numeric column.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em><em>]</em>) – Grouped sources gathered for conversion work.</p></li>
+<li><p><strong>page_keys</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – User-provided pagination keys, if any.</p></li>
+<li><p><strong>compartments</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Compartment source table names.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated pagination keys including inferred entries.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._invalid_page_key_condition">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_invalid_page_key_condition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_invalid_page_key_condition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._invalid_page_key_condition" title="Link to this definition">¶</a></dt>
+<dd><p>Build the SQL predicate for unusable numeric pagination values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>column</strong> (<em>str</em>) – Numeric pagination column name.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A predicate matching nulls, NaN, and positive or negative infinity.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._measure_edge_match">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_measure_edge_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">edge</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">child</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">parent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_measure_edge_match"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._measure_edge_match" title="Link to this definition">¶</a></dt>
+<dd><p>Measure how many child rows reference existing parent objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edge</strong> (<a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><em>_Edge</em></a>) – The join edge to measure.</p></li>
+<li><p><strong>child</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The referencing (child) table.</p></li>
+<li><p><strong>parent</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The referenced (parent) table.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The total child row count, the count of child rows which
+reference an existing parent object, and the maximum
+number of parent rows a single child row matches (used to
+detect ambiguous references which would multiply rows).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[int, int, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._paths_sql">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_paths_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_paths_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._paths_sql" title="Link to this definition">¶</a></dt>
+<dd><p>Render a read_parquet source for one or more parquet paths.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>paths</strong> (<em>Tuple</em><em>[</em><em>str</em><em>, </em><em>...</em><em>]</em>) – Parquet filepaths to read.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DuckDB read_parquet expression for the paths.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._pick_column">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_pick_column</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">lowered</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exact_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regex</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Pattern</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allowed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">set</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_pick_column"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._pick_column" title="Link to this definition">¶</a></dt>
+<dd><p>Select a column by exact lowercased names, then by regex, in order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lowered</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – Mapping of lowercased column names to original column names.</p></li>
+<li><p><strong>exact_names</strong> (<em>Tuple</em><em>[</em><em>str</em><em>, </em><em>...</em><em>]</em>) – Lowercased names to seek exactly, in priority order.</p></li>
+<li><p><strong>regex</strong> (<em>Optional</em><em>[</em><em>re.Pattern</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Optional regex applied to lowercased names as a fallback.</p></li>
+<li><p><strong>allowed</strong> (<em>Optional</em><em>[</em><em>set</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Optional set of lowercased names which are eligible for
+selection, for ex. those of numeric columns.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The original column name which matched, if any.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._raw_source_select_sql">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_raw_source_select_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_raw_source_select_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._raw_source_select_sql" title="Link to this definition">¶</a></dt>
+<dd><p>Render a DuckDB FROM-clause source for a raw (unconverted) source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – A source table entry with a <code class="docutils literal notranslate"><span class="pre">source_path</span></code> and, for
+SQLite sources, a <code class="docutils literal notranslate"><span class="pre">table_name</span></code>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A DuckDB table function expression reading the source.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._render_join_sql">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_render_join_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._JoinStep" title="cytotable.joins._JoinStep"><span class="pre">_JoinStep</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_render_join_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._render_join_sql" title="Link to this definition">¶</a></dt>
+<dd><p>Render the inferred join SQL and its suggested pagination key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The base table to join from.</p></li>
+<li><p><strong>steps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._JoinStep" title="cytotable.joins._JoinStep"><em>_JoinStep</em></a><em>]</em>) – Ordered join steps describing each LEFT JOIN.</p></li>
+<li><p><strong>page_key</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Explicit join pagination key, if provided by the caller.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The rendered SQL (with parquet read placeholders) and the
+suggested join pagination key column name.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[str, str]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when no pagination key column can be determined.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._select_base_table">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_select_base_table</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_select_base_table"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._select_base_table" title="Link to this definition">¶</a></dt>
+<dd><p>Select the table to use as the base of the inferred join tree.</p>
+<p>The compartment with the most parent references is preferred
+(canonically the cytoplasm compartment), then cytoplasm-named
+tables, then tables with more columns, then alphabetical order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tables</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a><em>]</em>) – Table information gathered from converted sources.</p></li>
+<li><p><strong>edges</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><em>_Edge</em></a><em>]</em>) – Validated join edges.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The selected base table.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo">_TableInfo</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._shared_key_pairs">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_shared_key_pairs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_shared_key_pairs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._shared_key_pairs" title="Link to this definition">¶</a></dt>
+<dd><p>Gather shared key column pairs (left, right) between two tables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>left</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – One table of the pair.</p></li>
+<li><p><strong>right</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The other table of the pair.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Column name pairs which both tables share.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Tuple[str, str]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._sql_string_literal">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_sql_string_literal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_sql_string_literal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._sql_string_literal" title="Link to this definition">¶</a></dt>
+<dd><p>Render a value as a DuckDB SQL string literal, escaping apostrophes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>value</strong> (<em>str</em>) – The value to render.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A quoted SQL string literal, with embedded apostrophes
+doubled so DuckDB does not misread them as closing the
+literal (which would otherwise be parsed as an identifier).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._validate_edges">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_validate_edges</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><span class="pre">_Edge</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_validate_edges"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._validate_edges" title="Link to this definition">¶</a></dt>
+<dd><p>Validate candidate edges against the actual table data, then keep
+the best-matching edge for each (child, parent) table pair.</p>
+<p>Measures the fraction of child rows whose parent reference matches
+an existing parent object. Edges which match nothing are rejected
+before deduplication, so a table pair with multiple candidate
+reference columns is not resolved by an arbitrary (and possibly
+invalid) column picked before validation. Edges with low match
+rates are kept with a warning. Edges where any child row matches
+more than one parent row are rejected, since such a reference
+would multiply rows or produce ambiguous parent associations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>edges</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge"><em>_Edge</em></a><em>]</em>) – Candidate join edges.</p></li>
+<li><p><strong>tables</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a><em>]</em>) – Table information by alias.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>At most one validated edge per (child, parent) table pair.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="#cytotable.joins._Edge" title="cytotable.joins._Edge">_Edge</a>]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when a candidate edge references duplicate parent
+    keys, which would produce ambiguous or multiplied rows.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins._validate_rendered_sql">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">_validate_rendered_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><span class="pre">_TableInfo</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#cytotable.joins._JoinStep" title="cytotable.joins._JoinStep"><span class="pre">_JoinStep</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sql</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#_validate_rendered_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins._validate_rendered_sql" title="Link to this definition">¶</a></dt>
+<dd><p>Validate the rendered SQL by binding and counting joined rows.</p>
+<p>Substitute real paths, bind without materializing rows, validate pagination
+values in the joined result, and compare row counts to warn about fan-out.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base</strong> (<a class="reference internal" href="#cytotable.joins._TableInfo" title="cytotable.joins._TableInfo"><em>_TableInfo</em></a>) – The base table of the join.</p></li>
+<li><p><strong>steps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#cytotable.joins._JoinStep" title="cytotable.joins._JoinStep"><em>_JoinStep</em></a><em>]</em>) – Ordered join steps of the join.</p></li>
+<li><p><strong>sql</strong> (<em>str</em>) – The rendered SQL with parquet read placeholders.</p></li>
+<li><p><strong>page_key</strong> (<em>str</em>) – Explicit or inferred pagination column in the joined result.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when the SQL fails to bind or execute against the
+    data, when pagination values are null or non-finite, or when the
+    joined result has fewer rows than the base table.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins.infer_join_sql">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">infer_join_sql</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sources</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compartments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#cytotable.joins.InferredJoin" title="cytotable.joins.InferredJoin"><span class="pre">InferredJoin</span></a></span></span><a class="reference internal" href="_modules/cytotable/joins.html#infer_join_sql"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins.infer_join_sql" title="Link to this definition">¶</a></dt>
+<dd><p>Infer DuckDB join SQL by inspecting converted source table data.</p>
+<p>Return SQL with <code class="docutils literal notranslate"><span class="pre">'&lt;table_stem&gt;.parquet'</span></code> placeholders for
+<code class="docutils literal notranslate"><span class="pre">_prepare_join_sql</span></code>. Validation scans parent-reference values and
+counts the full joined result before returning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sources</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em><em>]</em><em>]</em>) – Grouped converted sources which each include <code class="docutils literal notranslate"><span class="pre">table</span></code> keys
+with parquet filepath lists, as produced by the export
+workflow’s concatenation stage.</p></li>
+<li><p><strong>metadata</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Metadata source table names used to classify source groups.</p></li>
+<li><p><strong>compartments</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Compartment source table names used to classify source groups.</p></li>
+<li><p><strong>page_key</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Explicit join pagination key to preserve instead of inferring one.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The inferred join SQL and related details.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cytotable.joins.InferredJoin" title="cytotable.joins.InferredJoin">InferredJoin</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when no tables are provided, when no defensible join
+    can be inferred for one or more tables, when no pagination
+    key can be determined, or when the rendered SQL fails
+    validation against the source data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cytotable.joins.is_infer_joins_sentinel">
+<span class="sig-prename descclassname"><span class="pre">cytotable.joins.</span></span><span class="sig-name descname"><span class="pre">is_infer_joins_sentinel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">joins</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/cytotable/joins.html#is_infer_joins_sentinel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.joins.is_infer_joins_sentinel" title="Link to this definition">¶</a></dt>
+<dd><p>Determine whether a joins value is the inference sentinel.</p>
+<p>Join SQL inference occurs only when this returns True for the
+<code class="docutils literal notranslate"><span class="pre">joins</span></code> value; inference is always an explicit choice.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>joins</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – The joins value to check.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the value references join SQL inference.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1964,8 +2600,34 @@ staging directories while sibling tasks were still writing into them
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="cytotable.utils._resolve_source_page_keys">
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_resolve_source_page_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_group_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_resolve_source_page_keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._resolve_source_page_keys" title="Link to this definition">¶</a></dt>
+<dd><p>Resolve source pagination keys without overlapping-name collisions.</p>
+<p>Exact group names or stems take precedence. A shorthand substring is
+accepted only when it identifies one group, and the reserved join key
+never applies to raw sources.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_group_names</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – Names of all source groups in the export.</p></li>
+<li><p><strong>page_keys</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em>) – Caller-provided or inferred pagination keys.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Pagination columns keyed by resolved source group name.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, str]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cytotable.exceptions.CytoTableException" title="cytotable.exceptions.CytoTableException"><strong>CytoTableException</strong></a> – Raised when conflicting shorthand keys identify the same group.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._sqlite_mixed_type_query_to_parquet">
-<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_sqlite_mixed_type_query_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pageset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tablenumber</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_sqlite_mixed_type_query_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_sqlite_mixed_type_query_to_parquet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">table_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">page_key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pageset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tablenumber</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Table</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_sqlite_mixed_type_query_to_parquet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet" title="Link to this definition">¶</a></dt>
 <dd><p>Performs SQLite table data extraction where one or many
 columns include data values of potentially mismatched type
 such that the data may be exported to Arrow for later use.</p>
@@ -1974,11 +2636,12 @@ such that the data may be exported to Arrow for later use.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>source_path</strong> (<em>str</em>) – A str which is a path to a SQLite database file.</p></li>
 <li><p><strong>table_name</strong> (<em>str</em>) – The name of the table being queried.</p></li>
-<li><p><strong>page_key</strong> (<em>str</em>) – The column name to be used to identify pagination chunks.</p></li>
-<li><p><strong>pageset</strong> (<em>Tuple</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>float</em><em>]</em><em>, </em><em>Union</em><em>[</em><em>int</em><em>, </em><em>float</em><em>]</em><em>]</em>) – The range for values used for paginating data from source.</p></li>
+<li><p><strong>page_key</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Column identifying pagination chunks, or None for an unpaged read.</p></li>
+<li><p><strong>pageset</strong> (<em>Optional</em><em>[</em><em>Tuple</em><em>[</em><em>Union</em><em>[</em><em>int</em><em>, </em><em>float</em><em>]</em><em>, </em><em>Union</em><em>[</em><em>int</em><em>, </em><em>float</em><em>]</em><em>]</em><em>]</em>) – Pagination bounds, or None to read without a range filter.</p></li>
 <li><p><strong>sort_output</strong> (<em>bool</em>) – Specifies whether to sort cytotable output or not.</p></li>
 <li><p><strong>tablenumber</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – An optional table number to append to the results.
 Defaults to None.</p></li>
+<li><p><strong>limit</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Maximum rows to read, for bounded schema samples before pagination.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1988,6 +2651,9 @@ type.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>pa.Table</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – Raised when pagination bounds are supplied without a page key.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2332,6 +2998,37 @@ files even for read-only queries against a WAL-mode database).</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.convert._source_pageset_to_parquet"><code class="docutils literal notranslate"><span class="pre">_source_pageset_to_parquet()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#module-cytotable.joins">Joins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins.InferredJoin"><code class="docutils literal notranslate"><span class="pre">InferredJoin</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._Edge"><code class="docutils literal notranslate"><span class="pre">_Edge</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._JoinStep"><code class="docutils literal notranslate"><span class="pre">_JoinStep</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._TableInfo"><code class="docutils literal notranslate"><span class="pre">_TableInfo</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._build_join_tree"><code class="docutils literal notranslate"><span class="pre">_build_join_tree()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._classify_group"><code class="docutils literal notranslate"><span class="pre">_classify_group()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._collect_tables"><code class="docutils literal notranslate"><span class="pre">_collect_tables()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._column_has_invalid_values"><code class="docutils literal notranslate"><span class="pre">_column_has_invalid_values()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._default_identifying_columns"><code class="docutils literal notranslate"><span class="pre">_default_identifying_columns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._detect_key_columns"><code class="docutils literal notranslate"><span class="pre">_detect_key_columns()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._detect_source_page_key"><code class="docutils literal notranslate"><span class="pre">_detect_source_page_key()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._edge_conditions"><code class="docutils literal notranslate"><span class="pre">_edge_conditions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._find_reference_edges"><code class="docutils literal notranslate"><span class="pre">_find_reference_edges()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._find_referenced_table"><code class="docutils literal notranslate"><span class="pre">_find_referenced_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._infer_source_page_keys"><code class="docutils literal notranslate"><span class="pre">_infer_source_page_keys()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._invalid_page_key_condition"><code class="docutils literal notranslate"><span class="pre">_invalid_page_key_condition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._measure_edge_match"><code class="docutils literal notranslate"><span class="pre">_measure_edge_match()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._paths_sql"><code class="docutils literal notranslate"><span class="pre">_paths_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._pick_column"><code class="docutils literal notranslate"><span class="pre">_pick_column()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._raw_source_select_sql"><code class="docutils literal notranslate"><span class="pre">_raw_source_select_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._render_join_sql"><code class="docutils literal notranslate"><span class="pre">_render_join_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._select_base_table"><code class="docutils literal notranslate"><span class="pre">_select_base_table()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._shared_key_pairs"><code class="docutils literal notranslate"><span class="pre">_shared_key_pairs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._sql_string_literal"><code class="docutils literal notranslate"><span class="pre">_sql_string_literal()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._validate_edges"><code class="docutils literal notranslate"><span class="pre">_validate_edges()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins._validate_rendered_sql"><code class="docutils literal notranslate"><span class="pre">_validate_rendered_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins.infer_join_sql"><code class="docutils literal notranslate"><span class="pre">infer_join_sql()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.joins.is_infer_joins_sentinel"><code class="docutils literal notranslate"><span class="pre">is_infer_joins_sentinel()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#module-cytotable.warehouse.access">Access</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.warehouse.access.list_tables"><code class="docutils literal notranslate"><span class="pre">list_tables()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.warehouse.access.read_table"><code class="docutils literal notranslate"><span class="pre">read_table()</span></code></a></li>
@@ -2417,6 +3114,7 @@ files even for read-only queries against a WAL-mode database).</p>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._parsl_loaded"><code class="docutils literal notranslate"><span class="pre">_parsl_loaded()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._raise_if_sqlite_readonly_error"><code class="docutils literal notranslate"><span class="pre">_raise_if_sqlite_readonly_error()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._remove_empty_dirs"><code class="docutils literal notranslate"><span class="pre">_remove_empty_dirs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._resolve_source_page_keys"><code class="docutils literal notranslate"><span class="pre">_resolve_source_page_keys()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._sqlite_mixed_type_query_to_parquet"><code class="docutils literal notranslate"><span class="pre">_sqlite_mixed_type_query_to_parquet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_source"><code class="docutils literal notranslate"><span class="pre">_unwrap_source()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#cytotable.utils._unwrap_value"><code class="docutils literal notranslate"><span class="pre">_unwrap_value()</span></code></a></li>
