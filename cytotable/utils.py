@@ -26,7 +26,60 @@ from parsl.executors import (
 )
 from parsl.executors import ThreadPoolExecutor as ParslThreadPoolExecutor
 
+from cytotable.exceptions import CytoTableException
+
 logger = logging.getLogger(__name__)
+
+
+def _resolve_source_page_keys(
+    *, source_group_names: List[str], page_keys: Dict[str, str]
+) -> Dict[str, str]:
+    """
+    Resolve source pagination keys without overlapping-name collisions.
+
+    Exact group names or stems take precedence. A shorthand substring is
+    accepted only when it identifies one group, and the reserved join key
+    never applies to raw sources.
+
+    Args:
+        source_group_names (List[str]):
+            Names of all source groups in the export.
+        page_keys (Dict[str, str]):
+            Caller-provided or inferred pagination keys.
+
+    Returns:
+        Dict[str, str]:
+            Pagination columns keyed by resolved source group name.
+
+    Raises:
+        CytoTableException:
+            Raised when conflicting shorthand keys identify the same group.
+    """
+    stems = {name: pathlib.Path(name).stem.lower() for name in source_group_names}
+    candidates: Dict[str, List[Tuple[str, bool]]] = {}
+    for key, column in page_keys.items():
+        if key.lower() == "join":
+            continue
+        exact = [
+            name for name, stem in stems.items() if key.lower() in (stem, name.lower())
+        ]
+        matches = exact or [name for name, stem in stems.items() if key.lower() in stem]
+        if len(matches) == 1:
+            candidates.setdefault(matches[0], []).append((column, bool(exact)))
+
+    resolved = {}
+    for name, options in candidates.items():
+        columns = {column for column, exact in options if exact} or {
+            column for column, _ in options
+        }
+        if len(columns) != 1:
+            raise CytoTableException(
+                f"Ambiguous pagination keys for source group '{name}'. "
+                "Provide a pagination key using its exact group name or stem."
+            )
+        resolved[name] = next(iter(columns))
+    return resolved
+
 
 CYTOTABLE_THREAD_EXECUTOR_LABEL = "cytotable_threads"
 
@@ -272,10 +325,11 @@ def _raise_if_sqlite_readonly_error(
 def _sqlite_mixed_type_query_to_parquet(
     source_path: str,
     table_name: str,
-    page_key: str,
-    pageset: Tuple[Union[int, float], Union[int, float]],
+    page_key: Optional[str],
+    pageset: Optional[Tuple[Union[int, float], Union[int, float]]],
     sort_output: bool,
     tablenumber: Optional[int] = None,
+    limit: Optional[int] = None,
 ) -> pa.Table:
     """
     Performs SQLite table data extraction where one or many
@@ -287,21 +341,27 @@ def _sqlite_mixed_type_query_to_parquet(
             A str which is a path to a SQLite database file.
         table_name (str):
             The name of the table being queried.
-        page_key (str):
-            The column name to be used to identify pagination chunks.
-        pageset (Tuple[Union[int, float], Union[int, float]]):
-            The range for values used for paginating data from source.
+        page_key (Optional[str]):
+            Column identifying pagination chunks, or None for an unpaged read.
+        pageset (Optional[Tuple[Union[int, float], Union[int, float]]]):
+            Pagination bounds, or None to read without a range filter.
         sort_output (bool):
             Specifies whether to sort cytotable output or not.
         tablenumber (Optional[int]):
             An optional table number to append to the results.
             Defaults to None.
+        limit (Optional[int]):
+            Maximum rows to read, for bounded schema samples before pagination.
 
     Returns:
         pa.Table:
             A PyArrow table containing the extracted rows, with mixed-type
             cells coerced to nulls where storage class disagrees with column
             type.
+
+    Raises:
+        ValueError:
+            Raised when pagination bounds are supplied without a page key.
     """
     import sqlite3
 
@@ -309,6 +369,9 @@ def _sqlite_mixed_type_query_to_parquet(
 
     from cytotable.constants import SQLITE_AFFINITY_DATA_TYPE_SYNONYMS
     from cytotable.exceptions import DatatypeException
+
+    if pageset is not None and page_key is None:
+        raise ValueError("A page key is required when pagination bounds are supplied.")
 
     # open sqlite3 connection
     with sqlite3.connect(source_path) as conn:
@@ -373,17 +436,27 @@ def _sqlite_mixed_type_query_to_parquet(
             END AS {col["column_name"]}
             """ for col in column_info])
 
-        # perform the select using the cases built above and using chunksize + offset
+        # Schema inspection can sample rows before a pagination key exists.
+        where_sql = (
+            f"WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}"
+            if pageset is not None
+            else ""
+        )
+        order_sql = (
+            f"ORDER BY {page_key}" if sort_output and page_key is not None else ""
+        )
+        limit_sql = "LIMIT :limit" if limit is not None else ""
         sql_stmt = f"""
             SELECT
                 {query_parts}
             FROM {table_name}
-            WHERE {page_key} BETWEEN {pageset[0]} AND {pageset[1]}
-            {"ORDER BY " + page_key if sort_output else ""};
+            {where_sql}
+            {order_sql}
+            {limit_sql};
             """
 
         # execute the sql stmt
-        cursor.execute(sql_stmt)
+        cursor.execute(sql_stmt, {"limit": limit})
         # collect the results and include the column name with values
         results = [
             dict(zip([desc[0] for desc in cursor.description], row))

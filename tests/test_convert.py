@@ -10,14 +10,14 @@ import importlib
 import itertools
 import os
 import pathlib
-import shutil
 import sqlite3
 from contextlib import closing
 from importlib.util import find_spec
 from shutil import copy
-from typing import Any, Dict, List, Tuple, cast
+from typing import Any, Dict, List, Optional, Tuple, cast
 from unittest.mock import MagicMock, Mock
 
+import anndata as ad
 import duckdb
 import pandas as pd
 import pyarrow as pa
@@ -31,6 +31,7 @@ from pycytominer.cyto_utils.cells import SingleCells
 from cytotable.convert import (
     _concat_join_sources,
     _concat_source_group,
+    _get_table_columns_and_types,
     _get_table_keyset_pagination_sets,
     _infer_source_group_common_schema,
     _join_source_pageset,
@@ -592,6 +593,86 @@ def test_concat_source_group(
         ).result()
 
 
+@pytest.mark.parametrize(
+    "directory", ["plain", "O'Brien", 'double"quote', "both'and\"quotes", r"back\slash"]
+)
+@pytest.mark.parametrize("file_count", [1, 2])
+def test_prepare_join_sql_quotes_paths(
+    load_parsl_default: None,
+    tmp_path: pathlib.Path,
+    directory: str,
+    file_count: int,
+):
+    """Read actual parquet files without treating Python path repr as SQL."""
+    parent = tmp_path / directory
+    parent.mkdir()
+    paths = []
+    for index in range(file_count):
+        path = parent / f"part{index}.parquet"
+        parquet.write_table(pa.table({"ObjectNumber": [index]}), path)
+        paths.append(path)
+    prepared = _prepare_join_sql(
+        sources={"cells.csv": [{"table": paths}]},
+        joins="SELECT ObjectNumber FROM read_parquet('cells.parquet') ORDER BY ObjectNumber",
+    ).result()
+    with _duckdb_reader() as reader:
+        assert reader.execute(prepared).fetchall() == [
+            (index,) for index in range(file_count)
+        ]
+
+
+@pytest.mark.parametrize("joins", [None, "infer"])
+@pytest.mark.parametrize("directory", ["O'Brien", "both'and\"quotes"])
+@pytest.mark.parametrize("dest_datatype", ["parquet", "anndata_h5ad", "anndata_zarr"])
+@pytest.mark.usefixtures("load_parsl_default")
+def test_convert_quoted_destination(
+    tmp_path: pathlib.Path,
+    data_dir_cellprofiler: str,
+    joins: Optional[str],
+    directory: str,
+    dest_datatype: str,
+):
+    """Manual and inferred joins retain values and pagination in quoted paths."""
+    options: Dict[str, Any] = {
+        "source_path": f"{data_dir_cellprofiler}/ExampleHuman",
+        "source_datatype": "csv",
+        "preset": "cellprofiler_csv",
+        "joins": joins,
+        "chunk_size": 25,
+    }
+    expected = parquet.read_table(
+        convert(
+            dest_path=str(tmp_path / "expected.parquet"),
+            dest_datatype="parquet",
+            **options,
+        )
+    )
+    suffix = {"parquet": "parquet", "anndata_h5ad": "h5ad", "anndata_zarr": "zarr"}[
+        dest_datatype
+    ]
+    result = convert(
+        dest_path=str(tmp_path / directory / f"actual.{suffix}"),
+        dest_datatype=dest_datatype,
+        **options,
+    )
+    if dest_datatype == "parquet":
+        actual = parquet.read_table(result)
+    else:
+        adata = (
+            ad.read_h5ad(result)
+            if dest_datatype == "anndata_h5ad"
+            else ad.read_zarr(result)
+        )
+        actual = pa.Table.from_pandas(
+            adata.obs.join(adata.to_df()),
+            schema=expected.schema,
+            preserve_index=False,
+        )
+    order = [(name, "ascending") for name in expected.column_names]
+    assert actual.num_rows == expected.num_rows == 289
+    assert actual.sort_by(order).equals(expected.sort_by(order))
+
+
 def test_prepare_join_sql(
     load_parsl_default: None,
     example_local_sources: Dict[str, List[Dict[str, Any]]],
@@ -758,6 +839,55 @@ def test_join_source_pageset(load_parsl_default: None, fx_tempdir: str):
     )
 
 
+@pytest.mark.parametrize("dest_datatype", ["anndata_h5ad", "anndata_zarr"])
+@pytest.mark.parametrize("sort_output", [False, True])
+@pytest.mark.parametrize("directory", ["O'Brien", "both'and\"quotes"])
+def test_concat_join_sources_anndata_quoted_paths(
+    load_parsl_default: None,
+    tmp_path: pathlib.Path,
+    dest_datatype: str,
+    sort_output: bool,
+    directory: str,
+):
+    """Escape every chunk path for both matrix and observation reads."""
+    chunk_paths = []
+    for index in [1, 10, 2]:
+        parent = tmp_path / ("plain" if index == 1 else directory)
+        parent.mkdir(exist_ok=True)
+        path = parent / f"chunk{index}.parquet"
+        parquet.write_table(
+            pa.table(
+                {
+                    "Cells_ObjectNumber": [index],
+                    "Cells_Feature": [index / 4],
+                    "Metadata_Label": [f"cell'{index}"],
+                }
+            ),
+            path,
+        )
+        chunk_paths.append(str(path))
+
+    suffix = "h5ad" if dest_datatype == "anndata_h5ad" else "zarr"
+    result = _concat_join_sources(
+        sources={},
+        dest_path=str(tmp_path / directory / f"result.{suffix}"),
+        join_sources=chunk_paths,
+        dest_datatype=dest_datatype,
+        sort_output=sort_output,
+    ).result()
+    adata = (
+        ad.read_h5ad(result)
+        if dest_datatype == "anndata_h5ad"
+        else ad.read_zarr(result)
+    )
+    assert adata.var_names.tolist() == ["Cells_ObjectNumber", "Cells_Feature"]
+    assert adata.obs.columns.tolist() == ["Metadata_Label"]
+    # Check each matrix row with its label, regardless of output row order.
+    assert sorted(zip(adata.X.tolist(), adata.obs["Metadata_Label"].tolist())) == [
+        ([index, index / 4], f"cell'{index}") for index in [1, 2, 10]
+    ]
+
+
 def test_concat_join_sources(load_parsl_default: None, fx_tempdir: str):
     """
     Tests _concat_join_sources
@@ -867,43 +997,17 @@ def test_infer_source_datatype(
 
 
 def test_get_table_keyset_pagination_sets_with_wal_mode_readonly_sqlite(
-    load_parsl_default: None, fx_tempdir: str
+    load_parsl_default: None, readonly_wal_sqlite: pathlib.Path
 ):
     """
-    Tests that pagination raises SQLiteReadOnlyException for a read-only
-    WAL-mode sqlite source missing its '-wal'/'-shm' companion files.
+    Tests pagination reports a read-only WAL database without companion files.
     """
-
-    tmp_dir_path = pathlib.Path(fx_tempdir)
-
-    source_dir = tmp_dir_path / "pagination_wal_source"
-    source_dir.mkdir()
-    source_path = source_dir / "example.sqlite"
-    with closing(sqlite3.connect(source_path)) as conn:
-        with conn:
-            conn.execute("PRAGMA journal_mode=WAL;")
-            conn.execute("CREATE TABLE Image (ImageNumber INTEGER);")
-            conn.execute("INSERT INTO Image VALUES (1);")
-            conn.commit()
-
-    readonly_dir = tmp_dir_path / "pagination_readonly"
-    readonly_dir.mkdir()
-    readonly_path = readonly_dir / "example.sqlite"
-    shutil.copy(source_path, readonly_path)
-
-    os.chmod(readonly_path, 0o444)
-    os.chmod(readonly_dir, 0o555)
-
-    try:
-        with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
-            _get_table_keyset_pagination_sets(
-                chunk_size=1000,
-                page_key="ImageNumber",
-                source={"table_name": "Image", "source_path": readonly_path},
-            ).result()
-    finally:
-        os.chmod(readonly_dir, 0o755)
-        os.chmod(readonly_path, 0o644)
+    with pytest.raises(SQLiteReadOnlyException, match="journal_mode=DELETE"):
+        _get_table_keyset_pagination_sets(
+            chunk_size=1000,
+            page_key="ImageNumber",
+            source={"table_name": "Image", "source_path": readonly_wal_sqlite},
+        ).result()
 
 
 def test_run_export_workflow(
@@ -1491,6 +1595,125 @@ def test_convert_cellprofiler_sqlite_pycytominer_merge(
         cytotable_table.cast(target_schema=pycytominer_table.schema).schema
     )
     assert pycytominer_table.shape == cytotable_table.shape
+
+
+def test_sqlite_mixed_type_schema_without_page_keys(
+    load_parsl_default: None, data_dir_cytominerdatabase: str
+):
+    """Inspect real mixed-type CellProfiler data before pagination is configured."""
+    source = {
+        "source_path": pathlib.Path(data_dir_cytominerdatabase)
+        / "Cell-Health"
+        / "test-SQ00014613.sqlite",
+        "table_name": "Nuclei",
+    }
+    result = _get_table_columns_and_types(source=source, sort_output=True).result()
+    columns = {
+        column["column_name"]: column["column_dtype"]
+        for column in result
+        if column is not None
+    }
+    assert columns["ObjectNumber"] == "BIGINT"
+    assert columns["Nuclei_Correlation_Costes_AGP_DNA"] == "DOUBLE"
+    assert "page_key" not in source and "pagesets" not in source
+
+
+def test_sqlite_mixed_type_schema_sample_is_bounded(
+    example_sqlite_mixed_types_database: str,
+):
+    """A schema sample needs neither a page key nor an unbounded table read."""
+    sample = _sqlite_mixed_type_query_to_parquet(
+        source_path=example_sqlite_mixed_types_database,
+        table_name="tbl_a",
+        page_key=None,
+        pageset=None,
+        sort_output=True,
+        limit=1,
+    )
+    assert sample.to_pydict() == {
+        "col_integer": [1],
+        "col_text": ["sample"],
+        "col_blob": [b"sample_blob"],
+        "col_real": [0.5],
+    }
+
+
+def test_sqlite_mixed_type_pagination_requires_key(tmp_path: pathlib.Path):
+    """Do not silently drop a requested pagination range when its key is absent."""
+    source = tmp_path / "missing.sqlite"
+    with pytest.raises(ValueError, match="page key"):
+        _sqlite_mixed_type_query_to_parquet(
+            source_path=str(source),
+            table_name="Cells",
+            page_key=None,
+            pageset=(1, 2),
+            sort_output=False,
+        )
+    assert not source.exists()
+
+
+@pytest.mark.parametrize("floating_integer", [False, True])
+def test_convert_inferred_joins_mixed_type_sqlite(
+    load_parsl_default: None,
+    tmp_path: pathlib.Path,
+    data_dir_cytominerdatabase: str,
+    floating_integer: bool,
+):
+    """Infer real CellProfiler joins despite text NaNs and a float in an int field."""
+    source = tmp_path / "mixed.sqlite"
+    copy(f"{data_dir_cytominerdatabase}/Cell-Health/test-SQ00014613.sqlite", source)
+    with closing(sqlite3.connect(source)) as connection:
+        if floating_integer:
+            connection.execute(
+                "UPDATE Cells SET Cells_AreaShape_Area = 10.5 "
+                "WHERE rowid = (SELECT rowid FROM Cells LIMIT 1)"
+            )
+            connection.commit()
+        # Independent joins and storage-class checks mirror the existing
+        # mixed-type policy: mismatched feature values become null, not rows.
+        expected = connection.execute("""
+            SELECT cytoplasm.TableNumber, cytoplasm.ImageNumber,
+                   cytoplasm.ObjectNumber,
+                   CASE WHEN typeof(cells.Cells_AreaShape_Area) = 'integer'
+                        THEN cells.Cells_AreaShape_Area END,
+                   CASE WHEN typeof(nuclei.Nuclei_Correlation_Costes_AGP_DNA) = 'real'
+                        THEN nuclei.Nuclei_Correlation_Costes_AGP_DNA END
+            FROM Cytoplasm AS cytoplasm
+            LEFT JOIN Cells AS cells
+              ON cells.TableNumber = cytoplasm.TableNumber
+             AND cells.ImageNumber = cytoplasm.ImageNumber
+             AND cells.ObjectNumber = cytoplasm.Cytoplasm_Parent_Cells
+            LEFT JOIN Nuclei AS nuclei
+              ON nuclei.TableNumber = cytoplasm.TableNumber
+             AND nuclei.ImageNumber = cytoplasm.ImageNumber
+             AND nuclei.ObjectNumber = cytoplasm.Cytoplasm_Parent_Nuclei
+            """).fetchall()
+    result = parquet.read_table(
+        convert(
+            source_path=str(source),
+            dest_path=str(tmp_path / "joined.parquet"),
+            source_datatype="sqlite",
+            preset=None,
+            joins="infer",
+            metadata=["image"],
+            compartments=["cells", "nuclei", "cytoplasm"],
+            chunk_size=1,
+            add_tablenumber=False,
+        )
+    )
+    columns = [
+        "Metadata_TableNumber",
+        "Metadata_ImageNumber",
+        "Metadata_ObjectNumber",
+        "Cells_AreaShape_Area",
+        "Nuclei_Correlation_Costes_AGP_DNA",
+    ]
+    actual = [
+        tuple(row[name] for name in columns)
+        for row in result.select(columns).to_pylist()
+    ]
+    assert len(actual) == len(expected) == 12
+    assert sorted(actual) == sorted(expected)
 
 
 def test_sqlite_mixed_type_query_to_parquet(

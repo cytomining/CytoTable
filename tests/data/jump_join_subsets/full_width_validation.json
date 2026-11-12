@@ -1,0 +1,125 @@
+{
+  "verified_at_utc": "2026-11-07T15:01:05.729208+00:00",
+  "git_commit": "2eea0730ac7c793418a789c4bac8e37fbcc23649",
+  "scope": "Full original CSV columns, complete selected site/well groups; inference and independently specified explicit LEFT JOINs; separate raw CSV dictionary oracle for every row. No inference-generated SQL used as the expected result.",
+  "comparison": "After sorting by TableNumber, ImageNumber, ObjectNumber; same column-name sets and values, paired NaNs accepted, null/NaN distinguished.",
+  "results": [
+    {
+      "group": "jump-pilot",
+      "status": "passed",
+      "source_counts": {
+        "Cells": 172,
+        "Nuclei": 172,
+        "Cytoplasm": 172,
+        "Image": 1
+      },
+      "rows": 172,
+      "columns": 7385,
+      "all_columns_equal_manual": true,
+      "raw_oracle_values_checked": 516,
+      "chunk_size": 100,
+      "source_units": [
+        "BR00116992-A01-1"
+      ],
+      "image_count": 1
+    },
+    {
+      "group": "jump-scope",
+      "status": "passed",
+      "source_counts": {
+        "Cells": 2266,
+        "Nuclei": 2266,
+        "Cytoplasm": 2266,
+        "Image": 1
+      },
+      "rows": 2266,
+      "columns": 3811,
+      "all_columns_equal_manual": true,
+      "raw_oracle_values_checked": 6798,
+      "chunk_size": 100,
+      "source_units": [
+        "BR00117060a10x-A01-1"
+      ],
+      "image_count": 1
+    },
+    {
+      "group": "jump-source1",
+      "status": "passed",
+      "source_counts": {
+        "Cells": 427,
+        "Nuclei": 427,
+        "Cytoplasm": 427,
+        "Image": 2
+      },
+      "rows": 427,
+      "columns": 5886,
+      "all_columns_equal_manual": true,
+      "raw_oracle_values_checked": 1281,
+      "chunk_size": 100,
+      "source_units": [
+        "UL000109-A02-1",
+        "UL000109-A02-2"
+      ],
+      "image_count": 2
+    },
+    {
+      "group": "jump-source3",
+      "status": "passed",
+      "source_counts": {
+        "Cells": 1359,
+        "Nuclei": 1359,
+        "Cytoplasm": 1359,
+        "Image": 9
+      },
+      "rows": 1359,
+      "columns": 4910,
+      "all_columns_equal_manual": true,
+      "raw_oracle_values_checked": 4077,
+      "chunk_size": 100,
+      "source_units": [
+        "BR5867a3-A01"
+      ],
+      "image_count": 9
+    },
+    {
+      "group": "jump-source4",
+      "status": "passed",
+      "source_counts": {
+        "Cells": 292,
+        "Nuclei": 292,
+        "Cytoplasm": 292,
+        "Image": 2
+      },
+      "rows": 292,
+      "columns": 7876,
+      "all_columns_equal_manual": true,
+      "raw_oracle_values_checked": 876,
+      "chunk_size": 100,
+      "source_units": [
+        "BR00117035-A01-1",
+        "BR00117035-A01-2"
+      ],
+      "image_count": 2
+    }
+  ],
+  "totals": {
+    "cases": 5,
+    "image_rows": 15,
+    "cytoplasm_rows": 4516,
+    "output_values_compared": 21391750,
+    "raw_parent_feature_values_checked": 13548,
+    "downloaded_csv_bytes": 274659483
+  },
+  "limitations": [
+    "Selected CSV exports only, not every plate, laboratory, or experimental condition.",
+    "No new native SQLite exports downloaded or validated.",
+    "The retained offline fixtures project columns; they do not replace the full-width validation recorded here."
+  ],
+  "environment": {
+    "python": "3.11.13",
+    "duckdb": "1.5.6",
+    "pyarrow": "25.0.1",
+    "parsl": "2026.10.26",
+    "pytest": "9.1.1"
+  }
+}
