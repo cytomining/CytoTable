@@ -4,6 +4,7 @@ Testing CytoTable utility functions found within util.py
 
 # pylint: disable=C0301
 
+import fcntl
 import inspect
 import pathlib
 import subprocess
@@ -86,9 +87,14 @@ def test_duckdb_reader_ignores_locked_extension_info_file(
             "**/sqlite_scanner.duckdb_extension.info"
         )
     )
-    assert info_files, "expected the extension .info file to exist"
+    # old DuckDB versions (for ex. 0.10.1) install without a .info file
+    if not info_files:
+        pytest.skip("this DuckDB version does not create extension .info files")
 
-    # child process holds an exclusive lock on the .info file
+    # child process holds an exclusive POSIX record lock on the .info
+    # file. lockf matches the locking mechanism DuckDB itself uses
+    # (fcntl F_SETLK); plain flock locks do not conflict with record
+    # locks on Linux, which would make this test pass vacuously.
     child = subprocess.Popen(  # pylint: disable=consider-using-with
         [
             sys.executable,
@@ -96,7 +102,7 @@ def test_duckdb_reader_ignores_locked_extension_info_file(
             textwrap.dedent(f"""
                 import fcntl, time
                 handle = open({str(info_files[0])!r}, "a+b")
-                fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+                fcntl.lockf(handle.fileno(), fcntl.LOCK_EX)
                 print("locked", flush=True)
                 time.sleep(30)
                 """),
@@ -107,6 +113,12 @@ def test_duckdb_reader_ignores_locked_extension_info_file(
     try:
         assert child.stdout is not None
         assert child.stdout.readline().strip() == "locked"
+
+        # negative control: a conflicting record lock from this process
+        # must fail, proving the child really holds an exclusive lock
+        with open(info_files[0], "rb") as probe:
+            with pytest.raises(OSError):
+                fcntl.lockf(probe.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
 
         # the connection must succeed while the .info file is locked
         with _duckdb_reader() as reader:
