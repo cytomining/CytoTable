@@ -631,18 +631,28 @@ window.runMermaid = runMermaid;</script>
 <a class="viewcode-back" href="../../python-api.html#cytotable.utils._duckdb_reader">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">_duckdb_reader</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">duckdb</span><span class="o">.</span><span class="n">DuckDBPyConnection</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Creates a DuckDB connection with the</span>
-<span class="sd">    sqlite_scanner installed and loaded.</span>
+<span class="sd">    Creates a DuckDB connection for reading source data.</span>
 
 <span class="sd">    Note: using this function assumes implementation will</span>
 <span class="sd">    close the subsequently created DuckDB connection using</span>
 <span class="sd">    `_duckdb_reader().close()` or using a context manager,</span>
 <span class="sd">    for ex., using: `with _duckdb_reader() as ddb_reader:`</span>
 
+<span class="sd">    Extensions (sqlite_scanner, httpfs) are intentionally not</span>
+<span class="sd">    installed or loaded here. INSTALL statements take an exclusive</span>
+<span class="sd">    lock on the extension `.info` file even when the extension is</span>
+<span class="sd">    already installed, so issuing them per connection fails when</span>
+<span class="sd">    many threads connect at once on filesystems with unreliable file</span>
+<span class="sd">    locking (for ex. NFS; see cytomining/CytoTable#525). Instead,</span>
+<span class="sd">    DuckDB's autoload setting (enabled by default) loads each</span>
+<span class="sd">    extension on demand the first time a query needs it, which only</span>
+<span class="sd">    takes shared locks once the extension is installed.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        duckdb.DuckDBPyConnection:</span>
-<span class="sd">            A configured DuckDB connection with the sqlite_scanner and</span>
-<span class="sd">            httpfs extensions installed and loaded.</span>
+<span class="sd">            A configured DuckDB connection. Extension-dependent</span>
+<span class="sd">            functionality (for ex. sqlite_scan, http(s)/s3 reads)</span>
+<span class="sd">            relies on DuckDB's autoload of installed extensions.</span>
 <span class="sd">    """</span>
 
     <span class="kn">import</span><span class="w"> </span><span class="nn">duckdb</span>
@@ -653,14 +663,6 @@ window.runMermaid = runMermaid;</script>
         <span class="c1"># note: we use an f-string here to</span>
         <span class="c1"># dynamically configure threads as appropriate</span>
         <span class="sa">f</span><span class="s2">"""</span>
-<span class="s2">        /* Install and load sqlite plugin for duckdb */</span>
-<span class="s2">        INSTALL sqlite_scanner;</span>
-<span class="s2">        LOAD sqlite_scanner;</span>
-
-<span class="s2">        /* Install httpfs plugin to avoid error</span>
-<span class="s2">        https://github.com/duckdb/duckdb/issues/3243 */</span>
-<span class="s2">        INSTALL httpfs;</span>
-
 <span class="s2">        /*</span>
 <span class="s2">        Set threads available to duckdb</span>
 <span class="s2">        See the following for more information:</span>

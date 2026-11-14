@@ -2325,16 +2325,25 @@ image-crop export – that specifically require it.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="cytotable.utils._duckdb_reader">
 <span class="sig-prename descclassname"><span class="pre">cytotable.utils.</span></span><span class="sig-name descname"><span class="pre">_duckdb_reader</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DuckDBPyConnection</span></span></span><a class="reference internal" href="_modules/cytotable/utils.html#_duckdb_reader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cytotable.utils._duckdb_reader" title="Link to this definition">¶</a></dt>
-<dd><p>Creates a DuckDB connection with the
-sqlite_scanner installed and loaded.</p>
+<dd><p>Creates a DuckDB connection for reading source data.</p>
 <p>Note: using this function assumes implementation will
 close the subsequently created DuckDB connection using
 <cite>_duckdb_reader().close()</cite> or using a context manager,
 for ex., using: <cite>with _duckdb_reader() as ddb_reader:</cite></p>
+<p>Extensions (sqlite_scanner, httpfs) are intentionally not
+installed or loaded here. INSTALL statements take an exclusive
+lock on the extension <cite>.info</cite> file even when the extension is
+already installed, so issuing them per connection fails when
+many threads connect at once on filesystems with unreliable file
+locking (for ex. NFS; see cytomining/CytoTable#525). Instead,
+DuckDB’s autoload setting (enabled by default) loads each
+extension on demand the first time a query needs it, which only
+takes shared locks once the extension is installed.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>A configured DuckDB connection with the sqlite_scanner and
-httpfs extensions installed and loaded.</p>
+<dd class="field-odd"><p>A configured DuckDB connection. Extension-dependent
+functionality (for ex. sqlite_scan, http(s)/s3 reads)
+relies on DuckDB’s autoload of installed extensions.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>duckdb.DuckDBPyConnection</p>
