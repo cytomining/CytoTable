@@ -4,15 +4,22 @@ Testing CytoTable utility functions found within util.py
 
 # pylint: disable=C0301
 
+import fcntl
+import inspect
 import pathlib
+import subprocess
+import sys
+import textwrap
 from typing import List
 
+import duckdb
 import pandas as pd
 import pyarrow as pa
 import pytest
 from botocore.exceptions import EndpointConnectionError
 
 from cytotable.utils import (
+    _duckdb_reader,
     _generate_pagesets,
     _natural_sort,
     _remove_empty_dirs,
@@ -20,6 +27,105 @@ from cytotable.utils import (
     find_anndata_metadata_field_names,
     map_pyarrow_type,
 )
+
+
+def test_duckdb_reader_uses_no_install_statements():
+    """
+    Test that _duckdb_reader does not issue INSTALL/LOAD extension statements.
+
+    DuckDB's INSTALL takes an exclusive lock on the extension .info file,
+    even when the extension is already installed. When many CytoTable
+    threads each open a connection on a filesystem with unreliable file
+    locking (for ex. NFS), concurrent INSTALL statements fail with
+    "Could not set lock on file" (see cytomining/CytoTable#525). DuckDB's
+    autoload setting (enabled by default) loads sqlite_scanner and httpfs
+    on demand without any INSTALL/LOAD statements, so none are needed.
+    """
+
+    # the executed setup SQL must not contain INSTALL or LOAD
+    # statements at all, so inspect the function source
+    source = inspect.getsource(_duckdb_reader)
+    # isolate the executed SQL from the explanatory docstring
+    body = source.split('"""', 2)[2]
+    assert "INSTALL " not in body
+    assert "LOAD " not in body
+
+    # the reader must still work and keep its pragmas
+    with _duckdb_reader() as reader:
+        assert (
+            reader.execute(
+                "SELECT current_setting('preserve_insertion_order')"
+            ).fetchone()[0]
+            is False
+        )
+        assert reader.execute("SELECT 41 + 1").fetchone()[0] == 42
+
+
+def test_duckdb_reader_ignores_locked_extension_info_file(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+):
+    """
+    Test that a locked extension .info file does not break connections.
+
+    This emulates the NFS conditions from cytomining/CytoTable#525:
+    another process holds an exclusive lock on the sqlite_scanner
+    extension .info file. If _duckdb_reader issued INSTALL statements,
+    the connection would fail while trying to set its own lock. With
+    INSTALL removed, the connection must succeed regardless of the lock.
+    """
+
+    # point DuckDB's extension directory at a temporary home;
+    # monkeypatch restores the original value afterwards
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    # install the extension once so the .info file exists
+    with duckdb.connect() as bootstrap:
+        bootstrap.execute("INSTALL sqlite_scanner;")
+
+    info_files = list(
+        (tmp_path / ".duckdb" / "extensions").glob(
+            "**/sqlite_scanner.duckdb_extension.info"
+        )
+    )
+    # old DuckDB versions (for ex. 0.10.1) install without a .info file
+    if not info_files:
+        pytest.skip("this DuckDB version does not create extension .info files")
+
+    # child process holds an exclusive POSIX record lock on the .info
+    # file. lockf matches the locking mechanism DuckDB itself uses
+    # (fcntl F_SETLK); plain flock locks do not conflict with record
+    # locks on Linux, which would make this test pass vacuously.
+    child = subprocess.Popen(  # pylint: disable=consider-using-with
+        [
+            sys.executable,
+            "-c",
+            textwrap.dedent(f"""
+                import fcntl, time
+                handle = open({str(info_files[0])!r}, "a+b")
+                fcntl.lockf(handle.fileno(), fcntl.LOCK_EX)
+                print("locked", flush=True)
+                time.sleep(30)
+                """),
+        ],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert child.stdout is not None
+        assert child.stdout.readline().strip() == "locked"
+
+        # negative control: a conflicting record lock from this process
+        # must fail, proving the child really holds an exclusive lock
+        with open(info_files[0], "rb") as probe:
+            with pytest.raises(OSError):
+                fcntl.lockf(probe.fileno(), fcntl.LOCK_SH | fcntl.LOCK_NB)
+
+        # the connection must succeed while the .info file is locked
+        with _duckdb_reader() as reader:
+            assert reader.execute("SELECT 41 + 1").fetchone()[0] == 42
+    finally:
+        child.terminate()
+        child.wait()
 
 
 def test_remove_empty_dirs(tmp_path: pathlib.Path):

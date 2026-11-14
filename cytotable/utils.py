@@ -218,18 +218,28 @@ def _column_sort(value: str):
 
 def _duckdb_reader() -> duckdb.DuckDBPyConnection:
     """
-    Creates a DuckDB connection with the
-    sqlite_scanner installed and loaded.
+    Creates a DuckDB connection for reading source data.
 
     Note: using this function assumes implementation will
     close the subsequently created DuckDB connection using
     `_duckdb_reader().close()` or using a context manager,
     for ex., using: `with _duckdb_reader() as ddb_reader:`
 
+    Extensions (sqlite_scanner, httpfs) are intentionally not
+    installed or loaded here. INSTALL statements take an exclusive
+    lock on the extension `.info` file even when the extension is
+    already installed, so issuing them per connection fails when
+    many threads connect at once on filesystems with unreliable file
+    locking (for ex. NFS; see cytomining/CytoTable#525). Instead,
+    DuckDB's autoload setting (enabled by default) loads each
+    extension on demand the first time a query needs it, which only
+    takes shared locks once the extension is installed.
+
     Returns:
         duckdb.DuckDBPyConnection:
-            A configured DuckDB connection with the sqlite_scanner and
-            httpfs extensions installed and loaded.
+            A configured DuckDB connection. Extension-dependent
+            functionality (for ex. sqlite_scan, http(s)/s3 reads)
+            relies on DuckDB's autoload of installed extensions.
     """
 
     import duckdb
@@ -240,14 +250,6 @@ def _duckdb_reader() -> duckdb.DuckDBPyConnection:
         # note: we use an f-string here to
         # dynamically configure threads as appropriate
         f"""
-        /* Install and load sqlite plugin for duckdb */
-        INSTALL sqlite_scanner;
-        LOAD sqlite_scanner;
-
-        /* Install httpfs plugin to avoid error
-        https://github.com/duckdb/duckdb/issues/3243 */
-        INSTALL httpfs;
-
         /*
         Set threads available to duckdb
         See the following for more information:
